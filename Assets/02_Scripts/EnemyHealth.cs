@@ -1,28 +1,33 @@
 using UnityEngine;
 
-public class EnemyHealth : MonoBehaviour
+public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 {
     [Header("Health Settings")]
-    [SerializeField] private int maxHp = 3; // 적 최대 체력
+    [SerializeField] private float maxHp = 10f;
 
     [Header("Hit Effect")]
-    [SerializeField] private GameObject hitEffectPrefab; // 피격 이펙트 프리팹
+    [SerializeField] private GameObject hitEffectPrefab;
     [SerializeField] private float hitEffectDuration = 0.12f;
 
     [Header("Drop Settings")]
-    [SerializeField] private GameObject dropContainerPrefab; // 파츠 컨테이너 프리팹
+    [SerializeField] private GameObject dropContainerPrefab;
     [SerializeField] private float dropChance = 1f;
 
-    private int currentHp;
+    private float currentHp;
     private bool isDead;
-    private EnemyBaseAI enemyAI;
 
-    public int CurrentHp => currentHp;
+    private EnemyBaseAI enemyAI;
+    private Rigidbody2D rb;
+
+    public float CurrentHp => currentHp;
+    public float MaxHp => maxHp;
+    public float HpRatio => maxHp <= 0f ? 0f : currentHp / maxHp;
     public bool IsDead => isDead;
 
     private void Awake()
     {
         enemyAI = GetComponent<EnemyBaseAI>();
+        rb = GetComponent<Rigidbody2D>();
     }
 
     private void OnEnable()
@@ -31,34 +36,87 @@ public class EnemyHealth : MonoBehaviour
         isDead = false;
     }
 
-    /// <summary>
-    /// 외부에서 호출하는 피격 함수입니다.
-    /// damage만큼 체력을 감소시키고 0 이하가 되면 적을 비활성화합니다.
-    /// </summary>
+    public void SetMaxHp(float newMaxHp, bool refill = true)
+    {
+        maxHp = Mathf.Max(1f, newMaxHp);
+
+        if (refill)
+        {
+            currentHp = maxHp;
+        }
+        else
+        {
+            currentHp = Mathf.Clamp(currentHp, 0f, maxHp);
+        }
+    }
+
     public void TakeDamage(int damage)
+    {
+        TakeDamage((float)damage);
+    }
+
+    public void TakeDamage(float damage)
     {
         if (isDead)
         {
             return;
         }
 
-        currentHp -= damage;
+        if (damage <= 0f)
+        {
+            return;
+        }
+
+        currentHp = Mathf.Max(0f, currentHp - damage);
         SpawnHitEffect();
 
-        if (currentHp <= 0)
+        if (currentHp <= 0f)
         {
             Die();
         }
     }
 
-    private void SpawnHitEffect()
+    public void ApplyKnockback(Vector2 origin, float distance)
     {
-        if (hitEffectPrefab == null || PoolManager.Instance == null)
+        if (isDead)
         {
             return;
         }
 
-        PoolManager.Instance.SpawnAutoRelease(hitEffectPrefab, transform.position, hitEffectDuration);
+        Vector2 direction = (Vector2)transform.position - origin;
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Random.insideUnitCircle;
+        }
+
+        direction.Normalize();
+
+        if (rb != null)
+        {
+            rb.position += direction * distance;
+        }
+        else
+        {
+            transform.position += (Vector3)(direction * distance);
+        }
+    }
+
+    private void SpawnHitEffect()
+    {
+        if (hitEffectPrefab == null)
+        {
+            return;
+        }
+
+        if (PoolManager.Instance != null)
+        {
+            PoolManager.Instance.SpawnAutoRelease(hitEffectPrefab, transform.position, hitEffectDuration);
+        }
+        else
+        {
+            GameObject effect = Instantiate(hitEffectPrefab, transform.position, Quaternion.identity);
+            Destroy(effect, hitEffectDuration);
+        }
     }
 
     private void SpawnContainerDrop()
@@ -85,12 +143,13 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 적이 사망했을 때 호출됩니다.
-    /// 적은 Destroy 대신 풀로 반환되어 이후 재사용됩니다.
-    /// </summary>
     private void Die()
     {
+        if (isDead)
+        {
+            return;
+        }
+
         isDead = true;
 
         if (enemyAI != null)

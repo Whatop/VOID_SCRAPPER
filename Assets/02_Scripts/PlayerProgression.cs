@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PlayerProgression : MonoBehaviour
+public class  PlayerProgression : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private PlayerController2D playerController;
@@ -19,6 +19,8 @@ public class PlayerProgression : MonoBehaviour
     private int currentLevel = 1;
     private int currentScore;
 
+    // PlayerProgression.cs - 임시 안전 처리
+    [SerializeField] private bool useLegacyAutoShooterUpgrade;
     public int CurrentExp => currentExp;
     public int CurrentLevel => currentLevel;
     public int CurrentScore => currentScore;
@@ -120,9 +122,7 @@ public class PlayerProgression : MonoBehaviour
         return GetRequiredExp(currentLevel + 1);
     }
 
-    /// <summary>
-    /// 레벨업 시 자동으로 능력치를 강화합니다.
-    /// </summary>
+
     private void ApplyLevelUpgrade(int newLevel)
     {
         switch (newLevel)
@@ -133,7 +133,9 @@ public class PlayerProgression : MonoBehaviour
                     playerController.AddMoveSpeed(1.2f);
                 }
 
-                if (playerAutoShooter != null)
+                if (useLegacyAutoShooterUpgrade &&
+                    playerAutoShooter != null &&
+                    playerAutoShooter.isActiveAndEnabled)
                 {
                     playerAutoShooter.ApplyUpgradeLevel(2);
                 }
@@ -145,13 +147,13 @@ public class PlayerProgression : MonoBehaviour
                     playerController.AddMoveSpeed(0.8f);
                 }
 
-                if (playerAutoShooter != null)
+                if (useLegacyAutoShooterUpgrade &&
+                    playerAutoShooter != null &&
+                    playerAutoShooter.isActiveAndEnabled)
                 {
                     playerAutoShooter.ApplyUpgradeLevel(3);
                 }
                 break;
         }
-
-        Debug.Log($"레벨 {newLevel} 달성: 플레이어 능력치가 강화되었습니다.");
     }
 }

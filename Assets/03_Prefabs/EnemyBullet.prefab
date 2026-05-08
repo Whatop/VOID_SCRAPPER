@@ -79,8 +79,8 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
-  m_Color: {r: 1, g: 0.13757919, b: 0, a: 1}
+  m_Sprite: {fileID: 2208703988740019828, guid: 6e11305f35135784eaef4486e695388c, type: 3}
+  m_Color: {r: 1, g: 0.13725491, b: 0, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -115,7 +115,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 4
 --- !u!58 &6680330364725810212
 CircleCollider2D:
@@ -165,7 +165,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c94f0668064f18d45b784bc7129230ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 4
-  lifeTime: 5
+  fallbackSpeed: 12
+  fallbackLifeTime: 2
+  fallbackRange: 8
+  fallbackDamage: 1
+  fallbackPierceCount: 0
+  enemyTargetLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  playerTargetLayer:
+    serializedVersion: 2
+    m_Bits: 8
   rotationOffset: -90
-  damage: 1

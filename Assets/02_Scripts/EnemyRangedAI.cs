@@ -128,6 +128,11 @@ public class EnemyRangedAI : EnemyBaseAI
                 bulletObject = Instantiate(bulletPrefab, spawnPoint.position, Quaternion.identity);
             }
 
+            if (bulletObject == null)
+            {
+                continue;
+            }
+
             Bullet bullet = bulletObject.GetComponent<Bullet>();
             if (bullet != null)
             {

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cc398a4577fa6d498d2135813e8eff2, type: 3}
+  m_Name: New Enemy Definition
+  m_EditorClassIdentifier: 
+  enemyId: 
+  displayName: 
+  enemyType: 0
+  enemyPrefab: {fileID: 0}
+  maxHp: 10
+  moveSpeed: 2.5
+  visionRange: 9
+  attackRange: 6
+  projectileDefinition: {fileID: 0}
+  attackInterval: 1.2
+  projectileCount: 1
+  spreadAngle: 0
+  chargeTime: 0
+  rewardDefinition: {fileID: 0}
+  radarMarkerType: 0

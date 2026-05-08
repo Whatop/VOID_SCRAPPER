@@ -1,0 +1,260 @@
+using UnityEngine;
+
+public readonly struct WeaponFireInput
+{
+    public readonly bool Held;
+    public readonly bool PressedThisFrame;
+    public readonly bool ReleasedThisFrame;
+
+    public WeaponFireInput(bool held, bool pressedThisFrame, bool releasedThisFrame)
+    {
+        Held = held;
+        PressedThisFrame = pressedThisFrame;
+        ReleasedThisFrame = releasedThisFrame;
+    }
+}
+
+public abstract class PlayerWeaponBase : MonoBehaviour
+{
+    [Header("Definition")]
+    [SerializeField] protected WeaponDefinition weaponDefinition;
+    [SerializeField] protected ProjectileDefinition projectileDefinitionOverride;
+
+    [Header("Fallback Projectile Prefab")]
+    [SerializeField] protected GameObject fallbackProjectilePrefab;
+
+    protected PlayerWeaponController weaponController;
+    protected PlayerController2D playerController;
+    protected PlayerCombatState combatState;
+    protected PlayerWeaponModifiers weaponModifiers;
+    protected Transform firePoint;
+
+    public WeaponDefinition WeaponDefinition => weaponDefinition;
+
+    public virtual void SetRuntimeReferences(
+        PlayerWeaponController owner,
+        Transform firePointReference,
+        PlayerController2D controller,
+        PlayerCombatState state,
+        PlayerWeaponModifiers modifiers)
+    {
+        weaponController = owner;
+        firePoint = firePointReference;
+        playerController = controller;
+        combatState = state;
+        weaponModifiers = modifiers;
+    }
+
+    public virtual void OnEquip()
+    {
+    }
+
+    public virtual void OnUnequip()
+    {
+    }
+
+    public abstract void TickWeapon(WeaponFireInput input, float deltaTime);
+
+    protected ProjectileDefinition GetProjectileDefinition()
+    {
+        if (projectileDefinitionOverride != null)
+        {
+            return projectileDefinitionOverride;
+        }
+
+        if (weaponDefinition != null)
+        {
+            return weaponDefinition.ProjectileDefinition;
+        }
+
+        return null;
+    }
+
+    protected GameObject GetProjectilePrefab()
+    {
+        ProjectileDefinition projectileDefinition = GetProjectileDefinition();
+
+        if (projectileDefinition != null && projectileDefinition.ProjectilePrefab != null)
+        {
+            return projectileDefinition.ProjectilePrefab;
+        }
+
+        return fallbackProjectilePrefab;
+    }
+
+    protected float GetProjectileDamage(float fallback)
+    {
+        ProjectileDefinition projectileDefinition = GetProjectileDefinition();
+        return projectileDefinition != null ? projectileDefinition.Damage : fallback;
+    }
+
+    protected float GetProjectileSpeed(float fallback)
+    {
+        ProjectileDefinition projectileDefinition = GetProjectileDefinition();
+        return projectileDefinition != null ? projectileDefinition.Speed : fallback;
+    }
+
+    protected float GetProjectileRange(float fallback)
+    {
+        ProjectileDefinition projectileDefinition = GetProjectileDefinition();
+        return projectileDefinition != null ? projectileDefinition.Range : fallback;
+    }
+
+    protected int GetProjectilePierceCount(int fallback)
+    {
+        ProjectileDefinition projectileDefinition = GetProjectileDefinition();
+        return projectileDefinition != null ? projectileDefinition.PierceCount : fallback;
+    }
+
+    protected float GetFireInterval(float fallback)
+    {
+        float interval = weaponDefinition != null ? weaponDefinition.FireInterval : fallback;
+
+        if (weaponModifiers != null)
+        {
+            interval *= weaponModifiers.FireIntervalMultiplier;
+        }
+
+        return Mathf.Max(0.01f, interval);
+    }
+
+    protected int GetProjectileCount(int fallback)
+    {
+        int count = weaponDefinition != null ? weaponDefinition.ProjectileCount : fallback;
+
+        if (weaponModifiers != null)
+        {
+            count += weaponModifiers.ProjectileCountBonus;
+        }
+
+        return Mathf.Max(1, count);
+    }
+
+    protected float GetSpreadAngle(float fallback)
+    {
+        float spread = weaponDefinition != null ? weaponDefinition.SpreadAngle : fallback;
+
+        if (weaponModifiers != null)
+        {
+            spread *= weaponModifiers.SpreadMultiplier;
+        }
+
+        return Mathf.Max(0f, spread);
+    }
+
+    protected Vector2 GetAimDirection()
+    {
+        if (playerController != null && playerController.AimDirection.sqrMagnitude > 0.001f)
+        {
+            return playerController.AimDirection.normalized;
+        }
+
+        if (firePoint != null)
+        {
+            return firePoint.up;
+        }
+
+        return transform.up;
+    }
+
+    protected bool SpawnProjectile(
+        Vector2 direction,
+        float baseDamage,
+        float baseSpeed,
+        float baseRange,
+        int basePierceCount)
+    {
+        GameObject projectilePrefab = GetProjectilePrefab();
+
+        if (projectilePrefab == null)
+        {
+            Debug.LogWarning($"{name}: Projectile Prefab이 연결되지 않았습니다.", this);
+            return false;
+        }
+
+        Transform spawnPoint = firePoint != null ? firePoint : transform;
+
+        GameObject projectileObject;
+        if (PoolManager.Instance != null)
+        {
+            projectileObject = PoolManager.Instance.Get(projectilePrefab, spawnPoint.position, Quaternion.identity);
+        }
+        else
+        {
+            projectileObject = Instantiate(projectilePrefab, spawnPoint.position, Quaternion.identity);
+        }
+
+        if (projectileObject == null)
+        {
+            return false;
+        }
+
+        Bullet bullet = projectileObject.GetComponent<Bullet>();
+        if (bullet == null)
+        {
+            Debug.LogWarning($"{projectileObject.name}에 Bullet 컴포넌트가 없습니다.", projectileObject);
+
+            if (PoolManager.Instance != null)
+            {
+                PoolManager.Instance.Release(projectileObject);
+            }
+            else
+            {
+                Destroy(projectileObject);
+            }
+
+            return false;
+        }
+
+        float finalDamage = baseDamage;
+        float finalSpeed = baseSpeed;
+        float finalRange = baseRange;
+        int finalPierceCount = basePierceCount;
+        float homingAngleBonus = 0f;
+        float homingRangeBonus = 0f;
+
+        if (weaponModifiers != null)
+        {
+            finalDamage *= weaponModifiers.DamageMultiplier;
+            finalSpeed *= weaponModifiers.ProjectileSpeedMultiplier;
+            finalRange *= weaponModifiers.RangeMultiplier;
+            finalPierceCount += weaponModifiers.PierceBonus;
+            homingAngleBonus += weaponModifiers.HomingAngleBonus;
+            homingRangeBonus += weaponModifiers.HomingRangeBonus;
+        }
+
+        bullet.Initialize(
+            direction,
+            ProjectileOwner.Player,
+            GetProjectileDefinition(),
+            finalDamage,
+            finalSpeed,
+            finalRange,
+            Mathf.Max(0, finalPierceCount),
+            homingAngleBonus,
+            homingRangeBonus
+        );
+
+        return true;
+    }
+
+    protected void RegisterAttack()
+    {
+        if (combatState != null)
+        {
+            combatState.RegisterAttack();
+        }
+    }
+
+    protected Vector2 RotateVector(Vector2 vector, float angle)
+    {
+        float radian = angle * Mathf.Deg2Rad;
+        float cos = Mathf.Cos(radian);
+        float sin = Mathf.Sin(radian);
+
+        return new Vector2(
+            (cos * vector.x) - (sin * vector.y),
+            (sin * vector.x) + (cos * vector.y)
+        );
+    }
+}

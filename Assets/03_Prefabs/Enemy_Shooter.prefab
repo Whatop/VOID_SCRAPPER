@@ -235,8 +235,8 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: a507e4d319138d44482579bc5610a9e5, type: 3}
-  m_Color: {r: 1, g: 0.16509432, b: 0.16509432, a: 1}
+  m_Sprite: {fileID: -5949601011994682907, guid: 2aa346fee1808f849b7949e3634accfe, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -313,8 +313,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   target: {fileID: 0}
   playerTag: Player
-  detectionRange: 8
-  attackRange: 5.5
+  detectionRange: 4
+  attackRange: 2.75
   lostTargetRange: 11
   moveSpeed: 2.5
   rotationOffset: -90
