@@ -1,0 +1,546 @@
+fileFormatVersion: 2
+guid: 1f64ecd0195af0045acb3125aeb4749f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -4738279746856549701
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_0
+  - first:
+      213: 2650643372885964384
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_1
+  - first:
+      213: -6065923417256000972
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_2
+  - first:
+      213: 3695989570865649928
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_3
+  - first:
+      213: -432372190578578984
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_4
+  - first:
+      213: 1759798101891246742
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_5
+  - first:
+      213: -333557438763752584
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_6
+  - first:
+      213: 8158042053939040942
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_7
+  - first:
+      213: -2926656414710670675
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_8
+  - first:
+      213: 482324342916916049
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_9
+  - first:
+      213: 3831616583765603390
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_10
+  - first:
+      213: 9022074231322248587
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_11
+  - first:
+      213: -535012365848338275
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_12
+  - first:
+      213: -2360023128787316106
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_13
+  - first:
+      213: -6992281939423791588
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_14
+  - first:
+      213: -4805220029167919968
+    second: pixellab-Create-a-single-pixel-art-mous-1778255463217_15
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 64
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 256
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_0
+      rect:
+        serializedVersion: 2
+        x: 11
+        y: 194
+        width: 43
+        height: 60
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bb2003abcaf3e3eb0800000000000000
+      internalID: -4738279746856549701
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_1
+      rect:
+        serializedVersion: 2
+        x: 76
+        y: 194
+        width: 41
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0667c1b9a1af8c420800000000000000
+      internalID: 2650643372885964384
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_2
+      rect:
+        serializedVersion: 2
+        x: 139
+        y: 194
+        width: 42
+        height: 60
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4328bb76ac281dba0800000000000000
+      internalID: -6065923417256000972
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_3
+      rect:
+        serializedVersion: 2
+        x: 204
+        y: 195
+        width: 41
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 809def8beeaca4330800000000000000
+      internalID: 3695989570865649928
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_4
+      rect:
+        serializedVersion: 2
+        x: 12
+        y: 131
+        width: 41
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8d96ec198c7eff9f0800000000000000
+      internalID: -432372190578578984
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_5
+      rect:
+        serializedVersion: 2
+        x: 76
+        y: 131
+        width: 42
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 69a62a3cc0f0c6810800000000000000
+      internalID: 1759798101891246742
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_6
+      rect:
+        serializedVersion: 2
+        x: 140
+        y: 131
+        width: 41
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8732c46d647fe5bf0800000000000000
+      internalID: -333557438763752584
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_7
+      rect:
+        serializedVersion: 2
+        x: 204
+        y: 131
+        width: 42
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ea21cbf5600373170800000000000000
+      internalID: 8158042053939040942
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_8
+      rect:
+        serializedVersion: 2
+        x: 12
+        y: 67
+        width: 42
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: daa5d853f7d6267d0800000000000000
+      internalID: -2926656414710670675
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_9
+      rect:
+        serializedVersion: 2
+        x: 76
+        y: 67
+        width: 42
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 15326163f6f81b600800000000000000
+      internalID: 482324342916916049
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_10
+      rect:
+        serializedVersion: 2
+        x: 140
+        y: 67
+        width: 43
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e3438de6bf2ac2530800000000000000
+      internalID: 3831616583765603390
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_11
+      rect:
+        serializedVersion: 2
+        x: 203
+        y: 67
+        width: 43
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b850b2f56b8d43d70800000000000000
+      internalID: 9022074231322248587
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_12
+      rect:
+        serializedVersion: 2
+        x: 12
+        y: 3
+        width: 42
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d902b2f76114398f0800000000000000
+      internalID: -535012365848338275
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_13
+      rect:
+        serializedVersion: 2
+        x: 77
+        y: 3
+        width: 41
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6721de2e7738f3fd0800000000000000
+      internalID: -2360023128787316106
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_14
+      rect:
+        serializedVersion: 2
+        x: 140
+        y: 2
+        width: 43
+        height: 60
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c16f34f6f9c66fe90800000000000000
+      internalID: -6992281939423791588
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pixellab-Create-a-single-pixel-art-mous-1778255463217_15
+      rect:
+        serializedVersion: 2
+        x: 204
+        y: 2
+        width: 43
+        height: 60
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0ac9ad5b7dd605db0800000000000000
+      internalID: -4805220029167919968
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_0: -4738279746856549701
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_1: 2650643372885964384
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_10: 3831616583765603390
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_11: 9022074231322248587
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_12: -535012365848338275
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_13: -2360023128787316106
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_14: -6992281939423791588
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_15: -4805220029167919968
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_2: -6065923417256000972
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_3: 3695989570865649928
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_4: -432372190578578984
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_5: 1759798101891246742
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_6: -333557438763752584
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_7: 8158042053939040942
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_8: -2926656414710670675
+      pixellab-Create-a-single-pixel-art-mous-1778255463217_9: 482324342916916049
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
