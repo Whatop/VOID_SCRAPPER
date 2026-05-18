@@ -1,5 +1,12 @@
 using UnityEngine;
 
+public enum MachineGunShotSide
+{
+    Center,
+    Left,
+    Right
+}
+
 public class MachineGunWeapon : PlayerWeaponBase
 {
     [Header("Machine Gun Fallback Values")]
@@ -11,11 +18,27 @@ public class MachineGunWeapon : PlayerWeaponBase
     [SerializeField] private float fallbackSpreadAngle = 6f;
     [SerializeField] private int fallbackPierceCount = 0;
 
+    [Header("Machine Gun Fire Points")]
+    [SerializeField] private Transform leftFirePoint;
+    [SerializeField] private Transform rightFirePoint;
+    [SerializeField] private bool startFromLeft = true;
+
     private float fireTimer;
+    private bool nextShotLeft;
+    private MachineGunShotSide lastShotSide = MachineGunShotSide.Center;
+
+    public MachineGunShotSide LastShotSide => lastShotSide;
 
     public override void OnEquip()
     {
         fireTimer = 0f;
+        ResetFirePointSide();
+    }
+
+    public override void OnUnequip()
+    {
+        fireTimer = 0f;
+        ResetFirePointSide();
     }
 
     public override void TickWeapon(WeaponFireInput input, float deltaTime)
@@ -34,6 +57,7 @@ public class MachineGunWeapon : PlayerWeaponBase
         }
 
         TryFire();
+
         fireTimer = GetFireInterval(fallbackFireInterval);
     }
 
@@ -49,6 +73,8 @@ public class MachineGunWeapon : PlayerWeaponBase
         float baseRange = GetProjectileRange(fallbackRange);
         int basePierce = GetProjectilePierceCount(fallbackPierceCount);
 
+        Transform selectedFirePoint = GetCurrentFirePoint(out MachineGunShotSide shotSide);
+
         bool firedAny = false;
 
         for (int i = 0; i < projectileCount; i++)
@@ -56,7 +82,8 @@ public class MachineGunWeapon : PlayerWeaponBase
             float randomAngle = Random.Range(-spreadAngle * 0.5f, spreadAngle * 0.5f);
             Vector2 shotDirection = RotateVector(baseDirection, randomAngle);
 
-            bool fired = SpawnProjectile(
+            bool fired = SpawnProjectileFrom(
+                selectedFirePoint,
                 shotDirection,
                 baseDamage,
                 baseSpeed,
@@ -67,9 +94,64 @@ public class MachineGunWeapon : PlayerWeaponBase
             firedAny |= fired;
         }
 
-        if (firedAny)
+        if (!firedAny)
         {
-            RegisterAttack();
+            return;
         }
+
+        lastShotSide = shotSide;
+        AdvanceFirePointSide();
+
+        RegisterAttack();
+        NotifyFired();
+    }
+
+    private Transform GetCurrentFirePoint(out MachineGunShotSide shotSide)
+    {
+        bool hasLeft = leftFirePoint != null;
+        bool hasRight = rightFirePoint != null;
+
+        if (hasLeft && hasRight)
+        {
+            if (nextShotLeft)
+            {
+                shotSide = MachineGunShotSide.Left;
+                return leftFirePoint;
+            }
+
+            shotSide = MachineGunShotSide.Right;
+            return rightFirePoint;
+        }
+
+        if (hasLeft)
+        {
+            shotSide = MachineGunShotSide.Left;
+            return leftFirePoint;
+        }
+
+        if (hasRight)
+        {
+            shotSide = MachineGunShotSide.Right;
+            return rightFirePoint;
+        }
+
+        shotSide = MachineGunShotSide.Center;
+        return firePoint != null ? firePoint : transform;
+    }
+
+    private void AdvanceFirePointSide()
+    {
+        if (leftFirePoint == null || rightFirePoint == null)
+        {
+            return;
+        }
+
+        nextShotLeft = !nextShotLeft;
+    }
+
+    private void ResetFirePointSide()
+    {
+        nextShotLeft = startFromLeft;
+        lastShotSide = MachineGunShotSide.Center;
     }
 }

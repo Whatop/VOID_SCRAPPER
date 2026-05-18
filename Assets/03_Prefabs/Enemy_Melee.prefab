@@ -99,7 +99,6 @@ GameObject:
   - component: {fileID: 2089714302999982440}
   - component: {fileID: 8669358004353457876}
   - component: {fileID: 2662051101719720472}
-  - component: {fileID: 8557848186873097831}
   m_Layer: 0
   m_Name: Enemy_Melee
   m_TagString: Enemy
@@ -258,28 +257,3 @@ MonoBehaviour:
   hitEffectDuration: 0.12
   dropContainerPrefab: {fileID: 7619617139882337849, guid: 00c6e15f8babd5b4ca6e2f8c71601408, type: 3}
   dropChance: 1
---- !u!114 &8557848186873097831
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8926345270356330512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9dd8c7097db9d74f87f3594353b77d5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  target: {fileID: 0}
-  playerTag: Player
-  detectionRange: 4
-  attackRange: 1.5
-  lostTargetRange: 11
-  moveSpeed: 2.5
-  rotationOffset: -90
-  currentState: 0
-  chargeTime: 0.5
-  dashSpeed: 9
-  dashDuration: 0.35
-  cooldownTime: 1
-  contactDamage: 1

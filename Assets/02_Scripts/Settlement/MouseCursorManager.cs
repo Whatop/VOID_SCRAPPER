@@ -17,10 +17,29 @@ public enum GameCursorType
 [Serializable]
 public class MouseCursorPreset
 {
+    [Header("Identity")]
     public GameCursorType cursorType = GameCursorType.Default;
+
+    [Header("Static Cursor")]
     public Texture2D texture;
     public Vector2 hotspot;
     public CursorMode cursorMode = CursorMode.Auto;
+
+    [Header("Animation - Settlement Only")]
+    [Tooltip("정착지에서만 사용할 커서 애니메이션 프레임. 비어 있으면 texture만 사용.")]
+    public Texture2D[] animationFrames;
+
+    [Min(1f)]
+    public float animationFrameRate = 10f;
+
+    public bool loopAnimation = true;
+
+    [Tooltip("켜두면 Settlement 상태에서만 애니메이션이 재생됨. Expedition에서는 정적 커서로 처리.")]
+    public bool animateOnlyInSettlement = true;
+
+    public bool HasAnimation =>
+        animationFrames != null &&
+        animationFrames.Length > 0;
 }
 
 public class MouseCursorManager : MonoBehaviour
@@ -37,13 +56,23 @@ public class MouseCursorManager : MonoBehaviour
     [SerializeField] private GameCursorType expeditionCursorType = GameCursorType.Crosshair;
     [SerializeField] private GameCursorType loadingCursorType = GameCursorType.Disabled;
 
+    [Header("Animation Option")]
+    [Tooltip("GameStateManager가 없는 테스트 씬에서도 정착지 커서 애니메이션을 허용할지 여부.")]
+    [SerializeField] private bool allowAnimationWhenGameStateMissing = true;
+
     [Header("Cursor Presets")]
     [SerializeField] private List<MouseCursorPreset> cursorPresets = new List<MouseCursorPreset>();
 
-    private readonly Dictionary<GameCursorType, MouseCursorPreset> presetMap = new Dictionary<GameCursorType, MouseCursorPreset>();
+    private readonly Dictionary<GameCursorType, MouseCursorPreset> presetMap =
+        new Dictionary<GameCursorType, MouseCursorPreset>();
 
     private GameCursorType currentCursorType;
     private GameCursorType sceneDefaultCursorType;
+
+    private MouseCursorPreset currentPreset;
+    private int currentAnimationFrameIndex;
+    private float animationTimer;
+
     private bool lockedByGameState;
     private bool subscribedToGameState;
 
@@ -81,6 +110,11 @@ public class MouseCursorManager : MonoBehaviour
         {
             ApplyCursorForGameState(GameStateManager.Instance.CurrentState);
         }
+    }
+
+    private void Update()
+    {
+        UpdateAnimatedCursor();
     }
 
     private void OnDisable()
@@ -195,23 +229,141 @@ public class MouseCursorManager : MonoBehaviour
 
         if (!force && currentCursorType == cursorType)
         {
+
+            ApplyCurrentCursorFrame();
             return;
         }
-
         currentCursorType = cursorType;
+        currentAnimationFrameIndex = 0;
+        animationTimer = 0f;
 
         if (!presetMap.TryGetValue(cursorType, out MouseCursorPreset preset))
         {
+            currentPreset = null;
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             return;
         }
 
-        if (preset.texture == null)
+        currentPreset = preset;
+        ApplyCurrentCursorFrame();
+    }
+
+    private void UpdateAnimatedCursor()
+    {
+        if (currentPreset == null)
+        {
+            return;
+        }
+
+        if (!currentPreset.HasAnimation)
+        {
+            return;
+        }
+
+        if (!CanPlayAnimation(currentPreset))
+        {
+            return;
+        }
+
+        float frameRate = Mathf.Max(1f, currentPreset.animationFrameRate);
+        float frameDuration = 1f / frameRate;
+
+        animationTimer += Time.unscaledDeltaTime;
+
+        if (animationTimer < frameDuration)
+        {
+            return;
+        }
+
+        animationTimer -= frameDuration;
+        currentAnimationFrameIndex++;
+
+        if (currentAnimationFrameIndex >= currentPreset.animationFrames.Length)
+        {
+            if (currentPreset.loopAnimation)
+            {
+                currentAnimationFrameIndex = 0;
+            }
+            else
+            {
+                currentAnimationFrameIndex = currentPreset.animationFrames.Length - 1;
+            }
+        }
+
+        ApplyCurrentCursorFrame();
+    }
+
+    private void ApplyCurrentCursorFrame()
+    {
+        if (currentPreset == null)
         {
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             return;
         }
 
-        Cursor.SetCursor(preset.texture, preset.hotspot, preset.cursorMode);
+        Texture2D cursorTexture = GetCurrentTexture(currentPreset);
+
+        if (cursorTexture == null)
+        {
+            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            return;
+        }
+
+        Cursor.SetCursor(
+            cursorTexture,
+            currentPreset.hotspot,
+            currentPreset.cursorMode
+        );
+    }
+
+    private Texture2D GetCurrentTexture(MouseCursorPreset preset)
+    {
+        if (preset == null)
+        {
+            return null;
+        }
+
+        if (preset.HasAnimation && CanPlayAnimation(preset))
+        {
+            int frameIndex = Mathf.Clamp(
+                currentAnimationFrameIndex,
+                0,
+                preset.animationFrames.Length - 1
+            );
+
+            Texture2D frameTexture = preset.animationFrames[frameIndex];
+
+            if (frameTexture != null)
+            {
+                return frameTexture;
+            }
+        }
+
+        return preset.texture;
+    }
+
+    private bool CanPlayAnimation(MouseCursorPreset preset)
+    {
+        if (preset == null)
+        {
+            return false;
+        }
+
+        if (!preset.HasAnimation)
+        {
+            return false;
+        }
+
+        if (!preset.animateOnlyInSettlement)
+        {
+            return true;
+        }
+
+        if (GameStateManager.Instance == null)
+        {
+            return allowAnimationWhenGameStateMissing;
+        }
+
+        return GameStateManager.Instance.CurrentState == GameState.Settlement;
     }
 }

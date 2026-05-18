@@ -78,9 +78,9 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_Sprite: {fileID: 2208703988740019828, guid: 6e11305f35135784eaef4486e695388c, type: 3}
-  m_Color: {r: 1, g: 0.13725491, b: 0, a: 1}
+  m_SortingOrder: 2
+  m_Sprite: {fileID: 21300000, guid: 6e11305f35135784eaef4486e695388c, type: 3}
+  m_Color: {r: 1, g: 0.67850536, b: 0.6273585, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -165,7 +165,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c94f0668064f18d45b784bc7129230ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fallbackSpeed: 12
+  fallbackSpeed: 8
   fallbackLifeTime: 2
   fallbackRange: 8
   fallbackDamage: 1
@@ -177,3 +177,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   rotationOffset: -90
+  impactEffectPrefab: {fileID: 8200224275209536821, guid: 85e017c47377c8c48b50b2cd96dd78c2, type: 3}
+  impactEffectLifeTime: 0.18
+  rotateImpactEffectToBullet: 1

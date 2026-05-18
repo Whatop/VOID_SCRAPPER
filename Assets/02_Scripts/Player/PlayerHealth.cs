@@ -16,6 +16,10 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [SerializeField] private bool disableColliderOnDeath = true;
     [SerializeField] private MonoBehaviour[] componentsToDisableOnDeath;
 
+    [Header("Legacy Death Return")]
+    [Tooltip("켜면 기존처럼 죽자마자 바로 정착지로 돌아갑니다. 사망 연출을 쓸 거면 꺼두세요.")]
+    [SerializeField] private bool completeRunDirectlyOnDeath;
+
     private Rigidbody2D rb;
     private Collider2D playerCollider;
     private PlayerCombatState combatState;
@@ -75,8 +79,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
                 }
             }
         }
-    }
 
+        Healed?.Invoke(currentHp, maxHp);
+    }
     public void SetMaxHp(float newMaxHp, bool refill)
     {
         maxHp = Mathf.Max(1f, newMaxHp);
@@ -89,8 +94,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         {
             currentHp = Mathf.Clamp(currentHp, 0f, maxHp);
         }
-    }
 
+        Healed?.Invoke(currentHp, maxHp);
+    }
     public void AddMaxHp(float amount, bool healAddedAmount)
     {
         if (amount <= 0f)
@@ -224,10 +230,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             }
         }
 
-
         Died?.Invoke();
 
-        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        if (completeRunDirectlyOnDeath && RunManager.Instance != null && RunManager.Instance.HasActiveRun)
         {
             RunManager.Instance.CompleteRunAndReturnToSettlement(RunEndReason.Death);
         }

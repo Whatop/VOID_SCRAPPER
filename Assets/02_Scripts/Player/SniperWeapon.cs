@@ -22,7 +22,9 @@ public class SniperWeapon : PlayerWeaponBase
     private float chargeTimer;
     private float nextChargeAllowedTime;
 
-    public float ChargeRatio
+    public override bool IsCharging => isCharging;
+
+    public override float ChargeRatio
     {
         get
         {
@@ -42,6 +44,11 @@ public class SniperWeapon : PlayerWeaponBase
     }
 
     public override void OnUnequip()
+    {
+        CancelCharge();
+    }
+
+    public override void ForceCancel()
     {
         CancelCharge();
     }
@@ -66,6 +73,7 @@ public class SniperWeapon : PlayerWeaponBase
 
         chargeTimer += deltaTime;
         UpdateCameraZoom();
+        NotifyChargeChanged(ChargeRatio);
 
         if (input.ReleasedThisFrame)
         {
@@ -80,9 +88,18 @@ public class SniperWeapon : PlayerWeaponBase
             return;
         }
 
+        if (isCharging)
+        {
+            return;
+        }
+
         isCharging = true;
         chargeTimer = 0f;
+
         UpdateCameraZoom();
+
+        NotifyChargeStarted();
+        NotifyChargeChanged(ChargeRatio);
     }
 
     private void FireChargedShot()
@@ -92,12 +109,13 @@ public class SniperWeapon : PlayerWeaponBase
             return;
         }
 
+        float finalChargeRatio = ChargeRatio;
         Vector2 direction = GetAimDirection();
 
         float damage = Mathf.Lerp(
             GetMinChargeDamage(),
             GetMaxChargeDamage(),
-            ChargeRatio
+            finalChargeRatio
         );
 
         float baseSpeed = GetProjectileSpeed(fallbackSpeed);
@@ -120,7 +138,10 @@ public class SniperWeapon : PlayerWeaponBase
         if (fired)
         {
             RegisterAttack();
+            NotifyFired(finalChargeRatio);
         }
+
+        NotifyChargeReleased(finalChargeRatio);
 
         ResetChargeState();
         nextChargeAllowedTime = Time.time + nextChargeDelay;
@@ -128,6 +149,12 @@ public class SniperWeapon : PlayerWeaponBase
 
     private void CancelCharge()
     {
+        if (!isCharging)
+        {
+            return;
+        }
+
+        NotifyChargeCanceled();
         ResetChargeState();
     }
 

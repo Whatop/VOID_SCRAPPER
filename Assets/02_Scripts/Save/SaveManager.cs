@@ -9,6 +9,9 @@ public class SaveManager : MonoBehaviour
     [SerializeField] private string fileName = "void_scrapper_save.json";
     [SerializeField] private bool logSavePath = true;
 
+    [Header("Default Save")]
+    [SerializeField] private string defaultShipId = "basic_ship";
+
     public SaveData CurrentSaveData { get; private set; }
 
     private string SavePath => Path.Combine(Application.persistentDataPath, fileName);
@@ -17,7 +20,7 @@ public class SaveManager : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("SaveManager°¡ Áßº¹À¸·Î Á¸ÀçÇÕ´Ï´Ù. Áßº¹ ÀÎ½ºÅÏ½º¸¦ ºñÈ°¼ºÈ­ÇÕ´Ï´Ù.", this);
+            Debug.LogWarning("SaveManagerê°€ ì¤‘ë³µìœ¼ë¡œ ì¡´ì¬í•©ë‹ˆë‹¤. ì¤‘ë³µ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤.", this);
             enabled = false;
             return;
         }
@@ -55,6 +58,10 @@ public class SaveManager : MonoBehaviour
             CurrentSaveData = CreateDefaultSave();
             Save(CurrentSaveData);
         }
+        else
+        {
+            MigrateSaveIfNeeded(CurrentSaveData);
+        }
 
         return CurrentSaveData;
     }
@@ -63,7 +70,7 @@ public class SaveManager : MonoBehaviour
     {
         if (progress == null)
         {
-            Debug.LogWarning("ÀúÀåÇÒ PermanentProgress°¡ ¾ø½À´Ï´Ù.", this);
+            Debug.LogWarning("ì €ì¥í•  PermanentProgressê°€ ì—†ìŠµë‹ˆë‹¤.", this);
             return;
         }
 
@@ -74,10 +81,11 @@ public class SaveManager : MonoBehaviour
     {
         if (saveData == null)
         {
-            Debug.LogWarning("ÀúÀåÇÒ SaveData°¡ ¾ø½À´Ï´Ù.", this);
+            Debug.LogWarning("ì €ì¥í•  SaveDataê°€ ì—†ìŠµë‹ˆë‹¤.", this);
             return;
         }
 
+        MigrateSaveIfNeeded(saveData);
         CurrentSaveData = saveData;
 
         string json = JsonUtility.ToJson(saveData, true);
@@ -97,7 +105,11 @@ public class SaveManager : MonoBehaviour
 
     private SaveData CreateDefaultSave()
     {
-        SaveData saveData = new SaveData();
+        SaveData saveData = new SaveData
+        {
+            version = 2,
+            selectedShipId = defaultShipId
+        };
 
         saveData.buildingLevels.Add(new BuildingSaveData(BuildingType.Hangar, 0));
         saveData.buildingLevels.Add(new BuildingSaveData(BuildingType.EngineWorkshop, 0));
@@ -105,5 +117,30 @@ public class SaveManager : MonoBehaviour
         saveData.buildingLevels.Add(new BuildingSaveData(BuildingType.RecoveryProcessor, 0));
 
         return saveData;
+    }
+
+    private void MigrateSaveIfNeeded(SaveData saveData)
+    {
+        if (saveData.buildingLevels == null)
+        {
+            saveData.buildingLevels = CreateDefaultSave().buildingLevels;
+        }
+
+        if (saveData.traitLevels == null)
+        {
+            saveData.traitLevels = new System.Collections.Generic.List<TraitLevelSaveData>();
+        }
+
+        if (saveData.unlockFlags == null)
+        {
+            saveData.unlockFlags = new System.Collections.Generic.List<string>();
+        }
+
+        if (string.IsNullOrWhiteSpace(saveData.selectedShipId))
+        {
+            saveData.selectedShipId = defaultShipId;
+        }
+
+        saveData.version = Mathf.Max(saveData.version, 2);
     }
 }

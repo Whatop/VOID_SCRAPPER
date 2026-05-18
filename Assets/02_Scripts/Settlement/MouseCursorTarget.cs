@@ -32,7 +32,16 @@ public class MouseCursorTarget : MonoBehaviour,
             selectable = GetComponent<Selectable>();
         }
     }
+    private void OnDisable()
+    {
+        isHovering = false;
+        isPressed = false;
 
+        if (MouseCursorManager.Instance != null)
+        {
+            MouseCursorManager.Instance.ResetToSceneDefault();
+        }
+    }
     private void Update()
     {
         if (!isHovering)

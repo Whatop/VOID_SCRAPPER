@@ -67,19 +67,20 @@ public class PlayerCombatState : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             Collider2D hit = threatBuffer[i];
+
             if (hit == null)
             {
                 continue;
             }
 
             EnemyBaseAI enemy = hit.GetComponentInParent<EnemyBaseAI>();
+
             if (enemy == null)
             {
                 continue;
             }
 
-            if (enemy.CurrentState != EnemyState.Idle &&
-                enemy.CurrentState != EnemyState.Dead)
+            if (enemy.IsThreateningPlayer())
             {
                 return true;
             }

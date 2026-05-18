@@ -15,6 +15,19 @@ public class BuildingLevelState
     }
 }
 
+[Serializable]
+public class TraitLevelState
+{
+    public string traitId;
+    public int level;
+
+    public TraitLevelState(string traitId, int level)
+    {
+        this.traitId = traitId;
+        this.level = Mathf.Max(0, level);
+    }
+}
+
 public class PermanentProgress : MonoBehaviour
 {
     public static PermanentProgress Instance { get; private set; }
@@ -25,9 +38,13 @@ public class PermanentProgress : MonoBehaviour
 
     [Header("Selection")]
     [SerializeField] private WeaponTreeType lastSelectedWeaponTree = WeaponTreeType.MachineGun;
+    [SerializeField] private string selectedShipId = "basic_ship";
 
     [Header("Building Levels")]
     [SerializeField] private List<BuildingLevelState> buildingLevels = new List<BuildingLevelState>();
+
+    [Header("Permanent Trait Levels")]
+    [SerializeField] private List<TraitLevelState> traitLevels = new List<TraitLevelState>();
 
     [Header("Unlock Flags")]
     [SerializeField] private List<string> unlockFlags = new List<string>();
@@ -35,6 +52,7 @@ public class PermanentProgress : MonoBehaviour
     public int ScrapParts => scrapParts;
     public int CoreShards => coreShards;
     public WeaponTreeType LastSelectedWeaponTree => lastSelectedWeaponTree;
+    public string SelectedShipId => string.IsNullOrWhiteSpace(selectedShipId) ? "basic_ship" : selectedShipId;
 
     public event Action Changed;
 
@@ -42,7 +60,7 @@ public class PermanentProgress : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("PermanentProgress°¡ Áßº¹À¸·Î Á¸ÀçÇÕ´Ï´Ù. Áßº¹ ÀÎ½ºÅÏ½º¸¦ ºñÈ°¼ºÈ­ÇÕ´Ï´Ù.", this);
+            Debug.LogWarning("PermanentProgressê°€ ì¤‘ë³µìœ¼ë¡œ ì¡´ìž¬í•©ë‹ˆë‹¤. ì¤‘ë³µ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤.", this);
             enabled = false;
             return;
         }
@@ -62,9 +80,9 @@ public class PermanentProgress : MonoBehaviour
         scrapParts = Mathf.Max(0, saveData.scrapParts);
         coreShards = Mathf.Max(0, saveData.coreShards);
         lastSelectedWeaponTree = saveData.lastSelectedWeaponTree;
+        selectedShipId = string.IsNullOrWhiteSpace(saveData.selectedShipId) ? "basic_ship" : saveData.selectedShipId;
 
         buildingLevels.Clear();
-
         if (saveData.buildingLevels != null)
         {
             foreach (BuildingSaveData data in saveData.buildingLevels)
@@ -73,8 +91,19 @@ public class PermanentProgress : MonoBehaviour
             }
         }
 
-        unlockFlags.Clear();
+        traitLevels.Clear();
+        if (saveData.traitLevels != null)
+        {
+            foreach (TraitLevelSaveData data in saveData.traitLevels)
+            {
+                if (!string.IsNullOrWhiteSpace(data.traitId))
+                {
+                    traitLevels.Add(new TraitLevelState(data.traitId, data.level));
+                }
+            }
+        }
 
+        unlockFlags.Clear();
         if (saveData.unlockFlags != null)
         {
             unlockFlags.AddRange(saveData.unlockFlags);
@@ -90,7 +119,8 @@ public class PermanentProgress : MonoBehaviour
         {
             scrapParts = scrapParts,
             coreShards = coreShards,
-            lastSelectedWeaponTree = lastSelectedWeaponTree
+            lastSelectedWeaponTree = lastSelectedWeaponTree,
+            selectedShipId = SelectedShipId
         };
 
         foreach (BuildingLevelState state in buildingLevels)
@@ -98,8 +128,15 @@ public class PermanentProgress : MonoBehaviour
             saveData.buildingLevels.Add(new BuildingSaveData(state.buildingType, state.level));
         }
 
-        saveData.unlockFlags.AddRange(unlockFlags);
+        foreach (TraitLevelState state in traitLevels)
+        {
+            if (!string.IsNullOrWhiteSpace(state.traitId))
+            {
+                saveData.traitLevels.Add(new TraitLevelSaveData(state.traitId, state.level));
+            }
+        }
 
+        saveData.unlockFlags.AddRange(unlockFlags);
         return saveData;
     }
 
@@ -108,8 +145,10 @@ public class PermanentProgress : MonoBehaviour
         scrapParts = 0;
         coreShards = 0;
         lastSelectedWeaponTree = WeaponTreeType.MachineGun;
+        selectedShipId = "basic_ship";
 
         buildingLevels.Clear();
+        traitLevels.Clear();
         unlockFlags.Clear();
 
         EnsureDefaultBuildings();
@@ -118,7 +157,28 @@ public class PermanentProgress : MonoBehaviour
 
     public void SetLastSelectedWeaponTree(WeaponTreeType weaponTreeType)
     {
+        if (lastSelectedWeaponTree == weaponTreeType)
+        {
+            return;
+        }
+
         lastSelectedWeaponTree = weaponTreeType;
+        Changed?.Invoke();
+    }
+
+    public void SetSelectedShipId(string shipId)
+    {
+        if (string.IsNullOrWhiteSpace(shipId))
+        {
+            shipId = "basic_ship";
+        }
+
+        if (selectedShipId == shipId)
+        {
+            return;
+        }
+
+        selectedShipId = shipId;
         Changed?.Invoke();
     }
 
@@ -140,7 +200,7 @@ public class PermanentProgress : MonoBehaviour
                 break;
 
             default:
-                Debug.LogWarning($"{type}Àº ¿µ±¸ ÀçÈ­°¡ ¾Æ´Õ´Ï´Ù.", this);
+                Debug.LogWarning($"{type}ì€ ì˜êµ¬ ìž¬í™”ê°€ ì•„ë‹™ë‹ˆë‹¤.", this);
                 return;
         }
 
@@ -149,6 +209,8 @@ public class PermanentProgress : MonoBehaviour
 
     public bool CanSpend(int scrapCost, int coreShardCost)
     {
+        scrapCost = Mathf.Max(0, scrapCost);
+        coreShardCost = Mathf.Max(0, coreShardCost);
         return scrapParts >= scrapCost && coreShards >= coreShardCost;
     }
 
@@ -172,7 +234,7 @@ public class PermanentProgress : MonoBehaviour
     public int GetBuildingLevel(BuildingType buildingType)
     {
         BuildingLevelState state = FindBuildingState(buildingType);
-        return state != null ? state.level : 0;
+        return state != null ? Mathf.Max(0, state.level) : 0;
     }
 
     public void SetBuildingLevel(BuildingType buildingType, int level)
@@ -189,6 +251,43 @@ public class PermanentProgress : MonoBehaviour
         }
 
         Changed?.Invoke();
+    }
+
+    public int GetTraitLevel(string traitId)
+    {
+        TraitLevelState state = FindTraitState(traitId);
+        return state != null ? Mathf.Max(0, state.level) : 0;
+    }
+
+    public void SetTraitLevel(string traitId, int level)
+    {
+        if (string.IsNullOrWhiteSpace(traitId))
+        {
+            return;
+        }
+
+        TraitLevelState state = FindTraitState(traitId);
+
+        if (state == null)
+        {
+            traitLevels.Add(new TraitLevelState(traitId, level));
+        }
+        else
+        {
+            state.level = Mathf.Max(0, level);
+        }
+
+        Changed?.Invoke();
+    }
+
+    public void IncrementTraitLevel(string traitId, int amount = 1)
+    {
+        if (string.IsNullOrWhiteSpace(traitId) || amount <= 0)
+        {
+            return;
+        }
+
+        SetTraitLevel(traitId, GetTraitLevel(traitId) + amount);
     }
 
     public bool HasUnlockFlag(string flag)
@@ -227,11 +326,26 @@ public class PermanentProgress : MonoBehaviour
         AddPermanentCurrency(CurrencyType.ScrapParts, resultData.committedScrapParts);
         AddPermanentCurrency(CurrencyType.CoreShards, resultData.committedCoreShards);
         SetLastSelectedWeaponTree(resultData.selectedWeaponTree);
+
+        if (!string.IsNullOrWhiteSpace(resultData.selectedShipId))
+        {
+            SetSelectedShipId(resultData.selectedShipId);
+        }
     }
 
     private BuildingLevelState FindBuildingState(BuildingType buildingType)
     {
         return buildingLevels.Find(state => state.buildingType == buildingType);
+    }
+
+    private TraitLevelState FindTraitState(string traitId)
+    {
+        if (string.IsNullOrWhiteSpace(traitId))
+        {
+            return null;
+        }
+
+        return traitLevels.Find(state => state.traitId == traitId);
     }
 
     private void EnsureDefaultBuildings()

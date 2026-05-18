@@ -7,6 +7,7 @@ public class RunContext
 {
     [SerializeField] private bool isActive;
     [SerializeField] private WeaponTreeType selectedWeaponTree;
+    [SerializeField] private string selectedShipId = "basic_ship";
     [SerializeField] private ExpeditionDepth expeditionDepth;
     [SerializeField] private RunWallet wallet = new RunWallet();
 
@@ -17,6 +18,7 @@ public class RunContext
 
     public bool IsActive => isActive;
     public WeaponTreeType SelectedWeaponTree => selectedWeaponTree;
+    public string SelectedShipId => string.IsNullOrWhiteSpace(selectedShipId) ? "basic_ship" : selectedShipId;
     public ExpeditionDepth ExpeditionDepth => expeditionDepth;
     public RunWallet Wallet => wallet;
 
@@ -31,13 +33,24 @@ public class RunContext
 
     public RunContext(WeaponTreeType weaponTreeType, ExpeditionDepth depth)
     {
-        Begin(weaponTreeType, depth);
+        Begin(weaponTreeType, depth, "basic_ship");
+    }
+
+    public RunContext(WeaponTreeType weaponTreeType, ExpeditionDepth depth, string shipId)
+    {
+        Begin(weaponTreeType, depth, shipId);
     }
 
     public void Begin(WeaponTreeType weaponTreeType, ExpeditionDepth depth)
     {
+        Begin(weaponTreeType, depth, "basic_ship");
+    }
+
+    public void Begin(WeaponTreeType weaponTreeType, ExpeditionDepth depth, string shipId)
+    {
         isActive = true;
         selectedWeaponTree = weaponTreeType;
+        selectedShipId = string.IsNullOrWhiteSpace(shipId) ? "basic_ship" : shipId;
         expeditionDepth = depth;
 
         currentLevel = 1;
@@ -94,6 +107,7 @@ public class RunResultData
 {
     public RunEndReason endReason;
     public WeaponTreeType selectedWeaponTree;
+    public string selectedShipId;
     public ExpeditionDepth finalDepth;
 
     public int runExperience;

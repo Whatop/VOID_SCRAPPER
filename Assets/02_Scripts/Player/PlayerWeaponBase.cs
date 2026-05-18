@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public readonly struct WeaponFireInput
@@ -31,6 +32,15 @@ public abstract class PlayerWeaponBase : MonoBehaviour
 
     public WeaponDefinition WeaponDefinition => weaponDefinition;
 
+    public virtual bool IsCharging => false;
+    public virtual float ChargeRatio => 0f;
+
+    public event Action<PlayerWeaponBase, float> Fired;
+    public event Action<PlayerWeaponBase> ChargeStarted;
+    public event Action<PlayerWeaponBase, float> ChargeChanged;
+    public event Action<PlayerWeaponBase, float> ChargeReleased;
+    public event Action<PlayerWeaponBase> ChargeCanceled;
+
     public virtual void SetRuntimeReferences(
         PlayerWeaponController owner,
         Transform firePointReference,
@@ -50,6 +60,10 @@ public abstract class PlayerWeaponBase : MonoBehaviour
     }
 
     public virtual void OnUnequip()
+    {
+    }
+
+    public virtual void ForceCancel()
     {
     }
 
@@ -164,6 +178,26 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         float baseRange,
         int basePierceCount)
     {
+        Transform spawnPoint = firePoint != null ? firePoint : transform;
+
+        return SpawnProjectileFrom(
+            spawnPoint,
+            direction,
+            baseDamage,
+            baseSpeed,
+            baseRange,
+            basePierceCount
+        );
+    }
+
+    protected bool SpawnProjectileFrom(
+        Transform spawnPoint,
+        Vector2 direction,
+        float baseDamage,
+        float baseSpeed,
+        float baseRange,
+        int basePierceCount)
+    {
         GameObject projectilePrefab = GetProjectilePrefab();
 
         if (projectilePrefab == null)
@@ -172,9 +206,13 @@ public abstract class PlayerWeaponBase : MonoBehaviour
             return false;
         }
 
-        Transform spawnPoint = firePoint != null ? firePoint : transform;
+        if (spawnPoint == null)
+        {
+            spawnPoint = firePoint != null ? firePoint : transform;
+        }
 
         GameObject projectileObject;
+
         if (PoolManager.Instance != null)
         {
             projectileObject = PoolManager.Instance.Get(projectilePrefab, spawnPoint.position, Quaternion.identity);
@@ -244,6 +282,31 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         {
             combatState.RegisterAttack();
         }
+    }
+
+    protected void NotifyFired(float powerRatio = 1f)
+    {
+        Fired?.Invoke(this, Mathf.Clamp01(powerRatio));
+    }
+
+    protected void NotifyChargeStarted()
+    {
+        ChargeStarted?.Invoke(this);
+    }
+
+    protected void NotifyChargeChanged(float chargeRatio)
+    {
+        ChargeChanged?.Invoke(this, Mathf.Clamp01(chargeRatio));
+    }
+
+    protected void NotifyChargeReleased(float chargeRatio)
+    {
+        ChargeReleased?.Invoke(this, Mathf.Clamp01(chargeRatio));
+    }
+
+    protected void NotifyChargeCanceled()
+    {
+        ChargeCanceled?.Invoke(this);
     }
 
     protected Vector2 RotateVector(Vector2 vector, float angle)

@@ -25,6 +25,11 @@ public class Bullet : MonoBehaviour
     [Header("Rotation")]
     [SerializeField] private float rotationOffset = -90f;
 
+    [Header("Impact VFX")]
+    [SerializeField] private GameObject impactEffectPrefab;
+    [SerializeField] private float impactEffectLifeTime = 0.18f;
+    [SerializeField] private bool rotateImpactEffectToBullet = true;
+
     private Rigidbody2D rb;
 
     private Vector2 moveDirection;
@@ -46,6 +51,8 @@ public class Bullet : MonoBehaviour
 
     private readonly HashSet<int> damagedTargets = new HashSet<int>();
 
+    public ProjectileOwner Owner => owner;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -59,6 +66,11 @@ public class Bullet : MonoBehaviour
     private void OnDisable()
     {
         damagedTargets.Clear();
+
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+        }
     }
 
     private void Update()
@@ -67,16 +79,17 @@ public class Bullet : MonoBehaviour
 
         if (lifeTimer <= 0f)
         {
-            ReleaseSelf();
+            ReleaseSelf(false);
             return;
         }
 
         if (range > 0f)
         {
             float traveledDistance = Vector2.Distance(spawnPosition, transform.position);
+
             if (traveledDistance >= range)
             {
-                ReleaseSelf();
+                ReleaseSelf(false);
                 return;
             }
         }
@@ -168,8 +181,8 @@ public class Bullet : MonoBehaviour
             remainingPierceCount = pierceOverride;
         }
 
-        homingAngle += homingAngleBonus;
-        homingRange += homingRangeBonus;
+        homingAngle = Mathf.Max(0f, homingAngle + homingAngleBonus);
+        homingRange = Mathf.Max(0f, homingRange + homingRangeBonus);
 
         lifeTimer = Mathf.Max(0.05f, lifeTime);
         damagedTargets.Clear();
@@ -215,12 +228,13 @@ public class Bullet : MonoBehaviour
         }
 
         Transform target = FindNearestHomingTarget();
+
         if (target == null)
         {
             return;
         }
 
-        Vector2 targetDirection = (target.position - transform.position).normalized;
+        Vector2 targetDirection = ((Vector2)target.position - (Vector2)transform.position).normalized;
         float maxRadiansDelta = homingAngle * Mathf.Deg2Rad * Time.deltaTime;
 
         Vector3 newDirection = Vector3.RotateTowards(
@@ -254,7 +268,13 @@ public class Bullet : MonoBehaviour
                 continue;
             }
 
+            if (IsFriendlyCollider(hit))
+            {
+                continue;
+            }
+
             float sqrDistance = ((Vector2)hit.transform.position - (Vector2)transform.position).sqrMagnitude;
+
             if (sqrDistance < nearestSqrDistance)
             {
                 nearestSqrDistance = sqrDistance;
@@ -283,67 +303,128 @@ public class Bullet : MonoBehaviour
             return;
         }
 
-        // 운석은 모든 탄환을 막는다.
+        if (!gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        if (IsFriendlyCollider(other))
+        {
+            return;
+        }
+
+        if (owner == ProjectileOwner.Player)
+        {
+            EnemyHealth enemyHealth = other.GetComponentInParent<EnemyHealth>();
+
+            if (enemyHealth != null)
+            {
+                if (enemyHealth.IsDead)
+                {
+                    return;
+                }
+
+                bool damaged = TryApplyDamageToTarget(enemyHealth, enemyHealth.TakeDamage);
+
+                if (damaged)
+                {
+                    EnemyBaseAI enemyAI = enemyHealth.GetComponent<EnemyBaseAI>();
+
+                    if (enemyAI != null)
+                    {
+                        enemyAI.NotifyDamagedByPlayer();
+                    }
+                }
+
+                return;
+            }
+        }
+        else
+        {
+            PlayerHealth playerHealth = other.GetComponentInParent<PlayerHealth>();
+
+            if (playerHealth != null)
+            {
+                if (playerHealth.IsDead)
+                {
+                    return;
+                }
+
+                TryApplyDamageToTarget(playerHealth, playerHealth.TakeDamage);
+                return;
+            }
+        }
+
         MeteorObstacle meteorObstacle = other.GetComponentInParent<MeteorObstacle>();
+
         if (meteorObstacle != null)
         {
-            meteorObstacle.TakeDamage(Mathf.CeilToInt(damage));
-            ReleaseSelf();
+            ApplyDamageToMeteor(meteorObstacle);
             return;
         }
 
         IDamageable damageable = other.GetComponentInParent<IDamageable>();
+        Component damageableComponent = damageable as Component;
 
-        if (damageable != null)
+        if (damageable != null && damageableComponent != null)
         {
-            if (owner == ProjectileOwner.Player && damageable is PlayerHealth)
-            {
-                return;
-            }
-
-            if (owner == ProjectileOwner.Enemy && damageable is EnemyHealth)
-            {
-                return;
-            }
-
-            Component targetComponent = damageable as Component;
-            ApplyDamageToTarget(targetComponent, damageable.TakeDamage);
-            return;
-        }
-
-        // 이전 구조 호환용. EnemyHealth가 아직 IDamageable로 교체되지 않은 경우 대비.
-        if (owner == ProjectileOwner.Player)
-        {
-            EnemyHealth enemyHealth = other.GetComponentInParent<EnemyHealth>();
-            if (enemyHealth != null)
-            {
-                ApplyDamageToTarget(enemyHealth, enemyHealth.TakeDamage);
-            }
-
-            return;
-        }
-
-        if (owner == ProjectileOwner.Enemy)
-        {
-            PlayerHealth playerHealth = other.GetComponentInParent<PlayerHealth>();
-            if (playerHealth != null)
-            {
-                ApplyDamageToTarget(playerHealth, playerHealth.TakeDamage);
-            }
+            TryApplyDamageToTarget(damageableComponent, damageable.TakeDamage);
         }
     }
 
-    private void ApplyDamageToTarget(Component targetComponent, Action<float> damageAction)
+    private bool IsFriendlyCollider(Collider2D other)
     {
-        if (targetComponent == null || damageAction == null)
+        if (other == null)
+        {
+            return true;
+        }
+
+        if (owner == ProjectileOwner.Player)
+        {
+            return other.GetComponentInParent<PlayerHealth>() != null;
+        }
+
+        return other.GetComponentInParent<EnemyHealth>() != null;
+    }
+
+    private void ApplyDamageToMeteor(MeteorObstacle meteorObstacle)
+    {
+        if (meteorObstacle == null)
         {
             return;
         }
 
-        int targetId = targetComponent.GetInstanceID();
+        int targetId = meteorObstacle.GetInstanceID();
+
         if (damagedTargets.Contains(targetId))
         {
             return;
+        }
+
+        damagedTargets.Add(targetId);
+        meteorObstacle.TakeDamage(Mathf.CeilToInt(damage));
+
+        if (remainingPierceCount > 0)
+        {
+            remainingPierceCount--;
+            return;
+        }
+
+        ReleaseSelf(true);
+    }
+
+    private bool TryApplyDamageToTarget(Component targetComponent, Action<float> damageAction)
+    {
+        if (targetComponent == null || damageAction == null)
+        {
+            return false;
+        }
+
+        int targetId = targetComponent.GetInstanceID();
+
+        if (damagedTargets.Contains(targetId))
+        {
+            return false;
         }
 
         damagedTargets.Add(targetId);
@@ -352,17 +433,60 @@ public class Bullet : MonoBehaviour
         if (remainingPierceCount > 0)
         {
             remainingPierceCount--;
+            return true;
+        }
+
+        ReleaseSelf(true);
+        return true;
+    }
+
+    private void SpawnImpactEffect()
+    {
+        if (impactEffectPrefab == null)
+        {
             return;
         }
 
-        ReleaseSelf();
+        Quaternion rotation = rotateImpactEffectToBullet
+            ? transform.rotation
+            : Quaternion.identity;
+
+        GameObject effect;
+
+        if (PoolManager.Instance != null)
+        {
+            effect = PoolManager.Instance.Get(impactEffectPrefab, transform.position, rotation);
+        }
+        else
+        {
+            effect = Instantiate(impactEffectPrefab, transform.position, rotation);
+        }
+
+        if (effect == null)
+        {
+            return;
+        }
+
+        if (PoolManager.Instance != null)
+        {
+            PoolManager.Instance.ReleaseAfter(effect, impactEffectLifeTime);
+        }
+        else
+        {
+            Destroy(effect, impactEffectLifeTime);
+        }
     }
 
-    private void ReleaseSelf()
+    private void ReleaseSelf(bool spawnImpactEffect)
     {
         if (!gameObject.activeInHierarchy)
         {
             return;
+        }
+
+        if (spawnImpactEffect)
+        {
+            SpawnImpactEffect();
         }
 
         if (PoolManager.Instance != null)

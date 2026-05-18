@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1ffd1b931ecbe5469a7fba03fec3260, type: 3}
+  m_Name: basic_ship_trait_01
+  m_EditorClassIdentifier: 
+  traitId: basic_ship_trait_01
+  displayName: basic_ship
+  description: 
+  icon: {fileID: 21300020, guid: 56d84991286850f428b4e7df0cca7380, type: 3}
+  requiredShipId: basic_ship
+  stage: 1
+  order: 0
+  useCustomAnchoredPosition: 0
+  customAnchoredPosition: {x: 0, y: 0}
+  prerequisiteTraitIds: []
+  scrapCost: 10
+  coreShardCost: 0
+  effects: []

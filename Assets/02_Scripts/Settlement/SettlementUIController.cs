@@ -1,13 +1,31 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+public enum SettlementPanelKind
+{
+    Main,
+    Repair,
+    Trait
+}
+
 public enum SettlementSelectionKind
 {
     None,
     Repair,
     Building,
+    Trait,
     Weapon,
-    Launch
+    Launch,
+    ShipPrevious,
+    ShipNext,
+    ShipAction,
+    BuildingPrevious,
+    BuildingNext,
+    OpenRepairPanel,
+    OpenTraitPanel,
+    OpenSettingsPanel,
+    BackToMain,
+    CloseSettings
 }
 
 public class SettlementUIController : MonoBehaviour
@@ -15,17 +33,55 @@ public class SettlementUIController : MonoBehaviour
     [Header("References")]
     [SerializeField] private SettlementController settlementController;
     [SerializeField] private SettlementHUD hud;
+    [SerializeField] private SettlementSettingsPanel settingsPanelController;
 
-    [Header("Buttons")]
-    [SerializeField] private Button actionButton;
+    [Header("Panels")]
+    [SerializeField] private GameObject mainPanel;
+    [SerializeField] private GameObject repairPanel;
+    [SerializeField] private GameObject traitPanel;
+    [SerializeField] private GameObject settingsPanel;
+
+    [Header("Main Panel Buttons")]
+    [SerializeField] private Button openRepairPanelButton;
+    [SerializeField] private Button openTraitPanelButton;
+    [SerializeField] private Button openSettingsPanelButton;
+    [SerializeField] private Button shipPreviousButton;
+    [SerializeField] private Button shipNextButton;
+    [SerializeField] private Button shipActionButton;
     [SerializeField] private Button launchButton;
 
-    [Header("Start")]
-    [SerializeField] private bool selectRepairOnStart = true;
+    [Header("Repair Panel Buttons")]
+    [SerializeField] private Button repairPreviousButton;
+    [SerializeField] private Button repairNextButton;
+    [SerializeField] private Button repairActionButton;
+    [SerializeField] private Button repairBackButton;
 
+    [Header("Trait Panel Buttons")]
+    [SerializeField] private Button traitActionButton;
+    [SerializeField] private Button traitBackButton;
+
+    [Header("Ship Trait Tree Panel")]
+    [SerializeField] private bool useShipTraitTreePanel = true;
+    [SerializeField] private ShipTraitTreePanel shipTraitTreePanel;
+
+    [Header("Start")]
+    [SerializeField] private SettlementPanelKind startPanel = SettlementPanelKind.Main;
+    [SerializeField] private BuildingType defaultBuilding = BuildingType.Hangar;
+    [SerializeField] private int defaultTraitIndex;
+
+    private SettlementPanelKind currentPanel = SettlementPanelKind.Main;
     private SettlementSelectionKind selectedKind = SettlementSelectionKind.None;
     private BuildingType selectedBuilding;
     private WeaponTreeType selectedWeapon;
+    private TraitDefinition selectedTrait;
+
+    private readonly BuildingType[] buildingOrder =
+    {
+        BuildingType.Hangar,
+        BuildingType.EngineWorkshop,
+        BuildingType.WeaponLab,
+        BuildingType.RecoveryProcessor
+    };
 
     private void Awake()
     {
@@ -38,60 +94,107 @@ public class SettlementUIController : MonoBehaviour
         {
             hud = FindFirstObjectByType<SettlementHUD>();
         }
+
+        if (settingsPanelController == null)
+        {
+            settingsPanelController = FindFirstObjectByType<SettlementSettingsPanel>();
+        }
+
+        if (shipTraitTreePanel == null && traitPanel != null)
+        {
+            shipTraitTreePanel = traitPanel.GetComponentInChildren<ShipTraitTreePanel>(true);
+        }
+
+        if (shipTraitTreePanel == null)
+        {
+            shipTraitTreePanel = FindFirstObjectByType<ShipTraitTreePanel>();
+        }
+
+        selectedBuilding = defaultBuilding;
+        selectedTrait = GetTraitByIndex(defaultTraitIndex);
+
+        if (settlementController != null)
+        {
+            selectedWeapon = settlementController.SelectedWeaponTree;
+        }
     }
 
     private void OnEnable()
     {
-        if (settlementController != null)
-        {
-            settlementController.Changed += Refresh;
-        }
-
-        if (actionButton != null)
-        {
-            actionButton.onClick.AddListener(ExecuteSelectedAction);
-        }
-
-        if (launchButton != null)
-        {
-            launchButton.onClick.AddListener(LaunchExpedition);
-        }
+        SubscribeController();
+        SubscribeButtons();
     }
 
     private void Start()
     {
-        if (selectRepairOnStart)
-        {
-            SelectRepair();
-        }
-        else
-        {
-            Refresh();
-        }
+        ShowPanel(startPanel);
     }
 
     private void OnDisable()
     {
-        if (settlementController != null)
-        {
-            settlementController.Changed -= Refresh;
-        }
-
-        if (actionButton != null)
-        {
-            actionButton.onClick.RemoveListener(ExecuteSelectedAction);
-        }
-
-        if (launchButton != null)
-        {
-            launchButton.onClick.RemoveListener(LaunchExpedition);
-        }
+        UnsubscribeController();
+        UnsubscribeButtons();
     }
 
+    public void ShowMainPanel()
+    {
+        ShowPanel(SettlementPanelKind.Main);
+    }
+
+    public void ShowRepairPanel()
+    {
+        ShowPanel(SettlementPanelKind.Repair);
+    }
+
+    public void ShowTraitPanel()
+    {
+        ShowPanel(SettlementPanelKind.Trait);
+    }
+
+    public void ShowSettingsPanel()
+    {
+        OpenSettingsOverlay();
+    }
+
+    public void CloseSettingsAndReturnMain()
+    {
+        CloseSettingsOverlay();
+    }
+    private void OpenSettingsOverlay()
+    {
+        if (settingsPanelController != null)
+        {
+            settingsPanelController.Open();
+        }
+        else
+        {
+            SetPanelActive(settingsPanel, true);
+        }
+
+        Refresh();
+    }
+
+    private void CloseSettingsOverlay()
+    {
+        if (settingsPanelController != null)
+        {
+            settingsPanelController.Close();
+        }
+        else
+        {
+            SetPanelActive(settingsPanel, false);
+        }
+
+        if (MouseCursorManager.Instance != null)
+        {
+            MouseCursorManager.Instance.ResetToSceneDefault();
+        }
+
+        Refresh();
+    }
     public void SelectRepair()
     {
-        selectedKind = SettlementSelectionKind.Repair;
-        Refresh();
+        ShowRepairPanel();
     }
 
     public void SelectBuildingHangar()
@@ -118,7 +221,29 @@ public class SettlementUIController : MonoBehaviour
     {
         selectedKind = SettlementSelectionKind.Building;
         selectedBuilding = buildingType;
-        Refresh();
+        ShowPanel(SettlementPanelKind.Repair);
+    }
+
+    public void SelectTrait(TraitDefinition trait)
+    {
+        selectedKind = SettlementSelectionKind.Trait;
+        selectedTrait = trait;
+        ShowPanel(SettlementPanelKind.Trait);
+    }
+
+    public void SelectTraitByIndex(int index)
+    {
+        SelectTrait(GetTraitByIndex(index));
+    }
+
+    public void SelectTraitById(string traitId)
+    {
+        if (settlementController == null)
+        {
+            return;
+        }
+
+        SelectTrait(settlementController.FindTraitDefinition(traitId));
     }
 
     public void SelectWeaponShotgun()
@@ -149,6 +274,52 @@ public class SettlementUIController : MonoBehaviour
         Refresh();
     }
 
+    public void MovePreviewShipPrevious()
+    {
+        if (settlementController != null)
+        {
+            settlementController.MovePreviewShipPrevious();
+        }
+
+        Refresh();
+    }
+
+    public void MovePreviewShipNext()
+    {
+        if (settlementController != null)
+        {
+            settlementController.MovePreviewShipNext();
+        }
+
+        Refresh();
+    }
+
+    public void ExecuteShipAction()
+    {
+        if (settlementController != null)
+        {
+            settlementController.TryExecutePreviewShipAction();
+        }
+
+        Refresh();
+    }
+
+    public void ExecuteBuildingAction()
+    {
+        if (settlementController != null)
+        {
+            settlementController.TryRepairOrUpgradeBuilding(selectedBuilding);
+        }
+
+        Refresh();
+    }
+
+    public void ExecuteTraitAction()
+    {
+        TryExecuteCurrentTraitAction();
+        Refresh();
+    }
+
     public void ExecuteSelectedAction()
     {
         if (settlementController == null)
@@ -158,12 +329,12 @@ public class SettlementUIController : MonoBehaviour
 
         switch (selectedKind)
         {
-            case SettlementSelectionKind.Repair:
-                settlementController.TryRepairPlayer();
+            case SettlementSelectionKind.Building:
+                settlementController.TryRepairOrUpgradeBuilding(selectedBuilding);
                 break;
 
-            case SettlementSelectionKind.Building:
-                settlementController.TryUpgradeBuilding(selectedBuilding);
+            case SettlementSelectionKind.Trait:
+                TryExecuteCurrentTraitAction();
                 break;
 
             case SettlementSelectionKind.Weapon:
@@ -172,6 +343,22 @@ public class SettlementUIController : MonoBehaviour
 
             case SettlementSelectionKind.Launch:
                 LaunchExpedition();
+                break;
+
+            case SettlementSelectionKind.ShipAction:
+            case SettlementSelectionKind.None:
+                if (currentPanel == SettlementPanelKind.Main)
+                {
+                    settlementController.TryExecutePreviewShipAction();
+                }
+                else if (currentPanel == SettlementPanelKind.Repair)
+                {
+                    settlementController.TryRepairOrUpgradeBuilding(selectedBuilding);
+                }
+                else if (currentPanel == SettlementPanelKind.Trait)
+                {
+                    TryExecuteCurrentTraitAction();
+                }
                 break;
         }
 
@@ -188,29 +375,147 @@ public class SettlementUIController : MonoBehaviour
         settlementController.LaunchExpedition();
     }
 
-    private void Refresh()
+    public void Refresh()
     {
-        if (settlementController == null || hud == null)
+        if (settlementController == null)
         {
             return;
         }
 
-        hud.Refresh();
-        hud.SetLaunchLabel($"Å½»ç ½ÃÀÛ / {GetWeaponDisplayName(settlementController.SelectedWeaponTree)}");
-
-        string title;
-        string body;
-        string actionLabel;
-        bool canExecute;
-
-        BuildSelectedDetail(out title, out body, out actionLabel, out canExecute);
-
-        hud.SetDetail(title, body);
-        hud.SetActionLabel(actionLabel);
-
-        if (actionButton != null)
+        if (hud != null)
         {
-            actionButton.interactable = canExecute;
+            hud.Refresh();
+        }
+
+        RefreshMainPanel();
+        RefreshRepairPanel();
+        RefreshTraitPanel();
+        RefreshButtons();
+    }
+
+    private void ShowPanel(SettlementPanelKind panelKind)
+    {
+        currentPanel = panelKind;
+
+        SetPanelActive(mainPanel, panelKind == SettlementPanelKind.Main);
+        SetPanelActive(repairPanel, panelKind == SettlementPanelKind.Repair);
+        SetPanelActive(traitPanel, panelKind == SettlementPanelKind.Trait);
+        
+        CloseSettingsOverlay();
+
+        if (panelKind == SettlementPanelKind.Main)
+        {
+            selectedKind = SettlementSelectionKind.ShipAction;
+        }
+        else if (panelKind == SettlementPanelKind.Repair)
+        {
+            selectedKind = SettlementSelectionKind.Building;
+        }
+        else if (panelKind == SettlementPanelKind.Trait)
+        {
+            selectedKind = SettlementSelectionKind.Trait;
+
+            if (selectedTrait == null)
+            {
+                selectedTrait = GetTraitByIndex(defaultTraitIndex);
+            }
+
+            if (UseShipTraitTreePanel())
+            {
+                shipTraitTreePanel.ClearTargetShipOverride();
+            }
+        }
+
+        Refresh();
+    }
+
+    private void RefreshMainPanel()
+    {
+        if (hud == null || settlementController == null)
+        {
+            return;
+        }
+
+        ShipDefinition previewShip = settlementController.PreviewShip;
+        string title = settlementController.GetPreviewShipTitle();
+        string body = settlementController.BuildPreviewShipDetailText();
+        string actionLabel = settlementController.GetShipActionLabel(previewShip);
+
+        hud.SetMainShipDetail(title, body, actionLabel);
+        hud.SetShipPreviewState(
+            settlementController.GetPreviewShipSprite(),
+            settlementController.PreviewShipIndex,
+            GetShipCount()
+        );
+        hud.SetLaunchLabel("íƒì‚¬ ì‹œìž‘");
+    }
+
+    private void RefreshRepairPanel()
+    {
+        if (hud == null || settlementController == null)
+        {
+            return;
+        }
+
+        string title = settlementController.GetBuildingDisplayName(selectedBuilding);
+        string body = settlementController.BuildBuildingDetailText(selectedBuilding);
+        string actionLabel = settlementController.GetBuildingActionLabel(selectedBuilding);
+        int currentLevel = settlementController.GetBuildingLevel(selectedBuilding);
+
+        hud.SetRepairDetail(title, body, actionLabel);
+        hud.SetRepairPreview(
+            selectedBuilding,
+            currentLevel,
+            GetSelectedBuildingIndex(),
+            buildingOrder.Length
+        );
+    }
+
+    private void RefreshTraitPanel()
+    {
+        if (UseShipTraitTreePanel())
+        {
+            if (currentPanel == SettlementPanelKind.Trait)
+            {
+                shipTraitTreePanel.RefreshPanel();
+            }
+
+            return;
+        }
+
+        if (hud == null || settlementController == null)
+        {
+            return;
+        }
+
+        string title = selectedTrait != null ? selectedTrait.DisplayName : "ì¶”ê°€ íŠ¹ì„±";
+        string body = settlementController.BuildTraitDetailText(selectedTrait);
+        string actionLabel = settlementController.GetTraitActionLabel(selectedTrait);
+
+        hud.SetTraitDetail(title, body, actionLabel);
+    }
+
+    private void RefreshButtons()
+    {
+        ShipDefinition previewShip = settlementController != null ? settlementController.PreviewShip : null;
+
+        if (shipActionButton != null)
+        {
+            shipActionButton.interactable =
+                settlementController != null &&
+                settlementController.CanExecuteShipAction(previewShip);
+        }
+
+        if (repairActionButton != null)
+        {
+            repairActionButton.interactable =
+                settlementController != null &&
+                settlementController.CanExecuteBuildingAction(selectedBuilding);
+        }
+
+        if (traitActionButton != null)
+        {
+            traitActionButton.interactable = CanExecuteCurrentTraitAction();
         }
 
         if (launchButton != null)
@@ -219,183 +524,274 @@ public class SettlementUIController : MonoBehaviour
         }
     }
 
-    private void BuildSelectedDetail(
-        out string title,
-        out string body,
-        out string actionLabel,
-        out bool canExecute)
+    private bool TryExecuteCurrentTraitAction()
     {
-        title = "Á¤ÂøÁö";
-        body = "ÁÂÃø ¸Þ´º ¶Ç´Â Áß¾Ó ±¸¿ªÀ» ¼±ÅÃÇÏ¼¼¿ä.";
-        actionLabel = "½ÇÇà";
-        canExecute = false;
+        if (UseShipTraitTreePanel() && currentPanel == SettlementPanelKind.Trait)
+        {
+            return shipTraitTreePanel.TryUnlockSelectedTrait();
+        }
 
         if (settlementController == null)
         {
-            return;
+            return false;
         }
 
-        switch (selectedKind)
+        return settlementController.TryUnlockOrUpgradeTrait(selectedTrait);
+    }
+
+    private bool CanExecuteCurrentTraitAction()
+    {
+        if (UseShipTraitTreePanel() && currentPanel == SettlementPanelKind.Trait)
         {
-            case SettlementSelectionKind.Repair:
-                title = "Á¤ºñ¼Ò";
-                body =
-                    "Å½»ç ÈÄ ±âÃ¼¸¦ Á¤ºñÇÏ´Â ±¸¿ªÀÔ´Ï´Ù.\n\n" +
-                    $"ºñ¿ë: ½ºÅ©·¦ ºÎÇ° {settlementController.RepairScrapCost}\n" +
-                    "È¿°ú: ÇöÀç Ã¼·Â È¸º¹\n\n" +
-                    "ÇÁ·ÎÅäÅ¸ÀÔ¿¡¼­´Â Á¤ºñ ºñ¿ë ¼Ò¸ð¿Í ¸Þ½ÃÁö °»½Å¸¸ ¸ÕÀú È®ÀÎÇÕ´Ï´Ù.";
-                actionLabel = "Á¤ºñ ½ÇÇà";
-                canExecute = true;
-                break;
+            return shipTraitTreePanel.CanUnlockSelectedTrait();
+        }
 
-            case SettlementSelectionKind.Building:
-                BuildBuildingDetail(out title, out body, out actionLabel, out canExecute);
-                break;
+        if (settlementController == null)
+        {
+            return false;
+        }
 
-            case SettlementSelectionKind.Weapon:
-                BuildWeaponDetail(out title, out body, out actionLabel, out canExecute);
-                break;
+        return settlementController.CanExecuteTraitAction(selectedTrait);
+    }
 
-            case SettlementSelectionKind.Launch:
-                title = "Ãâ°Ý ÁØºñ";
-                body =
-                    "ÇöÀç ¼±ÅÃµÈ ¹«±â Æ®¸®·Î Å½»ç¸¦ ½ÃÀÛÇÕ´Ï´Ù.\n\n" +
-                    $"¼±ÅÃ ¹«±â: {GetWeaponDisplayName(settlementController.SelectedWeaponTree)}\n" +
-                    "ÇØ¿ª: ÀÏ¹Ý ÇØ¿ª\n\n" +
-                    "Ãâ°ÝÇÏ¸é Settlement Scene¿¡¼­ Expedition SceneÀ¸·Î ÀÌµ¿ÇÕ´Ï´Ù.";
-                actionLabel = "Å½»ç ½ÃÀÛ";
-                canExecute = true;
-                break;
+    private bool UseShipTraitTreePanel()
+    {
+        return useShipTraitTreePanel && shipTraitTreePanel != null;
+    }
+
+    private bool ShouldControllerHandleTraitActionButton()
+    {
+        if (traitActionButton == null)
+        {
+            return false;
+        }
+
+        if (!UseShipTraitTreePanel())
+        {
+            return true;
+        }
+
+        return shipTraitTreePanel.UnlockButton != traitActionButton;
+    }
+
+    private void SubscribeController()
+    {
+        if (settlementController != null)
+        {
+            settlementController.Changed += Refresh;
         }
     }
 
-    private void BuildBuildingDetail(
-        out string title,
-        out string body,
-        out string actionLabel,
-        out bool canExecute)
+    private void UnsubscribeController()
     {
-        int level = settlementController.GetBuildingLevel(selectedBuilding);
-        bool isMaxLevel = settlementController.IsBuildingMaxLevel(selectedBuilding);
-
-        string buildingName = settlementController.GetBuildingDisplayName(selectedBuilding);
-        string currentEffect = GetBuildingEffectText(selectedBuilding, level);
-        string nextEffect = isMaxLevel
-            ? "ÃÖ´ë ´Ü°èÀÔ´Ï´Ù."
-            : GetBuildingEffectText(selectedBuilding, level + 1);
-
-        title = buildingName;
-        body =
-            $"{GetBuildingDescription(selectedBuilding)}\n\n" +
-            $"ÇöÀç ´Ü°è: Lv {level}\n" +
-            $"ÇöÀç È¿°ú: {currentEffect}\n\n" +
-            $"´ÙÀ½ È¿°ú: {nextEffect}\n" +
-            $"¿ä±¸ ÀçÈ­: {settlementController.GetUpgradeCostText(selectedBuilding)}";
-
-        actionLabel = isMaxLevel ? "ÃÖ´ë °­È­" : "°­È­ ½ÇÇà";
-        canExecute = !isMaxLevel;
-    }
-
-    private void BuildWeaponDetail(
-        out string title,
-        out string body,
-        out string actionLabel,
-        out bool canExecute)
-    {
-        bool alreadySelected = settlementController.SelectedWeaponTree == selectedWeapon;
-
-        title = GetWeaponDisplayName(selectedWeapon);
-        body =
-            $"{GetWeaponDescription(selectedWeapon)}\n\n" +
-            $"ÇöÀç ¼±ÅÃ ¹«±â: {GetWeaponDisplayName(settlementController.SelectedWeaponTree)}\n" +
-            $"¼±ÅÃÇÒ ¹«±â: {GetWeaponDisplayName(selectedWeapon)}";
-
-        actionLabel = alreadySelected ? "ÀÌ¹Ì ¼±ÅÃµÊ" : "¹«±â ¼±ÅÃ";
-        canExecute = !alreadySelected;
-    }
-
-    private string GetBuildingDescription(BuildingType buildingType)
-    {
-        return buildingType switch
+        if (settlementController != null)
         {
-            BuildingType.Hangar => "°Ý³³°í´Â ÃÖ´ë Ã¼·Â°ú ¼ö¸® È¿À²À» ´ã´çÇÕ´Ï´Ù.",
-            BuildingType.EngineWorkshop => "¿£Áø °ø¹æÀº ÀÌµ¿¼Óµµ, ´ë½¬ °Å¸®, ´ë½¬ Äð´Ù¿îÀ» ´ã´çÇÕ´Ï´Ù.",
-            BuildingType.WeaponLab => "È­±â ¿¬±¸¼Ò´Â °ø°Ý·Â, ¿¬»ç·Â, Åº¼Ó, »ç°Å¸®¸¦ ´ã´çÇÕ´Ï´Ù.",
-            BuildingType.RecoveryProcessor => "È¸¼ö Ã³¸®ÀåÀº ½ºÅ©·¦ È¹µæ·®, È¸º¹ È¿À², È¸¼ö ÆíÀÇ¼ºÀ» ´ã´çÇÕ´Ï´Ù.",
-            _ => "Á¤ÂøÁö ½Ã¼³ÀÔ´Ï´Ù."
-        };
+            settlementController.Changed -= Refresh;
+        }
     }
 
-    private string GetBuildingEffectText(BuildingType buildingType, int level)
+    private void SubscribeButtons()
     {
-        if (level <= 0)
+        if (openRepairPanelButton != null)
         {
-            return "ÆÄ¼Õ »óÅÂ. È¿°ú ¾øÀ½.";
+            openRepairPanelButton.onClick.AddListener(ShowRepairPanel);
         }
 
-        return buildingType switch
+        if (openTraitPanelButton != null)
         {
-            BuildingType.Hangar => level switch
-            {
-                1 => "ÃÖ´ë Ã¼·Â +2",
-                2 => "ÃÖ´ë Ã¼·Â +4, ¼ö¸® È¿À² +1",
-                3 => "ÃÖ´ë Ã¼·Â +6, ¼ö¸® È¿À² +2",
-                _ => "ÃÖ´ë ´Ü°è"
-            },
+            openTraitPanelButton.onClick.AddListener(ShowTraitPanel);
+        }
 
-            BuildingType.EngineWorkshop => level switch
-            {
-                1 => "ÀÌµ¿¼Óµµ +5%",
-                2 => "ÀÌµ¿¼Óµµ +5%, ´ë½¬ °Å¸® +0.5",
-                3 => "ÀÌµ¿¼Óµµ +8%, ´ë½¬ °Å¸® +0.5, ´ë½¬ Äð´Ù¿î -0.1ÃÊ",
-                _ => "ÃÖ´ë ´Ü°è"
-            },
+        if (openSettingsPanelButton != null)
+        {
+            openSettingsPanelButton.onClick.AddListener(ShowSettingsPanel);
+        }
 
-            BuildingType.WeaponLab => level switch
-            {
-                1 => "ÀüÃ¼ °ø°Ý·Â +10%",
-                2 => "ÀüÃ¼ °ø°Ý·Â +10%, Åº¼Ó +10%",
-                3 => "ÀüÃ¼ °ø°Ý·Â +10%, Åº¼Ó +10%, ¿¬»ç·Â +8%",
-                _ => "ÃÖ´ë ´Ü°è"
-            },
+        if (shipPreviousButton != null)
+        {
+            shipPreviousButton.onClick.AddListener(MovePreviewShipPrevious);
+        }
 
-            BuildingType.RecoveryProcessor => level switch
-            {
-                1 => "½ºÅ©·¦ ºÎÇ° È¹µæ·® +10%",
-                2 => "½ºÅ©·¦ ºÎÇ° È¹µæ·® +10%, È¸º¹ ÀÚ¿ø È¿°ú +25%",
-                3 => "½ºÅ©·¦ ºÎÇ° È¹µæ·® +10%, È¸º¹ ÀÚ¿ø È¿°ú +25%, ¾ÆÀÌÅÛ Èí¼ö ¹üÀ§ +1.5, Å©·¹µ÷ È¹µæ·® +10%",
-                _ => "ÃÖ´ë ´Ü°è"
-            },
+        if (shipNextButton != null)
+        {
+            shipNextButton.onClick.AddListener(MovePreviewShipNext);
+        }
 
-            _ => "È¿°ú ¾øÀ½"
-        };
+        if (shipActionButton != null)
+        {
+            shipActionButton.onClick.AddListener(ExecuteShipAction);
+        }
+
+        if (launchButton != null)
+        {
+            launchButton.onClick.AddListener(LaunchExpedition);
+        }
+
+        if (repairActionButton != null)
+        {
+            repairActionButton.onClick.AddListener(ExecuteBuildingAction);
+        }
+
+        if (repairBackButton != null)
+        {
+            repairBackButton.onClick.AddListener(ShowMainPanel);
+        }
+
+        if (ShouldControllerHandleTraitActionButton())
+        {
+            traitActionButton.onClick.AddListener(ExecuteTraitAction);
+        }
+
+        if (traitBackButton != null)
+        {
+            traitBackButton.onClick.AddListener(ShowMainPanel);
+        }
+
+        if (repairPreviousButton != null)
+        {
+            repairPreviousButton.onClick.AddListener(MoveBuildingPrevious);
+        }
+
+        if (repairNextButton != null)
+        {
+            repairNextButton.onClick.AddListener(MoveBuildingNext);
+        }
     }
 
-    private string GetWeaponDisplayName(WeaponTreeType weaponTreeType)
+    private void UnsubscribeButtons()
     {
-        return weaponTreeType switch
+        if (openRepairPanelButton != null)
         {
-            WeaponTreeType.Shotgun => "±ÙÁ¢ + ¼¦°Ç",
-            WeaponTreeType.Sniper => "°üÅë ½º³ªÀÌÆÛ",
-            WeaponTreeType.MachineGun => "±â°üÃÑ",
-            _ => weaponTreeType.ToString()
-        };
+            openRepairPanelButton.onClick.RemoveListener(ShowRepairPanel);
+        }
+
+        if (openTraitPanelButton != null)
+        {
+            openTraitPanelButton.onClick.RemoveListener(ShowTraitPanel);
+        }
+
+        if (openSettingsPanelButton != null)
+        {
+            openSettingsPanelButton.onClick.RemoveListener(ShowSettingsPanel);
+        }
+
+        if (shipPreviousButton != null)
+        {
+            shipPreviousButton.onClick.RemoveListener(MovePreviewShipPrevious);
+        }
+
+        if (shipNextButton != null)
+        {
+            shipNextButton.onClick.RemoveListener(MovePreviewShipNext);
+        }
+
+        if (shipActionButton != null)
+        {
+            shipActionButton.onClick.RemoveListener(ExecuteShipAction);
+        }
+
+        if (launchButton != null)
+        {
+            launchButton.onClick.RemoveListener(LaunchExpedition);
+        }
+
+        if (repairActionButton != null)
+        {
+            repairActionButton.onClick.RemoveListener(ExecuteBuildingAction);
+        }
+
+        if (repairBackButton != null)
+        {
+            repairBackButton.onClick.RemoveListener(ShowMainPanel);
+        }
+
+        if (ShouldControllerHandleTraitActionButton())
+        {
+            traitActionButton.onClick.RemoveListener(ExecuteTraitAction);
+        }
+
+        if (traitBackButton != null)
+        {
+            traitBackButton.onClick.RemoveListener(ShowMainPanel);
+        }
+
+        if (repairPreviousButton != null)
+        {
+            repairPreviousButton.onClick.RemoveListener(MoveBuildingPrevious);
+        }
+
+        if (repairNextButton != null)
+        {
+            repairNextButton.onClick.RemoveListener(MoveBuildingNext);
+        }
     }
 
-    private string GetWeaponDescription(WeaponTreeType weaponTreeType)
+    private TraitDefinition GetTraitByIndex(int index)
     {
-        return weaponTreeType switch
+        if (settlementController == null ||
+            settlementController.TraitDefinitions == null ||
+            settlementController.TraitDefinitions.Count == 0)
         {
-            WeaponTreeType.Shotgun =>
-                "´ë½¬·Î ÁøÀÔÇÑ µÚ ±Ù°Å¸® »êÅºÀ¸·Î ¼ø°£ È­·ÂÀ» ³Ö°í ºüÁö´Â µ¹ÀÔÇü ¹«±â Æ®¸®ÀÔ´Ï´Ù.",
+            return null;
+        }
 
-            WeaponTreeType.Sniper =>
-                "ÁÂÅ¬¸¯ À¯Áö·Î Â÷Â¡ÇÏ°í, ¹öÆ°À» ¶¼¸é °üÅëÅºÀ» ¹ß»çÇÏ´Â Àå°Å¸® Á¤¸®Çü ¹«±â Æ®¸®ÀÔ´Ï´Ù.",
+        index = Mathf.Clamp(index, 0, settlementController.TraitDefinitions.Count - 1);
+        return settlementController.TraitDefinitions[index];
+    }
 
-            WeaponTreeType.MachineGun =>
-                "ÁÂÅ¬¸¯ À¯Áö·Î Áö¼Ó »ç°ÝÇÏ¸ç Áß°Å¸®¿¡¼­ ¾ÈÁ¤ÀûÀ¸·Î ÀûÀ» ÃßÀûÇÏ´Â Áö¼Ó ÀüÅõÇü ¹«±â Æ®¸®ÀÔ´Ï´Ù.",
+    private void SetPanelActive(GameObject panel, bool active)
+    {
+        if (panel != null)
+        {
+            panel.SetActive(active);
+        }
+    }
 
-            _ => "¹«±â Æ®¸® ¼³¸í ¾øÀ½."
-        };
+    public void MoveBuildingPrevious()
+    {
+        int index = GetSelectedBuildingIndex();
+        index--;
+
+        if (index < 0)
+        {
+            index = buildingOrder.Length - 1;
+        }
+
+        selectedKind = SettlementSelectionKind.Building;
+        selectedBuilding = buildingOrder[index];
+        Refresh();
+    }
+
+    public void MoveBuildingNext()
+    {
+        int index = GetSelectedBuildingIndex();
+        index = (index + 1) % buildingOrder.Length;
+
+        selectedKind = SettlementSelectionKind.Building;
+        selectedBuilding = buildingOrder[index];
+        Refresh();
+    }
+
+    private int GetSelectedBuildingIndex()
+    {
+        for (int i = 0; i < buildingOrder.Length; i++)
+        {
+            if (buildingOrder[i] == selectedBuilding)
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    private int GetShipCount()
+    {
+        if (settlementController == null || settlementController.ShipDefinitions == null)
+        {
+            return 0;
+        }
+
+        return settlementController.ShipDefinitions.Count;
     }
 }

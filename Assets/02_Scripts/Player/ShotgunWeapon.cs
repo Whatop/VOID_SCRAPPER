@@ -72,6 +72,7 @@ public class ShotgunWeapon : PlayerWeaponBase
         }
 
         RegisterAttack();
+        NotifyFired();
         nextFireTime = Time.time + GetFireInterval(fallbackFireInterval);
     }
 }

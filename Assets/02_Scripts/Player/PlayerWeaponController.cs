@@ -35,8 +35,11 @@ public class PlayerWeaponController : MonoBehaviour
     private PlayerWeaponBase currentWeapon;
     private WeaponTreeType currentWeaponTree;
 
+    public Transform FirePoint => firePoint;
     public PlayerWeaponBase CurrentWeapon => currentWeapon;
     public WeaponTreeType CurrentWeaponTree => currentWeaponTree;
+
+    public event Action<WeaponTreeType, PlayerWeaponBase> WeaponEquipped;
 
     private void Awake()
     {
@@ -79,13 +82,14 @@ public class PlayerWeaponController : MonoBehaviour
 
     private void Update()
     {
-        if (!CanUseWeapon())
+        if (currentWeapon == null)
         {
             return;
         }
 
-        if (currentWeapon == null)
+        if (!CanUseWeapon())
         {
+            currentWeapon.ForceCancel();
             return;
         }
 
@@ -228,16 +232,10 @@ public class PlayerWeaponController : MonoBehaviour
     public bool EquipWeapon(WeaponTreeType weaponTreeType)
     {
         PlayerWeaponBase nextWeapon = FindWeapon(weaponTreeType);
-
         if (nextWeapon == null)
         {
-            Debug.LogWarning($"{weaponTreeType} 무기 컴포넌트를 찾지 못했습니다.", this);
+            Debug.LogWarning($"Weapon not found in loadout: {weaponTreeType}", this);
             return false;
-        }
-
-        if (currentWeapon == nextWeapon)
-        {
-            return true;
         }
 
         if (currentWeapon != null)
@@ -247,9 +245,10 @@ public class PlayerWeaponController : MonoBehaviour
 
         currentWeapon = nextWeapon;
         currentWeaponTree = weaponTreeType;
+
         currentWeapon.OnEquip();
 
-        Debug.Log($"무기 트리 장착: {weaponTreeType}");
+        WeaponEquipped?.Invoke(currentWeaponTree, currentWeapon);
         return true;
     }
 
@@ -257,7 +256,7 @@ public class PlayerWeaponController : MonoBehaviour
     {
         foreach (WeaponLoadoutEntry entry in loadout)
         {
-            if (entry == null)
+            if (entry == null || entry.weapon == null)
             {
                 continue;
             }
@@ -269,23 +268,5 @@ public class PlayerWeaponController : MonoBehaviour
         }
 
         return null;
-    }
-
-    [ContextMenu("Equip Shotgun")]
-    private void DebugEquipShotgun()
-    {
-        EquipWeapon(WeaponTreeType.Shotgun);
-    }
-
-    [ContextMenu("Equip Sniper")]
-    private void DebugEquipSniper()
-    {
-        EquipWeapon(WeaponTreeType.Sniper);
-    }
-
-    [ContextMenu("Equip MachineGun")]
-    private void DebugEquipMachineGun()
-    {
-        EquipWeapon(WeaponTreeType.MachineGun);
     }
 }

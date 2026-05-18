@@ -139,7 +139,6 @@ GameObject:
   - component: {fileID: 2841651008152744594}
   - component: {fileID: 7927498654065662851}
   - component: {fileID: 7735139960315057300}
-  - component: {fileID: 8780053690398129259}
   m_Layer: 0
   m_Name: Enemy_Shooter
   m_TagString: Enemy
@@ -299,30 +298,3 @@ MonoBehaviour:
   hitEffectDuration: 0.12
   dropContainerPrefab: {fileID: 7619617139882337849, guid: 00c6e15f8babd5b4ca6e2f8c71601408, type: 3}
   dropChance: 1
---- !u!114 &8780053690398129259
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8338032329828834249}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 35fa673b06d78d341b0bc15eefa6ca44, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  target: {fileID: 0}
-  playerTag: Player
-  detectionRange: 4
-  attackRange: 2.75
-  lostTargetRange: 11
-  moveSpeed: 2.5
-  rotationOffset: -90
-  currentState: 0
-  firePoint: {fileID: 3770426468270159584}
-  bulletPrefab: {fileID: 4939712952834317954, guid: 2751e60f478d342489e8ed8a121ec0a4, type: 3}
-  burstCount: 2
-  bulletsPerBurst: 1
-  spreadAngle: 0
-  burstInterval: 0.15
-  attackCooldown: 3

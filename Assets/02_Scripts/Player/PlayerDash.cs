@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -41,6 +42,9 @@ public class PlayerDash : MonoBehaviour
     public bool IsDashing => isDashing;
     public bool CanDash => !isDashing && Time.time >= lastDashTime + dashCooldown;
 
+    public event Action<Vector2> DashStarted;
+    public event Action DashEnded;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -66,11 +70,9 @@ public class PlayerDash : MonoBehaviour
             dashRoutine = null;
         }
 
-        isDashing = false;
-
-        if (controller != null)
+        if (isDashing)
         {
-            controller.SetMovementLocked(false);
+            EndDashState();
         }
     }
 
@@ -163,6 +165,8 @@ public class PlayerDash : MonoBehaviour
         isDashing = true;
         lastDashTime = Time.time;
 
+        DashStarted?.Invoke(direction);
+
         if (controller != null)
         {
             controller.SetMovementLocked(true);
@@ -181,7 +185,10 @@ public class PlayerDash : MonoBehaviour
 
         while (elapsed < dashDuration)
         {
-            rb.linearVelocity = direction * dashSpeed;
+            if (rb != null)
+            {
+                rb.linearVelocity = direction * dashSpeed;
+            }
 
             ClearProjectiles();
 
@@ -189,7 +196,15 @@ public class PlayerDash : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
 
-        rb.linearVelocity = Vector2.zero;
+        EndDashState();
+    }
+
+    private void EndDashState()
+    {
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+        }
 
         if (controller != null)
         {
@@ -198,6 +213,8 @@ public class PlayerDash : MonoBehaviour
 
         isDashing = false;
         dashRoutine = null;
+
+        DashEnded?.Invoke();
     }
 
     private void ClearProjectiles()
@@ -223,7 +240,17 @@ public class PlayerDash : MonoBehaviour
             }
 
             Bullet bullet = hit.GetComponentInParent<Bullet>();
-            GameObject targetObject = bullet != null ? bullet.gameObject : hit.gameObject;
+            if (bullet == null)
+            {
+                continue;
+            }
+
+            if (bullet.Owner != ProjectileOwner.Enemy)
+            {
+                continue;
+            }
+
+            GameObject targetObject = bullet.gameObject;
 
             if (PoolManager.Instance != null)
             {
@@ -279,7 +306,7 @@ public class PlayerDash : MonoBehaviour
             Vector2 direction = ((Vector2)targetRb.position - (Vector2)transform.position).normalized;
             if (direction.sqrMagnitude <= 0.001f)
             {
-                direction = Random.insideUnitCircle.normalized;
+                direction = UnityEngine.Random.insideUnitCircle.normalized;
             }
 
             targetRb.position += direction * knockbackDistance;

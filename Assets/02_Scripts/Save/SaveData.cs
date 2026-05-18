@@ -10,8 +10,10 @@ public class SaveData
     public int coreShards;
 
     public WeaponTreeType lastSelectedWeaponTree = WeaponTreeType.MachineGun;
+    public string selectedShipId = "basic_ship";
 
     public List<BuildingSaveData> buildingLevels = new List<BuildingSaveData>();
+    public List<TraitLevelSaveData> traitLevels = new List<TraitLevelSaveData>();
     public List<string> unlockFlags = new List<string>();
 }
 
@@ -24,6 +26,19 @@ public class BuildingSaveData
     public BuildingSaveData(BuildingType buildingType, int level)
     {
         this.buildingType = buildingType;
+        this.level = level;
+    }
+}
+
+[Serializable]
+public class TraitLevelSaveData
+{
+    public string traitId;
+    public int level;
+
+    public TraitLevelSaveData(string traitId, int level)
+    {
+        this.traitId = traitId;
         this.level = level;
     }
 }

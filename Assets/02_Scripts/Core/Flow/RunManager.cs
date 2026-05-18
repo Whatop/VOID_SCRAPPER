@@ -18,12 +18,11 @@ public class RunManager : MonoBehaviour
     public event Action<RunWallet> WalletChanged;
     public event Action<RunResultData> RunEnded;
 
-    private bool isCompletingRun;
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("RunManager°¡ Áßº¹À¸·Î Á¸ÀçÇÕ´Ï´Ù. Áßº¹ ÀÎ½ºÅÏ½º¸¦ ºñÈ°¼ºÈ­ÇÕ´Ï´Ù.", this);
+            Debug.LogWarning("RunManagerê°€ ì¤‘ë³µìœ¼ë¡œ ì¡´ì¬í•©ë‹ˆë‹¤. ì¤‘ë³µ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤.", this);
             enabled = false;
             return;
         }
@@ -38,21 +37,43 @@ public class RunManager : MonoBehaviour
             currentRun.Wallet.Changed -= HandleWalletChanged;
         }
     }
+
+    public void SetBalanceConfig(GameBalanceConfig config)
+    {
+        balanceConfig = config;
+    }
+
+    public void StartNewRun(WeaponTreeType selectedWeaponTree)
+    {
+        StartNewRun(selectedWeaponTree, ExpeditionDepth.Normal, ResolveSelectedShipId(null));
+    }
+
+    public void StartNewRun(WeaponTreeType selectedWeaponTree, string selectedShipId)
+    {
+        StartNewRun(selectedWeaponTree, ExpeditionDepth.Normal, selectedShipId);
+    }
+
     public void StartNewRun(WeaponTreeType selectedWeaponTree, ExpeditionDepth depth)
     {
-        isCompletingRun = false;
+        StartNewRun(selectedWeaponTree, depth, ResolveSelectedShipId(null));
+    }
 
+    public void StartNewRun(WeaponTreeType selectedWeaponTree, ExpeditionDepth depth, string selectedShipId)
+    {
         if (currentRun != null && currentRun.Wallet != null)
         {
             currentRun.Wallet.Changed -= HandleWalletChanged;
         }
 
-        currentRun = new RunContext(selectedWeaponTree, depth);
+        selectedShipId = ResolveSelectedShipId(selectedShipId);
+
+        currentRun = new RunContext(selectedWeaponTree, depth, selectedShipId);
         currentRun.Wallet.Changed += HandleWalletChanged;
 
         if (PermanentProgress.Instance != null)
         {
             PermanentProgress.Instance.SetLastSelectedWeaponTree(selectedWeaponTree);
+            PermanentProgress.Instance.SetSelectedShipId(selectedShipId);
         }
 
         if (GameStateManager.Instance != null)
@@ -62,72 +83,18 @@ public class RunManager : MonoBehaviour
 
         RunStarted?.Invoke(currentRun);
         WalletChanged?.Invoke(currentRun.Wallet);
-    }
 
-    public RunResultData CompleteRun(RunEndReason reason)
-    {
-        if (isCompletingRun)
-        {
-            return null;
-        }
-
-        if (!HasActiveRun)
-        {
-            Debug.LogWarning("¿Ï·áÇÒ Å½»ç°¡ ¾ø½À´Ï´Ù.", this);
-            return null;
-        }
-
-        isCompletingRun = true;
-
-        RunResultData resultData = CreateRunResult(reason, currentRun);
-
-        if (PermanentProgress.Instance != null)
-        {
-            PermanentProgress.Instance.ApplyRunResult(resultData);
-        }
-
-        if (SaveManager.Instance != null && PermanentProgress.Instance != null)
-        {
-            SaveManager.Instance.Save(PermanentProgress.Instance);
-        }
-
-        currentRun.End();
-
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.ChangeState(GameState.RunResult);
-        }
-
-        RunEnded?.Invoke(resultData);
-        return resultData;
-    }
-
-    public void CompleteRunAndReturnToSettlement(RunEndReason reason)
-    {
-        RunResultData resultData = CompleteRun(reason);
-        if (resultData == null)
-        {
-            return;
-        }
-
-        if (SceneFlowManager.Instance != null)
-        {
-            SceneFlowManager.Instance.LoadSettlement();
-        }
-    }
-    public void SetBalanceConfig(GameBalanceConfig config)
-    {
-        balanceConfig = config;
-    }
-
-    public void StartNewRun(WeaponTreeType selectedWeaponTree)
-    {
-        StartNewRun(selectedWeaponTree, ExpeditionDepth.Normal);
+        Debug.Log($"ìƒˆ íƒì‚¬ë¥¼ ì‹œì‘í•©ë‹ˆë‹¤. WeaponTree: {selectedWeaponTree}, Ship: {selectedShipId}, Depth: {depth}");
     }
 
     public void StartNewRunAndLoadExpedition(WeaponTreeType selectedWeaponTree)
     {
-        StartNewRun(selectedWeaponTree, ExpeditionDepth.Normal);
+        StartNewRunAndLoadExpedition(selectedWeaponTree, ResolveSelectedShipId(null));
+    }
+
+    public void StartNewRunAndLoadExpedition(WeaponTreeType selectedWeaponTree, string selectedShipId)
+    {
+        StartNewRun(selectedWeaponTree, ExpeditionDepth.Normal, selectedShipId);
 
         if (SceneFlowManager.Instance != null)
         {
@@ -139,7 +106,7 @@ public class RunManager : MonoBehaviour
     {
         if (!HasActiveRun)
         {
-            Debug.LogWarning("È°¼ºÈ­µÈ Å½»ç°¡ ¾ø¾î ÀçÈ­¸¦ Áö±ŞÇÒ ¼ö ¾ø½À´Ï´Ù.", this);
+            Debug.LogWarning("í™œì„±í™”ëœ íƒì‚¬ê°€ ì—†ì–´ ì¬í™”ë¥¼ ì§€ê¸‰í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.", this);
             return;
         }
 
@@ -180,7 +147,7 @@ public class RunManager : MonoBehaviour
     {
         if (!HasActiveRun)
         {
-            Debug.LogWarning("È°¼ºÈ­µÈ Å½»ç°¡ ¾ø¾î ½ÉºÎ ÇØ¿ªÀ¸·Î ÀÌµ¿ÇÒ ¼ö ¾ø½À´Ï´Ù.", this);
+            Debug.LogWarning("í™œì„±í™”ëœ íƒì‚¬ê°€ ì—†ì–´ ì‹¬ë¶€ í•´ì—­ìœ¼ë¡œ ì´ë™í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.", this);
             return;
         }
 
@@ -189,6 +156,50 @@ public class RunManager : MonoBehaviour
         if (SceneFlowManager.Instance != null)
         {
             SceneFlowManager.Instance.LoadExpedition();
+        }
+    }
+
+    public RunResultData CompleteRun(RunEndReason reason)
+    {
+        if (!HasActiveRun)
+        {
+            Debug.LogWarning("ì™„ë£Œí•  íƒì‚¬ê°€ ì—†ìŠµë‹ˆë‹¤.", this);
+            return null;
+        }
+
+        RunResultData resultData = CreateRunResult(reason, currentRun);
+
+        if (PermanentProgress.Instance != null)
+        {
+            PermanentProgress.Instance.ApplyRunResult(resultData);
+        }
+
+        if (SaveManager.Instance != null && PermanentProgress.Instance != null)
+        {
+            SaveManager.Instance.Save(PermanentProgress.Instance);
+        }
+
+        currentRun.End();
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.ChangeState(GameState.RunResult);
+        }
+
+        RunEnded?.Invoke(resultData);
+
+        Debug.Log($"íƒì‚¬ ì¢…ë£Œ: {reason}, Scrap Commit: {resultData.committedScrapParts}, Core Commit: {resultData.committedCoreShards}");
+
+        return resultData;
+    }
+
+    public void CompleteRunAndReturnToSettlement(RunEndReason reason)
+    {
+        CompleteRun(reason);
+
+        if (SceneFlowManager.Instance != null)
+        {
+            SceneFlowManager.Instance.LoadSettlement();
         }
     }
 
@@ -231,6 +242,7 @@ public class RunManager : MonoBehaviour
         {
             endReason = reason,
             selectedWeaponTree = run.SelectedWeaponTree,
+            selectedShipId = run.SelectedShipId,
             finalDepth = run.ExpeditionDepth,
 
             runExperience = wallet.Experience,
@@ -279,6 +291,21 @@ public class RunManager : MonoBehaviour
 
         lostScrap = Mathf.Max(0, collectedScrap - committedScrap);
         lostCore = collectedCore;
+    }
+
+    private string ResolveSelectedShipId(string requestedShipId)
+    {
+        if (!string.IsNullOrWhiteSpace(requestedShipId))
+        {
+            return requestedShipId;
+        }
+
+        if (PermanentProgress.Instance != null)
+        {
+            return PermanentProgress.Instance.SelectedShipId;
+        }
+
+        return "basic_ship";
     }
 
     private void HandleWalletChanged()

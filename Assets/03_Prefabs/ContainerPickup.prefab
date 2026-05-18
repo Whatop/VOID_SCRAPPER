@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 5185779299026906184}
   - component: {fileID: 1242027474509194904}
   - component: {fileID: 2945314360059253361}
-  - component: {fileID: 4787944530124725598}
   m_Layer: 0
   m_Name: ContainerPickup
   m_TagString: Untagged
@@ -135,21 +134,3 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.8125, y: 0.6875}
   m_EdgeRadius: 0
---- !u!114 &4787944530124725598
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7619617139882337849}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c641ef3b0774aff41b005543c69c61a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rewardAmount: 1
-  lifeTime: 10
-  magnetRange: 1.5
-  magnetSpeed: 6
-  spinSpeed: 90
-  playerTag: Player

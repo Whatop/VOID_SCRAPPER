@@ -36,7 +36,7 @@ public class TraitLevelEffect
     [SerializeField] private TraitEffectType effectType;
     [SerializeField] private float value;
 
-    public int Level => level;
+    public int Level => Mathf.Max(1, level);
     public TraitEffectType EffectType => effectType;
     public float Value => value;
 }
@@ -58,14 +58,14 @@ public class TraitDefinition : ScriptableObject
     [SerializeField] private int maxLevel = 3;
     [SerializeField] private List<TraitLevelEffect> levelEffects = new List<TraitLevelEffect>();
 
-    public string TraitId => traitId;
-    public string DisplayName => displayName;
-    public string Description => description;
+    public string TraitId => string.IsNullOrWhiteSpace(traitId) ? name : traitId;
+    public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? TraitId : displayName;
+    public string Description => string.IsNullOrWhiteSpace(description) ? "특성 설명이 없습니다." : description;
 
     public TraitCategory Category => category;
     public WeaponTreeType WeaponTreeType => weaponTreeType;
 
-    public int MaxLevel => maxLevel;
+    public int MaxLevel => Mathf.Max(1, maxLevel);
     public IReadOnlyList<TraitLevelEffect> LevelEffects => levelEffects;
 
     public bool IsAvailableFor(WeaponTreeType selectedTree)

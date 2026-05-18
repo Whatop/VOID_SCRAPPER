@@ -11,6 +11,9 @@ public class SettlementSelectionButton : MonoBehaviour
     [SerializeField] private SettlementSelectionKind selectionKind;
     [SerializeField] private BuildingType buildingType;
     [SerializeField] private WeaponTreeType weaponTreeType;
+    [SerializeField] private TraitDefinition traitDefinition;
+    [SerializeField] private string traitId;
+    [SerializeField] private int traitIndex = -1;
 
     [Header("Option")]
     [SerializeField] private bool executeImmediately;
@@ -53,11 +56,43 @@ public class SettlementSelectionButton : MonoBehaviour
         switch (selectionKind)
         {
             case SettlementSelectionKind.Repair:
-                uiController.SelectRepair();
+            case SettlementSelectionKind.OpenRepairPanel:
+                uiController.ShowRepairPanel();
+                break;
+
+            case SettlementSelectionKind.OpenTraitPanel:
+                uiController.ShowTraitPanel();
+                break;
+
+            case SettlementSelectionKind.OpenSettingsPanel:
+                uiController.ShowSettingsPanel();
+                break;
+
+            case SettlementSelectionKind.BackToMain:
+                uiController.ShowMainPanel();
+                break;
+
+            case SettlementSelectionKind.CloseSettings:
+                uiController.CloseSettingsAndReturnMain();
                 break;
 
             case SettlementSelectionKind.Building:
                 uiController.SelectBuilding(buildingType);
+                break;
+
+            case SettlementSelectionKind.Trait:
+                if (traitDefinition != null)
+                {
+                    uiController.SelectTrait(traitDefinition);
+                }
+                else if (!string.IsNullOrWhiteSpace(traitId))
+                {
+                    uiController.SelectTraitById(traitId);
+                }
+                else
+                {
+                    uiController.SelectTraitByIndex(traitIndex);
+                }
                 break;
 
             case SettlementSelectionKind.Weapon:
@@ -65,7 +100,26 @@ public class SettlementSelectionButton : MonoBehaviour
                 break;
 
             case SettlementSelectionKind.Launch:
-                uiController.SelectLaunchPreparation();
+                uiController.LaunchExpedition();
+                return;
+
+            case SettlementSelectionKind.ShipPrevious:
+                uiController.MovePreviewShipPrevious();
+                break;
+
+            case SettlementSelectionKind.ShipNext:
+                uiController.MovePreviewShipNext();
+                break;
+
+            case SettlementSelectionKind.ShipAction:
+                uiController.ExecuteShipAction();
+                break;
+            case SettlementSelectionKind.BuildingPrevious:
+                uiController.MoveBuildingPrevious();
+                break;
+
+            case SettlementSelectionKind.BuildingNext:
+                uiController.MoveBuildingNext();
                 break;
         }
 
