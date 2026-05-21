@@ -332,7 +332,7 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
-  m_VertexColorAlwaysGammaSpace: 0
+  m_VertexColorAlwaysGammaSpace: 1
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
@@ -506,6 +506,7 @@ GameObject:
   - component: {fileID: 977890934}
   - component: {fileID: 977890936}
   - component: {fileID: 977890935}
+  - component: {fileID: 977890938}
   m_Layer: 5
   m_Name: Image
   m_TagString: Untagged
@@ -572,6 +573,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 977890933}
   m_CullTransparentMesh: 1
+--- !u!225 &977890938
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 977890933}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1101664528
 GameObject:
   m_ObjectHideFlags: 0
@@ -584,10 +597,10 @@ GameObject:
   - component: {fileID: 1101664543}
   - component: {fileID: 1101664542}
   - component: {fileID: 1101664541}
-  - component: {fileID: 1101664540}
+  - component: {fileID: 1101664545}
   - component: {fileID: 1101664539}
   - component: {fileID: 1101664538}
-  - component: {fileID: 1101664537}
+  - component: {fileID: 1101664544}
   m_Layer: 0
   m_Name: CoreRoot
   m_TagString: Untagged
@@ -607,24 +620,9 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1318565964}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1101664537
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1101664528}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6f8d3ec38f575904f804031039bd7597, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  poolDefinitions: []
-  prewarmOnAwake: 1
 --- !u!114 &1101664538
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -659,7 +657,7 @@ MonoBehaviour:
   fileName: void_scrapper_save.json
   logSavePath: 1
   defaultShipId: basic_ship
---- !u!114 &1101664540
+--- !u!114 &1101664541
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -668,7 +666,72 @@ MonoBehaviour:
   m_GameObject: {fileID: 1101664528}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 10e606b65a667cb4a9b0026b70bfd93d, type: 3}
+  m_Script: {fileID: 11500000, guid: 3efe1b5775000d54a974be82b1a48707, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bootSceneName: Boot
+  settlementSceneName: Settlement
+  expeditionSceneName: Expedition
+  logSceneLoading: 1
+  screenFader: {fileID: 0}
+  defaultFadeInDuration: 0.45
+  defaultFadeOutDuration: 0.45
+--- !u!114 &1101664542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1101664528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1366073754ac3b341a4c503fe7839979, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentState: 0
+--- !u!114 &1101664543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1101664528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0801b87c2d6c9141ae11248c4af3fc0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gameBalanceConfig: {fileID: 11400000, guid: b94197a8fa7723a4e856c982727917ed, type: 2}
+  gameStateManager: {fileID: 1101664542}
+  sceneFlowManager: {fileID: 1101664541}
+  runManager: {fileID: 1101664545}
+  saveManager: {fileID: 1101664539}
+  permanentProgress: {fileID: 1101664538}
+  autoLoadSettlement: 1
+--- !u!114 &1101664544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1101664528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e25356cc8c5abe4eb8782a66b4d6a20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  poolDefinitions: []
+  prewarmOnAwake: 1
+--- !u!114 &1101664545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1101664528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c33ba44315dcfe439af36c75cb2caca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   balanceConfig: {fileID: 11400000, guid: b94197a8fa7723a4e856c982727917ed, type: 2}
@@ -686,198 +749,6 @@ MonoBehaviour:
     bossDefeated: 0
     shopHostileThisRun: 0
     selectedTraitIds: []
---- !u!114 &1101664541
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1101664528}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5609749fe10ba446bd09b522703bcf2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  bootSceneName: Boot
-  settlementSceneName: Settlement
-  expeditionSceneName: Expedition
-  logSceneLoading: 1
---- !u!114 &1101664542
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1101664528}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4cf57301dd223db4f8569563b79f0e47, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  currentState: 0
---- !u!114 &1101664543
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1101664528}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8008bb32eabb1394eb24cf7da8247efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gameBalanceConfig: {fileID: 11400000, guid: b94197a8fa7723a4e856c982727917ed, type: 2}
-  gameStateManager: {fileID: 1101664542}
-  sceneFlowManager: {fileID: 1101664541}
-  runManager: {fileID: 1101664540}
-  saveManager: {fileID: 1101664539}
-  permanentProgress: {fileID: 1101664538}
-  autoLoadSettlement: 1
---- !u!1 &1318565963
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1318565964}
-  - component: {fileID: 1318565965}
-  m_Layer: 0
-  m_Name: MouseCursorManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1318565964
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1318565963}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1101664536}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1318565965
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1318565963}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2606412dcdccc544a01f0fa71e517b6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  dontDestroyOnLoad: 1
-  changeCursorByGameState: 1
-  defaultCursorType: 0
-  settlementCursorType: 0
-  expeditionCursorType: 7
-  loadingCursorType: 3
-  allowAnimationWhenGameStateMissing: 1
-  cursorPresets:
-  - cursorType: 0
-    texture: {fileID: 2800000, guid: e9a7c59e17b415e4ea4fcef37b2e0564, type: 3}
-    hotspot: {x: 32, y: 32}
-    cursorMode: 0
-    animationFrames:
-    - {fileID: 2800000, guid: 2571cbe8940331c41bbe9e668c894949, type: 3}
-    - {fileID: 2800000, guid: 61c90057eb4d36c469b256f082092f65, type: 3}
-    - {fileID: 2800000, guid: 6da016dd3f7812047b33e8f9d75d3ea9, type: 3}
-    - {fileID: 2800000, guid: 90f4caa5cc893ee499023de54d41d5d2, type: 3}
-    - {fileID: 2800000, guid: 57ba3f32575db724495889655b353248, type: 3}
-    animationFrameRate: 5
-    loopAnimation: 1
-    animateOnlyInSettlement: 1
-  - cursorType: 1
-    texture: {fileID: 2800000, guid: e9a7c59e17b415e4ea4fcef37b2e0564, type: 3}
-    hotspot: {x: 32, y: 32}
-    cursorMode: 0
-    animationFrames:
-    - {fileID: 2800000, guid: 2571cbe8940331c41bbe9e668c894949, type: 3}
-    - {fileID: 2800000, guid: 61c90057eb4d36c469b256f082092f65, type: 3}
-    - {fileID: 2800000, guid: 6da016dd3f7812047b33e8f9d75d3ea9, type: 3}
-    - {fileID: 2800000, guid: 90f4caa5cc893ee499023de54d41d5d2, type: 3}
-    - {fileID: 2800000, guid: 57ba3f32575db724495889655b353248, type: 3}
-    animationFrameRate: 5
-    loopAnimation: 1
-    animateOnlyInSettlement: 1
-  - cursorType: 2
-    texture: {fileID: 2800000, guid: e9a7c59e17b415e4ea4fcef37b2e0564, type: 3}
-    hotspot: {x: 32, y: 32}
-    cursorMode: 0
-    animationFrames:
-    - {fileID: 2800000, guid: 2571cbe8940331c41bbe9e668c894949, type: 3}
-    - {fileID: 2800000, guid: 61c90057eb4d36c469b256f082092f65, type: 3}
-    - {fileID: 2800000, guid: 6da016dd3f7812047b33e8f9d75d3ea9, type: 3}
-    - {fileID: 2800000, guid: 90f4caa5cc893ee499023de54d41d5d2, type: 3}
-    - {fileID: 2800000, guid: 57ba3f32575db724495889655b353248, type: 3}
-    animationFrameRate: 5
-    loopAnimation: 1
-    animateOnlyInSettlement: 1
-  - cursorType: 3
-    texture: {fileID: 2800000, guid: 815f16fb15e1f73478a071a87abcc371, type: 3}
-    hotspot: {x: 32, y: 32}
-    cursorMode: 0
-    animationFrames: []
-    animationFrameRate: 10
-    loopAnimation: 1
-    animateOnlyInSettlement: 1
-  - cursorType: 4
-    texture: {fileID: 2800000, guid: 0d230380b0879544e85b6509b579d405, type: 3}
-    hotspot: {x: 32, y: 32}
-    cursorMode: 0
-    animationFrames: []
-    animationFrameRate: 10
-    loopAnimation: 1
-    animateOnlyInSettlement: 1
-  - cursorType: 5
-    texture: {fileID: 2800000, guid: e9a7c59e17b415e4ea4fcef37b2e0564, type: 3}
-    hotspot: {x: 32, y: 32}
-    cursorMode: 0
-    animationFrames:
-    - {fileID: 2800000, guid: 2571cbe8940331c41bbe9e668c894949, type: 3}
-    - {fileID: 2800000, guid: 61c90057eb4d36c469b256f082092f65, type: 3}
-    - {fileID: 2800000, guid: 6da016dd3f7812047b33e8f9d75d3ea9, type: 3}
-    - {fileID: 2800000, guid: 90f4caa5cc893ee499023de54d41d5d2, type: 3}
-    - {fileID: 2800000, guid: 57ba3f32575db724495889655b353248, type: 3}
-    animationFrameRate: 5
-    loopAnimation: 1
-    animateOnlyInSettlement: 1
-  - cursorType: 6
-    texture: {fileID: 2800000, guid: d335a34cc63847541a851e84140efa09, type: 3}
-    hotspot: {x: 32, y: 32}
-    cursorMode: 0
-    animationFrames:
-    - {fileID: 2800000, guid: d335a34cc63847541a851e84140efa09, type: 3}
-    - {fileID: 2800000, guid: 186df1de54cdf8c498e47a4421273c12, type: 3}
-    - {fileID: 2800000, guid: f94afebdeb9819541aa6d9d9d028083c, type: 3}
-    - {fileID: 2800000, guid: f5f5b62706524f6489e25b4e6198333a, type: 3}
-    - {fileID: 2800000, guid: eb44469dc953fdc419ea4d09a98ebb4c, type: 3}
-    - {fileID: 2800000, guid: 672d789817192ee449cb2654591bbcaa, type: 3}
-    - {fileID: 2800000, guid: 3220a0d4fb5594246b0034ccbbecee24, type: 3}
-    - {fileID: 2800000, guid: 68350bfbb4b1ad2408380dc9ad2071c2, type: 3}
-    animationFrameRate: 8
-    loopAnimation: 1
-    animateOnlyInSettlement: 1
-  - cursorType: 7
-    texture: {fileID: 2800000, guid: eb8a9b6256d0a7944a9486b928f735c0, type: 3}
-    hotspot: {x: 32, y: 32}
-    cursorMode: 0
-    animationFrames: []
-    animationFrameRate: 10
-    loopAnimation: 1
-    animateOnlyInSettlement: 1
 --- !u!1 &1467353304
 GameObject:
   m_ObjectHideFlags: 0
@@ -1098,7 +969,7 @@ CanvasRenderer:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1101664536}
   - {fileID: 136334280}
+  - {fileID: 1101664536}
   - {fileID: 223863189}
   - {fileID: 1467353307}

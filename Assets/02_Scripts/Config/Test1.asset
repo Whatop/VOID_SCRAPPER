@@ -9,8 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8815322645f95264c9693110b59d1276, type: 3}
-  m_Name: New Game Balance Config
+  m_Script: {fileID: 11500000, guid: 96eabc9ee344008468f199fb67eb65bb, type: 3}
+  m_Name: Test1
   m_EditorClassIdentifier: 
   playerBaseHp: 20
   playerBaseMoveSpeed: 6

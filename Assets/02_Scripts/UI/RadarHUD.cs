@@ -47,6 +47,12 @@ public class RadarHUD : MonoBehaviour
         }
     }
 
+    public void SetScanRadius(float value)
+    {
+        scanRadius = Mathf.Max(0.01f, value);
+        RefreshMarkerPositions();
+    }
+
     public void SetTargets(IReadOnlyList<RadarTarget> targets, Transform scanCenter)
     {
         center = scanCenter != null ? scanCenter : defaultCenter;
@@ -97,13 +103,14 @@ public class RadarHUD : MonoBehaviour
         {
             RadarTarget target = currentTargets[i];
 
-            if (target == null)
+            if (target == null || !target.IsRadarVisible)
             {
                 currentTargets.RemoveAt(i);
                 continue;
             }
 
             RadarMarkerUI marker;
+
             if (!markerMap.TryGetValue(target, out marker) || marker == null)
             {
                 continue;
@@ -115,6 +122,8 @@ public class RadarHUD : MonoBehaviour
 
             marker.SetPosition(new Vector2(normalized.x * halfWidth, normalized.y * halfHeight));
         }
+
+        ClearMissingMarkers();
     }
 
     private void RebuildMarkers()
@@ -124,6 +133,7 @@ public class RadarHUD : MonoBehaviour
         for (int i = 0; i < currentTargets.Count; i++)
         {
             RadarTarget target = currentTargets[i];
+
             if (target == null)
             {
                 continue;
@@ -132,6 +142,7 @@ public class RadarHUD : MonoBehaviour
             if (!markerMap.ContainsKey(target))
             {
                 RadarMarkerUI marker = CreateMarker(target);
+
                 if (marker != null)
                 {
                     markerMap.Add(target, marker);
@@ -150,6 +161,7 @@ public class RadarHUD : MonoBehaviour
         }
 
         RadarMarkerUI marker = Instantiate(markerPrefab, radarArea);
+
         marker.SetVisual(
             target.MarkerSprite,
             ResolveMarkerColor(target.MarkerType, target.MarkerColor),
@@ -165,7 +177,7 @@ public class RadarHUD : MonoBehaviour
 
         foreach (RadarTarget target in markerMap.Keys)
         {
-            if (target == null || !currentTargets.Contains(target))
+            if (target == null || !currentTargets.Contains(target) || !target.IsRadarVisible)
             {
                 removeList.Add(target);
             }

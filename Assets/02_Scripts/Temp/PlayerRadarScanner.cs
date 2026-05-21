@@ -11,7 +11,6 @@ public class PlayerRadarScanner : MonoBehaviour
     [SerializeField] private string radarActionName = "Radar";
 
     [Header("References")]
-    [SerializeField] private PlayerCombatState combatState;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerWeaponController weaponController;
     [SerializeField] private ExpeditionHUD expeditionHUD;
@@ -27,15 +26,10 @@ public class PlayerRadarScanner : MonoBehaviour
     [Tooltip("레이더가 열려 있을 때 Q를 짧게 누르면 닫습니다. 길게 누르면 재스캔합니다.")]
     [SerializeField] private bool shortPressClosesRadar = true;
 
-    [Header("Combat Rule")]
-    [SerializeField] private bool blockScanWhileInCombat = true;
-    [SerializeField] private bool closeRadarWhenCombatStarts = true;
-
     [Header("Sniper Option")]
     [SerializeField] private float sniperLingerTime = 6f;
 
     [Header("Warning Messages")]
-    [SerializeField] private string combatBlockedMessage = "전투 중에는 레이더를 사용할 수 없습니다.";
     [SerializeField] private string holdNotEnoughMessage = "Q를 1초 동안 눌러야 레이더 스캔이 가능합니다.";
     [SerializeField] private string noTargetMessage = "탐지된 대상이 없습니다.";
 
@@ -62,7 +56,6 @@ public class PlayerRadarScanner : MonoBehaviour
 
     private void Reset()
     {
-        combatState = GetComponent<PlayerCombatState>();
         playerHealth = GetComponent<PlayerHealth>();
         weaponController = GetComponent<PlayerWeaponController>();
         radarVFX = GetComponent<PlayerRadarVFXController>();
@@ -100,19 +93,13 @@ public class PlayerRadarScanner : MonoBehaviour
 
         UpdateHoldInput();
 
-        if (closeRadarWhenCombatStarts && isRadarOpen && IsCombatBlocked())
-        {
-            CloseRadar();
-        }
+        // 중요:
+        // 전투 상태라고 해서 레이더를 자동으로 닫지 않는다.
+        // 전투 중 사용 여부와 닫기 여부는 플레이어가 Q 입력으로 직접 선택한다.
     }
 
     private void CacheReferences()
     {
-        if (combatState == null)
-        {
-            combatState = GetComponent<PlayerCombatState>();
-        }
-
         if (playerHealth == null)
         {
             playerHealth = GetComponent<PlayerHealth>();
@@ -226,12 +213,6 @@ public class PlayerRadarScanner : MonoBehaviour
             return;
         }
 
-        if (blockScanWhileInCombat && IsCombatBlocked())
-        {
-            ShowWarning(combatBlockedMessage);
-            return;
-        }
-
         isHolding = true;
         holdTimer = 0f;
 
@@ -305,17 +286,6 @@ public class PlayerRadarScanner : MonoBehaviour
                 radarVFX.CancelCharge();
             }
 
-            return false;
-        }
-
-        if (blockScanWhileInCombat && IsCombatBlocked())
-        {
-            if (radarVFX != null)
-            {
-                radarVFX.CancelCharge();
-            }
-
-            ShowWarning(combatBlockedMessage);
             return false;
         }
 
@@ -433,11 +403,6 @@ public class PlayerRadarScanner : MonoBehaviour
         }
 
         isRadarOpen = false;
-    }
-
-    private bool IsCombatBlocked()
-    {
-        return combatState != null && !combatState.IsOutOfCombat();
     }
 
     private WeaponTreeType ResolveCurrentWeaponTree()

@@ -3,18 +3,32 @@ using UnityEngine;
 
 public class RunLevelSystem : MonoBehaviour
 {
-    [Header("EXP Rule")]
-    [SerializeField] private int baseRequiredExp = 100;
-    [SerializeField] private float requiredExpGrowth = 1.25f;
-    [SerializeField] private int maxLevel = 99;
+    [Header("EXP Table")]
+    [Tooltip("Lv2, Lv3, Lv4, Lv5, Lv6에 필요한 누적 경험치")]
+    [SerializeField]
+    private int[] cumulativeExpTable =
+    {
+        10,
+        24,
+        44,
+        70,
+        102
+    };
+
+    [SerializeField] private int maxLevel = 6;
 
     public int TotalExperience { get; private set; }
     public int CurrentLevel { get; private set; } = 1;
     public int CurrentExpInLevel { get; private set; }
-    public int CurrentRequiredExp { get; private set; } = 100;
-    public float CurrentExpRatio => CurrentRequiredExp <= 0 ? 1f : Mathf.Clamp01((float)CurrentExpInLevel / CurrentRequiredExp);
+    public int CurrentRequiredExp { get; private set; } = 10;
+
+    public float CurrentExpRatio =>
+        CurrentRequiredExp <= 0 ? 1f : Mathf.Clamp01((float)CurrentExpInLevel / CurrentRequiredExp);
 
     public event Action<int, int, int> LevelStateChanged;
+    public event Action<int> LeveledUp;
+
+    private int previousLevel = 1;
 
     private void OnEnable()
     {
@@ -51,6 +65,7 @@ public class RunLevelSystem : MonoBehaviour
 
     private void HandleRunStarted(RunContext runContext)
     {
+        previousLevel = 1;
         RefreshFromRun();
     }
 
@@ -75,19 +90,17 @@ public class RunLevelSystem : MonoBehaviour
     {
         TotalExperience = Mathf.Max(0, totalExperience);
 
-        int level = 1;
-        int remainingExp = TotalExperience;
-        int requiredExp = GetRequiredExpForLevel(level);
+        int calculatedLevel = CalculateLevel(TotalExperience);
+        CurrentLevel = calculatedLevel;
 
-        while (remainingExp >= requiredExp && level < maxLevel)
-        {
-            remainingExp -= requiredExp;
-            level++;
-            requiredExp = GetRequiredExpForLevel(level);
-        }
+        CalculateCurrentLevelProgress(
+            TotalExperience,
+            CurrentLevel,
+            out int expInLevel,
+            out int requiredExp
+        );
 
-        CurrentLevel = level;
-        CurrentExpInLevel = level >= maxLevel ? requiredExp : remainingExp;
+        CurrentExpInLevel = expInLevel;
         CurrentRequiredExp = requiredExp;
 
         if (RunManager.Instance != null && RunManager.Instance.CurrentRun != null)
@@ -96,12 +109,68 @@ public class RunLevelSystem : MonoBehaviour
         }
 
         LevelStateChanged?.Invoke(CurrentLevel, CurrentExpInLevel, CurrentRequiredExp);
+
+        if (CurrentLevel > previousLevel)
+        {
+            for (int level = previousLevel + 1; level <= CurrentLevel; level++)
+            {
+                LeveledUp?.Invoke(level);
+            }
+        }
+
+        previousLevel = CurrentLevel;
     }
 
-    public int GetRequiredExpForLevel(int level)
+    private int CalculateLevel(int totalExperience)
     {
-        level = Mathf.Max(1, level);
-        float required = baseRequiredExp * Mathf.Pow(requiredExpGrowth, level - 1);
-        return Mathf.Max(1, Mathf.RoundToInt(required));
+        int level = 1;
+
+        for (int i = 0; i < cumulativeExpTable.Length; i++)
+        {
+            if (totalExperience >= cumulativeExpTable[i])
+            {
+                level = i + 2;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return Mathf.Clamp(level, 1, maxLevel);
+    }
+
+    private void CalculateCurrentLevelProgress(
+        int totalExperience,
+        int level,
+        out int expInLevel,
+        out int requiredExp)
+    {
+        if (level >= maxLevel)
+        {
+            int previousThreshold = GetCumulativeRequiredExpForLevel(maxLevel - 1);
+            int maxThreshold = GetCumulativeRequiredExpForLevel(maxLevel);
+
+            expInLevel = Mathf.Max(0, totalExperience - previousThreshold);
+            requiredExp = Mathf.Max(1, maxThreshold - previousThreshold);
+            return;
+        }
+
+        int currentLevelStart = GetCumulativeRequiredExpForLevel(level);
+        int nextLevelRequired = GetCumulativeRequiredExpForLevel(level + 1);
+
+        expInLevel = Mathf.Max(0, totalExperience - currentLevelStart);
+        requiredExp = Mathf.Max(1, nextLevelRequired - currentLevelStart);
+    }
+
+    public int GetCumulativeRequiredExpForLevel(int level)
+    {
+        if (level <= 1)
+        {
+            return 0;
+        }
+
+        int index = Mathf.Clamp(level - 2, 0, cumulativeExpTable.Length - 1);
+        return cumulativeExpTable[index];
     }
 }

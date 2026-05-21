@@ -26,7 +26,7 @@ public class MouseCursorPreset
     public CursorMode cursorMode = CursorMode.Auto;
 
     [Header("Animation - Settlement Only")]
-    [Tooltip("정착지에서만 사용할 커서 애니메이션 프레임. 비어 있으면 texture만 사용.")]
+    [Tooltip("정착지에서 사용할 커서 애니메이션 프레임입니다. 비어 있으면 texture를 사용합니다.")]
     public Texture2D[] animationFrames;
 
     [Min(1f)]
@@ -34,7 +34,7 @@ public class MouseCursorPreset
 
     public bool loopAnimation = true;
 
-    [Tooltip("켜두면 Settlement 상태에서만 애니메이션이 재생됨. Expedition에서는 정적 커서로 처리.")]
+    [Tooltip("켜두면 Settlement 상태에서만 애니메이션 커서를 사용합니다. Expedition에서는 정적 커서로 처리됩니다.")]
     public bool animateOnlyInSettlement = true;
 
     public bool HasAnimation =>
@@ -49,6 +49,9 @@ public class MouseCursorManager : MonoBehaviour
     [Header("Lifetime")]
     [SerializeField] private bool dontDestroyOnLoad = true;
 
+    [Tooltip("DontDestroyOnLoad는 루트 오브젝트에서만 동작하므로, 부모가 있으면 자동으로 루트로 분리합니다.")]
+    [SerializeField] private bool detachToRootBeforeDontDestroy = true;
+
     [Header("Scene Defaults")]
     [SerializeField] private bool changeCursorByGameState = true;
     [SerializeField] private GameCursorType defaultCursorType = GameCursorType.Default;
@@ -57,7 +60,7 @@ public class MouseCursorManager : MonoBehaviour
     [SerializeField] private GameCursorType loadingCursorType = GameCursorType.Disabled;
 
     [Header("Animation Option")]
-    [Tooltip("GameStateManager가 없는 테스트 씬에서도 정착지 커서 애니메이션을 허용할지 여부.")]
+    [Tooltip("GameStateManager가 없는 테스트 씬에서도 커서 애니메이션을 재생할지 여부입니다.")]
     [SerializeField] private bool allowAnimationWhenGameStateMissing = true;
 
     [Header("Cursor Presets")]
@@ -75,6 +78,7 @@ public class MouseCursorManager : MonoBehaviour
 
     private bool lockedByGameState;
     private bool subscribedToGameState;
+    private bool initialized;
 
     private void Awake()
     {
@@ -86,15 +90,14 @@ public class MouseCursorManager : MonoBehaviour
 
         Instance = this;
 
-        if (dontDestroyOnLoad)
-        {
-            DontDestroyOnLoad(gameObject);
-        }
+        MakePersistentIfNeeded();
 
         BuildPresetMap();
 
         sceneDefaultCursorType = defaultCursorType;
         SetCursor(sceneDefaultCursorType, true);
+
+        initialized = true;
     }
 
     private void OnEnable()
@@ -114,6 +117,16 @@ public class MouseCursorManager : MonoBehaviour
 
     private void Update()
     {
+        if (changeCursorByGameState && !subscribedToGameState)
+        {
+            TrySubscribeGameState();
+
+            if (subscribedToGameState && GameStateManager.Instance != null)
+            {
+                ApplyCursorForGameState(GameStateManager.Instance.CurrentState);
+            }
+        }
+
         UpdateAnimatedCursor();
     }
 
@@ -122,9 +135,57 @@ public class MouseCursorManager : MonoBehaviour
         UnsubscribeGameState();
     }
 
+    private void OnDestroy()
+    {
+        UnsubscribeGameState();
+
+        if (Instance == this)
+        {
+            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            Instance = null;
+        }
+    }
+
+    private void MakePersistentIfNeeded()
+    {
+        if (!dontDestroyOnLoad)
+        {
+            return;
+        }
+
+        if (transform.parent != null)
+        {
+            if (detachToRootBeforeDontDestroy)
+            {
+                Debug.LogWarning(
+                    "MouseCursorManager가 자식 오브젝트에 붙어 있어서 루트로 분리한 뒤 DontDestroyOnLoad를 적용합니다.",
+                    this
+                );
+
+                transform.SetParent(null);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "MouseCursorManager는 루트 오브젝트에 있어야 DontDestroyOnLoad가 정상 동작합니다. 현재는 DontDestroyOnLoad를 적용하지 않습니다.",
+                    this
+                );
+
+                return;
+            }
+        }
+
+        DontDestroyOnLoad(gameObject);
+    }
+
     private void BuildPresetMap()
     {
         presetMap.Clear();
+
+        if (cursorPresets == null)
+        {
+            return;
+        }
 
         foreach (MouseCursorPreset preset in cursorPresets)
         {
@@ -229,10 +290,10 @@ public class MouseCursorManager : MonoBehaviour
 
         if (!force && currentCursorType == cursorType)
         {
-
             ApplyCurrentCursorFrame();
             return;
         }
+
         currentCursorType = cursorType;
         currentAnimationFrameIndex = 0;
         animationTimer = 0f;
@@ -248,8 +309,19 @@ public class MouseCursorManager : MonoBehaviour
         ApplyCurrentCursorFrame();
     }
 
+    public void RebuildPresetsAndApply()
+    {
+        BuildPresetMap();
+        SetCursor(currentCursorType, true);
+    }
+
     private void UpdateAnimatedCursor()
     {
+        if (!initialized)
+        {
+            return;
+        }
+
         if (currentPreset == null)
         {
             return;
