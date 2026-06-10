@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Shotgun
   description: 
   weaponTreeType: 0
-  projectileDefinition: {fileID: 11400000, guid: 4832ce475f321d443a403b2e54fc288c, type: 2}
+  projectileDefinition: {fileID: 11400000, guid: 91c660533ad229f46ad2663fc60e31be, type: 2}
   fireInterval: 0.85
   projectileCount: 6
   spreadAngle: 40

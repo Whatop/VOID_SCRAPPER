@@ -45,6 +45,11 @@ public class PlayerInteractor : MonoBehaviour
 
     private void Update()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            SetCurrentTarget(null);
+            return;
+        }
         UpdateCurrentTarget();
 
         if (WasInteractPressed())
@@ -150,6 +155,11 @@ public class PlayerInteractor : MonoBehaviour
 
     public bool TryInteract()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            SetCurrentTarget(null);
+            return false;
+        }
         if (playerHealth != null && playerHealth.IsDead)
         {
             return false;

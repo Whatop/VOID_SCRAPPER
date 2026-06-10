@@ -10,6 +10,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     [Header("References")]
     [SerializeField] private PlayerArmor armor;
+    [SerializeField] private ComponentShieldPassive componentShield;
 
     [Header("Hit Effect")]
     [SerializeField] private GameObject hitEffectPrefab;
@@ -50,6 +51,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         if (armor == null)
         {
             armor = GetComponent<PlayerArmor>();
+        }
+
+        if (componentShield == null)
+        {
+            componentShield = GetComponent<ComponentShieldPassive>();
         }
     }
 
@@ -149,6 +155,21 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             return;
         }
 
+        if (combatState != null)
+        {
+            combatState.RegisterHit();
+        }
+
+        if (componentShield == null)
+        {
+            componentShield = GetComponent<ComponentShieldPassive>();
+        }
+
+        if (componentShield != null && componentShield.TryBlockDamage(hitPoint))
+        {
+            return;
+        }
+
         float remainingDamage = damage;
 
         if (armor != null)
@@ -157,11 +178,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         }
 
         invincibleTimer = invincibleTimeAfterHit;
-
-        if (combatState != null)
-        {
-            combatState.RegisterHit();
-        }
 
         SpawnHitEffect(hitPoint);
 
@@ -258,9 +274,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         if (completeRunDirectlyOnDeath && RunManager.Instance != null && RunManager.Instance.HasActiveRun)
         {
-            RunManager.Instance.CompleteRunAndReturnToSettlement(RunEndReason.Death);
+            RunManager.Instance.CompleteRun(RunEndReason.Death);
         }
-
         Debug.Log("플레이어 기체가 파괴되었습니다.");
     }
 }

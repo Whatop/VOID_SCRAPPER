@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -14,17 +15,26 @@ public class PlayerDash : MonoBehaviour
     [Header("Dash Settings")]
     [SerializeField] private float dashDistance = 5f;
     [SerializeField] private float dashDuration = 0.12f;
-    [SerializeField] private float dashCooldown = 0.7f;
+    [SerializeField] private float dashCooldown = 1.1f;
     [SerializeField] private float invincibleTime = 0.1f;
 
-    [Header("Projectile Clear")]
+    [Header("Projectile Clear During Dash")]
     [SerializeField] private LayerMask projectileClearLayer;
     [SerializeField] private float projectileClearRadius = 1f;
 
-    [Header("Knockback")]
+    [Header("Normal Knockback")]
     [SerializeField] private LayerMask knockbackLayer;
     [SerializeField] private float knockbackRadius = 1.2f;
     [SerializeField] private float knockbackDistance = 1.5f;
+
+    [Header("Dash Shockwave")]
+    [SerializeField] private bool useShockwave = true;
+    [SerializeField] private GameObject shockwavePrefab;
+    [SerializeField] private float shockwaveVfxRadius = 2.2f;
+    [SerializeField] private float shockwaveVfxDuration = 0.18f;
+    [SerializeField] private float shockwaveProjectileClearRadius = 2.2f;
+    [SerializeField] private float shockwaveKnockbackRadius = 2.0f;
+    [SerializeField] private float shockwaveKnockbackDistance = 2.0f;
 
     private Rigidbody2D rb;
     private PlayerController2D controller;
@@ -36,11 +46,17 @@ public class PlayerDash : MonoBehaviour
     private float lastDashTime = -999f;
     private bool isDashing;
 
-    private readonly Collider2D[] projectileBuffer = new Collider2D[64];
-    private readonly Collider2D[] knockbackBuffer = new Collider2D[32];
+    private readonly Collider2D[] projectileBuffer = new Collider2D[96];
+    private readonly Collider2D[] knockbackBuffer = new Collider2D[64];
+    private readonly HashSet<int> processedKnockbackTargets = new HashSet<int>();
 
     public bool IsDashing => isDashing;
-    public bool CanDash => !isDashing && Time.time >= lastDashTime + dashCooldown;
+    public float DashDistance => dashDistance;
+    public float DashDuration => dashDuration;
+    public float DashCooldown => dashCooldown;
+    public float RemainingCooldown => Mathf.Max(0f, lastDashTime + dashCooldown - Time.time);
+    public float CooldownRatio => dashCooldown <= 0f ? 0f : Mathf.Clamp01(RemainingCooldown / dashCooldown);
+    public bool CanDash => !isDashing && RemainingCooldown <= 0f;
 
     public event Action<Vector2> DashStarted;
     public event Action DashEnded;
@@ -121,6 +137,10 @@ public class PlayerDash : MonoBehaviour
 
     public bool TryDash()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            return false;
+        }
         if (!CanDash)
         {
             return false;
@@ -177,8 +197,9 @@ public class PlayerDash : MonoBehaviour
             health.AddInvincibleTime(invincibleTime);
         }
 
-        ClearProjectiles();
-        PushNearbyObjects();
+        TriggerDashShockwave();
+        ClearProjectilesAt(transform.position, projectileClearRadius);
+        PushNearbyObjectsAt(transform.position, knockbackRadius, knockbackDistance);
 
         float elapsed = 0f;
         float dashSpeed = dashDistance / Mathf.Max(0.01f, dashDuration);
@@ -190,7 +211,7 @@ public class PlayerDash : MonoBehaviour
                 rb.linearVelocity = direction * dashSpeed;
             }
 
-            ClearProjectiles();
+            ClearProjectilesAt(transform.position, projectileClearRadius);
 
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
@@ -217,16 +238,75 @@ public class PlayerDash : MonoBehaviour
         DashEnded?.Invoke();
     }
 
-    private void ClearProjectiles()
+    private void TriggerDashShockwave()
+    {
+        if (!useShockwave)
+        {
+            return;
+        }
+
+        Vector2 center = transform.position;
+        SpawnShockwaveVfx(center);
+        ClearProjectilesAt(center, shockwaveProjectileClearRadius);
+        PushNearbyObjectsAt(center, shockwaveKnockbackRadius, shockwaveKnockbackDistance);
+    }
+
+    private void SpawnShockwaveVfx(Vector2 center)
+    {
+        if (shockwavePrefab == null)
+        {
+            return;
+        }
+
+        GameObject instance;
+
+        if (PoolManager.Instance != null)
+        {
+            instance = PoolManager.Instance.Get(shockwavePrefab, center, Quaternion.identity);
+        }
+        else
+        {
+            instance = Instantiate(shockwavePrefab, center, Quaternion.identity);
+        }
+
+        if (instance == null)
+        {
+            return;
+        }
+
+        DashShockwaveVFX shockwaveVFX = instance.GetComponent<DashShockwaveVFX>();
+        if (shockwaveVFX != null)
+        {
+            shockwaveVFX.Play(shockwaveVfxRadius, shockwaveVfxDuration);
+        }
+
+        float releaseDelay = Mathf.Max(0.01f, shockwaveVfxDuration + 0.05f);
+
+        if (PoolManager.Instance != null)
+        {
+            PoolManager.Instance.ReleaseAfter(instance, releaseDelay);
+        }
+        else
+        {
+            Destroy(instance, releaseDelay);
+        }
+    }
+
+    private void ClearProjectilesAt(Vector2 center, float radius)
     {
         if (projectileClearLayer.value == 0)
         {
             return;
         }
 
+        if (radius <= 0f)
+        {
+            return;
+        }
+
         int count = Physics2D.OverlapCircleNonAlloc(
-            transform.position,
-            projectileClearRadius,
+            center,
+            radius,
             projectileBuffer,
             projectileClearLayer
         );
@@ -263,16 +343,23 @@ public class PlayerDash : MonoBehaviour
         }
     }
 
-    private void PushNearbyObjects()
+    private void PushNearbyObjectsAt(Vector2 center, float radius, float distance)
     {
         if (knockbackLayer.value == 0)
         {
             return;
         }
 
+        if (radius <= 0f || distance <= 0f)
+        {
+            return;
+        }
+
+        processedKnockbackTargets.Clear();
+
         int count = Physics2D.OverlapCircleNonAlloc(
-            transform.position,
-            knockbackRadius,
+            center,
+            radius,
             knockbackBuffer,
             knockbackLayer
         );
@@ -285,7 +372,7 @@ public class PlayerDash : MonoBehaviour
                 continue;
             }
 
-            if (hit.transform == transform)
+            if (hit.attachedRigidbody == rb)
             {
                 continue;
             }
@@ -293,7 +380,16 @@ public class PlayerDash : MonoBehaviour
             IKnockbackReceiver receiver = hit.GetComponentInParent<IKnockbackReceiver>();
             if (receiver != null)
             {
-                receiver.ApplyKnockback(transform.position, knockbackDistance);
+                Component receiverComponent = receiver as Component;
+                int receiverId = receiverComponent != null ? receiverComponent.GetInstanceID() : receiver.GetHashCode();
+
+                if (processedKnockbackTargets.Contains(receiverId))
+                {
+                    continue;
+                }
+
+                processedKnockbackTargets.Add(receiverId);
+                receiver.ApplyKnockback(center, distance);
                 continue;
             }
 
@@ -303,13 +399,27 @@ public class PlayerDash : MonoBehaviour
                 continue;
             }
 
-            Vector2 direction = ((Vector2)targetRb.position - (Vector2)transform.position).normalized;
-            if (direction.sqrMagnitude <= 0.001f)
+            int rbId = targetRb.GetInstanceID();
+            if (processedKnockbackTargets.Contains(rbId))
             {
-                direction = UnityEngine.Random.insideUnitCircle.normalized;
+                continue;
             }
 
-            targetRb.position += direction * knockbackDistance;
+            processedKnockbackTargets.Add(rbId);
+
+            Vector2 direction = targetRb.position - center;
+            if (direction.sqrMagnitude <= 0.001f)
+            {
+                direction = UnityEngine.Random.insideUnitCircle;
+            }
+
+            if (direction.sqrMagnitude <= 0.001f)
+            {
+                direction = Vector2.up;
+            }
+
+            direction.Normalize();
+            targetRb.position += direction * distance;
         }
     }
 
@@ -340,5 +450,14 @@ public class PlayerDash : MonoBehaviour
 
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, knockbackRadius);
+
+        if (useShockwave)
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(transform.position, shockwaveProjectileClearRadius);
+
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, shockwaveKnockbackRadius);
+        }
     }
 }

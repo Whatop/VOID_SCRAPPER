@@ -84,6 +84,11 @@ public class PlayerRadarScanner : MonoBehaviour
 
     private void Update()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            CancelHold();
+            return;
+        }
         if (playerHealth != null && playerHealth.IsDead)
         {
             CancelHold();

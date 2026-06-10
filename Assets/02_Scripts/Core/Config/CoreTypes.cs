@@ -26,6 +26,13 @@ public enum ExpeditionDepth
     DeepZone1
 }
 
+public enum SeaRegionType
+{
+    DenseDebris,
+    ElectromagneticStorm,
+    RaiderOccupied
+}
+
 public enum WeaponTreeType
 {
     Shotgun,

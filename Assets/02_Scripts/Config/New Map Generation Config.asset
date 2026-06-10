@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 28940c78ff54d2844898af7880d3cc1c, type: 3}
   m_Name: New Map Generation Config
   m_EditorClassIdentifier: 
-  mapSize: {x: 80, y: 80}
-  startSafeRadius: 10
-  importantPointMinDistance: 20
+  mapSize: {x: 234.5, y: 234.5}
+  startSafeRadius: 30
+  importantPointMinDistance: 55
   shopCount: 2
   eventCount: 2
   coreCount: 1

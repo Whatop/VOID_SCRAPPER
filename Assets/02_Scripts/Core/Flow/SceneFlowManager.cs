@@ -14,17 +14,12 @@ public class SceneFlowManager : MonoBehaviour
     [Header("Loading")]
     [SerializeField] private bool logSceneLoading = true;
 
-    [Header("Fade Optional")]
-    [SerializeField] private ScreenFader screenFader;
-    [SerializeField] private float defaultFadeInDuration = 0.45f;
-    [SerializeField] private float defaultFadeOutDuration = 0.45f;
-
     private bool isLoading;
 
     public string BootSceneName => bootSceneName;
     public string SettlementSceneName => settlementSceneName;
     public string ExpeditionSceneName => expeditionSceneName;
-    public bool IsLoading => isLoading;
+    public bool IsLoading => isLoading || IsMotionTitleTransitioning();
 
     private void Awake()
     {
@@ -36,16 +31,11 @@ public class SceneFlowManager : MonoBehaviour
         }
 
         Instance = this;
-
-        if (screenFader == null)
-        {
-            screenFader = ScreenFader.Instance;
-        }
     }
 
     public void LoadSettlement()
     {
-        if (isLoading)
+        if (IsLoading)
         {
             return;
         }
@@ -53,29 +43,9 @@ public class SceneFlowManager : MonoBehaviour
         StartCoroutine(LoadSceneRoutine(settlementSceneName, GameState.Settlement));
     }
 
-    public void LoadSettlementWithFade()
-    {
-        LoadSettlementWithFade(defaultFadeInDuration, defaultFadeOutDuration);
-    }
-
-    public void LoadSettlementWithFade(float fadeInDuration, float fadeOutDuration)
-    {
-        if (isLoading)
-        {
-            return;
-        }
-
-        StartCoroutine(LoadSceneWithFadeRoutine(
-            settlementSceneName,
-            GameState.Settlement,
-            fadeInDuration,
-            fadeOutDuration
-        ));
-    }
-
     public void LoadExpedition()
     {
-        if (isLoading)
+        if (IsLoading)
         {
             return;
         }
@@ -86,6 +56,27 @@ public class SceneFlowManager : MonoBehaviour
         }
 
         StartCoroutine(LoadSceneRoutine(expeditionSceneName, GameState.Expedition));
+    }
+
+    public void LoadExpeditionWithMotionTitle()
+    {
+        if (IsLoading)
+        {
+            return;
+        }
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.ChangeState(GameState.ExpeditionLoading);
+        }
+
+        if (MotionTitleSceneTransition.Instance != null)
+        {
+            MotionTitleSceneTransition.Instance.TransitionToExpedition();
+            return;
+        }
+
+        LoadExpedition();
     }
 
     private IEnumerator LoadSceneRoutine(string sceneName, GameState stateAfterLoad)
@@ -110,8 +101,6 @@ public class SceneFlowManager : MonoBehaviour
             yield return null;
         }
 
-        isLoading = false;
-
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.ChangeState(stateAfterLoad);
@@ -121,61 +110,13 @@ public class SceneFlowManager : MonoBehaviour
         {
             Debug.Log($"Scene Load Complete: {sceneName}");
         }
+
+        isLoading = false;
     }
 
-    private IEnumerator LoadSceneWithFadeRoutine(
-        string sceneName,
-        GameState stateAfterLoad,
-        float fadeInDuration,
-        float fadeOutDuration)
+    private bool IsMotionTitleTransitioning()
     {
-        if (string.IsNullOrWhiteSpace(sceneName))
-        {
-            Debug.LogError("로드할 씬 이름이 비어 있습니다.", this);
-            yield break;
-        }
-
-        isLoading = true;
-
-        if (screenFader == null)
-        {
-            screenFader = ScreenFader.Instance;
-        }
-
-        if (screenFader != null)
-        {
-            yield return screenFader.FadeIn(fadeInDuration);
-        }
-
-        if (logSceneLoading)
-        {
-            Debug.Log($"Scene Load Start: {sceneName}");
-        }
-
-        AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);
-
-        while (operation != null && !operation.isDone)
-        {
-            yield return null;
-        }
-
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.ChangeState(stateAfterLoad);
-        }
-
-        if (logSceneLoading)
-        {
-            Debug.Log($"Scene Load Complete: {sceneName}");
-        }
-
-        yield return null;
-
-        if (screenFader != null)
-        {
-            yield return screenFader.FadeOut(fadeOutDuration);
-        }
-
-        isLoading = false;
+        return MotionTitleSceneTransition.Instance != null &&
+               MotionTitleSceneTransition.Instance.IsTransitioning;
     }
 }

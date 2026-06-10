@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: BasicEnemyReward
   m_EditorClassIdentifier: 
   fixedRewards:
-  - currencyType: 0
-    amount: 2
   - currencyType: 1
+    amount: 1111
+  - currencyType: 2
     amount: 1
+  - currencyType: 0
+    amount: 10
   randomRewards: []
   healDropChance: 0
   healAmount: 1

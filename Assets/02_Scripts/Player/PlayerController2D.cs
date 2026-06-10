@@ -99,6 +99,11 @@ public class PlayerController2D : MonoBehaviour
 
     private void ReadInput()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            moveInput = Vector2.zero;
+            return;
+        }
         if (!controlEnabled || moveAction == null)
         {
             moveInput = Vector2.zero;
@@ -125,6 +130,10 @@ public class PlayerController2D : MonoBehaviour
 
     private void RotateToMouse()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            return;
+        }
         if (!controlEnabled)
         {
             return;

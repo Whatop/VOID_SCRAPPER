@@ -10,13 +10,34 @@ public class EnemyAttackController : MonoBehaviour
     [Header("Fire Point")]
     [SerializeField] private Transform firePoint;
 
-    [Header("Fallback Attack")]
+    [Header("Fallback Primary Attack")]
     [SerializeField] private ProjectileDefinition projectileDefinition;
     [SerializeField] private float attackRange = 6f;
     [SerializeField] private float attackInterval = 1.2f;
     [SerializeField] private int projectileCount = 1;
     [SerializeField] private float spreadAngle = 0f;
     [SerializeField] private float chargeTime = 0f;
+
+    [Header("Fallback Secondary Attack")]
+    [SerializeField] private bool useSecondaryProjectile;
+    [SerializeField] private ProjectileDefinition secondaryProjectileDefinition;
+    [SerializeField] private int secondaryProjectileCount = 1;
+    [SerializeField] private float secondarySpreadAngle = 0f;
+
+    [Header("Charge Aim Line")]
+    [SerializeField] private bool showAimLineDuringCharge = true;
+
+    [Tooltip("켜면 차징 시작 순간의 방향으로 조준선과 발사 방향이 고정됩니다.")]
+    [SerializeField] private bool lockAimDirectionOnChargeStart = true;
+
+    [SerializeField] private LineRenderer aimLineRenderer;
+    [SerializeField] private bool autoCreateAimLineRenderer = true;
+    [SerializeField] private Color aimLineColor = new Color(1f, 0.05f, 0.05f, 0.85f);
+    [SerializeField] private float aimLineWidth = 0.045f;
+    [SerializeField] private float aimLineLength = 12f;
+
+    [Tooltip("벽, 운석 같은 장애물 레이어만 넣으세요. Enemy 레이어를 넣으면 자기 콜라이더에 막힐 수 있습니다.")]
+    [SerializeField] private LayerMask aimLineBlockLayer;
 
     [Header("Runtime")]
     [SerializeField] private bool isAttacking;
@@ -25,10 +46,16 @@ public class EnemyAttackController : MonoBehaviour
     private float attackTimer;
     private Coroutine chargeRoutine;
 
+    private Vector2 lockedChargeDirection = Vector2.up;
+    private Vector2 currentChargeDirection = Vector2.up;
+
     public float AttackRange => attackRange;
     public bool IsAttacking => isAttacking;
     public bool IsCharging => isCharging;
     public bool CanAttack => !isAttacking && !isCharging && attackTimer <= 0f;
+
+    public bool IsAimDirectionLocked => isCharging && lockAimDirectionOnChargeStart;
+    public Vector2 LockedChargeDirection => lockedChargeDirection;
 
     public event Action<EnemyAttackController> AttackStarted;
     public event Action<EnemyAttackController> ProjectileFired;
@@ -43,6 +70,9 @@ public class EnemyAttackController : MonoBehaviour
         {
             firePoint = transform;
         }
+
+        EnsureAimLineRenderer();
+        HideAimLine();
     }
 
     private void Update()
@@ -56,9 +86,12 @@ public class EnemyAttackController : MonoBehaviour
     private void OnDisable()
     {
         CancelCharge();
+
         isAttacking = false;
         isCharging = false;
         attackTimer = 0f;
+
+        HideAimLine();
     }
 
     public void ApplyDefinition(EnemyDefinition definition)
@@ -74,8 +107,18 @@ public class EnemyAttackController : MonoBehaviour
         attackRange = Mathf.Max(0f, enemyDefinition.AttackRange);
         attackInterval = Mathf.Max(0.01f, enemyDefinition.AttackInterval);
         projectileCount = Mathf.Max(1, enemyDefinition.ProjectileCount);
-        spreadAngle = enemyDefinition.SpreadAngle;
+        spreadAngle = Mathf.Max(0f, enemyDefinition.SpreadAngle);
         chargeTime = Mathf.Max(0f, enemyDefinition.ChargeTime);
+
+        useSecondaryProjectile = enemyDefinition.UseSecondaryProjectile;
+        secondaryProjectileDefinition = enemyDefinition.SecondaryProjectileDefinition;
+        secondaryProjectileCount = Mathf.Max(1, enemyDefinition.SecondaryProjectileCount);
+        secondarySpreadAngle = Mathf.Max(0f, enemyDefinition.SecondarySpreadAngle);
+
+        if (aimLineLength <= 0f)
+        {
+            aimLineLength = Mathf.Max(attackRange, 1f);
+        }
     }
 
     public bool TryAttack(Transform target)
@@ -90,21 +133,31 @@ public class EnemyAttackController : MonoBehaviour
             return false;
         }
 
+        Vector2 origin = GetFireOrigin();
+        Vector2 startDirection = GetDirectionToTarget(origin, target.position);
+
         isAttacking = true;
         AttackStarted?.Invoke(this);
 
         if (chargeTime > 0f)
         {
             isCharging = true;
+
+            lockedChargeDirection = startDirection;
+            currentChargeDirection = startDirection;
+
+            UpdateAimLine(origin, currentChargeDirection);
+
             ChargeStarted?.Invoke(this);
             chargeRoutine = StartCoroutine(ChargeAndFireRoutine(target));
             return true;
         }
 
-        FireAt(target.position);
-        attackTimer = attackInterval;
+        FireAttack(origin, startDirection);
 
+        attackTimer = attackInterval;
         isAttacking = false;
+
         AttackFinished?.Invoke(this);
         return true;
     }
@@ -123,6 +176,8 @@ public class EnemyAttackController : MonoBehaviour
 
         isCharging = false;
         isAttacking = false;
+
+        HideAimLine();
 
         if (wasCharging || hadChargeRoutine)
         {
@@ -147,17 +202,29 @@ public class EnemyAttackController : MonoBehaviour
                 yield break;
             }
 
+            Vector2 origin = GetFireOrigin();
+
+            if (lockAimDirectionOnChargeStart)
+            {
+                currentChargeDirection = lockedChargeDirection;
+            }
+            else
+            {
+                currentChargeDirection = GetDirectionToTarget(origin, target.position);
+            }
+
+            UpdateAimLine(origin, currentChargeDirection);
+
             timer += Time.deltaTime;
             yield return null;
         }
 
+        HideAimLine();
+
         isCharging = false;
         ChargeReleased?.Invoke(this);
 
-        if (target != null)
-        {
-            FireAt(target.position);
-        }
+        FireAttack(GetFireOrigin(), currentChargeDirection);
 
         attackTimer = attackInterval;
         isAttacking = false;
@@ -175,6 +242,8 @@ public class EnemyAttackController : MonoBehaviour
         isAttacking = false;
         chargeRoutine = null;
 
+        HideAimLine();
+
         if (wasCharging)
         {
             ChargeCanceled?.Invoke(this);
@@ -186,16 +255,46 @@ public class EnemyAttackController : MonoBehaviour
         }
     }
 
-    private void FireAt(Vector2 targetPosition)
+    private void FireAttack(Vector2 origin, Vector2 direction)
     {
-        if (projectileDefinition == null || projectileDefinition.ProjectilePrefab == null)
+        bool firedAnyProjectile = false;
+
+        firedAnyProjectile |= FireProjectilePattern(
+            projectileDefinition,
+            origin,
+            direction,
+            projectileCount,
+            spreadAngle
+        );
+
+        if (useSecondaryProjectile)
         {
-            Debug.LogWarning("Enemy projectileDefinition 또는 projectilePrefab이 없습니다.", this);
-            return;
+            firedAnyProjectile |= FireProjectilePattern(
+                secondaryProjectileDefinition,
+                origin,
+                direction,
+                secondaryProjectileCount,
+                secondarySpreadAngle
+            );
         }
 
-        Vector2 origin = firePoint != null ? firePoint.position : transform.position;
-        Vector2 baseDirection = targetPosition - origin;
+        if (firedAnyProjectile)
+        {
+            ProjectileFired?.Invoke(this);
+        }
+    }
+
+    private bool FireProjectilePattern(
+        ProjectileDefinition definition,
+        Vector2 origin,
+        Vector2 baseDirection,
+        int count,
+        float totalSpread)
+    {
+        if (definition == null || definition.ProjectilePrefab == null)
+        {
+            return false;
+        }
 
         if (baseDirection.sqrMagnitude <= 0.001f)
         {
@@ -204,32 +303,36 @@ public class EnemyAttackController : MonoBehaviour
 
         baseDirection.Normalize();
 
-        int count = Mathf.Max(1, projectileCount);
+        count = Mathf.Max(1, count);
+        totalSpread = Mathf.Max(0f, totalSpread);
 
         if (count == 1)
         {
-            SpawnProjectile(origin, baseDirection);
-            ProjectileFired?.Invoke(this);
-            return;
+            SpawnProjectile(definition, origin, baseDirection);
+            return true;
         }
 
-        float totalSpread = Mathf.Max(0f, spreadAngle);
-        float step = count > 1 ? totalSpread / (count - 1) : 0f;
+        float step = totalSpread / (count - 1);
         float startAngle = -totalSpread * 0.5f;
 
         for (int i = 0; i < count; i++)
         {
             float angle = startAngle + step * i;
             Vector2 direction = RotateVector(baseDirection, angle);
-            SpawnProjectile(origin, direction);
+            SpawnProjectile(definition, origin, direction);
         }
 
-        ProjectileFired?.Invoke(this);
+        return true;
     }
 
-    private void SpawnProjectile(Vector2 origin, Vector2 direction)
+    private void SpawnProjectile(ProjectileDefinition definition, Vector2 origin, Vector2 direction)
     {
-        GameObject prefab = projectileDefinition.ProjectilePrefab;
+        if (definition == null || definition.ProjectilePrefab == null)
+        {
+            return;
+        }
+
+        GameObject prefab = definition.ProjectilePrefab;
         GameObject projectileObject;
 
         if (PoolManager.Instance != null)
@@ -267,8 +370,129 @@ public class EnemyAttackController : MonoBehaviour
         bullet.Initialize(
             direction,
             ProjectileOwner.Enemy,
-            projectileDefinition
+            definition
         );
+    }
+
+    private Vector2 GetFireOrigin()
+    {
+        return firePoint != null
+            ? (Vector2)firePoint.position
+            : (Vector2)transform.position;
+    }
+
+    private Vector2 GetDirectionToTarget(Vector2 origin, Vector2 targetPosition)
+    {
+        Vector2 direction = targetPosition - origin;
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = firePoint != null ? (Vector2)firePoint.up : Vector2.up;
+        }
+
+        return direction.normalized;
+    }
+
+    private void EnsureAimLineRenderer()
+    {
+        if (!autoCreateAimLineRenderer)
+        {
+            ConfigureAimLineRenderer();
+            return;
+        }
+
+        if (aimLineRenderer == null)
+        {
+            GameObject lineObject = new GameObject("ChargeAimLine");
+            lineObject.transform.SetParent(transform, false);
+
+            aimLineRenderer = lineObject.AddComponent<LineRenderer>();
+            aimLineRenderer.useWorldSpace = true;
+            aimLineRenderer.positionCount = 2;
+        }
+
+        ConfigureAimLineRenderer();
+    }
+
+    private void ConfigureAimLineRenderer()
+    {
+        if (aimLineRenderer == null)
+        {
+            return;
+        }
+
+        aimLineRenderer.useWorldSpace = true;
+        aimLineRenderer.positionCount = 2;
+        aimLineRenderer.startWidth = Mathf.Max(0.001f, aimLineWidth);
+        aimLineRenderer.endWidth = Mathf.Max(0.001f, aimLineWidth);
+        aimLineRenderer.startColor = aimLineColor;
+        aimLineRenderer.endColor = aimLineColor;
+
+        if (aimLineRenderer.material == null)
+        {
+            Shader shader = Shader.Find("Sprites/Default");
+
+            if (shader != null)
+            {
+                aimLineRenderer.material = new Material(shader);
+            }
+        }
+
+        aimLineRenderer.enabled = false;
+    }
+
+    private void UpdateAimLine(Vector2 origin, Vector2 direction)
+    {
+        if (!showAimLineDuringCharge)
+        {
+            HideAimLine();
+            return;
+        }
+
+        if (aimLineRenderer == null)
+        {
+            EnsureAimLineRenderer();
+        }
+
+        if (aimLineRenderer == null)
+        {
+            return;
+        }
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Vector2.up;
+        }
+
+        direction.Normalize();
+
+        float lineLength = aimLineLength > 0f
+            ? aimLineLength
+            : Mathf.Max(attackRange, 1f);
+
+        Vector2 end = origin + direction * lineLength;
+
+        if (aimLineBlockLayer.value != 0)
+        {
+            RaycastHit2D hit = Physics2D.Raycast(origin, direction, lineLength, aimLineBlockLayer);
+
+            if (hit.collider != null)
+            {
+                end = hit.point;
+            }
+        }
+
+        aimLineRenderer.SetPosition(0, origin);
+        aimLineRenderer.SetPosition(1, end);
+        aimLineRenderer.enabled = true;
+    }
+
+    private void HideAimLine()
+    {
+        if (aimLineRenderer != null)
+        {
+            aimLineRenderer.enabled = false;
+        }
     }
 
     private Vector2 RotateVector(Vector2 vector, float angle)

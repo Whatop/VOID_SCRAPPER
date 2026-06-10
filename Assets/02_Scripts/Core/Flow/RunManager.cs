@@ -60,6 +60,15 @@ public class RunManager : MonoBehaviour
 
     public void StartNewRun(WeaponTreeType selectedWeaponTree, ExpeditionDepth depth, string selectedShipId)
     {
+        StartNewRun(selectedWeaponTree, depth, selectedShipId, SeaRegionCatalog.GetRandom());
+    }
+
+    public void StartNewRun(
+        WeaponTreeType selectedWeaponTree,
+        ExpeditionDepth depth,
+        string selectedShipId,
+        SeaRegionType seaRegionType)
+    {
         if (currentRun != null && currentRun.Wallet != null)
         {
             currentRun.Wallet.Changed -= HandleWalletChanged;
@@ -67,7 +76,7 @@ public class RunManager : MonoBehaviour
 
         selectedShipId = ResolveSelectedShipId(selectedShipId);
 
-        currentRun = new RunContext(selectedWeaponTree, depth, selectedShipId);
+        currentRun = new RunContext(selectedWeaponTree, depth, selectedShipId, seaRegionType);
         currentRun.Wallet.Changed += HandleWalletChanged;
 
         if (PermanentProgress.Instance != null)
@@ -84,7 +93,10 @@ public class RunManager : MonoBehaviour
         RunStarted?.Invoke(currentRun);
         WalletChanged?.Invoke(currentRun.Wallet);
 
-        Debug.Log($"새 탐사를 시작합니다. WeaponTree: {selectedWeaponTree}, Ship: {selectedShipId}, Depth: {depth}");
+        Debug.Log(
+            $"새 탐사를 시작합니다. WeaponTree: {selectedWeaponTree}, Ship: {selectedShipId}, " +
+            $"Depth: {depth}, SeaRegion: {SeaRegionCatalog.GetDisplayName(seaRegionType)}"
+        );
     }
 
     public void StartNewRunAndLoadExpedition(WeaponTreeType selectedWeaponTree)
@@ -98,7 +110,7 @@ public class RunManager : MonoBehaviour
 
         if (SceneFlowManager.Instance != null)
         {
-            SceneFlowManager.Instance.LoadExpedition();
+            SceneFlowManager.Instance.LoadExpeditionWithMotionTitle();
         }
     }
 
@@ -151,11 +163,17 @@ public class RunManager : MonoBehaviour
             return;
         }
 
+        SeaRegionType previousRegion = currentRun.SeaRegionType;
+        SeaRegionType nextRegion = SeaRegionCatalog.GetRandom(previousRegion);
+
         currentRun.SetDepth(ExpeditionDepth.DeepZone1);
+        currentRun.SetSeaRegion(nextRegion);
+
+        Debug.Log($"심부 해역으로 이동합니다. SeaRegion: {SeaRegionCatalog.GetDisplayName(nextRegion)}", this);
 
         if (SceneFlowManager.Instance != null)
         {
-            SceneFlowManager.Instance.LoadExpedition();
+            SceneFlowManager.Instance.LoadExpeditionWithMotionTitle();
         }
     }
 
@@ -197,10 +215,9 @@ public class RunManager : MonoBehaviour
     {
         CompleteRun(reason);
 
-        if (SceneFlowManager.Instance != null)
-        {
-            SceneFlowManager.Instance.LoadSettlement();
-        }
+        // 구버전 호환용 함수.
+        // 더 이상 여기서 정착지로 자동 이동하지 않는다.
+        // 정산창 ContinueButton이 정착지 이동을 담당한다.
     }
 
     private RunResultData CreateRunResult(RunEndReason reason, RunContext run)
@@ -244,6 +261,7 @@ public class RunManager : MonoBehaviour
             selectedWeaponTree = run.SelectedWeaponTree,
             selectedShipId = run.SelectedShipId,
             finalDepth = run.ExpeditionDepth,
+            finalSeaRegionType = run.SeaRegionType,
 
             runExperience = wallet.Experience,
             remainingCredits = wallet.Credits,

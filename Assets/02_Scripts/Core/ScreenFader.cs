@@ -9,11 +9,20 @@ public class ScreenFader : MonoBehaviour
     [Header("Lifetime")]
     [SerializeField] private bool dontDestroyOnLoad = true;
 
+    [Tooltip("DontDestroyOnLoad는 루트 오브젝트에만 안정적으로 적용됩니다. 켜두면 부모에서 분리한 뒤 유지합니다.")]
+    [SerializeField] private bool detachFromParentBeforeDontDestroy = true;
+
     [Header("Fade")]
     [SerializeField] private CanvasGroup canvasGroup;
     [SerializeField] private bool blockRaycastsDuringFade = true;
 
+    [Header("Initial State")]
+    [SerializeField] private bool startTransparent = true;
+
     public bool IsFading { get; private set; }
+    public float Alpha => canvasGroup != null ? canvasGroup.alpha : 0f;
+
+    private Coroutine fadeRoutine;
 
     private void Awake()
     {
@@ -25,18 +34,54 @@ public class ScreenFader : MonoBehaviour
 
         Instance = this;
 
-        if (dontDestroyOnLoad)
-        {
-            DontDestroyOnLoad(gameObject);
-        }
-
         if (canvasGroup == null)
         {
             canvasGroup = GetComponent<CanvasGroup>();
         }
 
-        SetAlpha(0f);
-        SetBlocksRaycasts(false);
+        if (dontDestroyOnLoad)
+        {
+            if (detachFromParentBeforeDontDestroy && transform.parent != null)
+            {
+                transform.SetParent(null, true);
+            }
+
+            DontDestroyOnLoad(gameObject);
+        }
+
+        if (startTransparent)
+        {
+            SetAlpha(0f);
+            SetBlocksRaycasts(false);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
+    public Coroutine FadeIn(MonoBehaviour runner, float duration)
+    {
+        if (runner == null)
+        {
+            return null;
+        }
+
+        return runner.StartCoroutine(FadeIn(duration));
+    }
+
+    public Coroutine FadeOut(MonoBehaviour runner, float duration)
+    {
+        if (runner == null)
+        {
+            return null;
+        }
+
+        return runner.StartCoroutine(FadeOut(duration));
     }
 
     public IEnumerator FadeIn(float duration)
@@ -49,7 +94,32 @@ public class ScreenFader : MonoBehaviour
         yield return FadeTo(0f, duration);
     }
 
+    public void SetBlackImmediate()
+    {
+        StopCurrentFade();
+        SetAlpha(1f);
+        SetBlocksRaycasts(true);
+        IsFading = false;
+    }
+
+    public void SetClearImmediate()
+    {
+        StopCurrentFade();
+        SetAlpha(0f);
+        SetBlocksRaycasts(false);
+        IsFading = false;
+    }
+
     private IEnumerator FadeTo(float targetAlpha, float duration)
+    {
+        StopCurrentFadeOnly();
+
+        fadeRoutine = StartCoroutine(FadeRoutine(targetAlpha, duration));
+        yield return fadeRoutine;
+        fadeRoutine = null;
+    }
+
+    private IEnumerator FadeRoutine(float targetAlpha, float duration)
     {
         if (canvasGroup == null)
         {
@@ -78,8 +148,27 @@ public class ScreenFader : MonoBehaviour
         {
             SetBlocksRaycasts(false);
         }
+        else
+        {
+            SetBlocksRaycasts(true);
+        }
 
         IsFading = false;
+    }
+
+    private void StopCurrentFade()
+    {
+        StopCurrentFadeOnly();
+        IsFading = false;
+    }
+
+    private void StopCurrentFadeOnly()
+    {
+        if (fadeRoutine != null)
+        {
+            StopCoroutine(fadeRoutine);
+            fadeRoutine = null;
+        }
     }
 
     private void SetAlpha(float alpha)

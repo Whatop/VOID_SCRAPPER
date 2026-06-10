@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Weapon_Sniper
   description: 
   weaponTreeType: 1
-  projectileDefinition: {fileID: 11400000, guid: 1f0760def503fa641a4ebe69e963b602, type: 2}
+  projectileDefinition: {fileID: 11400000, guid: 2d59536954b8197419a709c5b1951da5, type: 2}
   fireInterval: 0.25
   projectileCount: 1
   spreadAngle: 0

@@ -48,6 +48,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [Header("Deep Zone")]
     [SerializeField] private bool applyDeepZoneEnemyHpMultiplier = true;
 
+    [Header("Sea Region")]
+    [SerializeField] private bool applySeaRegionObjectCountModifiers = true;
+    [SerializeField] private bool applySeaRegionEnemyCountModifiers = true;
+    [SerializeField] private bool applySeaRegionEnemyHpMultiplier = true;
+    [SerializeField] private SeaRegionType fallbackSeaRegion = SeaRegionType.DenseDebris;
+
     [Header("Debug")]
     [SerializeField] private bool logGenerationResult = true;
     [SerializeField] private bool drawMapBounds = true;
@@ -58,9 +64,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private Vector2 mapSize = new Vector2(80f, 80f);
     private Vector2 startPosition;
     private int basicEnemiesInsideStartSafeRadius;
+    private SeaRegionDefinition currentSeaRegion;
 
     public Bounds MapBounds { get; private set; }
     public Vector2 StartPosition => startPosition;
+    public SeaRegionDefinition CurrentSeaRegion => currentSeaRegion;
 
     private void Start()
     {
@@ -100,8 +108,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         if (logGenerationResult)
         {
+            string seaText = currentSeaRegion != null ? currentSeaRegion.DisplayName : "None";
+
             Debug.Log(
-                $"Expedition map generated. Size: {mapSize}, Start: {startPosition}, Objects: {occupiedPositions.Count}",
+                $"Expedition map generated. Size: {mapSize}, Start: {startPosition}, " +
+                $"SeaRegion: {seaText}, Objects: {occupiedPositions.Count}",
                 this
             );
         }
@@ -109,6 +120,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private void ResolveConfig()
     {
+        currentSeaRegion = ResolveCurrentSeaRegion();
+
         if (config != null)
         {
             mapSize = config.MapSize;
@@ -120,6 +133,16 @@ public class ExpeditionMapGenerator : MonoBehaviour
         }
 
         MapBounds = new Bounds(Vector3.zero, new Vector3(mapSize.x, mapSize.y, 0f));
+    }
+
+    private SeaRegionDefinition ResolveCurrentSeaRegion()
+    {
+        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        {
+            return SeaRegionCatalog.Get(RunManager.Instance.CurrentRun.SeaRegionType);
+        }
+
+        return SeaRegionCatalog.Get(fallbackSeaRegion);
     }
 
     private void ResolveGeneratedRoot()
@@ -204,6 +227,14 @@ public class ExpeditionMapGenerator : MonoBehaviour
         int destroyedHullCount = config != null ? config.DestroyedHullCount : 8;
         int meteorCount = config != null ? config.MeteorCount : 24;
 
+        if (applySeaRegionObjectCountModifiers && currentSeaRegion != null)
+        {
+            highValueWreckCount = ApplyCountModifier(highValueWreckCount, currentSeaRegion.ExtraHighValueWreckCount);
+            supplyContainerCount = ApplyCountModifier(supplyContainerCount, currentSeaRegion.ExtraSupplyContainerCount);
+            destroyedHullCount = ApplyCountModifier(destroyedHullCount, currentSeaRegion.ExtraDestroyedHullCount);
+            meteorCount = ApplyCountModifier(meteorCount, currentSeaRegion.ExtraMeteorCount);
+        }
+
         PlacePrefabBatch(highValueWreckPrefab, highValueWreckCount, false, false, generalMinDistance, "HighValueWreck");
         PlacePrefabBatch(supplyContainerPrefab, supplyContainerCount, false, false, generalMinDistance, "SupplyContainer");
         PlacePrefabBatch(destroyedHullPrefab, destroyedHullCount, false, false, generalMinDistance, "DestroyedHull");
@@ -217,10 +248,23 @@ public class ExpeditionMapGenerator : MonoBehaviour
         int chargingCount = config != null ? config.ChargingEnemyCount : 4;
         int eliteCount = config != null ? config.EliteEnemyCount : 2;
 
+        if (applySeaRegionEnemyCountModifiers && currentSeaRegion != null)
+        {
+            basicCount = ApplyCountModifier(basicCount, currentSeaRegion.ExtraBasicEnemyCount);
+            shotgunCount = ApplyCountModifier(shotgunCount, currentSeaRegion.ExtraShotgunEnemyCount);
+            chargingCount = ApplyCountModifier(chargingCount, currentSeaRegion.ExtraChargingEnemyCount);
+            eliteCount = ApplyCountModifier(eliteCount, currentSeaRegion.ExtraEliteEnemyCount);
+        }
+
         PlaceEnemyBatch(basicEnemyDefinition, basicCount, false, "BasicEnemy");
         PlaceEnemyBatch(shotgunEnemyDefinition, shotgunCount, true, "ShotgunEnemy");
         PlaceEnemyBatch(chargingEnemyDefinition, chargingCount, true, "ChargingEnemy");
         PlaceEnemyBatch(eliteEnemyDefinition, eliteCount, true, "EliteEnemy");
+    }
+
+    private int ApplyCountModifier(int baseCount, int flatBonus)
+    {
+        return Mathf.Max(0, baseCount + flatBonus);
     }
 
     private void PlacePrefabBatch(
@@ -318,29 +362,14 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 }
             }
 
-            ApplyDeepZoneEnemyModifier(spawned);
+            ApplyEnemyHpModifiers(spawned);
             occupiedPositions.Add(position);
         }
     }
 
-    private void ApplyDeepZoneEnemyModifier(GameObject enemyObject)
+    private void ApplyEnemyHpModifiers(GameObject enemyObject)
     {
-        if (!applyDeepZoneEnemyHpMultiplier)
-        {
-            return;
-        }
-
-        if (enemyObject == null || config == null)
-        {
-            return;
-        }
-
-        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
-        {
-            return;
-        }
-
-        if (RunManager.Instance.CurrentRun.ExpeditionDepth != ExpeditionDepth.DeepZone1)
+        if (enemyObject == null)
         {
             return;
         }
@@ -352,7 +381,26 @@ public class ExpeditionMapGenerator : MonoBehaviour
             return;
         }
 
-        float hpMultiplier = Mathf.Max(0.01f, config.DeepZoneEnemyHpMultiplier);
+        float hpMultiplier = 1f;
+
+        if (applyDeepZoneEnemyHpMultiplier && config != null && RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        {
+            if (RunManager.Instance.CurrentRun.ExpeditionDepth == ExpeditionDepth.DeepZone1)
+            {
+                hpMultiplier *= Mathf.Max(0.01f, config.DeepZoneEnemyHpMultiplier);
+            }
+        }
+
+        if (applySeaRegionEnemyHpMultiplier && currentSeaRegion != null)
+        {
+            hpMultiplier *= Mathf.Max(0.01f, currentSeaRegion.EnemyHpMultiplier);
+        }
+
+        if (Mathf.Approximately(hpMultiplier, 1f))
+        {
+            return;
+        }
+
         enemyHealth.SetMaxHp(enemyHealth.MaxHp * hpMultiplier, true);
     }
 

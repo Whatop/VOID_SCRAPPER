@@ -11,6 +11,11 @@ public class ExpeditionHUD : MonoBehaviour
     [Header("Systems")]
     [SerializeField] private RunLevelSystem runLevelSystem;
 
+    [Header("HUD Roots")]
+    [SerializeField] private GameObject statusRoot;
+    [SerializeField] private GameObject resourceRoot;
+    [SerializeField] private GameObject[] additionalObjectsToHideDuringCinematic;
+
     [Header("Gauges")]
     [SerializeField] private GaugeBarUI hpGauge;
     [SerializeField] private GaugeBarUI armorGauge;
@@ -27,15 +32,13 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private WarningMessageUI warningMessageUI;
 
     [Header("Dash Gauge")]
-    [Tooltip("PlayerDash가 쿨타임 수치를 공개하지 않으므로 UI 표시용으로 같은 값을 넣는다.")]
-    [SerializeField] private float dashCooldownDuration = 0.7f;
     [SerializeField] private string dashReadyText = "READY";
     [SerializeField] private string dashCooldownText = "{0:0.0}s";
 
     [Header("Fallback EXP")]
     [SerializeField] private int fallbackExpToNextLevel = 100;
 
-    private float dashCooldownTimer;
+    private bool cinematicMode;
 
     private void Awake()
     {
@@ -46,19 +49,81 @@ public class ExpeditionHUD : MonoBehaviour
     {
         Subscribe();
         RefreshAll();
+        ApplyCinematicVisibility();
+    }
+
+    private void Start()
+    {
+        RefreshAll();
+        ApplyCinematicVisibility();
     }
 
     private void OnDisable()
     {
         Unsubscribe();
     }
-    private void Start()
-    {
-        RefreshAll();
-    }
+
     private void Update()
     {
+        if (!cinematicMode)
+        {
+            UpdateDashGauge();
+        }
+    }
+
+    public void SetCinematicMode(bool enabled)
+    {
+        cinematicMode = enabled;
+        ApplyCinematicVisibility();
+    }
+
+    public void RefreshAll()
+    {
+        if (playerHealth != null)
+        {
+            RefreshHealth(playerHealth.CurrentHp, playerHealth.MaxHp);
+        }
+
+        if (playerArmor != null)
+        {
+            RefreshArmor(playerArmor.CurrentArmor, playerArmor.MaxArmor);
+        }
+        else if (armorGauge != null)
+        {
+            armorGauge.SetValue(0f, 1f);
+        }
+
+        if (runLevelSystem != null)
+        {
+            RefreshExp(
+                runLevelSystem.CurrentLevel,
+                runLevelSystem.CurrentExpInLevel,
+                runLevelSystem.CurrentRequiredExp
+            );
+        }
+        else
+        {
+            RefreshExpFallback();
+        }
+
+        if (RunManager.Instance != null && RunManager.Instance.CurrentRun != null)
+        {
+            RefreshWallet(RunManager.Instance.CurrentRun.Wallet);
+        }
+        else
+        {
+            RefreshWallet(null);
+        }
+
         UpdateDashGauge();
+    }
+
+    public void ShowWarning(string message)
+    {
+        if (warningMessageUI != null)
+        {
+            warningMessageUI.ShowMessage(message);
+        }
     }
 
     private void ResolveReferences()
@@ -105,6 +170,7 @@ public class ExpeditionHUD : MonoBehaviour
         if (playerDash != null)
         {
             playerDash.DashStarted += HandleDashStarted;
+            playerDash.DashEnded += HandleDashEnded;
         }
 
         if (runLevelSystem != null)
@@ -135,6 +201,7 @@ public class ExpeditionHUD : MonoBehaviour
         if (playerDash != null)
         {
             playerDash.DashStarted -= HandleDashStarted;
+            playerDash.DashEnded -= HandleDashEnded;
         }
 
         if (runLevelSystem != null)
@@ -149,47 +216,63 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
-    public void RefreshAll()
+    private void ApplyCinematicVisibility()
     {
-        if (playerHealth != null)
+        bool visible = !cinematicMode;
+
+        SetGameObjectVisible(statusRoot, visible);
+        SetGameObjectVisible(resourceRoot, visible);
+
+        if (statusRoot == null)
         {
-            RefreshHealth(playerHealth.CurrentHp, playerHealth.MaxHp);
+            SetGaugeVisible(hpGauge, visible);
+            SetGaugeVisible(armorGauge, visible);
+            SetGaugeVisible(expGauge, visible);
+            SetGaugeVisible(dashGauge, visible);
         }
 
-        if (playerArmor != null)
+        if (resourceRoot == null)
         {
-            RefreshArmor(playerArmor.CurrentArmor, playerArmor.MaxArmor);
-        }
-        else if (armorGauge != null)
-        {
-            armorGauge.SetValue(0f, 1f);
+            SetCounterVisible(creditsCounter, visible);
+            SetCounterVisible(scrapCounter, visible);
+            SetCounterVisible(coreShardCounter, visible);
         }
 
-        if (runLevelSystem != null)
+        if (additionalObjectsToHideDuringCinematic != null)
         {
-            RefreshExp(runLevelSystem.CurrentLevel, runLevelSystem.CurrentExpInLevel, runLevelSystem.CurrentRequiredExp);
-        }
-        else
-        {
-            RefreshExpFallback();
-        }
-
-        if (RunManager.Instance != null && RunManager.Instance.CurrentRun != null)
-        {
-            RefreshWallet(RunManager.Instance.CurrentRun.Wallet);
-        }
-        else
-        {
-            RefreshWallet(null);
+            for (int i = 0; i < additionalObjectsToHideDuringCinematic.Length; i++)
+            {
+                SetGameObjectVisible(additionalObjectsToHideDuringCinematic[i], visible);
+            }
         }
     }
 
-    public void ShowWarning(string message)
+    private void SetGameObjectVisible(GameObject target, bool visible)
     {
-        if (warningMessageUI != null)
+        if (target != null)
         {
-            warningMessageUI.ShowMessage(message);
+            target.SetActive(visible);
         }
+    }
+
+    private void SetGaugeVisible(GaugeBarUI gauge, bool visible)
+    {
+        if (gauge == null)
+        {
+            return;
+        }
+
+        gauge.SetVisible(visible);
+    }
+
+    private void SetCounterVisible(ResourceCounterUI counter, bool visible)
+    {
+        if (counter == null)
+        {
+            return;
+        }
+
+        counter.gameObject.SetActive(visible);
     }
 
     private void HandleRunStarted(RunContext runContext)
@@ -224,7 +307,12 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void HandleDashStarted(Vector2 direction)
     {
-        dashCooldownTimer = Mathf.Max(0.05f, dashCooldownDuration);
+        UpdateDashGauge();
+    }
+
+    private void HandleDashEnded()
+    {
+        UpdateDashGauge();
     }
 
     private void RefreshHealth(float current, float max)
@@ -308,18 +396,16 @@ public class ExpeditionHUD : MonoBehaviour
 
         if (playerDash.CanDash)
         {
-            dashCooldownTimer = 0f;
             dashGauge.SetRatio(1f);
             dashGauge.SetText(dashReadyText);
             return;
         }
 
-        dashCooldownTimer = Mathf.Max(0f, dashCooldownTimer - Time.deltaTime);
-
-        float cooldown = Mathf.Max(0.05f, dashCooldownDuration);
-        float ratio = 1f - Mathf.Clamp01(dashCooldownTimer / cooldown);
+        float cooldown = Mathf.Max(0.05f, playerDash.DashCooldown);
+        float remaining = Mathf.Clamp(playerDash.RemainingCooldown, 0f, cooldown);
+        float ratio = 1f - Mathf.Clamp01(remaining / cooldown);
 
         dashGauge.SetRatio(ratio);
-        dashGauge.SetText(string.Format(dashCooldownText, dashCooldownTimer));
+        dashGauge.SetText(string.Format(dashCooldownText, remaining));
     }
 }

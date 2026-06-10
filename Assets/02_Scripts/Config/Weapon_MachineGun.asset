@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: weapon_MachineGun
   description: 
   weaponTreeType: 2
-  projectileDefinition: {fileID: 11400000, guid: 971f650576d080b45b0a22a38072cb6d, type: 2}
+  projectileDefinition: {fileID: 11400000, guid: 1e27537e09a8403489044b5f7b02b91b, type: 2}
   fireInterval: 0.1
   projectileCount: 1
   spreadAngle: 6

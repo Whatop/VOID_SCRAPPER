@@ -702,12 +702,22 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void FaceTo(Vector2 targetPosition)
     {
+        if (IsFacingLockedByAttack())
+        {
+            return;
+        }
+
         Vector2 direction = targetPosition - (Vector2)transform.position;
         SetFacing(direction);
     }
 
     private void SetFacing(Vector2 direction)
     {
+        if (IsFacingLockedByAttack())
+        {
+            return;
+        }
+
         if (direction.sqrMagnitude <= 0.001f)
         {
             return;
@@ -715,7 +725,10 @@ public class EnemyBaseAI : MonoBehaviour
 
         facingDirection = direction.normalized;
     }
-
+    private bool IsFacingLockedByAttack()
+    {
+        return attackController != null && attackController.IsCharging;
+    }
     private void ApplyFacingRotation(float deltaTime)
     {
         if (!rotateToFacingDirection)

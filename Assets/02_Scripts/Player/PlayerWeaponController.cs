@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 
 [Serializable]
 public class WeaponLoadoutEntry
@@ -99,6 +100,10 @@ public class PlayerWeaponController : MonoBehaviour
 
     private void CacheReferences()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            return;
+        }
         if (playerController == null)
         {
             playerController = GetComponent<PlayerController2D>();
@@ -189,6 +194,15 @@ public class PlayerWeaponController : MonoBehaviour
 
     private bool CanUseWeapon()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            return false;
+        }
+
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        {
+            return false;
+        }
         if (playerHealth != null && playerHealth.IsDead)
         {
             return false;

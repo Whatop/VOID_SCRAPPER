@@ -12,13 +12,21 @@ public class ResourceCounterUI : MonoBehaviour
     [Header("Display")]
     [SerializeField] private string displayName;
     [SerializeField] private string amountFormat = "{0}";
+    [SerializeField] private int maxVisibleAmount = 99999;
+    [SerializeField] private bool showPlusWhenClamped;
 
     public int Amount { get; private set; }
+    public int DisplayAmount => Mathf.Min(Amount, Mathf.Max(0, maxVisibleAmount));
 
     private void Reset()
     {
         iconImage = GetComponentInChildren<Image>(true);
         amountText = GetComponentInChildren<TextMeshProUGUI>(true);
+    }
+
+    private void OnValidate()
+    {
+        maxVisibleAmount = Mathf.Max(0, maxVisibleAmount);
     }
 
     public void SetAmount(int amount)
@@ -27,7 +35,7 @@ public class ResourceCounterUI : MonoBehaviour
 
         if (amountText != null)
         {
-            amountText.text = string.Format(amountFormat, Amount);
+            amountText.text = FormatAmount(Amount);
         }
 
         if (labelText != null && !string.IsNullOrWhiteSpace(displayName))
@@ -55,5 +63,19 @@ public class ResourceCounterUI : MonoBehaviour
         {
             labelText.text = displayName;
         }
+    }
+
+    private string FormatAmount(int amount)
+    {
+        int limit = Mathf.Max(0, maxVisibleAmount);
+        int displayAmount = Mathf.Min(Mathf.Max(0, amount), limit);
+        string formatted = string.Format(amountFormat, displayAmount);
+
+        if (showPlusWhenClamped && amount > limit)
+        {
+            formatted += "+";
+        }
+
+        return formatted;
     }
 }

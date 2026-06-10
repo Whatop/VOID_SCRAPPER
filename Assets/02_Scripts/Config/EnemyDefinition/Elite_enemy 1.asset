@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cc398a4577fa6d498d2135813e8eff2, type: 3}
+  m_Name: Elite_enemy 1
+  m_EditorClassIdentifier: 
+  enemyId: Elite_enemy
+  displayName: "\uC5D8\uB9AC\uD2B8 \uC801"
+  enemyType: 3
+  enemyPrefab: {fileID: 6983035740697639387, guid: 6b003641383fd2c4face90b26dff574c, type: 3}
+  maxHp: 42
+  moveSpeed: 2.5
+  visionRange: 15
+  attackRange: 9
+  projectileDefinition: {fileID: 11400000, guid: 4832ce475f321d443a403b2e54fc288c, type: 2}
+  attackInterval: 2.5
+  projectileCount: 12
+  spreadAngle: 40
+  chargeTime: 0
+  useSecondaryProjectile: 1
+  secondaryProjectileDefinition: {fileID: 11400000, guid: 1f0760def503fa641a4ebe69e963b602, type: 2}
+  secondaryProjectileCount: 1
+  secondarySpreadAngle: 0
+  rewardDefinition: {fileID: 11400000, guid: d2c045ea2f82ffe4a8784c62046d6e08, type: 2}
+  radarMarkerType: 0

@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(RectTransform))]
@@ -12,6 +13,11 @@ public class InteractionPromptUI : MonoBehaviour
     [SerializeField] private CanvasGroup canvasGroup;
     [SerializeField] private GameObject rootObject;
 
+    [Header("Activation Progress")]
+    [SerializeField] private Slider progressSlider;
+    [SerializeField] private CanvasGroup progressCanvasGroup;
+    [SerializeField] private GameObject progressRoot;
+
     [Header("Canvas Follow")]
     [SerializeField] private Canvas canvas;
     [SerializeField] private Camera worldCamera;
@@ -22,11 +28,12 @@ public class InteractionPromptUI : MonoBehaviour
     [SerializeField] private string fallbackPrompt = "상호작용";
 
     [Header("Follow")]
-    [Tooltip("InteractionPromptAnchor가 없는 오브젝트에 적용할 기본 위치 오프셋")]
-    [SerializeField] private Vector3 defaultWorldOffset = new Vector3(0f, 1f, 0f);
-
+    [SerializeField] private Vector3 defaultWorldOffset = new Vector3(1.7f, 1f, 0f);
     [SerializeField] private bool hideWhenBehindCamera = true;
     [SerializeField] private bool followEveryFrame = true;
+
+    [Header("World Space Canvas")]
+    [SerializeField] private bool matchWorldCanvasRotation = true;
 
     private RectTransform rectTransform;
     private RectTransform canvasRectTransform;
@@ -34,6 +41,8 @@ public class InteractionPromptUI : MonoBehaviour
     private IInteractable currentTarget;
     private Transform currentTargetTransform;
     private Vector3 currentTargetOffset;
+
+    private CoreObject forcedCoreTarget;
 
     private void Reset()
     {
@@ -43,6 +52,14 @@ public class InteractionPromptUI : MonoBehaviour
         rootObject = gameObject;
         canvas = GetComponentInParent<Canvas>();
         worldCamera = Camera.main;
+
+        progressSlider = GetComponentInChildren<Slider>(true);
+
+        if (progressSlider != null)
+        {
+            progressRoot = progressSlider.gameObject;
+            progressCanvasGroup = progressSlider.GetComponent<CanvasGroup>();
+        }
     }
 
     private void Awake()
@@ -55,10 +72,13 @@ public class InteractionPromptUI : MonoBehaviour
         }
 
         SetVisible(false);
+        SetProgressVisible(false, 0f);
     }
 
     private void OnEnable()
     {
+        CacheReferences();
+
         if (playerInteractor != null)
         {
             playerInteractor.CurrentTargetChanged += HandleTargetChanged;
@@ -69,6 +89,8 @@ public class InteractionPromptUI : MonoBehaviour
             ClearTarget();
             SetVisible(false);
         }
+
+        CoreObject.ActivationProgressChanged += HandleCoreActivationProgressChanged;
     }
 
     private void OnDisable()
@@ -78,8 +100,12 @@ public class InteractionPromptUI : MonoBehaviour
             playerInteractor.CurrentTargetChanged -= HandleTargetChanged;
         }
 
+        CoreObject.ActivationProgressChanged -= HandleCoreActivationProgressChanged;
+
+        forcedCoreTarget = null;
         ClearTarget();
         SetVisible(false);
+        SetProgressVisible(false, 0f);
     }
 
     private void LateUpdate()
@@ -120,6 +146,34 @@ public class InteractionPromptUI : MonoBehaviour
             rootObject = gameObject;
         }
 
+        if (progressSlider == null)
+        {
+            progressSlider = GetComponentInChildren<Slider>(true);
+        }
+
+        if (progressSlider != null && progressRoot == null)
+        {
+            progressRoot = progressSlider.gameObject;
+        }
+
+        if (progressRoot != null)
+        {
+            if (!progressRoot.activeSelf)
+            {
+                progressRoot.SetActive(true);
+            }
+
+            if (progressCanvasGroup == null)
+            {
+                progressCanvasGroup = progressRoot.GetComponent<CanvasGroup>();
+            }
+
+            if (progressCanvasGroup == null)
+            {
+                progressCanvasGroup = progressRoot.AddComponent<CanvasGroup>();
+            }
+        }
+
         if (canvas == null)
         {
             canvas = GetComponentInParent<Canvas>();
@@ -143,6 +197,13 @@ public class InteractionPromptUI : MonoBehaviour
 
     private void HandleTargetChanged(IInteractable target)
     {
+        if (forcedCoreTarget != null)
+        {
+            return;
+        }
+
+        SetProgressVisible(false, 0f);
+
         if (target == null)
         {
             ClearTarget();
@@ -161,16 +222,53 @@ public class InteractionPromptUI : MonoBehaviour
         currentTargetTransform = targetTransform;
         currentTargetOffset = targetOffset;
 
+        RefreshPromptText(target);
+        FollowTarget();
+    }
+
+    private void HandleCoreActivationProgressChanged(CoreObject core, float ratio, bool active)
+    {
+        if (core == null)
+        {
+            return;
+        }
+
+        if (active)
+        {
+            forcedCoreTarget = core;
+
+            currentTarget = core;
+            currentTargetTransform = core.transform;
+            currentTargetOffset = defaultWorldOffset;
+
+            RefreshPromptText(core);
+            FollowTarget();
+            SetProgressVisible(true, ratio);
+            return;
+        }
+
+        SetProgressVisible(false, 0f);
+
+        if (forcedCoreTarget == core || ReferenceEquals(currentTarget, core))
+        {
+            forcedCoreTarget = null;
+            ClearTarget();
+            SetVisible(false);
+        }
+    }
+
+    private void RefreshPromptText(IInteractable target)
+    {
+        if (promptText == null || target == null)
+        {
+            return;
+        }
+
         string interactionText = string.IsNullOrWhiteSpace(target.InteractionText)
             ? fallbackPrompt
             : target.InteractionText;
 
-        if (promptText != null)
-        {
-            promptText.text = $"{prefix}  {interactionText}";
-        }
-
-        FollowTarget();
+        promptText.text = $"{prefix}  {interactionText}";
     }
 
     private bool TryResolveTargetTransform(
@@ -187,6 +285,7 @@ public class InteractionPromptUI : MonoBehaviour
         }
 
         InteractionPromptAnchor anchor = component.GetComponentInChildren<InteractionPromptAnchor>(true);
+
         if (anchor != null && anchor.AnchorTransform != null)
         {
             targetTransform = anchor.AnchorTransform;
@@ -207,37 +306,52 @@ public class InteractionPromptUI : MonoBehaviour
             return;
         }
 
-        if (rectTransform == null || canvas == null || canvasRectTransform == null)
-        {
-            CacheReferences();
+        CacheReferences();
 
-            if (rectTransform == null || canvas == null || canvasRectTransform == null)
-            {
-                SetVisible(false);
-                return;
-            }
-        }
-
-        if (worldCamera == null)
-        {
-            worldCamera = Camera.main;
-
-            if (worldCamera == null)
-            {
-                SetVisible(false);
-                return;
-            }
-        }
-
-        Vector3 worldPosition = currentTargetTransform.position + currentTargetOffset;
-        Vector3 screenPosition = worldCamera.WorldToScreenPoint(worldPosition);
-
-        if (hideWhenBehindCamera && screenPosition.z < 0f)
+        if (rectTransform == null || canvas == null)
         {
             SetVisible(false);
             return;
         }
 
+        Vector3 worldPosition = currentTargetTransform.position + currentTargetOffset;
+
+        if (worldCamera == null)
+        {
+            worldCamera = Camera.main;
+        }
+
+        if (hideWhenBehindCamera && worldCamera != null)
+        {
+            Vector3 screenPositionForCheck = worldCamera.WorldToScreenPoint(worldPosition);
+
+            if (screenPositionForCheck.z < 0f)
+            {
+                SetVisible(false);
+                return;
+            }
+        }
+
+        if (canvas.renderMode == RenderMode.WorldSpace)
+        {
+            rectTransform.position = worldPosition;
+
+            if (matchWorldCanvasRotation)
+            {
+                rectTransform.rotation = canvas.transform.rotation;
+            }
+
+            SetVisible(true);
+            return;
+        }
+
+        if (worldCamera == null || canvasRectTransform == null)
+        {
+            SetVisible(false);
+            return;
+        }
+
+        Vector3 screenPosition = worldCamera.WorldToScreenPoint(worldPosition);
         Camera eventCamera = GetCanvasEventCamera();
 
         bool converted = RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -291,6 +405,11 @@ public class InteractionPromptUI : MonoBehaviour
 
     public void SetVisible(bool visible)
     {
+        if (rootObject != null && !rootObject.activeSelf)
+        {
+            rootObject.SetActive(true);
+        }
+
         if (canvasGroup != null)
         {
             canvasGroup.alpha = visible ? 1f : 0f;
@@ -302,6 +421,43 @@ public class InteractionPromptUI : MonoBehaviour
         if (rootObject != null)
         {
             rootObject.SetActive(visible);
+        }
+    }
+
+    private void SetProgressVisible(bool visible, float ratio)
+    {
+        ratio = Mathf.Clamp01(ratio);
+
+        if (progressRoot == null && progressSlider != null)
+        {
+            progressRoot = progressSlider.gameObject;
+        }
+
+        if (progressRoot != null && !progressRoot.activeSelf)
+        {
+            progressRoot.SetActive(true);
+        }
+
+        if (progressCanvasGroup == null && progressRoot != null)
+        {
+            progressCanvasGroup = progressRoot.GetComponent<CanvasGroup>();
+
+            if (progressCanvasGroup == null)
+            {
+                progressCanvasGroup = progressRoot.AddComponent<CanvasGroup>();
+            }
+        }
+
+        if (progressSlider != null)
+        {
+            progressSlider.value = ratio;
+        }
+
+        if (progressCanvasGroup != null)
+        {
+            progressCanvasGroup.alpha = visible ? 1f : 0f;
+            progressCanvasGroup.interactable = false;
+            progressCanvasGroup.blocksRaycasts = false;
         }
     }
 }

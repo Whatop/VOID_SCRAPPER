@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2731bcbca1dacdc48acd59fa6bf2760a, type: 3}
+  m_Name: Projectile_Enemy_Shotgun
+  m_EditorClassIdentifier: 
+  projectileId: enemy_shotgun_pellet
+  displayName: "\uC801 \uC0B0\uD0C4"
+  projectilePrefab: {fileID: 4939712952834317954, guid: 2751e60f478d342489e8ed8a121ec0a4, type: 3}
+  damage: 1.5
+  speed: 5
+  range: 7
+  lifeTime: 2
+  pierceCount: 0
+  useHoming: 0
+  homingAngle: 0
+  homingRange: 0

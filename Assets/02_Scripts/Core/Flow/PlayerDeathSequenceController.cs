@@ -10,9 +10,7 @@ public class PlayerDeathSequenceController : MonoBehaviour
     [SerializeField] private ShipDeathBreakup deathBreakup;
 
     [Header("Sequence")]
-    [SerializeField] private float delayBeforeFade = 0.8f;
-    [SerializeField] private float fadeInDuration = 0.45f;
-    [SerializeField] private float fadeOutDuration = 0.45f;
+    [SerializeField] private float delayBeforeResult = 0.8f;
 
     [Header("Run Result")]
     [SerializeField] private RunEndReason deathReason = RunEndReason.Death;
@@ -72,9 +70,9 @@ public class PlayerDeathSequenceController : MonoBehaviour
             deathBreakup.Break();
         }
 
-        if (delayBeforeFade > 0f)
+        if (delayBeforeResult > 0f)
         {
-            yield return new WaitForSeconds(delayBeforeFade);
+            yield return new WaitForSeconds(delayBeforeResult);
         }
 
         if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
@@ -82,9 +80,7 @@ public class PlayerDeathSequenceController : MonoBehaviour
             RunManager.Instance.CompleteRun(deathReason);
         }
 
-        if (SceneFlowManager.Instance != null)
-        {
-            SceneFlowManager.Instance.LoadSettlementWithFade(fadeInDuration, fadeOutDuration);
-        }
+        // 여기서 씬 이동하면 안 됨.
+        // 정산창 ContinueButton이 정착지 이동을 담당한다.
     }
 }

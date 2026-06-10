@@ -17,12 +17,20 @@ public class EnemyDefinition : ScriptableObject
     [SerializeField] private float visionRange = 9f;
     [SerializeField] private float attackRange = 6f;
 
-    [Header("Attack")]
+    [Header("Primary Attack")]
     [SerializeField] private ProjectileDefinition projectileDefinition;
     [SerializeField] private float attackInterval = 1.2f;
     [SerializeField] private int projectileCount = 1;
     [SerializeField] private float spreadAngle = 0f;
     [SerializeField] private float chargeTime = 0f;
+
+    [Header("Secondary Attack Optional")]
+    [Tooltip("엘리트 적의 대형탄처럼 기본 공격과 함께 추가 탄환을 발사할 때 사용합니다.")]
+    [SerializeField] private bool useSecondaryProjectile;
+
+    [SerializeField] private ProjectileDefinition secondaryProjectileDefinition;
+    [SerializeField] private int secondaryProjectileCount = 1;
+    [SerializeField] private float secondarySpreadAngle = 0f;
 
     [Header("Reward")]
     [SerializeField] private RewardDefinition rewardDefinition;
@@ -46,6 +54,11 @@ public class EnemyDefinition : ScriptableObject
     public int ProjectileCount => projectileCount;
     public float SpreadAngle => spreadAngle;
     public float ChargeTime => chargeTime;
+
+    public bool UseSecondaryProjectile => useSecondaryProjectile;
+    public ProjectileDefinition SecondaryProjectileDefinition => secondaryProjectileDefinition;
+    public int SecondaryProjectileCount => secondaryProjectileCount;
+    public float SecondarySpreadAngle => secondarySpreadAngle;
 
     public RewardDefinition RewardDefinition => rewardDefinition;
     public RadarMarkerType RadarMarkerType => radarMarkerType;

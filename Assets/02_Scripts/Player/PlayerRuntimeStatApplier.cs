@@ -15,7 +15,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     [SerializeField] private float baseMaxHp = 20f;
     [SerializeField] private float baseMoveSpeed = 6f;
     [SerializeField] private float baseDashDistance = 5f;
-    [SerializeField] private float baseDashCooldown = 0.7f;
+    [SerializeField] private float baseDashCooldown = 1.1f;
 
     [Header("Trait Apply Rule")]
     [Tooltip("false면 현재 레벨 효과만 적용. true면 1레벨부터 현재 레벨까지 누적 적용.")]

@@ -9,6 +9,7 @@ public class RunContext
     [SerializeField] private WeaponTreeType selectedWeaponTree;
     [SerializeField] private string selectedShipId = "basic_ship";
     [SerializeField] private ExpeditionDepth expeditionDepth;
+    [SerializeField] private SeaRegionType seaRegionType = SeaRegionType.DenseDebris;
     [SerializeField] private RunWallet wallet = new RunWallet();
 
     [SerializeField] private int currentLevel = 1;
@@ -20,6 +21,8 @@ public class RunContext
     public WeaponTreeType SelectedWeaponTree => selectedWeaponTree;
     public string SelectedShipId => string.IsNullOrWhiteSpace(selectedShipId) ? "basic_ship" : selectedShipId;
     public ExpeditionDepth ExpeditionDepth => expeditionDepth;
+    public SeaRegionType SeaRegionType => seaRegionType;
+    public string SeaRegionDisplayName => SeaRegionCatalog.GetDisplayName(seaRegionType);
     public RunWallet Wallet => wallet;
 
     public int CurrentLevel => currentLevel;
@@ -33,25 +36,36 @@ public class RunContext
 
     public RunContext(WeaponTreeType weaponTreeType, ExpeditionDepth depth)
     {
-        Begin(weaponTreeType, depth, "basic_ship");
+        Begin(weaponTreeType, depth, "basic_ship", SeaRegionCatalog.GetRandom());
     }
 
     public RunContext(WeaponTreeType weaponTreeType, ExpeditionDepth depth, string shipId)
     {
-        Begin(weaponTreeType, depth, shipId);
+        Begin(weaponTreeType, depth, shipId, SeaRegionCatalog.GetRandom());
+    }
+
+    public RunContext(WeaponTreeType weaponTreeType, ExpeditionDepth depth, string shipId, SeaRegionType selectedSeaRegionType)
+    {
+        Begin(weaponTreeType, depth, shipId, selectedSeaRegionType);
     }
 
     public void Begin(WeaponTreeType weaponTreeType, ExpeditionDepth depth)
     {
-        Begin(weaponTreeType, depth, "basic_ship");
+        Begin(weaponTreeType, depth, "basic_ship", SeaRegionCatalog.GetRandom());
     }
 
     public void Begin(WeaponTreeType weaponTreeType, ExpeditionDepth depth, string shipId)
+    {
+        Begin(weaponTreeType, depth, shipId, SeaRegionCatalog.GetRandom());
+    }
+
+    public void Begin(WeaponTreeType weaponTreeType, ExpeditionDepth depth, string shipId, SeaRegionType selectedSeaRegionType)
     {
         isActive = true;
         selectedWeaponTree = weaponTreeType;
         selectedShipId = string.IsNullOrWhiteSpace(shipId) ? "basic_ship" : shipId;
         expeditionDepth = depth;
+        seaRegionType = selectedSeaRegionType;
 
         currentLevel = 1;
         bossDefeated = false;
@@ -64,6 +78,11 @@ public class RunContext
     public void SetDepth(ExpeditionDepth depth)
     {
         expeditionDepth = depth;
+    }
+
+    public void SetSeaRegion(SeaRegionType selectedSeaRegionType)
+    {
+        seaRegionType = selectedSeaRegionType;
     }
 
     public void SetLevel(int level)
@@ -109,6 +128,7 @@ public class RunResultData
     public WeaponTreeType selectedWeaponTree;
     public string selectedShipId;
     public ExpeditionDepth finalDepth;
+    public SeaRegionType finalSeaRegionType;
 
     public int runExperience;
     public int remainingCredits;
