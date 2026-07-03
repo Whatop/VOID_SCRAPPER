@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 26_rf_mg_cooling_core
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_mg_cooling_core"
+  displayName: "\uae30\uad00\ucd1d \ub0c9\uac01 \ucf54\uc5b4"
+  description: "\uae30\uad00\ucd1d \uae30\uccb4 \uc804\uc6a9. \uc77c\uc815 \uc2dc\uac04 \uc5f0\uc0ac\ub825 \uc99d\uac00\uc640 \uacf5\uaca9\ub825 \uc99d\uac00\ub97c \uc81c\uacf5\ud55c\ub2e4."
+  icon: {fileID: 0}
+  rarity: 2
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 2
+  availability: 1
+  cost: 75
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 1
+  startWithFullCharges: 1
+  rechargeSeconds: 20
+  effects:
+  - effectType: 7
+    value: 35
+    radius: 0
+    duration: 8
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1
+  - effectType: 6
+    value: 10
+    radius: 0
+    duration: 8
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

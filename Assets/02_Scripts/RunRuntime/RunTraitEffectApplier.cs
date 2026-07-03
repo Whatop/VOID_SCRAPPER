@@ -10,6 +10,7 @@ public class RunTraitEffectApplier : MonoBehaviour
     [SerializeField] private PlayerDash playerDash;
     [SerializeField] private PlayerWeaponModifiers weaponModifiers;
     [SerializeField] private PlayerRuntimeBonusState runtimeBonusState;
+    [SerializeField] private PlayerCargoController cargoController;
 
     [Header("Trait Source")]
     [SerializeField] private TraitCatalog traitCatalog;
@@ -106,7 +107,7 @@ public class RunTraitEffectApplier : MonoBehaviour
 
         if (logAppliedTraits)
         {
-            Debug.Log($"런 특성 적용: {trait.DisplayName} Lv{level}", this);
+            Debug.Log($" 특 : {trait.DisplayName} Lv{level}", this);
         }
     }
 
@@ -233,13 +234,71 @@ public class RunTraitEffectApplier : MonoBehaviour
                 }
                 break;
 
+            case TraitEffectType.CargoCapacityBonus:
+                if (runtimeBonusState != null)
+                {
+                    runtimeBonusState.AddCargoCapacityBonus(value);
+                }
+                ApplyCargoCapacityBonus(value);
+                break;
+
+            case TraitEffectType.HarvestYieldPercent:
+                if (runtimeBonusState != null)
+                {
+                    runtimeBonusState.AddHarvestYieldPercent(value);
+                }
+                break;
+
+            case TraitEffectType.HarvestObjectDamagePercent:
+                if (runtimeBonusState != null)
+                {
+                    runtimeBonusState.AddHarvestObjectDamagePercent(value);
+                }
+                break;
+
+            case TraitEffectType.EmergencyReturnCapacityRatioBonus:
+                if (runtimeBonusState != null)
+                {
+                    runtimeBonusState.AddEmergencyReturnCapacityRatioBonus(value);
+                }
+                ApplyEmergencyReturnRatioBonus(value);
+                break;
+
+            case TraitEffectType.RadarScanRadiusBonus:
+                if (runtimeBonusState != null)
+                {
+                    runtimeBonusState.AddRadarScanRadiusBonus(value);
+                }
+                break;
+
+            case TraitEffectType.ActiveCooldownReductionPercent:
+                if (runtimeBonusState != null)
+                {
+                    runtimeBonusState.AddActiveCooldownReductionPercent(value);
+                }
+                break;
+
+            case TraitEffectType.RadarTauntDurationBonus:
+                if (runtimeBonusState != null)
+                {
+                    runtimeBonusState.AddRadarTauntDurationBonus(value);
+                }
+                break;
+
+            case TraitEffectType.RadarStealthDurationBonus:
+                if (runtimeBonusState != null)
+                {
+                    runtimeBonusState.AddRadarStealthDurationBonus(value);
+                }
+                break;
+
             case TraitEffectType.CloseRangeDamageReductionPercent:
             case TraitEffectType.DashDamageReductionPercent:
             case TraitEffectType.CloseRangeSuppressionPercent:
             case TraitEffectType.ChargeSightBonusPercent:
             case TraitEffectType.ChargedProjectileSizePercent:
             case TraitEffectType.RemovePierceDamageFalloff:
-                Debug.LogWarning($"아직 런타임 적용 로직이 없는 특성 효과입니다: {effectType}", this);
+                Debug.LogWarning($" 타    특 효都求: {effectType}", this);
                 break;
         }
     }
@@ -275,6 +334,50 @@ public class RunTraitEffectApplier : MonoBehaviour
         {
             runtimeBonusState = gameObject.AddComponent<PlayerRuntimeBonusState>();
         }
+
+        if (cargoController == null)
+        {
+            cargoController = GetComponent<PlayerCargoController>();
+        }
+
+        if (cargoController == null)
+        {
+            cargoController = gameObject.AddComponent<PlayerCargoController>();
+        }
+    }
+
+    private void ApplyCargoCapacityBonus(float value)
+    {
+        if (cargoController == null)
+        {
+            CacheReferences();
+        }
+
+        int capacityBonus = Mathf.RoundToInt(value);
+
+        if (cargoController == null || capacityBonus == 0)
+        {
+            return;
+        }
+
+        int newCapacity = Mathf.Max(1, cargoController.MaxCapacity + capacityBonus);
+        cargoController.SetRuntimeCargoRule(newCapacity, cargoController.EmergencyReturnRatio);
+    }
+
+    private void ApplyEmergencyReturnRatioBonus(float value)
+    {
+        if (cargoController == null)
+        {
+            CacheReferences();
+        }
+
+        if (cargoController == null)
+        {
+            return;
+        }
+
+        float newRatio = Mathf.Clamp01(cargoController.EmergencyReturnRatio + value * 0.01f);
+        cargoController.SetRuntimeCargoRule(cargoController.MaxCapacity, newRatio);
     }
 
     private void ResolveTraitDefinitions()

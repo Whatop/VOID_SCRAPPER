@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 29_rf_mg_ammo_capacitor
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_mg_ammo_capacitor"
+  displayName: "\ud0c4\uc57d \uce90\ud328\uc2dc\ud130"
+  description: "\uae30\uad00\ucd1d \uae30\uccb4 \uc804\uc6a9. \uc9e7\uc740 \uc2dc\uac04 \uacf5\uaca9\ub825\uacfc \uc5f0\uc0ac\ub825\uc744 \ud568\uaed8 \uc62c\ub9b0\ub2e4."
+  icon: {fileID: 0}
+  rarity: 1
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 1
+  availability: 1
+  cost: 65
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 2
+  startWithFullCharges: 1
+  rechargeSeconds: 18
+  effects:
+  - effectType: 6
+    value: 15
+    radius: 0
+    duration: 6
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1
+  - effectType: 7
+    value: 20
+    radius: 0
+    duration: 6
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

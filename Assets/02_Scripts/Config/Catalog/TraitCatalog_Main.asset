@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 539de2472da7bef4592f68ef24bba8d6, type: 3}
+  m_Name: TraitCatalog_Main
+  m_EditorClassIdentifier: 
+  traitDefinitions:
+  - {fileID: 11400000, guid: a0d43d13e2d84f0d88229c5bd1dcf079, type: 2}
+  - {fileID: 11400000, guid: 622291e4cf024c999d708d5585ab2c12, type: 2}
+  - {fileID: 11400000, guid: 7734f5b371bd4e4595a644480701b561, type: 2}
+  - {fileID: 11400000, guid: 1bce0cfc0e294b02a21ff1199fd36bbf, type: 2}
+  - {fileID: 11400000, guid: 0a379b42451f432097e0e3ee973d5ba9, type: 2}
+  - {fileID: 11400000, guid: 94e60d1afe9d4f4d97951c8aedd70218, type: 2}
+  - {fileID: 11400000, guid: 95ae567ab5e241709d6d729ce1d6b10d, type: 2}
+  - {fileID: 11400000, guid: 762325f8ec3a4a90b6118122af335e60, type: 2}
+  - {fileID: 11400000, guid: a9f69e1013ea422881e696de5cbf8199, type: 2}
+  - {fileID: 11400000, guid: 058b955b2891420fac9f4167edb5e674, type: 2}
+  - {fileID: 11400000, guid: 2652031d3f504a288b660d55162c3726, type: 2}
+  - {fileID: 11400000, guid: 73f5f886c8914ad3a5259de1497f3f10, type: 2}
+  - {fileID: 11400000, guid: 7f3d404ecbe141df81e4eba19a667fb8, type: 2}
+  - {fileID: 11400000, guid: 194404d6050d490184e7c45fa4e9a625, type: 2}
+  - {fileID: 11400000, guid: 9daa50c6f22146b6bc7eebe264e593d5, type: 2}
+  - {fileID: 11400000, guid: 0b68d5fad21b4147b687c061d7518f10, type: 2}
+  - {fileID: 11400000, guid: ef9ca5c1989941e49886ea4a1f1e16d6, type: 2}
+  - {fileID: 11400000, guid: e69594f0a8e34e1fa10fc43f21e39095, type: 2}
+  - {fileID: 11400000, guid: a8231bb5d39841d7bca6c9e3f1354694, type: 2}
+  - {fileID: 11400000, guid: d10c1d50fdd9450eb0312ca389e52402, type: 2}
+  - {fileID: 11400000, guid: 86352fa1e01e46fd90370d54c0241edd, type: 2}
+  - {fileID: 11400000, guid: 89268daac9e34f37aa5eb2dd0a576cc4, type: 2}
+  - {fileID: 11400000, guid: 0474efbc35914e779a41f009418ca01a, type: 2}
+  - {fileID: 11400000, guid: bda9eb0d4603427dbe40dfcebfb19d6a, type: 2}
+  - {fileID: 11400000, guid: 5c9f4c683e4e4149be0378ab60a36ce7, type: 2}
+  - {fileID: 11400000, guid: 27b07209e9ed4be2945c2d031ad1b8da, type: 2}
+  - {fileID: 11400000, guid: e889f59f8abf4ec3ba2a18b034ffa30e, type: 2}
+  - {fileID: 11400000, guid: a914878b472747ab9feb7208a07dade8, type: 2}
+  - {fileID: 11400000, guid: b14137d9fd514deaa05026267895ca1f, type: 2}
+  - {fileID: 11400000, guid: 674593faa5314e6e91229435cab94287, type: 2}
+  - {fileID: 11400000, guid: 2e7a28330ea94d8ba585e603ab10cf92, type: 2}
+  - {fileID: 11400000, guid: 4bd3708269bc4bd981dd89bfe0be5cfc, type: 2}
+  - {fileID: 11400000, guid: f8f1f00578a54cf68dd5e9c21e09d7ca, type: 2}
+  - {fileID: 11400000, guid: 8a90bbc85a004cd9848966bc9e11ba4f, type: 2}
+  - {fileID: 11400000, guid: 342e755d04144548842b8695a374cc91, type: 2}
+  - {fileID: 11400000, guid: 090e22ea38de469294be624a328350a9, type: 2}
+  - {fileID: 11400000, guid: 9fd43e061fb44b2aa8a28846ab505196, type: 2}
+  - {fileID: 11400000, guid: 1bac2d3b0ea044259044aa21b4ae3425, type: 2}
+  - {fileID: 11400000, guid: 5ef1246184464e2598a0d0ddaa509498, type: 2}
+  - {fileID: 11400000, guid: 637b378591b04f13bcea402b19f646f1, type: 2}
+  includeResourcesTraits: 0
+  resourcesPath: TraitDefinition

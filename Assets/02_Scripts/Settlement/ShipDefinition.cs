@@ -5,10 +5,13 @@ public class ShipDefinition : ScriptableObject
 {
     [Header("Identity")]
     [SerializeField] private string shipId = "basic_ship";
-    [SerializeField] private string displayName = "기본 기체";
+    [SerializeField] private string displayName = "표준 회수정";
     [TextArea]
-    [SerializeField] private string description = "표준형 탐사용 기체.";
+    [SerializeField] private string description = "기본 수확용 회수정. 중거리 기관총으로 적을 밀어내고 잔해와 컨테이너를 안정적으로 수확한다.";
     [SerializeField] private Sprite previewSprite;
+
+    [Header("Weapon Tree")]
+    [SerializeField] private WeaponTreeType defaultWeaponTree = WeaponTreeType.MachineGun;
 
     [Header("Unlock")]
     [SerializeField] private bool unlockedByDefault = true;
@@ -23,14 +26,26 @@ public class ShipDefinition : ScriptableObject
     [SerializeField] private float dashDistanceBonus;
     [SerializeField] private float dashCooldownReduction;
 
+    [Header("Harvest / Cargo")]
+    [SerializeField] private int cargoCapacity = 100;
+    [SerializeField] private float harvestYieldBonusPercent;
+    [SerializeField] private float harvestObjectDamageBonusPercent = 10f;
+    [Range(0f, 1f)]
+    [SerializeField] private float emergencyReturnCapacityRatio = 0.7f;
+
+    [Header("Default Active")]
+    [SerializeField] private string defaultReinforcementId = "rf_emergency_return_anchor";
+
     [Header("Passive")]
     [TextArea]
-    [SerializeField] private string passiveDescription = "추가 패시브 없음.";
+    [SerializeField] private string passiveDescription = "기본 회수정: 수확 오브젝트 피해 +10%, 기체용량 100.";
 
     public string ShipId => string.IsNullOrWhiteSpace(shipId) ? name : shipId;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? ShipId : displayName;
     public string Description => description;
     public Sprite PreviewSprite => previewSprite;
+
+    public WeaponTreeType DefaultWeaponTree => defaultWeaponTree;
 
     public bool UnlockedByDefault => unlockedByDefault;
     public string RequiredUnlockFlag => requiredUnlockFlag;
@@ -41,6 +56,13 @@ public class ShipDefinition : ScriptableObject
     public float MoveSpeedBonusPercent => moveSpeedBonusPercent;
     public float DashDistanceBonus => dashDistanceBonus;
     public float DashCooldownReduction => dashCooldownReduction;
+
+    public int CargoCapacity => Mathf.Max(1, cargoCapacity);
+    public float HarvestYieldBonusPercent => harvestYieldBonusPercent;
+    public float HarvestObjectDamageBonusPercent => harvestObjectDamageBonusPercent;
+    public float EmergencyReturnCapacityRatio => Mathf.Clamp01(emergencyReturnCapacityRatio);
+    public string DefaultReinforcementId => string.IsNullOrWhiteSpace(defaultReinforcementId) ? "rf_emergency_return_anchor" : defaultReinforcementId;
+
     public string PassiveDescription => passiveDescription;
 
     public string UnlockFlag

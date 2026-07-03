@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 40_rf_sn_pierce_compressor
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_sn_pierce_compressor"
+  displayName: "\uad00\ud1b5 \uc555\ucd95\uae30"
+  description: "\uc2a4\ub098\uc774\ud37c \uae30\uccb4 \uc804\uc6a9. \ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \uc7a5\uc2dc\uac04 \uacf5\uaca9\ub825 \ubc84\ud504\ub85c \ub3d9\uc791\ud55c\ub2e4."
+  icon: {fileID: 0}
+  rarity: 3
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 2
+  availability: 3
+  cost: 75
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 1
+  startWithFullCharges: 1
+  rechargeSeconds: 26
+  effects:
+  - effectType: 6
+    value: 40
+    radius: 0
+    duration: 8
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

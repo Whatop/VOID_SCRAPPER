@@ -22,39 +22,33 @@ public static class ShopRuntimeEffectApplier
         }
     }
 
-    public static void ApplyWeaponReinforcement(WeaponTreeType weaponTreeType, GameObject playerObject)
+    public static bool EquipReinforcementImmediate(
+        ReinforcementDefinition reinforcement,
+        GameObject playerObject,
+        ShopStructure shop = null)
     {
-        if (playerObject == null)
+        if (reinforcement == null || playerObject == null)
         {
-            Debug.LogWarning("기체 보강 실패: Player 오브젝트가 없습니다.");
-            return;
+            return false;
         }
 
-        PlayerWeaponModifiers modifiers = playerObject.GetComponentInChildren<PlayerWeaponModifiers>(true);
+        PlayerReinforcementController controller =
+            playerObject.GetComponentInChildren<PlayerReinforcementController>(true);
 
-        if (modifiers == null)
+        if (controller == null)
         {
-            Debug.LogWarning("기체 보강 실패: PlayerWeaponModifiers를 찾지 못했습니다.");
-            return;
+            controller = playerObject.AddComponent<PlayerReinforcementController>();
         }
 
-        switch (weaponTreeType)
+        ShopActiveMaintenanceBay maintenanceBay = shop != null ? shop.ActiveMaintenanceBay : null;
+        bool equipped = controller.EquipFromShop(reinforcement, maintenanceBay);
+
+        if (equipped)
         {
-            case WeaponTreeType.Shotgun:
-                modifiers.AddDamagePercent(15f);
-                modifiers.AddSpreadReductionPercent(10f);
-                break;
-
-            case WeaponTreeType.Sniper:
-                modifiers.AddChargeSpeedPercent(20f);
-                modifiers.AddPierceCount(1);
-                break;
-
-            case WeaponTreeType.MachineGun:
-                modifiers.AddFireRatePercent(15f);
-                modifiers.AddHomingAngle(10f);
-                break;
+            ShopRunBridge.SetEquippedReinforcement(reinforcement.EquipmentId, controller.CurrentCharges);
         }
+
+        return equipped;
     }
 
     private static void ApplyTraitEffect(TraitEffectType effectType, float value, GameObject playerObject)
@@ -190,6 +184,107 @@ public static class ShopRuntimeEffectApplier
                     modifiers.AddFireRatePercent(value);
                 }
                 break;
+            case TraitEffectType.CargoCapacityBonus:
+                if (bonusState != null)
+                {
+                    bonusState.AddCargoCapacityBonus(value);
+                }
+                ApplyCargoCapacityBonus(playerObject, value);
+                break;
+
+            case TraitEffectType.HarvestYieldPercent:
+                if (bonusState != null)
+                {
+                    bonusState.AddHarvestYieldPercent(value);
+                }
+                break;
+
+            case TraitEffectType.HarvestObjectDamagePercent:
+                if (bonusState != null)
+                {
+                    bonusState.AddHarvestObjectDamagePercent(value);
+                }
+                break;
+
+            case TraitEffectType.EmergencyReturnCapacityRatioBonus:
+                if (bonusState != null)
+                {
+                    bonusState.AddEmergencyReturnCapacityRatioBonus(value);
+                }
+                ApplyEmergencyReturnRatioBonus(playerObject, value);
+                break;
+
+            case TraitEffectType.RadarScanRadiusBonus:
+                if (bonusState != null)
+                {
+                    bonusState.AddRadarScanRadiusBonus(value);
+                }
+                break;
+
+            case TraitEffectType.ActiveCooldownReductionPercent:
+                if (bonusState != null)
+                {
+                    bonusState.AddActiveCooldownReductionPercent(value);
+                }
+                break;
+
+            case TraitEffectType.RadarTauntDurationBonus:
+                if (bonusState != null)
+                {
+                    bonusState.AddRadarTauntDurationBonus(value);
+                }
+                break;
+
+            case TraitEffectType.RadarStealthDurationBonus:
+                if (bonusState != null)
+                {
+                    bonusState.AddRadarStealthDurationBonus(value);
+                }
+                break;
         }
     }
+
+    private static void ApplyCargoCapacityBonus(GameObject playerObject, float value)
+    {
+        if (playerObject == null)
+        {
+            return;
+        }
+
+        int capacityBonus = Mathf.RoundToInt(value);
+
+        if (capacityBonus == 0)
+        {
+            return;
+        }
+
+        PlayerCargoController cargoController = playerObject.GetComponentInChildren<PlayerCargoController>(true);
+
+        if (cargoController == null)
+        {
+            cargoController = playerObject.AddComponent<PlayerCargoController>();
+        }
+
+        int newCapacity = Mathf.Max(1, cargoController.MaxCapacity + capacityBonus);
+        cargoController.SetRuntimeCargoRule(newCapacity, cargoController.EmergencyReturnRatio);
+    }
+
+    private static void ApplyEmergencyReturnRatioBonus(GameObject playerObject, float value)
+    {
+        if (playerObject == null)
+        {
+            return;
+        }
+
+        PlayerCargoController cargoController = playerObject.GetComponentInChildren<PlayerCargoController>(true);
+
+        if (cargoController == null)
+        {
+            cargoController = playerObject.AddComponent<PlayerCargoController>();
+        }
+
+        float newRatio = Mathf.Clamp01(cargoController.EmergencyReturnRatio + value * 0.01f);
+        cargoController.SetRuntimeCargoRule(cargoController.MaxCapacity, newRatio);
+    }
+
 }

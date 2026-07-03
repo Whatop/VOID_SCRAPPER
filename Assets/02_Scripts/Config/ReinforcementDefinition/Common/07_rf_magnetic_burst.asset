@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 07_rf_magnetic_burst
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_magnetic_burst"
+  displayName: "\uc790\uae30 \ubc29\ucd9c\uae30"
+  description: "\uc9e7\uc740 \uc2dc\uac04 \uc774\ub3d9\uc18d\ub3c4\ub97c \ub192\uc5ec \ub4dc\ub78d \ud68c\uc218\uc640 \uc774\ud0c8\uc744 \ub3d5\ub294\ub2e4."
+  icon: {fileID: 0}
+  rarity: 0
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 1
+  availability: 0
+  cost: 55
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 2
+  startWithFullCharges: 1
+  rechargeSeconds: 12
+  effects:
+  - effectType: 8
+    value: 30
+    radius: 0
+    duration: 3
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

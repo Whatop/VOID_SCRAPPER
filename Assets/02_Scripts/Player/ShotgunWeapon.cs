@@ -71,6 +71,8 @@ public class ShotgunWeapon : PlayerWeaponBase
             return;
         }
 
+        SpawnMuzzleEffect(baseDirection);
+
         RegisterAttack();
         NotifyFired();
         nextFireTime = Time.time + GetFireInterval(fallbackFireInterval);

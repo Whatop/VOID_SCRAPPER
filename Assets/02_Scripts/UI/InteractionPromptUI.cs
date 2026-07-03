@@ -18,6 +18,9 @@ public class InteractionPromptUI : MonoBehaviour
     [SerializeField] private CanvasGroup progressCanvasGroup;
     [SerializeField] private GameObject progressRoot;
 
+    [Tooltip("게이지를 InteractionPromptUI 자식이 아니라 별도 오브젝트로 쓰는 경우에만 연결합니다. 일반적으로는 비워두는 것을 권장합니다.")]
+    [SerializeField] private WorldGaugeFollower progressWorldFollower;
+
     [Header("Canvas Follow")]
     [SerializeField] private Canvas canvas;
     [SerializeField] private Camera worldCamera;
@@ -27,22 +30,54 @@ public class InteractionPromptUI : MonoBehaviour
     [SerializeField] private string prefix = "E";
     [SerializeField] private string fallbackPrompt = "상호작용";
 
-    [Header("Follow")]
-    [SerializeField] private Vector3 defaultWorldOffset = new Vector3(1.7f, 1f, 0f);
+    [Header("Auto Anchor")]
+    [Tooltip("켜면 대상의 SpriteRenderer/Renderer/Collider2D 크기를 보고 자동으로 위쪽 중앙에 프롬프트를 띄웁니다.")]
+    [SerializeField] private bool anchorToTargetTop = true;
+
+    [Tooltip("대상 크기 바로 위에서 얼마나 더 띄울지. 월드 단위입니다.")]
+    [SerializeField] private float targetTopPadding = 0.18f;
+
+    [Tooltip("InteractionPromptUI의 피벗을 아래 중앙으로 강제합니다. 텍스트/슬라이더 전체 묶음의 아래가 대상 위에 붙습니다.")]
+    [SerializeField] private bool forceBottomCenterPivot = true;
+
+    [Tooltip("자동 크기 계산 실패 시 사용할 월드 오프셋입니다.")]
+    [SerializeField] private Vector3 defaultWorldOffset = Vector3.zero;
+
+    [SerializeField] private bool includeChildRenderers = true;
+    [SerializeField] private bool includeChildColliders = true;
     [SerializeField] private bool hideWhenBehindCamera = true;
     [SerializeField] private bool followEveryFrame = true;
+
+    [Header("Auto Child Layout")]
+    [Tooltip("VerticalLayoutGroup을 쓰지 않는 경우 PromptText와 ProgressRoot를 자동으로 가운데 정렬합니다.")]
+    [SerializeField] private bool autoStackTextAndProgress = true;
+
+    [Tooltip("게이지가 보일 때 텍스트와 게이지 사이 간격입니다. UI 픽셀 단위입니다.")]
+    [SerializeField] private float textProgressSpacing = 6f;
+
+    [Tooltip("게이지가 안 보일 때 텍스트를 기준점에서 얼마나 올릴지입니다. UI 픽셀 단위입니다.")]
+    [SerializeField] private float textOnlyYOffset = 0f;
+
+    [Tooltip("게이지 로컬 Y 위치입니다. 보통 0으로 둡니다.")]
+    [SerializeField] private float progressLocalYOffset = 0f;
 
     [Header("World Space Canvas")]
     [SerializeField] private bool matchWorldCanvasRotation = true;
 
     private RectTransform rectTransform;
     private RectTransform canvasRectTransform;
+    private RectTransform promptTextRectTransform;
+    private RectTransform progressRootRectTransform;
+    private LayoutGroup layoutGroup;
+    private bool lastProgressVisible;
 
     private IInteractable currentTarget;
+    private Component currentTargetComponent;
     private Transform currentTargetTransform;
-    private Vector3 currentTargetOffset;
+    private InteractionPromptAnchor currentAnchor;
 
     private CoreObject forcedCoreTarget;
+    private Component forcedProgressTarget;
 
     private void Reset()
     {
@@ -59,7 +94,10 @@ public class InteractionPromptUI : MonoBehaviour
         {
             progressRoot = progressSlider.gameObject;
             progressCanvasGroup = progressSlider.GetComponent<CanvasGroup>();
+            progressWorldFollower = progressSlider.GetComponent<WorldGaugeFollower>();
         }
+
+        ApplyPivotOption();
     }
 
     private void Awake()
@@ -91,6 +129,8 @@ public class InteractionPromptUI : MonoBehaviour
         }
 
         CoreObject.ActivationProgressChanged += HandleCoreActivationProgressChanged;
+        ReinforcementPickup.DismantleProgressChanged += HandleReinforcementDismantleProgressChanged;
+        TraitPickup.DismantleProgressChanged += HandleTraitDismantleProgressChanged;
     }
 
     private void OnDisable()
@@ -101,8 +141,11 @@ public class InteractionPromptUI : MonoBehaviour
         }
 
         CoreObject.ActivationProgressChanged -= HandleCoreActivationProgressChanged;
+        ReinforcementPickup.DismantleProgressChanged -= HandleReinforcementDismantleProgressChanged;
+        TraitPickup.DismantleProgressChanged -= HandleTraitDismantleProgressChanged;
 
         forcedCoreTarget = null;
+        forcedProgressTarget = null;
         ClearTarget();
         SetVisible(false);
         SetProgressVisible(false, 0f);
@@ -110,6 +153,13 @@ public class InteractionPromptUI : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            SetVisible(false);
+            SetProgressVisible(false, 0f);
+            return;
+        }
+
         if (!followEveryFrame)
         {
             return;
@@ -131,9 +181,18 @@ public class InteractionPromptUI : MonoBehaviour
             rectTransform = GetComponent<RectTransform>();
         }
 
+        ApplyPivotOption();
+
         if (promptText == null)
         {
             promptText = GetComponentInChildren<TextMeshProUGUI>(true);
+        }
+
+        promptTextRectTransform = promptText != null ? promptText.rectTransform : null;
+
+        if (layoutGroup == null)
+        {
+            layoutGroup = GetComponent<LayoutGroup>();
         }
 
         if (canvasGroup == null)
@@ -156,6 +215,11 @@ public class InteractionPromptUI : MonoBehaviour
             progressRoot = progressSlider.gameObject;
         }
 
+        if (progressWorldFollower == null && progressSlider != null)
+        {
+            progressWorldFollower = progressSlider.GetComponent<WorldGaugeFollower>();
+        }
+
         if (progressRoot != null)
         {
             if (!progressRoot.activeSelf)
@@ -172,7 +236,11 @@ public class InteractionPromptUI : MonoBehaviour
             {
                 progressCanvasGroup = progressRoot.AddComponent<CanvasGroup>();
             }
+
+            progressRootRectTransform = progressRoot.transform as RectTransform;
         }
+
+        UpdatePromptChildLayout(lastProgressVisible);
 
         if (canvas == null)
         {
@@ -195,9 +263,19 @@ public class InteractionPromptUI : MonoBehaviour
         }
     }
 
+    private void ApplyPivotOption()
+    {
+        if (!forceBottomCenterPivot || rectTransform == null)
+        {
+            return;
+        }
+
+        rectTransform.pivot = new Vector2(0.5f, 0f);
+    }
+
     private void HandleTargetChanged(IInteractable target)
     {
-        if (forcedCoreTarget != null)
+        if (forcedCoreTarget != null || forcedProgressTarget != null)
         {
             return;
         }
@@ -211,16 +289,12 @@ public class InteractionPromptUI : MonoBehaviour
             return;
         }
 
-        if (!TryResolveTargetTransform(target, out Transform targetTransform, out Vector3 targetOffset))
+        if (!SetCurrentTarget(target))
         {
             ClearTarget();
             SetVisible(false);
             return;
         }
-
-        currentTarget = target;
-        currentTargetTransform = targetTransform;
-        currentTargetOffset = targetOffset;
 
         RefreshPromptText(target);
         FollowTarget();
@@ -236,11 +310,7 @@ public class InteractionPromptUI : MonoBehaviour
         if (active)
         {
             forcedCoreTarget = core;
-
-            currentTarget = core;
-            currentTargetTransform = core.transform;
-            currentTargetOffset = defaultWorldOffset;
-
+            SetCurrentTarget(core);
             RefreshPromptText(core);
             FollowTarget();
             SetProgressVisible(true, ratio);
@@ -254,7 +324,76 @@ public class InteractionPromptUI : MonoBehaviour
             forcedCoreTarget = null;
             ClearTarget();
             SetVisible(false);
+
+            if (playerInteractor != null)
+            {
+                HandleTargetChanged(playerInteractor.CurrentTarget);
+            }
         }
+    }
+
+    private void HandleReinforcementDismantleProgressChanged(ReinforcementPickup pickup, float ratio, bool active)
+    {
+        HandleDismantleProgressChanged(pickup, ratio, active);
+    }
+
+    private void HandleTraitDismantleProgressChanged(TraitPickup pickup, float ratio, bool active)
+    {
+        HandleDismantleProgressChanged(pickup, ratio, active);
+    }
+
+    private void HandleDismantleProgressChanged(Component component, float ratio, bool active)
+    {
+        if (component == null)
+        {
+            return;
+        }
+
+        if (active)
+        {
+            forcedProgressTarget = component;
+
+            if (component is IInteractable interactable)
+            {
+                SetCurrentTarget(interactable);
+                RefreshPromptText(interactable);
+                FollowTarget();
+            }
+
+            SetProgressVisible(true, ratio);
+            return;
+        }
+
+        if (forcedProgressTarget == component)
+        {
+            forcedProgressTarget = null;
+            SetProgressVisible(false, 0f);
+
+            if (ReferenceEquals(currentTarget, component as IInteractable))
+            {
+                ClearTarget();
+                SetVisible(false);
+            }
+
+            if (playerInteractor != null)
+            {
+                HandleTargetChanged(playerInteractor.CurrentTarget);
+            }
+        }
+    }
+
+    private bool SetCurrentTarget(IInteractable target)
+    {
+        if (target is not Component component)
+        {
+            return false;
+        }
+
+        currentTarget = target;
+        currentTargetComponent = component;
+        currentTargetTransform = component.transform;
+        currentAnchor = component.GetComponentInChildren<InteractionPromptAnchor>(true);
+        return currentTargetTransform != null;
     }
 
     private void RefreshPromptText(IInteractable target)
@@ -268,34 +407,13 @@ public class InteractionPromptUI : MonoBehaviour
             ? fallbackPrompt
             : target.InteractionText;
 
+        if (target is ReinforcementPickup || target is TraitPickup)
+        {
+            promptText.text = interactionText;
+            return;
+        }
+
         promptText.text = $"{prefix}  {interactionText}";
-    }
-
-    private bool TryResolveTargetTransform(
-        IInteractable target,
-        out Transform targetTransform,
-        out Vector3 targetOffset)
-    {
-        targetTransform = null;
-        targetOffset = defaultWorldOffset;
-
-        if (target is not Component component)
-        {
-            return false;
-        }
-
-        InteractionPromptAnchor anchor = component.GetComponentInChildren<InteractionPromptAnchor>(true);
-
-        if (anchor != null && anchor.AnchorTransform != null)
-        {
-            targetTransform = anchor.AnchorTransform;
-            targetOffset = anchor.WorldOffset;
-            return true;
-        }
-
-        targetTransform = component.transform;
-        targetOffset = defaultWorldOffset;
-        return true;
     }
 
     private void FollowTarget()
@@ -314,7 +432,7 @@ public class InteractionPromptUI : MonoBehaviour
             return;
         }
 
-        Vector3 worldPosition = currentTargetTransform.position + currentTargetOffset;
+        Vector3 worldPosition = ResolveTargetAnchorWorldPosition();
 
         if (worldCamera == null)
         {
@@ -335,6 +453,7 @@ public class InteractionPromptUI : MonoBehaviour
         if (canvas.renderMode == RenderMode.WorldSpace)
         {
             rectTransform.position = worldPosition;
+            UpdatePromptChildLayout(lastProgressVisible);
 
             if (matchWorldCanvasRotation)
             {
@@ -368,7 +487,135 @@ public class InteractionPromptUI : MonoBehaviour
         }
 
         rectTransform.anchoredPosition = localPoint;
+        UpdatePromptChildLayout(lastProgressVisible);
         SetVisible(true);
+    }
+
+    private Vector3 ResolveTargetAnchorWorldPosition()
+    {
+        if (currentAnchor != null && currentAnchor.AnchorTransform != null)
+        {
+            return currentAnchor.AnchorTransform.position + currentAnchor.WorldOffset;
+        }
+
+        if (anchorToTargetTop && currentTargetComponent != null && TryCalculateTargetTop(currentTargetComponent, out Vector3 topPosition))
+        {
+            return topPosition;
+        }
+
+        return currentTargetTransform.position + defaultWorldOffset;
+    }
+
+    private bool TryCalculateTargetTop(Component component, out Vector3 position)
+    {
+        position = Vector3.zero;
+
+        if (component == null)
+        {
+            return false;
+        }
+
+        if (TryCalculateRendererBounds(component, out Bounds rendererBounds))
+        {
+            position = new Vector3(
+                rendererBounds.center.x,
+                rendererBounds.max.y + Mathf.Max(0f, targetTopPadding),
+                component.transform.position.z
+            );
+            return true;
+        }
+
+        if (TryCalculateColliderBounds(component, false, out Bounds nonTriggerBounds) ||
+            TryCalculateColliderBounds(component, true, out nonTriggerBounds))
+        {
+            position = new Vector3(
+                nonTriggerBounds.center.x,
+                nonTriggerBounds.max.y + Mathf.Max(0f, targetTopPadding),
+                component.transform.position.z
+            );
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryCalculateRendererBounds(Component component, out Bounds bounds)
+    {
+        bounds = default;
+        bool hasBounds = false;
+
+        Renderer[] renderers = includeChildRenderers
+            ? component.GetComponentsInChildren<Renderer>(true)
+            : new[] { component.GetComponent<Renderer>() };
+
+        if (renderers == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        return hasBounds;
+    }
+
+    private bool TryCalculateColliderBounds(Component component, bool includeTriggers, out Bounds bounds)
+    {
+        bounds = default;
+        bool hasBounds = false;
+
+        Collider2D[] colliders = includeChildColliders
+            ? component.GetComponentsInChildren<Collider2D>(true)
+            : new[] { component.GetComponent<Collider2D>() };
+
+        if (colliders == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider2D collider = colliders[i];
+
+            if (collider == null || !collider.enabled || !collider.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (!includeTriggers && collider.isTrigger)
+            {
+                continue;
+            }
+
+            if (!hasBounds)
+            {
+                bounds = collider.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(collider.bounds);
+            }
+        }
+
+        return hasBounds;
     }
 
     private Camera GetCanvasEventCamera()
@@ -396,11 +643,55 @@ public class InteractionPromptUI : MonoBehaviour
         return worldCamera;
     }
 
+    private void UpdatePromptChildLayout(bool progressVisible)
+    {
+        if (!autoStackTextAndProgress || rectTransform == null)
+        {
+            return;
+        }
+
+        // VerticalLayoutGroup/ContentSizeFitter로 직접 배치하는 경우에는 코드가 위치를 덮어쓰지 않는다.
+        if (layoutGroup != null && layoutGroup.enabled)
+        {
+            return;
+        }
+
+        bool promptIsChild = promptTextRectTransform != null && promptTextRectTransform.transform.IsChildOf(rectTransform);
+        bool progressIsChild = progressRootRectTransform != null && progressRootRectTransform.transform.IsChildOf(rectTransform);
+
+        if (progressIsChild)
+        {
+            progressRootRectTransform.anchorMin = new Vector2(0.5f, 0f);
+            progressRootRectTransform.anchorMax = new Vector2(0.5f, 0f);
+            progressRootRectTransform.pivot = new Vector2(0.5f, 0f);
+            progressRootRectTransform.anchoredPosition = new Vector2(0f, progressLocalYOffset);
+        }
+
+        if (promptIsChild)
+        {
+            promptText.alignment = TextAlignmentOptions.Center;
+            promptTextRectTransform.anchorMin = new Vector2(0.5f, 0f);
+            promptTextRectTransform.anchorMax = new Vector2(0.5f, 0f);
+            promptTextRectTransform.pivot = new Vector2(0.5f, 0f);
+
+            float y = textOnlyYOffset;
+
+            if (progressVisible && progressIsChild)
+            {
+                float progressHeight = Mathf.Max(0f, progressRootRectTransform.rect.height);
+                y = progressLocalYOffset + progressHeight + Mathf.Max(0f, textProgressSpacing);
+            }
+
+            promptTextRectTransform.anchoredPosition = new Vector2(0f, y);
+        }
+    }
+
     private void ClearTarget()
     {
         currentTarget = null;
+        currentTargetComponent = null;
         currentTargetTransform = null;
-        currentTargetOffset = Vector3.zero;
+        currentAnchor = null;
     }
 
     public void SetVisible(bool visible)
@@ -450,14 +741,27 @@ public class InteractionPromptUI : MonoBehaviour
 
         if (progressSlider != null)
         {
+            progressSlider.minValue = 0f;
+            progressSlider.maxValue = 1f;
             progressSlider.value = ratio;
+            progressSlider.interactable = false;
         }
+
+        lastProgressVisible = visible;
 
         if (progressCanvasGroup != null)
         {
             progressCanvasGroup.alpha = visible ? 1f : 0f;
             progressCanvasGroup.interactable = false;
             progressCanvasGroup.blocksRaycasts = false;
+        }
+
+        UpdatePromptChildLayout(visible);
+
+        if (progressWorldFollower != null)
+        {
+            progressWorldFollower.SetTarget(currentTargetComponent);
+            progressWorldFollower.SetVisible(visible);
         }
     }
 }

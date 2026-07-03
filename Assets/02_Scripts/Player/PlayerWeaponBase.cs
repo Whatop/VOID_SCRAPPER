@@ -24,10 +24,17 @@ public abstract class PlayerWeaponBase : MonoBehaviour
     [Header("Fallback Projectile Prefab")]
     [SerializeField] protected GameObject fallbackProjectilePrefab;
 
+    [Header("Muzzle VFX")]
+    [SerializeField] protected GameObject muzzleEffectPrefab;
+    [SerializeField] protected float muzzleEffectLifeTime = 0.18f;
+    [SerializeField] protected bool rotateMuzzleEffectToShotDirection = true;
+    [SerializeField] protected float muzzleEffectRotationOffset = -90f;
+
     protected PlayerWeaponController weaponController;
     protected PlayerController2D playerController;
     protected PlayerCombatState combatState;
     protected PlayerWeaponModifiers weaponModifiers;
+    protected PlayerRuntimeBonusState runtimeBonusState;
     protected Transform firePoint;
 
     public WeaponDefinition WeaponDefinition => weaponDefinition;
@@ -53,6 +60,7 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         playerController = controller;
         combatState = state;
         weaponModifiers = modifiers;
+        runtimeBonusState = owner != null ? owner.GetComponent<PlayerRuntimeBonusState>() : null;
     }
 
     public virtual void OnEquip()
@@ -202,7 +210,7 @@ public abstract class PlayerWeaponBase : MonoBehaviour
 
         if (projectilePrefab == null)
         {
-            Debug.LogWarning($"{name}: Projectile Prefab¿Ã ø¨∞·µ«¡ˆ æ æ“Ω¿¥œ¥Ÿ.", this);
+            Debug.LogWarning($"{name}: Projectile Prefab   æ“Ωœ¥.", this);
             return false;
         }
 
@@ -230,7 +238,7 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         Bullet bullet = projectileObject.GetComponent<Bullet>();
         if (bullet == null)
         {
-            Debug.LogWarning($"{projectileObject.name}ø° Bullet ƒƒ∆˜≥Õ∆Æ∞° æ¯Ω¿¥œ¥Ÿ.", projectileObject);
+            Debug.LogWarning($"{projectileObject.name} Bullet ∆Æ œ¥.", projectileObject);
 
             if (PoolManager.Instance != null)
             {
@@ -250,6 +258,7 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         int finalPierceCount = basePierceCount;
         float homingAngleBonus = 0f;
         float homingRangeBonus = 0f;
+        float harvestDamageMultiplier = runtimeBonusState != null ? runtimeBonusState.HarvestObjectDamageMultiplier : 1f;
 
         if (weaponModifiers != null)
         {
@@ -270,10 +279,74 @@ public abstract class PlayerWeaponBase : MonoBehaviour
             finalRange,
             Mathf.Max(0, finalPierceCount),
             homingAngleBonus,
-            homingRangeBonus
+            homingRangeBonus,
+            harvestDamageMultiplier
         );
 
         return true;
+    }
+
+    protected void SpawnMuzzleEffect(Vector2 shotDirection)
+    {
+        Transform spawnPoint = firePoint != null ? firePoint : transform;
+        SpawnMuzzleEffectFrom(spawnPoint, shotDirection);
+    }
+
+    protected void SpawnMuzzleEffectFrom(Transform spawnPoint, Vector2 shotDirection)
+    {
+        if (muzzleEffectPrefab == null)
+        {
+            return;
+        }
+
+        if (spawnPoint == null)
+        {
+            spawnPoint = firePoint != null ? firePoint : transform;
+        }
+
+        Quaternion rotation = GetMuzzleEffectRotation(spawnPoint, shotDirection);
+
+        GameObject instance;
+
+        if (PoolManager.Instance != null)
+        {
+            instance = PoolManager.Instance.Get(muzzleEffectPrefab, spawnPoint.position, rotation);
+        }
+        else
+        {
+            instance = Instantiate(muzzleEffectPrefab, spawnPoint.position, rotation);
+        }
+
+        if (instance == null)
+        {
+            return;
+        }
+
+        float releaseDelay = Mathf.Max(0.01f, muzzleEffectLifeTime);
+
+        if (PoolManager.Instance != null)
+        {
+            PoolManager.Instance.ReleaseAfter(instance, releaseDelay);
+        }
+        else
+        {
+            Destroy(instance, releaseDelay);
+        }
+    }
+
+    private Quaternion GetMuzzleEffectRotation(Transform spawnPoint, Vector2 shotDirection)
+    {
+        if (!rotateMuzzleEffectToShotDirection)
+        {
+            return spawnPoint != null ? spawnPoint.rotation : transform.rotation;
+        }
+
+        Vector2 direction = shotDirection.sqrMagnitude > 0.001f
+            ? shotDirection.normalized
+            : GetAimDirection();
+
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        return Quaternion.Euler(0f, 0f, angle + muzzleEffectRotationOffset);
     }
 
     protected void RegisterAttack()

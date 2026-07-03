@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 35_rf_sg_escape_thruster
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_sg_escape_thruster"
+  displayName: "\uc774\ud0c8 \ucd94\uc9c4\uae30"
+  description: "\uc0f7\uac74 \uae30\uccb4 \uc804\uc6a9. \uc9e7\uc740 \ubb34\uc801\uacfc \uc774\ub3d9\uc18d\ub3c4 \uc99d\uac00\ub85c \uc774\ud0c8\ud55c\ub2e4."
+  icon: {fileID: 0}
+  rarity: 1
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 2
+  availability: 2
+  cost: 70
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 1
+  startWithFullCharges: 1
+  rechargeSeconds: 18
+  effects:
+  - effectType: 2
+    value: 2
+    radius: 0
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1
+  - effectType: 8
+    value: 45
+    radius: 0
+    duration: 3
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

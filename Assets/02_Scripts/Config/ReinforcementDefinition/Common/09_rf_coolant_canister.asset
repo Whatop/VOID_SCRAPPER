@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 09_rf_coolant_canister
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_coolant_canister"
+  displayName: "\ub0c9\uac01 \uce90\ub2c8\uc2a4\ud130"
+  description: "\uc77c\uc815 \uc2dc\uac04 \uc5f0\uc0ac\ub825\uc744 \ud06c\uac8c \uc62c\ub9b0\ub2e4. \uc7a1\ubab9 \uc815\ub9ac\uc640 \ubcf4\uc2a4 \ub51c\ud0c0\uc784\uc5d0 \uac15\ud558\ub2e4."
+  icon: {fileID: 0}
+  rarity: 0
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 2
+  availability: 0
+  cost: 60
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 1
+  startWithFullCharges: 1
+  rechargeSeconds: 18
+  effects:
+  - effectType: 7
+    value: 30
+    radius: 0
+    duration: 8
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

@@ -39,6 +39,7 @@ public class RewardPickup : MonoBehaviour
     private Collider2D pickupCollider;
     private Transform player;
     private PlayerRuntimeBonusState playerBonusState;
+    private float cargoBlockedWarningTimer;
 
     private Vector2 currentVelocity;
     private float lifeTimer;
@@ -93,6 +94,7 @@ public class RewardPickup : MonoBehaviour
         player = null;
         playerBonusState = null;
         currentVelocity = Vector2.zero;
+        cargoBlockedWarningTimer = 0f;
 
         if (pickupCollider != null)
         {
@@ -123,6 +125,11 @@ public class RewardPickup : MonoBehaviour
             return;
         }
 
+        if (cargoBlockedWarningTimer > 0f)
+        {
+            cargoBlockedWarningTimer -= Time.deltaTime;
+        }
+
         ResolvePlayer();
 
         if (player == null)
@@ -138,7 +145,16 @@ public class RewardPickup : MonoBehaviour
 
         if (distance <= finalCollectRadius)
         {
-            Collect(player.gameObject);
+            if (CanCollect(player.gameObject))
+            {
+                Collect(player.gameObject);
+            }
+            else
+            {
+                ShowCargoBlockedWarning();
+                currentVelocity = -(((Vector2)player.position - (Vector2)transform.position).normalized) * Mathf.Max(1f, attractSpeed * 0.25f);
+            }
+
             return;
         }
 
@@ -213,6 +229,34 @@ public class RewardPickup : MonoBehaviour
         ApplyVisual();
     }
 
+    private bool CanCollect(GameObject playerObject)
+    {
+        if (pickupKind != RewardPickupKind.Currency)
+        {
+            return true;
+        }
+
+        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
+        {
+            return true;
+        }
+
+        if (!RunManager.Instance.CurrentRun.UsesCargo(currencyType))
+        {
+            return true;
+        }
+
+        PlayerRuntimeBonusState bonusState = playerObject != null ? playerObject.GetComponent<PlayerRuntimeBonusState>() : null;
+        int finalAmount = amount;
+
+        if (bonusState != null)
+        {
+            finalAmount = bonusState.ApplyCurrencyGain(currencyType, amount);
+        }
+
+        return RunManager.Instance.CurrentRun.GetAcceptedAmountByCargo(currencyType, finalAmount) > 0;
+    }
+
     private void Collect(GameObject playerObject)
     {
         if (collected)
@@ -238,7 +282,18 @@ public class RewardPickup : MonoBehaviour
         switch (pickupKind)
         {
             case RewardPickupKind.Currency:
-                GrantCurrency(bonusState);
+                if (!GrantCurrency(bonusState))
+                {
+                    collected = false;
+
+                    if (pickupCollider != null)
+                    {
+                        pickupCollider.enabled = true;
+                    }
+
+                    ShowCargoBlockedWarning();
+                    return;
+                }
                 break;
 
             case RewardPickupKind.Heal:
@@ -249,12 +304,12 @@ public class RewardPickup : MonoBehaviour
         ReleaseSelf();
     }
 
-    private void GrantCurrency(PlayerRuntimeBonusState bonusState)
+    private bool GrantCurrency(PlayerRuntimeBonusState bonusState)
     {
         if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
         {
-            Debug.LogWarning("»∞º∫»≠µ» RunManager∞° æ¯æÓ RewardPickup ¿Á»≠∏¶ ¡ˆ±ﬁ«“ ºˆ æ¯Ω¿¥œ¥Ÿ.", this);
-            return;
+            Debug.LogWarning("»∞»≠ RunManager  RewardPickup »≠   œ¥.", this);
+            return false;
         }
 
         int finalAmount = amount;
@@ -266,10 +321,11 @@ public class RewardPickup : MonoBehaviour
 
         if (finalAmount <= 0)
         {
-            return;
+            return false;
         }
 
-        RunManager.Instance.AddCurrency(currencyType, finalAmount);
+        int acceptedAmount = RunManager.Instance.AddCurrencyRespectingCargo(currencyType, finalAmount);
+        return acceptedAmount > 0;
     }
 
     private void GrantHeal(GameObject playerObject, PlayerRuntimeBonusState bonusState)
@@ -283,7 +339,7 @@ public class RewardPickup : MonoBehaviour
 
         if (playerHealth == null)
         {
-            Debug.LogWarning("RewardPickup¿Ã PlayerHealth∏¶ √£¡ˆ ∏¯«ﬂΩ¿¥œ¥Ÿ.", this);
+            Debug.LogWarning("RewardPickup PlayerHealth √£ ﬂΩœ¥.", this);
             return;
         }
 
@@ -300,6 +356,22 @@ public class RewardPickup : MonoBehaviour
         }
 
         playerHealth.Heal(finalHealAmount);
+    }
+
+    private void ShowCargoBlockedWarning()
+    {
+        if (cargoBlockedWarningTimer > 0f)
+        {
+            return;
+        }
+
+        cargoBlockedWarningTimer = 1f;
+        ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+
+        if (hud != null)
+        {
+            hud.ShowWarning("Í∏∞Ï≤¥ Ïö©ÎüâÏù¥ Í∞ÄÎìù Ï∞ºÏäµÎãàÎã§.");
+        }
     }
 
     private void ResolvePlayer()

@@ -53,6 +53,11 @@ public class CameraZoomController2D : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (GameplayPauseManager.IsPaused)
+        {
+            return;
+        }
+
         ResolveReferences();
 
         bool zoomedOut = targetZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold);
@@ -246,7 +251,7 @@ public class CameraZoomController2D : MonoBehaviour
 
         if (!pixelPerfectOverridden && pixelPerfectComponents.Count > 0 && logPixelPerfectOverride)
         {
-            Debug.Log("Pixel Perfect ÄÄÆ÷³ÍÆ®¸¦ ÁÜ¾Æ¿ô µ¿¾È ÀÓ½Ã ºñÈ°¼ºÈ­ÇÕ´Ï´Ù.", this);
+            Debug.Log("Pixel Perfect ì»´í¬ë„ŒíŠ¸ë¥¼ ì¤Œì•„ì›ƒ ë™ì•ˆ ìž„ì‹œ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤.", this);
         }
 
         pixelPerfectOverridden = pixelPerfectComponents.Count > 0;

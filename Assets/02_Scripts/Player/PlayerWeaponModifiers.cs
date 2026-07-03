@@ -52,31 +52,28 @@ public class PlayerWeaponModifiers : MonoBehaviour
 
     public void AddDamagePercent(float percent)
     {
-        damageMultiplier *= 1f + (percent * 0.01f);
+        MultiplyDamage(PercentToMultiplier(percent));
     }
 
     public void AddProjectileSpeedPercent(float percent)
     {
-        projectileSpeedMultiplier *= 1f + (percent * 0.01f);
+        MultiplyProjectileSpeed(PercentToMultiplier(percent));
     }
 
     public void AddRangePercent(float percent)
     {
-        rangeMultiplier *= 1f + (percent * 0.01f);
+        MultiplyRange(PercentToMultiplier(percent));
     }
 
     public void AddFireRatePercent(float percent)
     {
-        float rateMultiplier = 1f + (percent * 0.01f);
-        rateMultiplier = Mathf.Max(0.05f, rateMultiplier);
-
-        fireIntervalMultiplier /= rateMultiplier;
+        MultiplyFireRate(PercentToMultiplier(percent));
     }
 
     public void AddSpreadReductionPercent(float percent)
     {
         float reduction = Mathf.Clamp01(percent * 0.01f);
-        spreadMultiplier *= 1f - reduction;
+        MultiplySpread(1f - reduction);
     }
 
     public void AddProjectileCount(int amount)
@@ -101,14 +98,66 @@ public class PlayerWeaponModifiers : MonoBehaviour
 
     public void AddChargeSpeedPercent(float percent)
     {
-        float speedMultiplier = 1f + (percent * 0.01f);
-        speedMultiplier = Mathf.Max(0.05f, speedMultiplier);
-
-        chargeTimeMultiplier /= speedMultiplier;
+        MultiplyChargeSpeed(PercentToMultiplier(percent));
     }
 
     public void AddChargeDamagePercent(float percent)
     {
-        chargeDamageMultiplier *= 1f + (percent * 0.01f);
+        MultiplyChargeDamage(PercentToMultiplier(percent));
+    }
+
+    public void MultiplyDamage(float multiplier)
+    {
+        damageMultiplier *= SanitizeMultiplier(multiplier);
+    }
+
+    public void MultiplyProjectileSpeed(float multiplier)
+    {
+        projectileSpeedMultiplier *= SanitizeMultiplier(multiplier);
+    }
+
+    public void MultiplyRange(float multiplier)
+    {
+        rangeMultiplier *= SanitizeMultiplier(multiplier);
+    }
+
+    public void MultiplyFireInterval(float multiplier)
+    {
+        fireIntervalMultiplier *= SanitizeMultiplier(multiplier);
+    }
+
+    public void MultiplyFireRate(float rateMultiplier)
+    {
+        fireIntervalMultiplier /= SanitizeMultiplier(rateMultiplier);
+    }
+
+    public void MultiplySpread(float multiplier)
+    {
+        spreadMultiplier *= Mathf.Clamp(multiplier, 0.01f, 10f);
+    }
+
+    public void MultiplyChargeSpeed(float speedMultiplier)
+    {
+        chargeTimeMultiplier /= SanitizeMultiplier(speedMultiplier);
+    }
+
+    public void MultiplyChargeDamage(float multiplier)
+    {
+        chargeDamageMultiplier *= SanitizeMultiplier(multiplier);
+    }
+
+    private float PercentToMultiplier(float percent)
+    {
+        return Mathf.Max(0.05f, 1f + percent * 0.01f);
+    }
+
+    private float SanitizeMultiplier(float multiplier)
+    {
+        if (float.IsNaN(multiplier) || float.IsInfinity(multiplier))
+        {
+            return 1f;
+        }
+
+        return Mathf.Max(0.05f, multiplier);
     }
 }

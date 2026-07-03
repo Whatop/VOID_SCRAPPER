@@ -116,13 +116,48 @@ public class RunManager : MonoBehaviour
 
     public void AddCurrency(CurrencyType currencyType, int amount)
     {
+        AddCurrencyRespectingCargo(currencyType, amount);
+    }
+
+    public int AddCurrencyRespectingCargo(CurrencyType currencyType, int amount)
+    {
         if (!HasActiveRun)
         {
             Debug.LogWarning("활성화된 탐사가 없어 재화를 지급할 수 없습니다.", this);
-            return;
+            return 0;
         }
 
-        currentRun.Wallet.Add(currencyType, amount);
+        amount = Mathf.Max(0, amount);
+
+        if (amount <= 0)
+        {
+            return 0;
+        }
+
+        int acceptedAmount = currentRun.GetAcceptedAmountByCargo(currencyType, amount);
+
+        if (acceptedAmount <= 0)
+        {
+            if (currentRun.UsesCargo(currencyType))
+            {
+                Debug.Log("기체 용량이 가득 차서 자원을 더 실을 수 없습니다.", this);
+            }
+
+            return 0;
+        }
+
+        currentRun.Wallet.Add(currencyType, acceptedAmount);
+        return acceptedAmount;
+    }
+
+    public bool CanAddCargoCurrency(CurrencyType currencyType, int amount = 1)
+    {
+        if (!HasActiveRun)
+        {
+            return false;
+        }
+
+        return currentRun.GetAcceptedAmountByCargo(currencyType, amount) > 0;
     }
 
     public bool TrySpendCredits(int amount)
@@ -214,10 +249,6 @@ public class RunManager : MonoBehaviour
     public void CompleteRunAndReturnToSettlement(RunEndReason reason)
     {
         CompleteRun(reason);
-
-        // 구버전 호환용 함수.
-        // 더 이상 여기서 정착지로 자동 이동하지 않는다.
-        // 정산창 ContinueButton이 정착지 이동을 담당한다.
     }
 
     private RunResultData CreateRunResult(RunEndReason reason, RunContext run)
@@ -231,6 +262,7 @@ public class RunManager : MonoBehaviour
         int committedCore = 0;
         int lostScrap = 0;
         int lostCore = 0;
+        int emergencyCargoLimit = 0;
 
         switch (reason)
         {
@@ -240,7 +272,7 @@ public class RunManager : MonoBehaviour
                 break;
 
             case RunEndReason.EmergencyReturn:
-                CalculateEmergencyReturnCommit(collectedScrap, collectedCore, out committedScrap, out committedCore, out lostScrap, out lostCore);
+                CalculateEmergencyReturnCommit(run, collectedScrap, collectedCore, out committedScrap, out committedCore, out lostScrap, out lostCore, out emergencyCargoLimit);
                 break;
 
             case RunEndReason.Death:
@@ -254,6 +286,9 @@ public class RunManager : MonoBehaviour
                 lostCore = collectedCore;
                 break;
         }
+
+        int collectedCargoLoad = run.CalculateCargoLoad(collectedScrap, collectedCore);
+        int committedCargoLoad = run.CalculateCargoLoad(committedScrap, committedCore);
 
         return new RunResultData
         {
@@ -273,25 +308,65 @@ public class RunManager : MonoBehaviour
             committedCoreShards = committedCore,
 
             lostScrapParts = lostScrap,
-            lostCoreShards = lostCore
+            lostCoreShards = lostCore,
+
+            maxCargoCapacity = run.MaxCargoCapacity,
+            collectedCargoLoad = collectedCargoLoad,
+            committedCargoLoad = committedCargoLoad,
+            emergencyReturnCargoLimit = emergencyCargoLimit
         };
     }
 
     private void CalculateEmergencyReturnCommit(
+        RunContext run,
         int collectedScrap,
         int collectedCore,
         out int committedScrap,
         out int committedCore,
         out int lostScrap,
-        out int lostCore)
+        out int lostCore,
+        out int cargoLimit)
     {
-        float lossRate = balanceConfig != null ? balanceConfig.EmergencyReturnLossRate : 0.2f;
+        int totalCargoLoad = run.CalculateCargoLoad(collectedScrap, collectedCore);
+        cargoLimit = Mathf.FloorToInt(run.MaxCargoCapacity * run.EmergencyReturnCapacityRatio);
 
-        lostScrap = Mathf.CeilToInt(collectedScrap * lossRate);
-        lostCore = Mathf.CeilToInt(collectedCore * lossRate);
+        if (totalCargoLoad <= cargoLimit)
+        {
+            committedScrap = collectedScrap;
+            committedCore = collectedCore;
+            lostScrap = 0;
+            lostCore = 0;
+            return;
+        }
 
-        committedScrap = Mathf.Max(0, collectedScrap - lostScrap);
-        committedCore = Mathf.Max(0, collectedCore - lostCore);
+        if (cargoLimit <= 0 || totalCargoLoad <= 0)
+        {
+            committedScrap = 0;
+            committedCore = 0;
+            lostScrap = collectedScrap;
+            lostCore = collectedCore;
+            return;
+        }
+
+        float keepRatio = Mathf.Clamp01(cargoLimit / (float)totalCargoLoad);
+
+        committedScrap = Mathf.FloorToInt(collectedScrap * keepRatio);
+        committedCore = Mathf.FloorToInt(collectedCore * keepRatio);
+
+        int usedCargo = run.CalculateCargoLoad(committedScrap, committedCore);
+        int remainingCargo = Mathf.Max(0, cargoLimit - usedCargo);
+
+        int remainingCore = collectedCore - committedCore;
+        int extraCore = Mathf.Min(remainingCore, remainingCargo / run.CoreShardCargoWeight);
+        committedCore += extraCore;
+        remainingCargo -= extraCore * run.CoreShardCargoWeight;
+
+        int remainingScrap = collectedScrap - committedScrap;
+        int extraScrap = Mathf.Min(remainingScrap, remainingCargo / run.ScrapCargoWeight);
+        committedScrap += extraScrap;
+
+        lostScrap = Mathf.Max(0, collectedScrap - committedScrap);
+        lostCore = Mathf.Max(0, collectedCore - committedCore);
     }
 
     private void CalculateDeathCommit(

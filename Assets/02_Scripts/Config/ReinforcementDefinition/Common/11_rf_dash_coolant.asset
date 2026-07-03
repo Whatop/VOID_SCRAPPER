@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 11_rf_dash_coolant
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_dash_coolant"
+  displayName: "\ub300\uc26c \ub0c9\uac01\uc81c"
+  description: "\uc77c\uc815 \uc2dc\uac04 \ub300\uc26c \ucfe8\ub2e4\uc6b4\uc744 \uc904\uc778\ub2e4. \uc5f0\uc18d \ud68c\ud53c\uac00 \ud544\uc694\ud55c \uad6c\uac04\uc5d0\uc11c \uc4f4\ub2e4."
+  icon: {fileID: 0}
+  rarity: 1
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 1
+  availability: 0
+  cost: 65
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 2
+  startWithFullCharges: 1
+  rechargeSeconds: 18
+  effects:
+  - effectType: 9
+    value: 45
+    radius: 0
+    duration: 5
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

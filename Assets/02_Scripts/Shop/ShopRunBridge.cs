@@ -86,7 +86,7 @@ public static class ShopRunBridge
 
         if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
         {
-            Debug.LogWarning($"활성화된 탐사가 없어 재화를 지급하지 못했습니다. Type: {currencyType}, Amount: {amount}");
+            Debug.LogWarning($"활화 탐怜�  화  颯求. Type: {currencyType}, Amount: {amount}");
             return false;
         }
 
@@ -138,6 +138,21 @@ public static class ShopRunBridge
         return true;
     }
 
+    public static bool RemoveRunTrait(string traitId)
+    {
+        if (string.IsNullOrWhiteSpace(traitId))
+        {
+            return false;
+        }
+
+        if (!TryGetCurrentRun(out RunContext runContext))
+        {
+            return false;
+        }
+
+        return runContext.RemoveTrait(traitId);
+    }
+
     public static bool SetShopHostileThisRun(bool hostile = true)
     {
         if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
@@ -167,5 +182,65 @@ public static class ShopRunBridge
         }
 
         return fallback;
+    }
+
+    public static bool HasEquippedReinforcement(string reinforcementId)
+    {
+        if (string.IsNullOrWhiteSpace(reinforcementId))
+        {
+            return false;
+        }
+
+        return TryGetCurrentRun(out RunContext runContext) &&
+               runContext.HasEquippedReinforcement &&
+               runContext.EquippedReinforcementId == reinforcementId;
+    }
+
+    public static bool TryGetEquippedReinforcement(out string reinforcementId, out int charges)
+    {
+        reinforcementId = string.Empty;
+        charges = 0;
+
+        if (!TryGetCurrentRun(out RunContext runContext) || !runContext.HasEquippedReinforcement)
+        {
+            return false;
+        }
+
+        reinforcementId = runContext.EquippedReinforcementId;
+        charges = runContext.EquippedReinforcementCharges;
+        return !string.IsNullOrWhiteSpace(reinforcementId);
+    }
+
+    public static bool SetEquippedReinforcement(string reinforcementId, int charges)
+    {
+        if (!TryGetCurrentRun(out RunContext runContext))
+        {
+            return false;
+        }
+
+        runContext.SetEquippedReinforcement(reinforcementId, charges);
+        return true;
+    }
+
+    public static bool SetEquippedReinforcementCharges(int charges)
+    {
+        if (!TryGetCurrentRun(out RunContext runContext))
+        {
+            return false;
+        }
+
+        runContext.SetEquippedReinforcementCharges(charges);
+        return true;
+    }
+
+    public static bool ClearEquippedReinforcement()
+    {
+        if (!TryGetCurrentRun(out RunContext runContext))
+        {
+            return false;
+        }
+
+        runContext.ClearEquippedReinforcement();
+        return true;
     }
 }

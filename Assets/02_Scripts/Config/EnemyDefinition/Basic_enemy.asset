@@ -18,8 +18,8 @@ MonoBehaviour:
   enemyPrefab: {fileID: 6983035740697639387, guid: a69d9f77d4313b244b3a17fd1c67de4c, type: 3}
   maxHp: 10
   moveSpeed: 2.5
-  visionRange: 14
-  attackRange: 7
+  visionRange: 9
+  attackRange: 6
   projectileDefinition: {fileID: 11400000, guid: a461677f565b052499eb7847e2058dee, type: 2}
   attackInterval: 1.2
   projectileCount: 1

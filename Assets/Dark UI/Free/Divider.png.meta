@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: 3e33bda025a5e1d4eae51ae3933d9954
+AssetOrigin:
+  serializedVersion: 1
+  productId: 199010
+  packageName: Dark Theme UI
+  packageVersion: 1.1
+  assetPath: Assets/Dark UI/Free/Divider.png
+  uploadId: 761092
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -34,7 +41,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -50,7 +57,7 @@ TextureImporter:
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
   spriteBorder: {x: 2, y: 2, z: 2, w: 2}
-  spriteGenerateFallbackPhysicsShape: 1
+  spriteGenerateFallbackPhysicsShape: 0
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
@@ -141,10 +148,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 199010
-  packageName: Dark Theme UI
-  packageVersion: 1.1
-  assetPath: Assets/Dark UI/Free/Divider.png
-  uploadId: 761092

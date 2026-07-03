@@ -15,6 +15,12 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     [SerializeField] private GameObject hitEffectPrefab;
     [SerializeField] private float hitEffectDuration = 0.12f;
 
+    [Header("Knockback")]
+    [SerializeField] private bool useSmoothKnockback = true;
+    [SerializeField] private float knockbackDuration = 0.14f;
+    [SerializeField] private float knockbackDistanceMultiplier = 1f;
+    [SerializeField] private bool clearVelocityDuringKnockback = true;
+
     [Header("Death")]
     [SerializeField] private bool dropRewardOnDeath = true;
     [SerializeField] private bool releaseOnDeath = true;
@@ -28,6 +34,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
     private Rigidbody2D rb;
     private Coroutine releaseRoutine;
+    private Coroutine knockbackRoutine;
 
     public float CurrentHp => currentHp;
     public float MaxHp => maxHp;
@@ -73,6 +80,12 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
             releaseRoutine = null;
         }
 
+        if (knockbackRoutine != null)
+        {
+            StopCoroutine(knockbackRoutine);
+            knockbackRoutine = null;
+        }
+
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
@@ -100,6 +113,12 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         {
             StopCoroutine(releaseRoutine);
             releaseRoutine = null;
+        }
+
+        if (knockbackRoutine != null)
+        {
+            StopCoroutine(knockbackRoutine);
+            knockbackRoutine = null;
         }
 
         currentHp = maxHp;
@@ -188,13 +207,93 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
         direction.Normalize();
 
+        float finalDistance = distance * Mathf.Max(0f, knockbackDistanceMultiplier);
+        Vector2 displacement = direction * finalDistance;
+
+        if (!useSmoothKnockback || knockbackDuration <= 0f)
+        {
+            MoveImmediately(displacement);
+            return;
+        }
+
+        if (knockbackRoutine != null)
+        {
+            StopCoroutine(knockbackRoutine);
+        }
+
+        knockbackRoutine = StartCoroutine(SmoothKnockbackRoutine(displacement, knockbackDuration));
+    }
+
+    private IEnumerator SmoothKnockbackRoutine(Vector2 displacement, float duration)
+    {
+        duration = Mathf.Max(0.01f, duration);
+
+        Vector2 startPosition = rb != null
+            ? rb.position
+            : (Vector2)transform.position;
+
+        Vector2 targetPosition = startPosition + displacement;
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            if (isDead)
+            {
+                knockbackRoutine = null;
+                yield break;
+            }
+
+            elapsed += Time.fixedDeltaTime;
+
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
+
+            Vector2 nextPosition = Vector2.LerpUnclamped(startPosition, targetPosition, eased);
+
+            if (rb != null)
+            {
+                if (clearVelocityDuringKnockback)
+                {
+                    rb.linearVelocity = Vector2.zero;
+                }
+
+                rb.MovePosition(nextPosition);
+            }
+            else
+            {
+                transform.position = nextPosition;
+            }
+
+            yield return new WaitForFixedUpdate();
+        }
+
         if (rb != null)
         {
-            rb.position += direction * distance;
+            if (clearVelocityDuringKnockback)
+            {
+                rb.linearVelocity = Vector2.zero;
+            }
+
+            rb.MovePosition(targetPosition);
         }
         else
         {
-            transform.position += (Vector3)(direction * distance);
+            transform.position = targetPosition;
+        }
+
+        knockbackRoutine = null;
+    }
+
+    private void MoveImmediately(Vector2 displacement)
+    {
+        if (rb != null)
+        {
+            rb.position += displacement;
+        }
+        else
+        {
+            transform.position += (Vector3)displacement;
         }
     }
 
@@ -225,6 +324,12 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
         isDead = true;
         currentHp = 0f;
+
+        if (knockbackRoutine != null)
+        {
+            StopCoroutine(knockbackRoutine);
+            knockbackRoutine = null;
+        }
 
         if (rb != null)
         {

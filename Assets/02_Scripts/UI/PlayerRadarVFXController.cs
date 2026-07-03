@@ -10,6 +10,9 @@ public class PlayerRadarVFXController : MonoBehaviour
     [Header("Charge Gauge")]
     [SerializeField] private bool controlChargeGauge = true;
 
+    [Tooltip("켜면 레이더 충전 게이지를 쓰지 않고 이펙트/사운드 중심으로 표현합니다. 슬라이더 과밀 방지용 기본값입니다.")]
+    [SerializeField] private bool useEffectOnlyFeedback = true;
+
     [Header("Charge Loop Effect")]
     [SerializeField] private GameObject chargeLoopEffectPrefab;
     [SerializeField] private bool parentChargeLoopToOrigin = true;
@@ -51,7 +54,7 @@ public class PlayerRadarVFXController : MonoBehaviour
         IsCharging = true;
         currentChargeRatio = 0f;
 
-        if (controlChargeGauge && chargeGauge != null)
+        if (ShouldControlGauge())
         {
             chargeGauge.ShowRatio(0f);
         }
@@ -64,7 +67,7 @@ public class PlayerRadarVFXController : MonoBehaviour
     {
         currentChargeRatio = Mathf.Clamp01(ratio);
 
-        if (controlChargeGauge && chargeGauge != null)
+        if (ShouldControlGauge())
         {
             chargeGauge.ShowRatio(currentChargeRatio);
         }
@@ -88,7 +91,7 @@ public class PlayerRadarVFXController : MonoBehaviour
         IsCharging = false;
         currentChargeRatio = 0f;
 
-        if (controlChargeGauge && chargeGauge != null)
+        if (ShouldControlGauge())
         {
             chargeGauge.Hide();
         }
@@ -101,7 +104,7 @@ public class PlayerRadarVFXController : MonoBehaviour
         IsCharging = false;
         currentChargeRatio = 1f;
 
-        if (controlChargeGauge && chargeGauge != null)
+        if (ShouldControlGauge())
         {
             chargeGauge.ShowRatio(1f);
             chargeGauge.Hide();
@@ -114,6 +117,11 @@ public class PlayerRadarVFXController : MonoBehaviour
     public void SetScanRadius(float radius)
     {
         scanRadius = Mathf.Max(0.1f, radius);
+    }
+
+    private bool ShouldControlGauge()
+    {
+        return controlChargeGauge && !useEffectOnlyFeedback && chargeGauge != null;
     }
 
     private void CacheReferences()

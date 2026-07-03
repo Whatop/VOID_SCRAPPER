@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
+  m_Name: 38_sn_focus_lens
+  m_EditorClassIdentifier: 
+  traitId: sn_focus_lens
+  displayName: "집중 렌즈"
+  description: "레이더 탐색 범위와 차징 피해를 함께 올린다."
+  icon: {fileID: 0}
+  category: 1
+  weaponTreeType: 1
+  shopItemType: 0
+  maxLevel: 3
+  levelEffects:
+  - level: 1
+    effectType: 27
+    value: 2
+  - level: 1
+    effectType: 13
+    value: 8
+  - level: 2
+    effectType: 27
+    value: 2
+  - level: 2
+    effectType: 13
+    value: 8
+  - level: 3
+    effectType: 27
+    value: 2
+  - level: 3
+    effectType: 13
+    value: 8

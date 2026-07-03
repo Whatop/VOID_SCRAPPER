@@ -22,14 +22,15 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     public static event Action GlobalHostilityChanged;
 
     [Header("Identity")]
-    [SerializeField] private string displayName = "ªÛ¡° ±∏¡∂º±";
-    [SerializeField] private string neutralInteractionText = "ªÛ¡° ¿ÃøÎ";
-    [SerializeField] private string hostileInteractionText = "¿˚¥Î»≠µ» ªÛ¡°";
+    [SerializeField] private string displayName = "ÏÉÅÏ†ê Íµ¨Ï°∞ÏÑ†";
+    [SerializeField] private string neutralInteractionText = "ÏÉÅÏ†ê Ïù¥Ïö©";
+    [SerializeField] private string hostileInteractionText = "Ï†ÅÎåÄÌôîÎêú ÏÉÅÏ†ê";
 
     [Header("References")]
     [SerializeField] private ShopTradeUI tradeUI;
     [SerializeField] private RadarTarget radarTarget;
     [SerializeField] private RewardDropper rewardDropper;
+    [SerializeField] private ShopActiveMaintenanceBay activeMaintenanceBay;
 
     [Header("Health")]
     [SerializeField] private float maxShield = 24f;
@@ -53,15 +54,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     [Header("Trade - Repair")]
     [SerializeField] private int repairCost = 25;
     [SerializeField] private float repairAmount = 8f;
-
-    [Header("Trade - Trait")]
-    [SerializeField] private int traitCost = 45;
-    [SerializeField] private List<TraitDefinition> traitPool = new List<TraitDefinition>();
-    [SerializeField] private int traitChoiceCount = 3;
-
-    [Header("Trade - Weapon Upgrade")]
-    [SerializeField] private int weaponUpgradeCost = 60;
-    [SerializeField] private bool weaponUpgradeOneTimePerShop = true;
 
     [Header("Hostile Detection")]
     [SerializeField] private float hostileDetectRange = 18f;
@@ -106,7 +98,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     private float currentShield;
     private float currentBodyHp;
     private int spentCredits;
-    private bool boughtWeaponUpgrade;
     private bool combatStarted;
     private float attackTimer;
     private float droneSummonTimer;
@@ -117,9 +108,14 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     private readonly Collider2D[] knockbackBuffer = new Collider2D[96];
     private readonly List<GameObject> activeDrones = new List<GameObject>();
 
+    [SerializeField] private ReinforcementPickup reinforcementPickupPrefab;
+    [SerializeField] private Transform reinforcementDropPoint;
+
+ 
     public string DisplayName => displayName;
     public ShopStructureState CurrentState { get; private set; } = ShopStructureState.Neutral;
     public string InteractionText => CanTrade ? neutralInteractionText : hostileInteractionText;
+    public ShopActiveMaintenanceBay ActiveMaintenanceBay => EnsureActiveMaintenanceBay();
 
     public bool IsDead => CurrentState == ShopStructureState.Dead;
     public float CurrentShield => currentShield;
@@ -128,8 +124,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     public float MaxBodyHp => maxBodyHp;
     public int RepairCost => repairCost;
     public float RepairAmount => repairAmount;
-    public int TraitCost => traitCost;
-    public int WeaponUpgradeCost => weaponUpgradeCost;
     public int SpentCredits => spentCredits;
     public bool CanTrade => !globalHostile && CurrentState != ShopStructureState.Dead;
 
@@ -142,6 +136,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     {
         radarTarget = GetComponent<RadarTarget>();
         rewardDropper = GetComponent<RewardDropper>();
+        activeMaintenanceBay = GetComponentInChildren<ShopActiveMaintenanceBay>(true);
         collidersToDisableOnDeath = GetComponentsInChildren<Collider2D>(true);
         renderersToDisableOnDeath = GetComponentsInChildren<Renderer>(true);
 
@@ -162,6 +157,8 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         {
             rewardDropper = GetComponent<RewardDropper>();
         }
+
+        EnsureActiveMaintenanceBay();
 
         if (collidersToDisableOnDeath == null || collidersToDisableOnDeath.Length == 0)
         {
@@ -217,7 +214,53 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         UpdateHostileState();
     }
+    public bool TryDropReinforcementToField(ReinforcementDefinition definition)
+    {
+        return TryDropReinforcementToField(definition, -1);
+    }
 
+    public bool TryDropReinforcementToField(ReinforcementDefinition definition, int charges)
+    {
+        if (definition == null)
+        {
+            return false;
+        }
+
+        Vector3 dropPosition = reinforcementDropPoint != null
+            ? reinforcementDropPoint.position
+            : transform.position + Vector3.down;
+
+        ReinforcementPickup pickup = null;
+
+        if (reinforcementPickupPrefab != null)
+        {
+            pickup = Instantiate(reinforcementPickupPrefab, dropPosition, Quaternion.identity);
+        }
+        else
+        {
+            GameObject pickupObject = new GameObject($"ReinforcementPickup_{definition.EquipmentId}");
+            pickupObject.transform.position = dropPosition;
+
+            CircleCollider2D collider = pickupObject.AddComponent<CircleCollider2D>();
+            collider.isTrigger = true;
+            collider.radius = 0.45f;
+
+            Rigidbody2D rigidbody2D = pickupObject.AddComponent<Rigidbody2D>();
+            rigidbody2D.gravityScale = 0f;
+            rigidbody2D.bodyType = RigidbodyType2D.Kinematic;
+
+            pickupObject.AddComponent<SpriteRenderer>();
+            pickup = pickupObject.AddComponent<ReinforcementPickup>();
+        }
+
+        if (pickup == null)
+        {
+            return false;
+        }
+
+        pickup.Initialize(definition, charges, 0.5f);
+        return true;
+    }
     public static void SyncGlobalHostilityFromRun()
     {
         bool hostileFromRun = ShopRunBridge.IsShopHostileThisRun();
@@ -255,12 +298,34 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         GlobalHostilityChanged?.Invoke();
     }
 
+    private ShopActiveMaintenanceBay EnsureActiveMaintenanceBay()
+    {
+        if (activeMaintenanceBay != null)
+        {
+            return activeMaintenanceBay;
+        }
+
+        activeMaintenanceBay = GetComponentInChildren<ShopActiveMaintenanceBay>(true);
+
+        if (activeMaintenanceBay == null)
+        {
+            activeMaintenanceBay = GetComponent<ShopActiveMaintenanceBay>();
+        }
+
+        if (activeMaintenanceBay == null)
+        {
+            activeMaintenanceBay = gameObject.AddComponent<ShopActiveMaintenanceBay>();
+        }
+
+        return activeMaintenanceBay;
+    }
+
     public void ResetShop()
     {
+        EnsureActiveMaintenanceBay();
         currentShield = globalHostile ? 0f : maxShield;
         currentBodyHp = maxBodyHp;
         spentCredits = 0;
-        boughtWeaponUpgrade = false;
         combatStarted = false;
         attackTimer = 0f;
         droneSummonTimer = 0f;
@@ -304,7 +369,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         if (tradeUI == null)
         {
-            Debug.LogWarning("ShopTradeUI∞° æ¿ø° æ¯Ω¿¥œ¥Ÿ.", this);
+            Debug.LogWarning("ShopTradeUIÍ∞Ä Ïî¨Ïóê ÏóÜÏäµÎãàÎã§.", this);
             return;
         }
 
@@ -693,147 +758,14 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         return true;
     }
 
-    public bool CanBuyTrait()
+    public void RegisterSpentCredits(int amount)
     {
-        return CanTrade && ShopRunBridge.CanSpendCredits(traitCost) && HasAvailableTraitChoice();
-    }
-
-    public List<TraitDefinition> RollTraitChoices()
-    {
-        List<TraitDefinition> result = new List<TraitDefinition>();
-
-        if (traitPool == null || traitPool.Count == 0)
+        if (amount <= 0)
         {
-            return result;
+            return;
         }
 
-        WeaponTreeType selectedTree = ShopRunBridge.GetSelectedWeaponTree(WeaponTreeType.MachineGun);
-        List<TraitDefinition> candidates = new List<TraitDefinition>();
-
-        foreach (TraitDefinition trait in traitPool)
-        {
-            if (trait == null)
-            {
-                continue;
-            }
-
-            if (!trait.IsAvailableFor(selectedTree))
-            {
-                continue;
-            }
-
-            if (ShopRunBridge.HasRunTrait(trait.TraitId))
-            {
-                continue;
-            }
-
-            if (!candidates.Contains(trait))
-            {
-                candidates.Add(trait);
-            }
-        }
-
-        int count = Mathf.Min(Mathf.Max(1, traitChoiceCount), candidates.Count);
-
-        for (int i = 0; i < count; i++)
-        {
-            int index = UnityEngine.Random.Range(0, candidates.Count);
-            result.Add(candidates[index]);
-            candidates.RemoveAt(index);
-        }
-
-        return result;
-    }
-
-    public bool TryBuyRandomTrait(GameObject playerObject)
-    {
-        List<TraitDefinition> choices = RollTraitChoices();
-
-        if (choices.Count == 0)
-        {
-            return false;
-        }
-
-        return TryBuyTrait(choices[0], playerObject);
-    }
-
-    public bool TryBuyTrait(TraitDefinition trait, GameObject playerObject)
-    {
-        if (!CanTrade || trait == null)
-        {
-            return false;
-        }
-
-        if (ShopRunBridge.HasRunTrait(trait.TraitId))
-        {
-            return false;
-        }
-
-        if (!trait.IsAvailableFor(ShopRunBridge.GetSelectedWeaponTree(WeaponTreeType.MachineGun)))
-        {
-            return false;
-        }
-
-        if (!ShopRunBridge.CanSpendCredits(traitCost))
-        {
-            return false;
-        }
-
-        if (!ShopRunBridge.TrySpendCredits(traitCost))
-        {
-            return false;
-        }
-
-        if (!ShopRunBridge.AddRunTrait(trait.TraitId))
-        {
-            ShopRunBridge.AddCredits(traitCost);
-            return false;
-        }
-
-        spentCredits += traitCost;
-
-        GameObject targetPlayerObject = playerObject != null ? playerObject : FindPlayerObject();
-        ShopRuntimeEffectApplier.ApplyTraitImmediate(trait, targetPlayerObject);
-
-        return true;
-    }
-
-    public bool CanBuyWeaponUpgrade(GameObject playerObject)
-    {
-        if (!CanTrade || !ShopRunBridge.CanSpendCredits(weaponUpgradeCost))
-        {
-            return false;
-        }
-
-        if (weaponUpgradeOneTimePerShop && boughtWeaponUpgrade)
-        {
-            return false;
-        }
-
-        return playerObject != null || FindPlayerObject() != null;
-    }
-
-    public bool TryBuyWeaponUpgrade(GameObject playerObject)
-    {
-        if (!CanBuyWeaponUpgrade(playerObject))
-        {
-            return false;
-        }
-
-        if (!ShopRunBridge.TrySpendCredits(weaponUpgradeCost))
-        {
-            return false;
-        }
-
-        spentCredits += weaponUpgradeCost;
-        boughtWeaponUpgrade = true;
-
-        GameObject targetPlayerObject = playerObject != null ? playerObject : FindPlayerObject();
-        WeaponTreeType selectedTree = ShopRunBridge.GetSelectedWeaponTree(WeaponTreeType.MachineGun);
-
-        ShopRuntimeEffectApplier.ApplyWeaponReinforcement(selectedTree, targetPlayerObject);
-
-        return true;
+        spentCredits += amount;
     }
 
     public void ApplyKnockback(Vector2 origin, float distance)
@@ -863,40 +795,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         }
 
         rb.position += direction.normalized * distance;
-    }
-
-    private bool HasAvailableTraitChoice()
-    {
-        if (traitPool == null || traitPool.Count == 0)
-        {
-            return false;
-        }
-
-        WeaponTreeType selectedTree = ShopRunBridge.GetSelectedWeaponTree(WeaponTreeType.MachineGun);
-
-        for (int i = 0; i < traitPool.Count; i++)
-        {
-            TraitDefinition trait = traitPool[i];
-
-            if (trait == null)
-            {
-                continue;
-            }
-
-            if (!trait.IsAvailableFor(selectedTree))
-            {
-                continue;
-            }
-
-            if (ShopRunBridge.HasRunTrait(trait.TraitId))
-            {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
     }
 
     private PlayerHealth ResolvePlayerHealth(GameObject playerObject)

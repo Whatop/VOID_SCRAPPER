@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 04_rf_burst_barrier
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_burst_barrier"
+  displayName: "\uc21c\uac04 \ubc29\ubcbd"
+  description: "\uc9e7\uc740 \uc2dc\uac04 \ubb34\uc801 \uc0c1\ud0dc\uac00 \ub41c\ub2e4. \ud0c4\ub9c9\uc744 \ud1b5\uacfc\ud558\uac70\ub098 \ubcf4\uc2a4 \ud328\ud134\uc744 \ub118\uae38 \ub54c \uc0ac\uc6a9\ud55c\ub2e4."
+  icon: {fileID: 0}
+  rarity: 0
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 1
+  availability: 0
+  cost: 60
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 1
+  startWithFullCharges: 1
+  rechargeSeconds: 18
+  effects:
+  - effectType: 2
+    value: 4
+    radius: 0
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

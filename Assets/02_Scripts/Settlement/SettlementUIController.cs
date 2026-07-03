@@ -265,6 +265,12 @@ public class SettlementUIController : MonoBehaviour
     {
         selectedKind = SettlementSelectionKind.Weapon;
         selectedWeapon = weaponTreeType;
+
+        if (settlementController != null)
+        {
+            settlementController.SelectWeaponTree(weaponTreeType);
+        }
+
         Refresh();
     }
 

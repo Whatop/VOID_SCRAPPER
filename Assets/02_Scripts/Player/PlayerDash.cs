@@ -12,6 +12,12 @@ public class PlayerDash : MonoBehaviour
     [SerializeField] private string actionMapName = "Player";
     [SerializeField] private string dashActionName = "Dash";
 
+    [Header("References")]
+    [SerializeField] private PlayerWeaponController weaponController;
+
+    [Header("Fallback")]
+    [SerializeField] private WeaponTreeType fallbackWeaponTree = WeaponTreeType.MachineGun;
+
     [Header("Dash Settings")]
     [SerializeField] private float dashDistance = 5f;
     [SerializeField] private float dashDuration = 0.12f;
@@ -27,7 +33,26 @@ public class PlayerDash : MonoBehaviour
     [SerializeField] private float knockbackRadius = 1.2f;
     [SerializeField] private float knockbackDistance = 1.5f;
 
-    [Header("Dash Shockwave")]
+    [Header("Weapon Dash Rules")]
+    [Tooltip("기관총은 대쉬 이동과 무적만 사용합니다. 탄 삭제, 적 밀침, 충격파를 사용하지 않습니다.")]
+    [SerializeField] private bool machineGunDashInvincibleOnly = true;
+
+    [Tooltip("샷건은 기본 대쉬에서 근접 적을 살짝 밀어낼 수 있습니다.")]
+    [SerializeField] private bool shotgunUsesNormalKnockback = true;
+
+    [Tooltip("스나이퍼도 대쉬 밀침을 줄지 여부입니다. 기본은 꺼두는 것을 권장합니다.")]
+    [SerializeField] private bool sniperUsesNormalKnockback;
+
+    [Tooltip("스나이퍼가 대쉬 중 적 탄환을 삭제할지 여부입니다.")]
+    [SerializeField] private bool sniperClearsProjectiles = true;
+
+    [Tooltip("샷건 충격파를 해금형 능력으로 사용할지 여부입니다.")]
+    [SerializeField] private bool shotgunShockwaveRequiresUnlock = true;
+
+    [Tooltip("샷건 충격파 해금 상태입니다. 나중에 특성/해금 시스템에서 true로 바꾸면 됩니다.")]
+    [SerializeField] private bool shotgunShockwaveUnlocked;
+
+    [Header("Dash Shockwave - Shotgun Unlock Only")]
     [SerializeField] private bool useShockwave = true;
     [SerializeField] private GameObject shockwavePrefab;
     [SerializeField] private float shockwaveVfxRadius = 2.2f;
@@ -57,19 +82,33 @@ public class PlayerDash : MonoBehaviour
     public float RemainingCooldown => Mathf.Max(0f, lastDashTime + dashCooldown - Time.time);
     public float CooldownRatio => dashCooldown <= 0f ? 0f : Mathf.Clamp01(RemainingCooldown / dashCooldown);
     public bool CanDash => !isDashing && RemainingCooldown <= 0f;
+    public bool ShotgunShockwaveUnlocked => shotgunShockwaveUnlocked;
 
     public event Action<Vector2> DashStarted;
     public event Action DashEnded;
 
+    private struct DashEffectProfile
+    {
+        public bool useProjectileClear;
+        public bool useNormalKnockback;
+        public bool useShockwave;
+
+        public DashEffectProfile(bool useProjectileClear, bool useNormalKnockback, bool useShockwave)
+        {
+            this.useProjectileClear = useProjectileClear;
+            this.useNormalKnockback = useNormalKnockback;
+            this.useShockwave = useShockwave;
+        }
+    }
+
     private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        controller = GetComponent<PlayerController2D>();
-        health = GetComponent<PlayerHealth>();
+        CacheReferences();
     }
 
     private void OnEnable()
     {
+        CacheReferences();
         BindInput();
     }
 
@@ -97,6 +136,29 @@ public class PlayerDash : MonoBehaviour
         if (WasDashPressed())
         {
             TryDash();
+        }
+    }
+
+    private void CacheReferences()
+    {
+        if (rb == null)
+        {
+            rb = GetComponent<Rigidbody2D>();
+        }
+
+        if (controller == null)
+        {
+            controller = GetComponent<PlayerController2D>();
+        }
+
+        if (health == null)
+        {
+            health = GetComponent<PlayerHealth>();
+        }
+
+        if (weaponController == null)
+        {
+            weaponController = GetComponent<PlayerWeaponController>();
         }
     }
 
@@ -141,6 +203,7 @@ public class PlayerDash : MonoBehaviour
         {
             return false;
         }
+
         if (!CanDash)
         {
             return false;
@@ -182,6 +245,8 @@ public class PlayerDash : MonoBehaviour
 
     private IEnumerator DashRoutine(Vector2 direction)
     {
+        DashEffectProfile effectProfile = ResolveDashEffectProfile();
+
         isDashing = true;
         lastDashTime = Time.time;
 
@@ -197,9 +262,17 @@ public class PlayerDash : MonoBehaviour
             health.AddInvincibleTime(invincibleTime);
         }
 
-        TriggerDashShockwave();
-        ClearProjectilesAt(transform.position, projectileClearRadius);
-        PushNearbyObjectsAt(transform.position, knockbackRadius, knockbackDistance);
+        TriggerDashShockwave(effectProfile);
+
+        if (effectProfile.useProjectileClear)
+        {
+            ClearProjectilesAt(transform.position, projectileClearRadius);
+        }
+
+        if (effectProfile.useNormalKnockback)
+        {
+            PushNearbyObjectsAt(transform.position, knockbackRadius, knockbackDistance);
+        }
 
         float elapsed = 0f;
         float dashSpeed = dashDistance / Mathf.Max(0.01f, dashDuration);
@@ -211,7 +284,10 @@ public class PlayerDash : MonoBehaviour
                 rb.linearVelocity = direction * dashSpeed;
             }
 
-            ClearProjectilesAt(transform.position, projectileClearRadius);
+            if (effectProfile.useProjectileClear)
+            {
+                ClearProjectilesAt(transform.position, projectileClearRadius);
+            }
 
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
@@ -238,16 +314,96 @@ public class PlayerDash : MonoBehaviour
         DashEnded?.Invoke();
     }
 
-    private void TriggerDashShockwave()
+    private DashEffectProfile ResolveDashEffectProfile()
+    {
+        WeaponTreeType currentTree = ResolveCurrentWeaponTree();
+
+        switch (currentTree)
+        {
+            case WeaponTreeType.Shotgun:
+                return new DashEffectProfile(
+                    useProjectileClear: true,
+                    useNormalKnockback: shotgunUsesNormalKnockback,
+                    useShockwave: CanUseShotgunShockwave()
+                );
+
+            case WeaponTreeType.Sniper:
+                return new DashEffectProfile(
+                    useProjectileClear: sniperClearsProjectiles,
+                    useNormalKnockback: sniperUsesNormalKnockback,
+                    useShockwave: false
+                );
+
+            case WeaponTreeType.MachineGun:
+            default:
+                if (machineGunDashInvincibleOnly)
+                {
+                    return new DashEffectProfile(
+                        useProjectileClear: false,
+                        useNormalKnockback: false,
+                        useShockwave: false
+                    );
+                }
+
+                return new DashEffectProfile(
+                    useProjectileClear: false,
+                    useNormalKnockback: false,
+                    useShockwave: false
+                );
+        }
+    }
+
+    private WeaponTreeType ResolveCurrentWeaponTree()
+    {
+        if (weaponController != null && weaponController.CurrentWeapon != null)
+        {
+            return weaponController.CurrentWeaponTree;
+        }
+
+        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        {
+            return RunManager.Instance.CurrentRun.SelectedWeaponTree;
+        }
+
+        if (PermanentProgress.Instance != null)
+        {
+            return PermanentProgress.Instance.LastSelectedWeaponTree;
+        }
+
+        return fallbackWeaponTree;
+    }
+
+    private bool CanUseShotgunShockwave()
     {
         if (!useShockwave)
+        {
+            return false;
+        }
+
+        if (!shotgunShockwaveRequiresUnlock)
+        {
+            return true;
+        }
+
+        return shotgunShockwaveUnlocked;
+    }
+
+    private void TriggerDashShockwave(DashEffectProfile effectProfile)
+    {
+        if (!effectProfile.useShockwave)
         {
             return;
         }
 
         Vector2 center = transform.position;
+
         SpawnShockwaveVfx(center);
-        ClearProjectilesAt(center, shockwaveProjectileClearRadius);
+
+        if (effectProfile.useProjectileClear)
+        {
+            ClearProjectilesAt(center, shockwaveProjectileClearRadius);
+        }
+
         PushNearbyObjectsAt(center, shockwaveKnockbackRadius, shockwaveKnockbackDistance);
     }
 
@@ -381,7 +537,9 @@ public class PlayerDash : MonoBehaviour
             if (receiver != null)
             {
                 Component receiverComponent = receiver as Component;
-                int receiverId = receiverComponent != null ? receiverComponent.GetInstanceID() : receiver.GetHashCode();
+                int receiverId = receiverComponent != null
+                    ? receiverComponent.GetInstanceID()
+                    : receiver.GetHashCode();
 
                 if (processedKnockbackTargets.Contains(receiverId))
                 {
@@ -441,6 +599,21 @@ public class PlayerDash : MonoBehaviour
     public void AddDashCooldown(float amount)
     {
         dashCooldown = Mathf.Max(0.05f, dashCooldown + amount);
+    }
+
+    public void SetShotgunShockwaveUnlocked(bool unlocked)
+    {
+        shotgunShockwaveUnlocked = unlocked;
+    }
+
+    public void UnlockShotgunShockwave()
+    {
+        shotgunShockwaveUnlocked = true;
+    }
+
+    public void LockShotgunShockwave()
+    {
+        shotgunShockwaveUnlocked = false;
     }
 
     private void OnDrawGizmosSelected()

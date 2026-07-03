@@ -10,6 +10,33 @@ public class RewardDropper : MonoBehaviour
     [SerializeField] private GameObject rewardPickupPrefab;
     [SerializeField] private GameObject healPickupPrefab;
 
+    [Header("Reinforcement Item Drop")]
+    [Tooltip("RewardDefinition에 Catalog가 비어 있으면 이 Catalog에서 랜덤 장비를 뽑습니다.")]
+    [SerializeField] private ReinforcementCatalog fallbackReinforcementCatalog;
+
+    [Tooltip("필드에 떨어지는 ReinforcementPickup 프리팹. 반드시 ReinforcementPickup 컴포넌트가 있어야 합니다.")]
+    [SerializeField] private ReinforcementPickup reinforcementPickupPrefab;
+
+    [Tooltip("장비 아이템이 드랍될 때 중심에서 흩어지는 최소 거리")]
+    [SerializeField] private float reinforcementMinScatterRadius = 0.35f;
+
+    [Tooltip("장비 아이템이 드랍될 때 중심에서 흩어지는 최대 거리")]
+    [SerializeField] private float reinforcementMaxScatterRadius = 1.25f;
+
+    [Tooltip("Rigidbody2D가 있으면 이 속도로 살짝 튀어나갑니다.")]
+    [SerializeField] private float reinforcementScatterSpeed = 1.5f;
+
+    [Header("Trait Item Drop")]
+    [Tooltip("RewardDefinition에 Catalog가 비어 있으면 이 Catalog에서 랜덤 패시브를 뽑습니다.")]
+    [SerializeField] private TraitCatalog fallbackTraitCatalog;
+
+    [Tooltip("필드에 떨어지는 TraitPickup 프리팹. 반드시 TraitPickup 컴포넌트가 있어야 합니다.")]
+    [SerializeField] private TraitPickup traitPickupPrefab;
+
+    [SerializeField] private float traitMinScatterRadius = 0.25f;
+    [SerializeField] private float traitMaxScatterRadius = 1.05f;
+    [SerializeField] private float traitScatterSpeed = 1.25f;
+
     [Header("Shard Split")]
     [SerializeField] private int amountPerShard = 1;
     [SerializeField] private int maxShardsPerCurrency = 24;
@@ -59,6 +86,9 @@ public class RewardDropper : MonoBehaviour
         {
             DropHeal(origin, rewardDefinition.HealAmount);
         }
+
+        DropReinforcementItems(origin);
+        DropTraitItems(origin);
     }
 
     private void DropCurrency(Vector3 origin, CurrencyType currencyType, int amount)
@@ -74,7 +104,7 @@ public class RewardDropper : MonoBehaviour
         {
             if (logMissingPrefab)
             {
-                Debug.LogWarning("RewardPickup �������� ���� ���� ������ ����� �� �����ϴ�.", this);
+                Debug.LogWarning("RewardPickup 프리팹이 없어 보상 조각을 드랍할 수 없습니다.", this);
             }
 
             return;
@@ -111,7 +141,7 @@ public class RewardDropper : MonoBehaviour
 
             if (pickup == null)
             {
-                Debug.LogWarning("RewardPickup �����տ� RewardPickup ������Ʈ�� �����ϴ�.", pickupObject);
+                Debug.LogWarning("RewardPickup 프리팹에 RewardPickup 컴포넌트가 없습니다.", pickupObject);
                 ReleaseOrDestroy(pickupObject);
                 continue;
             }
@@ -133,7 +163,7 @@ public class RewardDropper : MonoBehaviour
         {
             if (logMissingPrefab)
             {
-                Debug.LogWarning("HealPickup �������� ���� ȸ�� ������ ����� �� �����ϴ�.", this);
+                Debug.LogWarning("HealPickup 프리팹이 없어 회복 조각을 드랍할 수 없습니다.", this);
             }
 
             return;
@@ -160,12 +190,152 @@ public class RewardDropper : MonoBehaviour
 
         if (pickup == null)
         {
-            Debug.LogWarning("HealPickup �����տ� RewardPickup ������Ʈ�� �����ϴ�.", pickupObject);
+            Debug.LogWarning("HealPickup 프리팹에 RewardPickup 컴포넌트가 없습니다.", pickupObject);
             ReleaseOrDestroy(pickupObject);
             return;
         }
 
         pickup.InitializeHeal(healAmount, initialVelocity);
+    }
+
+    private void DropReinforcementItems(Vector3 origin)
+    {
+        if (rewardDefinition == null)
+        {
+            return;
+        }
+
+        if (reinforcementPickupPrefab == null)
+        {
+            if (rewardDefinition.EnableReinforcementDrop && logMissingPrefab)
+            {
+                Debug.LogWarning("ReinforcementPickup 프리팹이 없어 액티브 장비를 드랍할 수 없습니다.", this);
+            }
+
+            return;
+        }
+
+        List<ReinforcementDefinition> drops = rewardDefinition.RollReinforcementDrops(fallbackReinforcementCatalog);
+
+        if (drops == null || drops.Count == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < drops.Count; i++)
+        {
+            ReinforcementDefinition definition = drops[i];
+
+            if (definition == null)
+            {
+                continue;
+            }
+
+            DropReinforcementItem(origin, definition, i, drops.Count);
+        }
+    }
+
+    private void DropTraitItems(Vector3 origin)
+    {
+        if (rewardDefinition == null)
+        {
+            return;
+        }
+
+        if (traitPickupPrefab == null)
+        {
+            if (rewardDefinition.EnableTraitDrop && logMissingPrefab)
+            {
+                Debug.LogWarning("TraitPickup 프리팹이 없어 패시브 특성을 드랍할 수 없습니다.", this);
+            }
+
+            return;
+        }
+
+        List<TraitDefinition> drops = rewardDefinition.RollTraitDrops(fallbackTraitCatalog);
+
+        if (drops == null || drops.Count == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < drops.Count; i++)
+        {
+            TraitDefinition trait = drops[i];
+
+            if (trait == null)
+            {
+                continue;
+            }
+
+            DropTraitItem(origin, trait, i, drops.Count);
+        }
+    }
+
+    private void DropReinforcementItem(Vector3 origin, ReinforcementDefinition definition, int index, int totalCount)
+    {
+        Vector2 direction = GetCircularDirection(index, Mathf.Max(1, totalCount));
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Random.insideUnitCircle.normalized;
+        }
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Vector2.up;
+        }
+
+        float minRadius = Mathf.Min(reinforcementMinScatterRadius, reinforcementMaxScatterRadius);
+        float maxRadius = Mathf.Max(reinforcementMinScatterRadius, reinforcementMaxScatterRadius);
+        Vector3 spawnPosition = origin + (Vector3)(direction * Random.Range(minRadius, maxRadius));
+
+        ReinforcementPickup pickup = SpawnReinforcementPickup(reinforcementPickupPrefab, spawnPosition);
+
+        if (pickup == null)
+        {
+            return;
+        }
+
+        pickup.Initialize(definition, -1, 0.5f);
+        ApplyScatterVelocity(pickup.GetComponent<Rigidbody2D>(), direction, reinforcementScatterSpeed);
+    }
+
+    private void DropTraitItem(Vector3 origin, TraitDefinition trait, int index, int totalCount)
+    {
+        Vector2 direction = GetCircularDirection(index + 3, Mathf.Max(1, totalCount + 3));
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Random.insideUnitCircle.normalized;
+        }
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Vector2.up;
+        }
+
+        float minRadius = Mathf.Min(traitMinScatterRadius, traitMaxScatterRadius);
+        float maxRadius = Mathf.Max(traitMinScatterRadius, traitMaxScatterRadius);
+        Vector3 spawnPosition = origin + (Vector3)(direction * Random.Range(minRadius, maxRadius));
+
+        TraitPickup pickup = SpawnTraitPickup(traitPickupPrefab, spawnPosition);
+
+        if (pickup == null)
+        {
+            return;
+        }
+
+        pickup.Initialize(trait, 0.5f);
+        ApplyScatterVelocity(pickup.GetComponent<Rigidbody2D>(), direction, traitScatterSpeed);
+    }
+
+    private void ApplyScatterVelocity(Rigidbody2D pickupRigidbody, Vector2 direction, float speed)
+    {
+        if (pickupRigidbody != null && pickupRigidbody.bodyType != RigidbodyType2D.Static)
+        {
+            pickupRigidbody.linearVelocity = direction * Mathf.Max(0f, speed);
+        }
     }
 
     private Vector2 GetCircularDirection(int index, int totalCount)
@@ -182,6 +352,38 @@ public class RewardDropper : MonoBehaviour
         if (PoolManager.Instance != null)
         {
             return PoolManager.Instance.Get(prefab, position, Quaternion.identity);
+        }
+
+        return Instantiate(prefab, position, Quaternion.identity);
+    }
+
+    private ReinforcementPickup SpawnReinforcementPickup(ReinforcementPickup prefab, Vector3 position)
+    {
+        if (prefab == null)
+        {
+            return null;
+        }
+
+        if (PoolManager.Instance != null)
+        {
+            GameObject pickupObject = PoolManager.Instance.Get(prefab.gameObject, position, Quaternion.identity);
+            return pickupObject != null ? pickupObject.GetComponent<ReinforcementPickup>() : null;
+        }
+
+        return Instantiate(prefab, position, Quaternion.identity);
+    }
+
+    private TraitPickup SpawnTraitPickup(TraitPickup prefab, Vector3 position)
+    {
+        if (prefab == null)
+        {
+            return null;
+        }
+
+        if (PoolManager.Instance != null)
+        {
+            GameObject pickupObject = PoolManager.Instance.Get(prefab.gameObject, position, Quaternion.identity);
+            return pickupObject != null ? pickupObject.GetComponent<TraitPickup>() : null;
         }
 
         return Instantiate(prefab, position, Quaternion.identity);

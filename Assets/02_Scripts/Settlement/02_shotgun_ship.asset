@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "\uC0F7\uAC74 \uAE30\uCCB4"
   description: "\uADFC\uC811 \uC804\uD22C \uD2B9\uD654"
   previewSprite: {fileID: 21300000, guid: a663ccbdfc208334bb98f74ef0b83c43, type: 3}
+  defaultWeaponTree: 0
   unlockedByDefault: 0
   unlockFlag: 
   requiredUnlockFlag: 
@@ -25,4 +26,9 @@ MonoBehaviour:
   moveSpeedBonusPercent: 0
   dashDistanceBonus: 0
   dashCooldownReduction: 0
+  cargoCapacity: 100
+  harvestYieldBonusPercent: 0
+  harvestObjectDamageBonusPercent: 0
+  emergencyReturnCapacityRatio: 0.7
+  defaultReinforcementId: rf_emergency_return_anchor
   passiveDescription: "\uCD94\uAC00 \uD328\uC2DC\uBE0C \uC5C6\uC74C."

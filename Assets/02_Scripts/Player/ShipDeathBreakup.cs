@@ -1,5 +1,11 @@
 using UnityEngine;
 
+public enum ShipDeathBreakDirectionSpace
+{
+    WorldFixed,
+    PlayerLocal
+}
+
 [DisallowMultipleComponent]
 public class ShipDeathBreakup : MonoBehaviour
 {
@@ -8,12 +14,14 @@ public class ShipDeathBreakup : MonoBehaviour
     [SerializeField] private GameObject normalVisualRoot;
 
     [Header("Breakup Parts - 4 Pieces")]
-    [Tooltip("4등분 파츠 Rigidbody2D. 보통 비활성화 상태의 자식 오브젝트로 둡니다.")]
+    [Tooltip("순서: 0 좌상단, 1 우상단, 2 좌하단, 3 우하단")]
     [SerializeField] private Rigidbody2D[] parts = new Rigidbody2D[4];
 
     [Header("Break Direction")]
+    [SerializeField] private ShipDeathBreakDirectionSpace directionSpace = ShipDeathBreakDirectionSpace.WorldFixed;
+
     [SerializeField]
-    private Vector2[] localDirections =
+    private Vector2[] directions =
     {
         new Vector2(-1f, 1f),
         new Vector2(1f, 1f),
@@ -22,8 +30,8 @@ public class ShipDeathBreakup : MonoBehaviour
     };
 
     [Header("Physics")]
-    [SerializeField] private float minSpeed = 2.5f;
-    [SerializeField] private float maxSpeed = 5.0f;
+    [SerializeField] private float minSpeed = 3f;
+    [SerializeField] private float maxSpeed = 5.5f;
     [SerializeField] private float minAngularSpeed = 180f;
     [SerializeField] private float maxAngularSpeed = 540f;
     [SerializeField] private float linearDamping = 1.5f;
@@ -65,26 +73,31 @@ public class ShipDeathBreakup : MonoBehaviour
 
     private Vector2 GetBreakDirection(int index)
     {
-        Vector2 localDirection = Vector2.up;
+        Vector2 direction = Vector2.up;
 
-        if (localDirections != null && index >= 0 && index < localDirections.Length)
+        if (directions != null && index >= 0 && index < directions.Length)
         {
-            localDirection = localDirections[index];
+            direction = directions[index];
         }
 
-        if (localDirection.sqrMagnitude <= 0.001f)
+        if (direction.sqrMagnitude <= 0.001f)
         {
-            localDirection = Random.insideUnitCircle;
+            direction = Random.insideUnitCircle;
         }
 
-        Vector2 worldDirection = transform.TransformDirection(localDirection.normalized);
+        direction.Normalize();
 
-        if (worldDirection.sqrMagnitude <= 0.001f)
+        if (directionSpace == ShipDeathBreakDirectionSpace.PlayerLocal)
         {
-            worldDirection = Random.insideUnitCircle.normalized;
+            direction = transform.TransformDirection(direction);
         }
 
-        return worldDirection.normalized;
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Random.insideUnitCircle.normalized;
+        }
+
+        return direction.normalized;
     }
 
     private void ActivatePart(Rigidbody2D part, Vector2 direction)

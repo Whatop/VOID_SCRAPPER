@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 19_rf_core_stabilizer
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_core_stabilizer"
+  displayName: "\ucf54\uc5b4 \uc548\uc815\uae30"
+  description: "\uac15\ud55c \uacf5\uaca9\uc774 \uc608\uc0c1\ub418\ub294 \uad6c\uac04\uc5d0\uc11c \uc9e7\uc740 \ubb34\uc801\uacfc \ubc29\uc5b4\ub97c \ud655\ubcf4\ud55c\ub2e4."
+  icon: {fileID: 0}
+  rarity: 2
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 2
+  availability: 0
+  cost: 80
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 1
+  startWithFullCharges: 1
+  rechargeSeconds: 30
+  effects:
+  - effectType: 2
+    value: 3
+    radius: 0
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1
+  - effectType: 1
+    value: 5
+    radius: 0
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

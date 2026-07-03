@@ -110,6 +110,7 @@ GameObject:
   - component: {fileID: 6428305975438978380}
   - component: {fileID: 2120804619020670449}
   - component: {fileID: 8362735605901902265}
+  - component: {fileID: 8933642332217612932}
   m_Layer: 12
   m_Name: ShopStructure
   m_TagString: Untagged
@@ -125,7 +126,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2553446688214572462}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -6.8, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -267,11 +268,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: "\uC0C1\uC810 \uAD6C\uC870\uC120"
-  neutralInteractionText: "\uC0C1\uC810 \uC774\uC6A9"
+  neutralInteractionText: "\uC0C1\uC810"
   hostileInteractionText: "\uC801\uB300\uD654\uB41C \uC0C1\uC810"
   tradeUI: {fileID: 0}
   radarTarget: {fileID: 6428305975438978380}
   rewardDropper: {fileID: 2120804619020670449}
+  activeMaintenanceBay: {fileID: 0}
   maxShield: 24
   maxBodyHp: 42
   warningDuration: 3
@@ -291,11 +293,6 @@ MonoBehaviour:
   shieldBreakEffectLifetime: 0.6
   repairCost: 25
   repairAmount: 8
-  traitCost: 45
-  traitPool: []
-  traitChoiceCount: 3
-  weaponUpgradeCost: 60
-  weaponUpgradeOneTimePerShop: 1
   hostileDetectRange: 18
   playerTag: Player
   shopProjectilePrefab: {fileID: 4939712952834317954, guid: cdbe042ab84857740b982d9e7107abab, type: 3}
@@ -329,6 +326,8 @@ MonoBehaviour:
   deathEffectLifetime: 0.8
   releaseOnDeath: 0
   releaseDelay: 0.1
+  reinforcementPickupPrefab: {fileID: 0}
+  reinforcementDropPoint: {fileID: 0}
 --- !u!114 &6428305975438978380
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -366,6 +365,16 @@ MonoBehaviour:
   rewardDefinition: {fileID: 11400000, guid: c56d7fb48a132a845bdf4ed721c5ab88, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
   healPickupPrefab: {fileID: 3676966635386126382, guid: a7f1f0c9c5ee96c4ea79449c8394d7a9, type: 3}
+  fallbackReinforcementCatalog: {fileID: 0}
+  reinforcementPickupPrefab: {fileID: 0}
+  reinforcementMinScatterRadius: 0.35
+  reinforcementMaxScatterRadius: 1.25
+  reinforcementScatterSpeed: 1.5
+  fallbackTraitCatalog: {fileID: 0}
+  traitPickupPrefab: {fileID: 0}
+  traitMinScatterRadius: 0.25
+  traitMaxScatterRadius: 1.05
+  traitScatterSpeed: 1.25
   amountPerShard: 1
   maxShardsPerCurrency: 24
   minScatterRadius: 0.15
@@ -388,18 +397,36 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   traitCatalog: {fileID: 11400000, guid: 3e5fea5df49917b46b18c1d3712065a1, type: 2}
   includeCatalogTraits: 1
-  includeManualPools: 1
+  includeManualTraitPool: 1
   traitCost: 45
   traitChoiceCount: 3
   traitPool: []
-  reinforcementCost: 60
+  reinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}
+  includeCatalogReinforcements: 1
+  includeManualReinforcementPool: 1
+  fallbackReinforcementCost: 60
   minReinforcementChoiceCount: 1
   maxReinforcementChoiceCount: 3
   reinforcementPool: []
-  oneTraitPurchasePerShop: 1
-  oneReinforcementPurchasePerShop: 1
+  limitTraitPurchasePerShop: 0
+  limitReinforcementPurchasePerShop: 0
   excludeAlreadyOwnedRunTraits: 1
   excludePermanentTraits: 0
+  excludeCurrentlyEquippedReinforcement: 1
+--- !u!114 &8933642332217612932
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553446688214572462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dcc0e3b7b931d4397e963decc0b769, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  anchorTransform: {fileID: 2983283565560518868}
+  worldOffset: {x: 0, y: 2, z: 0}
 --- !u!1 &4406998444319261813
 GameObject:
   m_ObjectHideFlags: 0

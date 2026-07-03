@@ -10,10 +10,14 @@ public enum TraitCategory
 
 public enum TraitShopItemType
 {
-    Trait,
-    Reinforcement,
-    Both,
-    Hidden
+    Trait = 0,
+
+    // Serialized migration only. Do not use for new content.
+    // 기존 Reinforcement/Both TraitDefinition 에셋이 깨지지 않도록 숫자 값만 남긴다.
+    LegacyReinforcement = 1,
+    LegacyBoth = 2,
+
+    Hidden = 3
 }
 
 public enum TraitEffectType
@@ -36,13 +40,22 @@ public enum TraitEffectType
     HomingRangeBonus,
     FireRatePercent,
 
-    // 추후 효과용. 현재 적용 로직이 없으면 표시/저장만 되고 실제 효과는 안 먹는다.
     CloseRangeDamageReductionPercent,
     DashDamageReductionPercent,
     CloseRangeSuppressionPercent,
     ChargeSightBonusPercent,
     ChargedProjectileSizePercent,
-    RemovePierceDamageFalloff
+    RemovePierceDamageFalloff,
+
+    // Harvest / cargo loop 확장.
+    CargoCapacityBonus,
+    HarvestYieldPercent,
+    HarvestObjectDamagePercent,
+    EmergencyReturnCapacityRatioBonus,
+    RadarScanRadiusBonus,
+    ActiveCooldownReductionPercent,
+    RadarTauntDurationBonus,
+    RadarStealthDurationBonus
 }
 
 [Serializable]
@@ -67,12 +80,15 @@ public class TraitDefinition : ScriptableObject
     [TextArea]
     [SerializeField] private string description;
 
+    [Header("Visual")]
+    [SerializeField] private Sprite icon;
+
     [Header("Category")]
     [SerializeField] private TraitCategory category = TraitCategory.Shared;
     [SerializeField] private WeaponTreeType weaponTreeType = WeaponTreeType.MachineGun;
 
-    [Header("Shop")]
-    [Tooltip("Trait: 추가 특성 슬롯 / Reinforcement: 기체 보강 슬롯 / Both: 둘 다 / Hidden: 상점 미노출")]
+    [Header("Exposure")]
+    [Tooltip("Trait: 추가 특성으로 노출 / Hidden: 기본 노출 안 함. Legacy 값은 기존 에셋 호환용이며 신규 콘텐츠에 쓰지 않습니다.")]
     [SerializeField] private TraitShopItemType shopItemType = TraitShopItemType.Trait;
 
     [Header("Level")]
@@ -83,6 +99,8 @@ public class TraitDefinition : ScriptableObject
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? TraitId : displayName;
     public string Description => string.IsNullOrWhiteSpace(description) ? "특성 설명이 없습니다." : description;
 
+    public Sprite Icon => icon;
+
     public TraitCategory Category => category;
     public WeaponTreeType WeaponTreeType => weaponTreeType;
     public TraitShopItemType ShopItemType => shopItemType;
@@ -90,13 +108,13 @@ public class TraitDefinition : ScriptableObject
     public int MaxLevel => Mathf.Max(1, maxLevel);
     public IReadOnlyList<TraitLevelEffect> LevelEffects => levelEffects;
 
-    public bool CanAppearAsShopTrait =>
-        shopItemType == TraitShopItemType.Trait ||
-        shopItemType == TraitShopItemType.Both;
+    public bool CanAppearAsShopTrait => shopItemType == TraitShopItemType.Trait;
+    public bool CanAppearAsLevelUpTrait => shopItemType == TraitShopItemType.Trait;
+    public bool IsHidden => shopItemType == TraitShopItemType.Hidden;
 
-    public bool CanAppearAsShopReinforcement =>
-        shopItemType == TraitShopItemType.Reinforcement ||
-        shopItemType == TraitShopItemType.Both;
+    public bool IsLegacyReinforcementTrait =>
+        shopItemType == TraitShopItemType.LegacyReinforcement ||
+        shopItemType == TraitShopItemType.LegacyBoth;
 
     public bool IsAvailableFor(WeaponTreeType selectedTree)
     {
@@ -112,13 +130,13 @@ public class TraitDefinition : ScriptableObject
     {
         if (category == TraitCategory.Shared)
         {
-            return "공유 특성";
+            return "공용 특성";
         }
 
         return weaponTreeType switch
         {
             WeaponTreeType.Shotgun => "샷건 전용 특성",
-            WeaponTreeType.Sniper => "저격 전용 특성",
+            WeaponTreeType.Sniper => "스나이퍼 전용 특성",
             WeaponTreeType.MachineGun => "기관총 전용 특성",
             _ => "전용 특성"
         };

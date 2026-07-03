@@ -6,7 +6,15 @@ public class WorldGaugeFollower : MonoBehaviour
 {
     [Header("Target")]
     [SerializeField] private Transform target;
-    [SerializeField] private Vector3 worldOffset = new Vector3(0f, 1.1f, 0f);
+    [SerializeField] private Vector3 worldOffset = Vector3.zero;
+
+    [Header("Auto Anchor")]
+    [Tooltip("켜면 대상의 Renderer/Collider2D 크기 기준으로 위쪽 중앙을 따라갑니다.")]
+    [SerializeField] private bool anchorToTargetTop = true;
+
+    [SerializeField] private float targetTopPadding = 0.12f;
+    [SerializeField] private bool includeChildRenderers = true;
+    [SerializeField] private bool includeChildColliders = true;
 
     [Header("Canvas")]
     [SerializeField] private Canvas canvas;
@@ -17,10 +25,13 @@ public class WorldGaugeFollower : MonoBehaviour
     [SerializeField] private bool hideWhenTargetMissing = true;
     [SerializeField] private bool hideWhenBehindCamera = true;
     [SerializeField] private bool startHidden = true;
+    [SerializeField] private bool forceBottomCenterPivot = true;
 
     private RectTransform rectTransform;
     private RectTransform canvasRectTransform;
     private CanvasGroup canvasGroup;
+    private Component targetComponent;
+    private InteractionPromptAnchor targetAnchor;
 
     private bool visibleRequested;
 
@@ -30,18 +41,18 @@ public class WorldGaugeFollower : MonoBehaviour
         canvasGroup = GetComponent<CanvasGroup>();
         canvas = GetComponentInParent<Canvas>();
         worldCamera = Camera.main;
-
-        if (rectTransform != null)
-        {
-            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        }
+        ApplyPivotOption();
     }
 
     private void Awake()
     {
         CacheReferences();
+
+        if (target != null && targetComponent == null)
+        {
+            targetComponent = target;
+            targetAnchor = target.GetComponentInChildren<InteractionPromptAnchor>(true);
+        }
 
         if (startHidden)
         {
@@ -57,6 +68,20 @@ public class WorldGaugeFollower : MonoBehaviour
     public void SetTarget(Transform newTarget)
     {
         target = newTarget;
+        targetComponent = newTarget;
+        targetAnchor = newTarget != null ? newTarget.GetComponentInChildren<InteractionPromptAnchor>(true) : null;
+
+        if (target == null && hideWhenTargetMissing)
+        {
+            ApplyVisible(false);
+        }
+    }
+
+    public void SetTarget(Component component)
+    {
+        targetComponent = component;
+        target = component != null ? component.transform : null;
+        targetAnchor = component != null ? component.GetComponentInChildren<InteractionPromptAnchor>(true) : null;
 
         if (target == null && hideWhenTargetMissing)
         {
@@ -81,9 +106,16 @@ public class WorldGaugeFollower : MonoBehaviour
             rectTransform = GetComponent<RectTransform>();
         }
 
+        ApplyPivotOption();
+
         if (canvasGroup == null)
         {
             canvasGroup = GetComponent<CanvasGroup>();
+        }
+
+        if (canvasGroup == null)
+        {
+            canvasGroup = gameObject.AddComponent<CanvasGroup>();
         }
 
         if (canvas == null)
@@ -105,6 +137,18 @@ public class WorldGaugeFollower : MonoBehaviour
         {
             uiCamera = canvas.worldCamera;
         }
+    }
+
+    private void ApplyPivotOption()
+    {
+        if (!forceBottomCenterPivot || rectTransform == null)
+        {
+            return;
+        }
+
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0f);
     }
 
     private void Follow()
@@ -145,7 +189,7 @@ public class WorldGaugeFollower : MonoBehaviour
             }
         }
 
-        Vector3 targetWorldPosition = target.position + worldOffset;
+        Vector3 targetWorldPosition = ResolveTargetWorldPosition();
         Vector3 screenPosition = worldCamera.WorldToScreenPoint(targetWorldPosition);
 
         if (hideWhenBehindCamera && screenPosition.z < 0f)
@@ -171,6 +215,133 @@ public class WorldGaugeFollower : MonoBehaviour
 
         rectTransform.anchoredPosition = localPoint;
         ApplyVisible(true);
+    }
+
+    private Vector3 ResolveTargetWorldPosition()
+    {
+        if (targetAnchor != null && targetAnchor.AnchorTransform != null)
+        {
+            return targetAnchor.AnchorTransform.position + targetAnchor.WorldOffset;
+        }
+
+        if (anchorToTargetTop && targetComponent != null && TryCalculateTargetTop(targetComponent, out Vector3 topPosition))
+        {
+            return topPosition + worldOffset;
+        }
+
+        return target.position + worldOffset;
+    }
+
+    private bool TryCalculateTargetTop(Component component, out Vector3 position)
+    {
+        position = Vector3.zero;
+
+        if (component == null)
+        {
+            return false;
+        }
+
+        if (TryCalculateRendererBounds(component, out Bounds rendererBounds))
+        {
+            position = new Vector3(
+                rendererBounds.center.x,
+                rendererBounds.max.y + Mathf.Max(0f, targetTopPadding),
+                component.transform.position.z
+            );
+            return true;
+        }
+
+        if (TryCalculateColliderBounds(component, false, out Bounds nonTriggerBounds) ||
+            TryCalculateColliderBounds(component, true, out nonTriggerBounds))
+        {
+            position = new Vector3(
+                nonTriggerBounds.center.x,
+                nonTriggerBounds.max.y + Mathf.Max(0f, targetTopPadding),
+                component.transform.position.z
+            );
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryCalculateRendererBounds(Component component, out Bounds bounds)
+    {
+        bounds = default;
+        bool hasBounds = false;
+
+        Renderer[] renderers = includeChildRenderers
+            ? component.GetComponentsInChildren<Renderer>(true)
+            : new[] { component.GetComponent<Renderer>() };
+
+        if (renderers == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        return hasBounds;
+    }
+
+    private bool TryCalculateColliderBounds(Component component, bool includeTriggers, out Bounds bounds)
+    {
+        bounds = default;
+        bool hasBounds = false;
+
+        Collider2D[] colliders = includeChildColliders
+            ? component.GetComponentsInChildren<Collider2D>(true)
+            : new[] { component.GetComponent<Collider2D>() };
+
+        if (colliders == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider2D collider = colliders[i];
+
+            if (collider == null || !collider.enabled || !collider.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (!includeTriggers && collider.isTrigger)
+            {
+                continue;
+            }
+
+            if (!hasBounds)
+            {
+                bounds = collider.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(collider.bounds);
+            }
+        }
+
+        return hasBounds;
     }
 
     private Camera GetCanvasEventCamera()

@@ -1,43 +1,51 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class ShopStockController : MonoBehaviour
 {
-    private enum ShopOfferKind
-    {
-        Trait,
-        Reinforcement
-    }
-
-    [Header("Catalog")]
+    [Header("Trait Catalog")]
     [SerializeField] private TraitCatalog traitCatalog;
     [SerializeField] private bool includeCatalogTraits = true;
-    [SerializeField] private bool includeManualPools = true;
+    [SerializeField] private bool includeManualTraitPool = true;
 
     [Header("Trait Items")]
     [SerializeField] private int traitCost = 45;
     [SerializeField] private int traitChoiceCount = 3;
     [SerializeField] private List<TraitDefinition> traitPool = new List<TraitDefinition>();
 
-    [Header("Ship Reinforcement Items")]
-    [SerializeField] private int reinforcementCost = 60;
+    [Header("Reinforcement Catalog")]
+    [SerializeField] private ReinforcementCatalog reinforcementCatalog;
+    [SerializeField] private bool includeCatalogReinforcements = true;
+    [SerializeField] private bool includeManualReinforcementPool = true;
+
+    [Header("Reinforcement Items")]
+    [SerializeField] private int fallbackReinforcementCost = 60;
     [SerializeField] private int minReinforcementChoiceCount = 1;
     [SerializeField] private int maxReinforcementChoiceCount = 3;
-    [SerializeField] private List<TraitDefinition> reinforcementPool = new List<TraitDefinition>();
+    [SerializeField] private List<ReinforcementDefinition> reinforcementPool = new List<ReinforcementDefinition>();
 
     [Header("Purchase Limit")]
-    [SerializeField] private bool oneTraitPurchasePerShop = true;
-    [SerializeField] private bool oneReinforcementPurchasePerShop = true;
+    [Tooltip("기본 false. true면 이 상점에서 추가 특성을 1개만 살 수 있습니다.")]
+    [SerializeField] private bool limitTraitPurchasePerShop;
+
+    [Tooltip("기본 false. true면 이 상점에서 Reinforcement를 1개만 살 수 있습니다.")]
+    [SerializeField] private bool limitReinforcementPurchasePerShop;
 
     [Header("Duplicate Rule")]
+    [Tooltip("켜면 이미 현재 런에서 가진 특성은 후보 목록에서 제외합니다. 구매 가능 판정에서는 항상 중복 구매를 막습니다.")]
     [SerializeField] private bool excludeAlreadyOwnedRunTraits = true;
+
     [SerializeField] private bool excludePermanentTraits;
 
+    [Tooltip("켜면 현재 장착 중인 Reinforcement는 같은 상점 후보에서 제외합니다.")]
+    [SerializeField] private bool excludeCurrentlyEquippedReinforcement = true;
+
     private readonly List<TraitDefinition> cachedTraitChoices = new List<TraitDefinition>();
-    private readonly List<TraitDefinition> cachedReinforcementChoices = new List<TraitDefinition>();
+    private readonly List<ReinforcementDefinition> cachedReinforcementChoices = new List<ReinforcementDefinition>();
+
+    private readonly HashSet<string> boughtTraitIdsThisShop = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> boughtReinforcementIdsThisShop = new HashSet<string>(StringComparer.Ordinal);
 
     private bool stockRolled;
@@ -45,13 +53,13 @@ public class ShopStockController : MonoBehaviour
     private bool boughtReinforcementThisShop;
 
     public int TraitCost => Mathf.Max(0, traitCost);
-    public int ReinforcementCost => Mathf.Max(0, reinforcementCost);
+    public int FallbackReinforcementCost => Mathf.Max(0, fallbackReinforcementCost);
 
-    public bool TraitSoldOut => oneTraitPurchasePerShop && boughtTraitThisShop;
-    public bool ReinforcementSoldOut => oneReinforcementPurchasePerShop && boughtReinforcementThisShop;
+    public bool TraitSoldOut => limitTraitPurchasePerShop && boughtTraitThisShop;
+    public bool ReinforcementSoldOut => limitReinforcementPurchasePerShop && boughtReinforcementThisShop;
 
     public IReadOnlyList<TraitDefinition> TraitPool => traitPool;
-    public IReadOnlyList<TraitDefinition> ReinforcementPool => reinforcementPool;
+    public IReadOnlyList<ReinforcementDefinition> ReinforcementPool => reinforcementPool;
 
     private void OnEnable()
     {
@@ -64,6 +72,8 @@ public class ShopStockController : MonoBehaviour
 
         boughtTraitThisShop = false;
         boughtReinforcementThisShop = false;
+
+        boughtTraitIdsThisShop.Clear();
         boughtReinforcementIdsThisShop.Clear();
 
         cachedTraitChoices.Clear();
@@ -84,10 +94,10 @@ public class ShopStockController : MonoBehaviour
         return new List<TraitDefinition>(cachedTraitChoices);
     }
 
-    public List<TraitDefinition> RollReinforcementChoices()
+    public List<ReinforcementDefinition> RollReinforcementChoices()
     {
         EnsureStockRolled();
-        return new List<TraitDefinition>(cachedReinforcementChoices);
+        return new List<ReinforcementDefinition>(cachedReinforcementChoices);
     }
 
     public bool CanBuyTrait(TraitDefinition trait)
@@ -98,6 +108,11 @@ public class ShopStockController : MonoBehaviour
         }
 
         if (!IsValidPurchasableTrait(trait))
+        {
+            return false;
+        }
+
+        if (boughtTraitIdsThisShop.Contains(trait.TraitId))
         {
             return false;
         }
@@ -129,8 +144,9 @@ public class ShopStockController : MonoBehaviour
         }
 
         boughtTraitThisShop = true;
+        boughtTraitIdsThisShop.Add(trait.TraitId);
 
-        if (oneTraitPurchasePerShop)
+        if (limitTraitPurchasePerShop)
         {
             cachedTraitChoices.Clear();
         }
@@ -139,81 +155,128 @@ public class ShopStockController : MonoBehaviour
             RemoveCachedTrait(cachedTraitChoices, trait.TraitId);
         }
 
-        RegisterSpentCredits(shop, TraitCost);
+        shop?.RegisterSpentCredits(TraitCost);
         ShopRuntimeEffectApplier.ApplyTraitImmediate(trait, playerObject);
 
         return true;
     }
 
-    public bool CanBuyReinforcement(TraitDefinition reinforcement)
+    public int GetReinforcementCost(ReinforcementDefinition reinforcement)
+    {
+        int baseCost = reinforcement != null && reinforcement.Cost > 0
+            ? reinforcement.Cost
+            : FallbackReinforcementCost;
+
+        float rarityMultiplier = reinforcement != null ? reinforcement.EffectivePriceMultiplier : 1f;
+        float depthMultiplier = ResolveDepthPriceMultiplier();
+
+        return Mathf.Max(0, Mathf.RoundToInt(baseCost * rarityMultiplier * depthMultiplier));
+    }
+
+    private float ResolveDepthPriceMultiplier()
+    {
+        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
+        {
+            return 1f;
+        }
+
+        return RunManager.Instance.CurrentRun.ExpeditionDepth switch
+        {
+            ExpeditionDepth.DeepZone1 => 1.25f,
+            _ => 1f
+        };
+    }
+
+    public bool CanBuyReinforcement(ReinforcementDefinition reinforcement)
+    {
+        return CanBuyReinforcement(reinforcement, null, null);
+    }
+
+    public bool CanBuyReinforcement(ReinforcementDefinition reinforcement, ShopStructure shop, GameObject playerObject)
     {
         if (ReinforcementSoldOut)
         {
             return false;
         }
 
-        if (!IsValidPurchasableTrait(reinforcement))
+        if (!IsValidPurchasableReinforcement(reinforcement))
         {
             return false;
         }
 
-        if (boughtReinforcementIdsThisShop.Contains(reinforcement.TraitId))
+        if (boughtReinforcementIdsThisShop.Contains(reinforcement.EquipmentId))
         {
             return false;
         }
 
-        return ShopRunBridge.CanSpendCredits(ReinforcementCost);
+        if (!CanStoreCurrentReinforcementInShop(shop, playerObject, reinforcement))
+        {
+            return false;
+        }
+
+        return ShopRunBridge.CanSpendCredits(GetReinforcementCost(reinforcement));
     }
 
-    public bool TryBuyReinforcement(ShopStructure shop, TraitDefinition reinforcement, GameObject playerObject)
+    public bool TryBuyReinforcement(ShopStructure shop, ReinforcementDefinition reinforcement, GameObject playerObject)
     {
         if (shop != null && !shop.CanTrade)
         {
             return false;
         }
 
-        if (!CanBuyReinforcement(reinforcement))
+        if (!CanBuyReinforcement(reinforcement, shop, playerObject))
         {
             return false;
         }
 
-        if (!ShopRunBridge.TrySpendCredits(ReinforcementCost))
+        int cost = GetReinforcementCost(reinforcement);
+
+        if (!ShopRunBridge.TrySpendCredits(cost))
         {
             return false;
         }
 
-        if (!ShopRunBridge.AddRunTrait(reinforcement.TraitId))
+        bool equipped = ShopRuntimeEffectApplier.EquipReinforcementImmediate(reinforcement, playerObject, shop);
+
+        if (!equipped)
         {
-            ShopRunBridge.AddCredits(ReinforcementCost);
+            ShopRunBridge.AddCredits(cost);
             return false;
         }
 
         boughtReinforcementThisShop = true;
-        boughtReinforcementIdsThisShop.Add(reinforcement.TraitId);
+        boughtReinforcementIdsThisShop.Add(reinforcement.EquipmentId);
 
-        if (oneReinforcementPurchasePerShop)
+        if (limitReinforcementPurchasePerShop)
         {
             cachedReinforcementChoices.Clear();
         }
         else
         {
-            RemoveCachedTrait(cachedReinforcementChoices, reinforcement.TraitId);
+            RemoveCachedReinforcement(cachedReinforcementChoices, reinforcement.EquipmentId);
         }
 
-        RegisterSpentCredits(shop, ReinforcementCost);
-        ShopRuntimeEffectApplier.ApplyTraitImmediate(reinforcement, playerObject);
-
+        shop?.RegisterSpentCredits(cost);
         return true;
     }
 
     public string BuildOptionDescription(TraitDefinition trait)
     {
-        if (trait == null)
+        return trait != null ? trait.Description : "설명 없음";
+    }
+
+    public string BuildOptionDescription(ReinforcementDefinition reinforcement)
+    {
+        if (reinforcement == null)
         {
-            return "���� ����";
+            return "설명 없음";
         }
 
-        return trait.Description;
+        return
+            $"{reinforcement.GetUseTypeText()}\n" +
+            $"{reinforcement.GetAvailabilityText()}\n\n" +
+            $"{reinforcement.Description}\n\n" +
+            $"효과\n{reinforcement.BuildEffectSummary()}";
     }
 
     private void EnsureStockRolled()
@@ -228,15 +291,11 @@ public class ShopStockController : MonoBehaviour
         cachedTraitChoices.Clear();
         cachedReinforcementChoices.Clear();
 
+        WeaponTreeType selectedTree = ShopRunBridge.GetSelectedWeaponTree(WeaponTreeType.MachineGun);
+
         if (!TraitSoldOut)
         {
-            List<TraitDefinition> traitCandidates = BuildAvailableCandidates(
-                ShopOfferKind.Trait,
-                ShopRunBridge.GetSelectedWeaponTree(WeaponTreeType.MachineGun),
-                excludeAlreadyOwnedRunTraits,
-                null
-            );
-
+            List<TraitDefinition> traitCandidates = BuildAvailableTraitCandidates(selectedTree);
             cachedTraitChoices.AddRange(PickRandom(traitCandidates, Mathf.Max(1, traitChoiceCount)));
         }
 
@@ -246,22 +305,12 @@ public class ShopStockController : MonoBehaviour
             int maxCount = Mathf.Max(minCount, maxReinforcementChoiceCount);
             int count = UnityEngine.Random.Range(minCount, maxCount + 1);
 
-            List<TraitDefinition> reinforcementCandidates = BuildAvailableCandidates(
-                ShopOfferKind.Reinforcement,
-                ShopRunBridge.GetSelectedWeaponTree(WeaponTreeType.MachineGun),
-                excludeAlreadyOwnedRunTraits,
-                boughtReinforcementIdsThisShop
-            );
-
+            List<ReinforcementDefinition> reinforcementCandidates = BuildAvailableReinforcementCandidates(selectedTree);
             cachedReinforcementChoices.AddRange(PickRandom(reinforcementCandidates, count));
         }
     }
 
-    private List<TraitDefinition> BuildAvailableCandidates(
-        ShopOfferKind offerKind,
-        WeaponTreeType selectedTree,
-        bool excludeOwnedRunTraits,
-        HashSet<string> excludeIds)
+    private List<TraitDefinition> BuildAvailableTraitCandidates(WeaponTreeType selectedTree)
     {
         List<TraitDefinition> result = new List<TraitDefinition>();
 
@@ -272,54 +321,55 @@ public class ShopStockController : MonoBehaviour
 
             for (int i = 0; i < catalogTraits.Count; i++)
             {
-                AppendCandidate(
-                    result,
-                    catalogTraits[i],
-                    selectedTree,
-                    offerKind,
-                    true,
-                    excludeOwnedRunTraits,
-                    excludeIds
-                );
+                AppendTraitCandidate(result, catalogTraits[i], selectedTree);
             }
         }
 
-        if (includeManualPools)
+        if (includeManualTraitPool && traitPool != null)
         {
-            List<TraitDefinition> source = offerKind == ShopOfferKind.Trait
-                ? traitPool
-                : reinforcementPool;
-
-            if (source != null)
+            for (int i = 0; i < traitPool.Count; i++)
             {
-                for (int i = 0; i < source.Count; i++)
-                {
-                    AppendCandidate(
-                        result,
-                        source[i],
-                        selectedTree,
-                        offerKind,
-                        false,
-                        excludeOwnedRunTraits,
-                        excludeIds
-                    );
-                }
+                AppendTraitCandidate(result, traitPool[i], selectedTree);
             }
         }
 
         return result;
     }
 
-    private void AppendCandidate(
-        List<TraitDefinition> result,
-        TraitDefinition trait,
-        WeaponTreeType selectedTree,
-        ShopOfferKind offerKind,
-        bool checkShopItemType,
-        bool excludeOwnedRunTraits,
-        HashSet<string> excludeIds)
+    private List<ReinforcementDefinition> BuildAvailableReinforcementCandidates(WeaponTreeType selectedTree)
+    {
+        List<ReinforcementDefinition> result = new List<ReinforcementDefinition>();
+
+        if (includeCatalogReinforcements && reinforcementCatalog != null)
+        {
+            List<ReinforcementDefinition> catalogReinforcements = new List<ReinforcementDefinition>();
+            reinforcementCatalog.AppendAllTo(catalogReinforcements);
+
+            for (int i = 0; i < catalogReinforcements.Count; i++)
+            {
+                AppendReinforcementCandidate(result, catalogReinforcements[i], selectedTree);
+            }
+        }
+
+        if (includeManualReinforcementPool && reinforcementPool != null)
+        {
+            for (int i = 0; i < reinforcementPool.Count; i++)
+            {
+                AppendReinforcementCandidate(result, reinforcementPool[i], selectedTree);
+            }
+        }
+
+        return result;
+    }
+
+    private void AppendTraitCandidate(List<TraitDefinition> result, TraitDefinition trait, WeaponTreeType selectedTree)
     {
         if (result == null || trait == null)
+        {
+            return;
+        }
+
+        if (!trait.CanAppearAsShopTrait)
         {
             return;
         }
@@ -329,12 +379,7 @@ public class ShopStockController : MonoBehaviour
             return;
         }
 
-        if (checkShopItemType && !CanAppearInOfferKind(trait, offerKind))
-        {
-            return;
-        }
-
-        if (excludeOwnedRunTraits && ShopRunBridge.HasRunTrait(trait.TraitId))
+        if (excludeAlreadyOwnedRunTraits && ShopRunBridge.HasRunTrait(trait.TraitId))
         {
             return;
         }
@@ -344,7 +389,7 @@ public class ShopStockController : MonoBehaviour
             return;
         }
 
-        if (excludeIds != null && excludeIds.Contains(trait.TraitId))
+        if (boughtTraitIdsThisShop.Contains(trait.TraitId))
         {
             return;
         }
@@ -357,24 +402,53 @@ public class ShopStockController : MonoBehaviour
         result.Add(trait);
     }
 
-    private bool CanAppearInOfferKind(TraitDefinition trait, ShopOfferKind offerKind)
+    private void AppendReinforcementCandidate(
+        List<ReinforcementDefinition> result,
+        ReinforcementDefinition reinforcement,
+        WeaponTreeType selectedTree)
+    {
+        if (result == null || reinforcement == null)
+        {
+            return;
+        }
+
+        if (!reinforcement.CanAppearInShop)
+        {
+            return;
+        }
+
+        if (!reinforcement.CanUseFor(selectedTree))
+        {
+            return;
+        }
+
+        if (boughtReinforcementIdsThisShop.Contains(reinforcement.EquipmentId))
+        {
+            return;
+        }
+
+        if (excludeCurrentlyEquippedReinforcement &&
+            ShopRunBridge.HasEquippedReinforcement(reinforcement.EquipmentId))
+        {
+            return;
+        }
+
+        if (ContainsReinforcementId(result, reinforcement.EquipmentId))
+        {
+            return;
+        }
+
+        result.Add(reinforcement);
+    }
+
+    private bool IsValidPurchasableTrait(TraitDefinition trait)
     {
         if (trait == null)
         {
             return false;
         }
 
-        return offerKind switch
-        {
-            ShopOfferKind.Trait => trait.CanAppearAsShopTrait,
-            ShopOfferKind.Reinforcement => trait.CanAppearAsShopReinforcement,
-            _ => false
-        };
-    }
-
-    private bool IsValidPurchasableTrait(TraitDefinition trait)
-    {
-        if (trait == null)
+        if (!trait.CanAppearAsShopTrait)
         {
             return false;
         }
@@ -386,12 +460,71 @@ public class ShopStockController : MonoBehaviour
             return false;
         }
 
-        if (excludeAlreadyOwnedRunTraits && ShopRunBridge.HasRunTrait(trait.TraitId))
+        if (ShopRunBridge.HasRunTrait(trait.TraitId))
         {
             return false;
         }
 
         if (excludePermanentTraits && HasPermanentTrait(trait))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CanStoreCurrentReinforcementInShop(
+        ShopStructure shop,
+        GameObject playerObject,
+        ReinforcementDefinition newReinforcement)
+    {
+        if (shop == null || playerObject == null)
+        {
+            return true;
+        }
+
+        PlayerReinforcementController controller = playerObject.GetComponentInParent<PlayerReinforcementController>();
+
+        if (controller == null)
+        {
+            controller = playerObject.GetComponentInChildren<PlayerReinforcementController>(true);
+        }
+
+        if (controller == null || !controller.HasEquipment)
+        {
+            return true;
+        }
+
+        if (controller.EquippedDefinition == null || controller.EquippedDefinition == newReinforcement)
+        {
+            return true;
+        }
+
+        ShopActiveMaintenanceBay maintenanceBay = shop.ActiveMaintenanceBay;
+        return maintenanceBay == null || maintenanceBay.CanStore(controller.EquippedDefinition);
+    }
+
+    private bool IsValidPurchasableReinforcement(ReinforcementDefinition reinforcement)
+    {
+        if (reinforcement == null)
+        {
+            return false;
+        }
+
+        if (!reinforcement.CanAppearInShop)
+        {
+            return false;
+        }
+
+        WeaponTreeType selectedTree = ShopRunBridge.GetSelectedWeaponTree(WeaponTreeType.MachineGun);
+
+        if (!reinforcement.CanUseFor(selectedTree))
+        {
+            return false;
+        }
+
+        if (excludeCurrentlyEquippedReinforcement &&
+            ShopRunBridge.HasEquippedReinforcement(reinforcement.EquipmentId))
         {
             return false;
         }
@@ -420,12 +553,27 @@ public class ShopStockController : MonoBehaviour
         {
             TraitDefinition trait = list[i];
 
-            if (trait == null)
+            if (trait != null && trait.TraitId == traitId)
             {
-                continue;
+                return true;
             }
+        }
 
-            if (trait.TraitId == traitId)
+        return false;
+    }
+
+    private bool ContainsReinforcementId(List<ReinforcementDefinition> list, string equipmentId)
+    {
+        if (list == null || string.IsNullOrWhiteSpace(equipmentId))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            ReinforcementDefinition reinforcement = list[i];
+
+            if (reinforcement != null && reinforcement.EquipmentId == equipmentId)
             {
                 return true;
             }
@@ -452,9 +600,27 @@ public class ShopStockController : MonoBehaviour
         }
     }
 
-    private List<TraitDefinition> PickRandom(List<TraitDefinition> candidates, int count)
+    private void RemoveCachedReinforcement(List<ReinforcementDefinition> list, string equipmentId)
     {
-        List<TraitDefinition> result = new List<TraitDefinition>();
+        if (list == null || string.IsNullOrWhiteSpace(equipmentId))
+        {
+            return;
+        }
+
+        for (int i = list.Count - 1; i >= 0; i--)
+        {
+            ReinforcementDefinition reinforcement = list[i];
+
+            if (reinforcement == null || reinforcement.EquipmentId == equipmentId)
+            {
+                list.RemoveAt(i);
+            }
+        }
+    }
+
+    private List<T> PickRandom<T>(List<T> candidates, int count) where T : UnityEngine.Object
+    {
+        List<T> result = new List<T>();
 
         if (candidates == null || candidates.Count == 0 || count <= 0)
         {
@@ -471,26 +637,5 @@ public class ShopStockController : MonoBehaviour
         }
 
         return result;
-    }
-
-    private void RegisterSpentCredits(ShopStructure shop, int amount)
-    {
-        if (shop == null || amount <= 0)
-        {
-            return;
-        }
-
-        FieldInfo field = typeof(ShopStructure).GetField(
-            "spentCredits",
-            BindingFlags.Instance | BindingFlags.NonPublic
-        );
-
-        if (field == null)
-        {
-            return;
-        }
-
-        int current = (int)field.GetValue(shop);
-        field.SetValue(shop, current + amount);
     }
 }

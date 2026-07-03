@@ -135,7 +135,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
         if (choiceBuffer.Count <= 0)
         {
-            expeditionHUD?.ShowWarning("¼±ÅÃ °¡´ÉÇÑ Æ¯¼ºÀÌ ¾ø½À´Ï´Ù.");
+            expeditionHUD?.ShowWarning("ì„ íƒ ê°€ëŠ¥í•œ íŠ¹ì„±ì´ ì—†ìŠµë‹ˆë‹¤.");
             ShowNextPendingLevel();
             return;
         }
@@ -151,12 +151,12 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
         if (titleText != null)
         {
-            titleText.text = $"·¹º§ {level} ´Þ¼º";
+            titleText.text = $"ë ˆë²¨ {level} ë‹¬ì„±";
         }
 
         if (bodyText != null)
         {
-            bodyText.text = "ÀÌ¹ø Å½»ç µ¿¾È Àû¿ëÇÒ Æ¯¼ºÀ» ¼±ÅÃÇØ¶ó.";
+            bodyText.text = "ì´ë²ˆ íƒì‚¬ ë™ì•ˆ ì ìš©í•  íŠ¹ì„±ì„ ì„ íƒí•´ë¼.";
         }
 
         RunRuntimeTraitStore store = RunRuntimeTraitStore.Instance;
@@ -197,7 +197,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
         if (newLevel <= 0)
         {
-            expeditionHUD?.ShowWarning("Æ¯¼º Àû¿ë¿¡ ½ÇÆÐÇß½À´Ï´Ù.");
+            expeditionHUD?.ShowWarning("íŠ¹ì„± ì ìš©ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.");
             return;
         }
 
@@ -211,7 +211,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
             traitEffectApplier.ApplyTraitLevel(trait, newLevel);
         }
 
-        expeditionHUD?.ShowWarning($"{trait.DisplayName} Lv{newLevel} Àû¿ë");
+        expeditionHUD?.ShowWarning($"{trait.DisplayName} Lv{newLevel} ì ìš©");
 
         if (pauseGameplayWhileSelecting)
         {
@@ -305,12 +305,12 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
             return false;
         }
 
-        if (trait.CanAppearAsShopTrait)
+        if (trait.CanAppearAsLevelUpTrait)
         {
             return true;
         }
 
-        if (includeHiddenTraits && trait.ShopItemType == TraitShopItemType.Hidden)
+        if (includeHiddenTraits && trait.IsHidden)
         {
             return true;
         }
@@ -421,73 +421,73 @@ public static class TraitEffectTextUtility
         switch (effectType)
         {
             case TraitEffectType.DamagePercent:
-                return $"°ø°Ý·Â +{value:0.#}%";
+                return $"ê³µê²©ë ¥ +{value:0.#}%";
 
             case TraitEffectType.ProjectileSpeedPercent:
-                return $"Åº¼Ó +{value:0.#}%";
+                return $"íƒ„ì† +{value:0.#}%";
 
             case TraitEffectType.RangePercent:
-                return $"»ç°Å¸® +{value:0.#}%";
+                return $"ì‚¬ê±°ë¦¬ +{value:0.#}%";
 
             case TraitEffectType.MoveSpeedPercent:
-                return $"ÀÌµ¿¼Óµµ +{value:0.#}%";
+                return $"ì´ë™ì†ë„ +{value:0.#}%";
 
             case TraitEffectType.DashCooldownReduction:
-                return $"´ë½¬ Äð´Ù¿î -{Mathf.Abs(value):0.##}ÃÊ";
+                return $"ëŒ€ì‰¬ ì¿¨ë‹¤ìš´ -{Mathf.Abs(value):0.##}ì´ˆ";
 
             case TraitEffectType.DashDistanceBonus:
-                return $"´ë½¬ °Å¸® +{value:0.##}";
+                return $"ëŒ€ì‰¬ ê±°ë¦¬ +{value:0.##}";
 
             case TraitEffectType.MaxHpBonus:
-                return $"ÃÖ´ë Ã¼·Â +{value:0.#}";
+                return $"ìµœëŒ€ ì²´ë ¥ +{value:0.#}";
 
             case TraitEffectType.HealEfficiencyPercent:
-                return $"È¸º¹ ÀÚ¿ø È¿°ú +{value:0.#}%";
+                return $"íšŒë³µ ìžì› íš¨ê³¼ +{value:0.#}%";
 
             case TraitEffectType.PickupRangeBonus:
-                return $"¾ÆÀÌÅÛ Èí¼ö ¹üÀ§ +{value:0.##}";
+                return $"ì•„ì´í…œ í¡ìˆ˜ ë²”ìœ„ +{value:0.##}";
 
             case TraitEffectType.SpreadReductionPercent:
-                return $"Åº ÆÛÁü -{Mathf.Abs(value):0.#}%";
+                return $"íƒ„ í¼ì§ -{Mathf.Abs(value):0.#}%";
 
             case TraitEffectType.ProjectileCountBonus:
-                return $"Åº ¼ö +{Mathf.RoundToInt(value)}";
+                return $"íƒ„ ìˆ˜ +{Mathf.RoundToInt(value)}";
 
             case TraitEffectType.PierceCountBonus:
-                return $"°üÅë È½¼ö +{Mathf.RoundToInt(value)}";
+                return $"ê´€í†µ íšŸìˆ˜ +{Mathf.RoundToInt(value)}";
 
             case TraitEffectType.ChargeTimeReductionPercent:
-                return $"Â÷Â¡ ½Ã°£ -{Mathf.Abs(value):0.#}%";
+                return $"ì°¨ì§• ì‹œê°„ -{Mathf.Abs(value):0.#}%";
 
             case TraitEffectType.ChargeDamagePercent:
-                return $"Â÷Â¡ ÇÇÇØ +{value:0.#}%";
+                return $"ì°¨ì§• í”¼í•´ +{value:0.#}%";
 
             case TraitEffectType.HomingAngleBonus:
-                return $"À¯µµ °¢µµ +{value:0.#}µµ";
+                return $"ìœ ë„ ê°ë„ +{value:0.#}ë„";
 
             case TraitEffectType.HomingRangeBonus:
-                return $"À¯µµ °Å¸® +{value:0.##}";
+                return $"ìœ ë„ ê±°ë¦¬ +{value:0.##}";
 
             case TraitEffectType.FireRatePercent:
-                return $"¿¬»ç·Â +{value:0.#}%";
+                return $"ì—°ì‚¬ë ¥ +{value:0.#}%";
 
             case TraitEffectType.CloseRangeDamageReductionPercent:
-                return $"±Ù°Å¸® ÇÇÇØ °¨¼Ò +{value:0.#}%";
+                return $"ê·¼ê±°ë¦¬ í”¼í•´ ê°ì†Œ +{value:0.#}%";
 
             case TraitEffectType.DashDamageReductionPercent:
-                return $"´ë½¬ ÈÄ ÇÇÇØ °¨¼Ò +{value:0.#}%";
+                return $"ëŒ€ì‰¬ í›„ í”¼í•´ ê°ì†Œ +{value:0.#}%";
 
             case TraitEffectType.CloseRangeSuppressionPercent:
-                return $"±Ù°Å¸® Á¦¾Ð È¿°ú +{value:0.#}%";
+                return $"ê·¼ê±°ë¦¬ ì œì•• íš¨ê³¼ +{value:0.#}%";
 
             case TraitEffectType.ChargeSightBonusPercent:
-                return $"Â÷Â¡ Áß ½Ã¾ß +{value:0.#}%";
+                return $"ì°¨ì§• ì¤‘ ì‹œì•¼ +{value:0.#}%";
 
             case TraitEffectType.ChargedProjectileSizePercent:
-                return $"Â÷Â¡Åº Å©±â +{value:0.#}%";
+                return $"ì°¨ì§•íƒ„ í¬ê¸° +{value:0.#}%";
 
             case TraitEffectType.RemovePierceDamageFalloff:
-                return "°üÅë ÈÄ ÇÇÇØ °¨¼è Á¦°Å";
+                return "ê´€í†µ í›„ í”¼í•´ ê°ì‡  ì œê±°";
 
             default:
                 return $"{effectType} {value:0.##}";

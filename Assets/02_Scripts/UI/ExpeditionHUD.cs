@@ -7,6 +7,8 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private PlayerArmor playerArmor;
     [SerializeField] private PlayerDash playerDash;
     [SerializeField] private PlayerInteractor playerInteractor;
+    [SerializeField] private PlayerReinforcementController reinforcementController;
+    [SerializeField] private PlayerCargoController cargoController;
 
     [Header("Systems")]
     [SerializeField] private RunLevelSystem runLevelSystem;
@@ -21,11 +23,16 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private GaugeBarUI armorGauge;
     [SerializeField] private GaugeBarUI expGauge;
     [SerializeField] private GaugeBarUI dashGauge;
+    [SerializeField] private GaugeBarUI cargoGauge;
 
     [Header("Resource Counters")]
     [SerializeField] private ResourceCounterUI creditsCounter;
     [SerializeField] private ResourceCounterUI scrapCounter;
     [SerializeField] private ResourceCounterUI coreShardCounter;
+
+    [Header("Reinforcement")]
+    [Tooltip("좌측 하단 Reinforcement 전용 슬롯 UI")]
+    [SerializeField] private ReinforcementSlotUI reinforcementSlotUI;
 
     [Header("Messages")]
     [SerializeField] private InteractionPromptUI interactionPromptUI;
@@ -65,10 +72,14 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void Update()
     {
-        if (!cinematicMode)
+        if (cinematicMode)
         {
-            UpdateDashGauge();
+            return;
         }
+
+        UpdateDashGauge();
+        UpdateReinforcementSlot();
+        UpdateCargoGauge();
     }
 
     public void SetCinematicMode(bool enabled)
@@ -116,6 +127,8 @@ public class ExpeditionHUD : MonoBehaviour
         }
 
         UpdateDashGauge();
+        UpdateReinforcementSlot();
+        UpdateCargoGauge();
     }
 
     public void ShowWarning(string message)
@@ -148,6 +161,21 @@ public class ExpeditionHUD : MonoBehaviour
             playerInteractor = FindFirstObjectByType<PlayerInteractor>();
         }
 
+        if (reinforcementController == null)
+        {
+            reinforcementController = FindFirstObjectByType<PlayerReinforcementController>();
+        }
+
+        if (reinforcementSlotUI == null)
+        {
+            reinforcementSlotUI = FindFirstObjectByType<ReinforcementSlotUI>();
+        }
+
+        if (cargoController == null)
+        {
+            cargoController = FindFirstObjectByType<PlayerCargoController>();
+        }
+
         if (runLevelSystem == null)
         {
             runLevelSystem = FindFirstObjectByType<RunLevelSystem>();
@@ -171,6 +199,18 @@ public class ExpeditionHUD : MonoBehaviour
         {
             playerDash.DashStarted += HandleDashStarted;
             playerDash.DashEnded += HandleDashEnded;
+        }
+
+        if (reinforcementController != null)
+        {
+            reinforcementController.EquipmentChanged += HandleReinforcementEquipmentChanged;
+            reinforcementController.ChargesChanged += HandleReinforcementChargesChanged;
+            reinforcementController.Used += HandleReinforcementUsed;
+        }
+
+        if (cargoController != null)
+        {
+            cargoController.CargoChanged += HandleCargoChanged;
         }
 
         if (runLevelSystem != null)
@@ -204,6 +244,18 @@ public class ExpeditionHUD : MonoBehaviour
             playerDash.DashEnded -= HandleDashEnded;
         }
 
+        if (reinforcementController != null)
+        {
+            reinforcementController.EquipmentChanged -= HandleReinforcementEquipmentChanged;
+            reinforcementController.ChargesChanged -= HandleReinforcementChargesChanged;
+            reinforcementController.Used -= HandleReinforcementUsed;
+        }
+
+        if (cargoController != null)
+        {
+            cargoController.CargoChanged -= HandleCargoChanged;
+        }
+
         if (runLevelSystem != null)
         {
             runLevelSystem.LevelStateChanged -= HandleLevelStateChanged;
@@ -223,12 +275,18 @@ public class ExpeditionHUD : MonoBehaviour
         SetGameObjectVisible(statusRoot, visible);
         SetGameObjectVisible(resourceRoot, visible);
 
+        if (reinforcementSlotUI != null)
+        {
+            reinforcementSlotUI.SetVisible(visible);
+        }
+
         if (statusRoot == null)
         {
             SetGaugeVisible(hpGauge, visible);
             SetGaugeVisible(armorGauge, visible);
             SetGaugeVisible(expGauge, visible);
             SetGaugeVisible(dashGauge, visible);
+            SetGaugeVisible(cargoGauge, visible);
         }
 
         if (resourceRoot == null)
@@ -315,6 +373,26 @@ public class ExpeditionHUD : MonoBehaviour
         UpdateDashGauge();
     }
 
+    private void HandleReinforcementEquipmentChanged(ReinforcementDefinition definition, int charges, int maxCharges)
+    {
+        UpdateReinforcementSlot();
+    }
+
+    private void HandleReinforcementChargesChanged(int charges, int maxCharges, float rechargeRatio)
+    {
+        UpdateReinforcementSlot();
+    }
+
+    private void HandleReinforcementUsed(ReinforcementDefinition definition)
+    {
+        UpdateReinforcementSlot();
+    }
+
+    private void HandleCargoChanged(int currentLoad, int maxCapacity)
+    {
+        UpdateCargoGauge();
+    }
+
     private void RefreshHealth(float current, float max)
     {
         if (hpGauge != null)
@@ -378,6 +456,8 @@ public class ExpeditionHUD : MonoBehaviour
         {
             coreShardCounter.SetAmount(core);
         }
+
+        UpdateCargoGauge();
     }
 
     private void UpdateDashGauge()
@@ -407,5 +487,47 @@ public class ExpeditionHUD : MonoBehaviour
 
         dashGauge.SetRatio(ratio);
         dashGauge.SetText(string.Format(dashCooldownText, remaining));
+    }
+
+    private void UpdateCargoGauge()
+    {
+        if (cargoGauge == null)
+        {
+            return;
+        }
+
+        if (cargoController != null)
+        {
+            cargoGauge.SetValue(cargoController.CurrentLoad, Mathf.Max(1, cargoController.MaxCapacity));
+            cargoGauge.SetText($"Cargo {cargoController.CurrentLoad}/{cargoController.MaxCapacity}");
+            return;
+        }
+
+        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        {
+            RunContext runContext = RunManager.Instance.CurrentRun;
+            cargoGauge.SetValue(runContext.CurrentCargoLoad, Mathf.Max(1, runContext.MaxCargoCapacity));
+            cargoGauge.SetText($"Cargo {runContext.CurrentCargoLoad}/{runContext.MaxCargoCapacity}");
+            return;
+        }
+
+        cargoGauge.SetValue(0f, 1f);
+        cargoGauge.SetText("Cargo 0/0");
+    }
+
+    private void UpdateReinforcementSlot()
+    {
+        if (reinforcementSlotUI == null)
+        {
+            return;
+        }
+
+        if (reinforcementController == null)
+        {
+            reinforcementSlotUI.SetEmpty();
+            return;
+        }
+
+        reinforcementSlotUI.RefreshFrom(reinforcementController);
     }
 }

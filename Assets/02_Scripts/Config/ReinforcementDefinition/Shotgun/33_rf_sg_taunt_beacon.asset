@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 33_rf_sg_taunt_beacon
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_sg_taunt_beacon"
+  displayName: "\ub3c4\ubc1c \ube44\ucf58"
+  description: "\uc0f7\uac74 \uae30\uccb4 \uc804\uc6a9. \ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \uc8fc\ubcc0 \uc801\uc744 \ubc00\uccd0\ub0b4\ub294 \uacf5\uac04 \ud655\ubcf4 \uc7a5\ube44\ub2e4."
+  icon: {fileID: 0}
+  rarity: 2
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 2
+  availability: 2
+  cost: 55
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 1
+  startWithFullCharges: 1
+  rechargeSeconds: 30
+  effects:
+  - effectType: 5
+    value: 3
+    radius: 5
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

@@ -99,6 +99,8 @@ public class MachineGunWeapon : PlayerWeaponBase
             return;
         }
 
+        SpawnMuzzleEffectFrom(selectedFirePoint, baseDirection);
+
         lastShotSide = shotSide;
         AdvanceFirePointSide();
 

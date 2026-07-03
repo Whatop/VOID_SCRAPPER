@@ -205,18 +205,20 @@ public class SettlementController : MonoBehaviour
         }
 
         selectedShipId = ship.ShipId;
+        selectedWeaponTree = ResolveWeaponTreeForShip(ship);
         previewShipIndex = Mathf.Max(0, FindShipIndex(selectedShipId));
 
         if (PermanentProgress.Instance != null)
         {
             PermanentProgress.Instance.SetSelectedShipId(selectedShipId);
+            PermanentProgress.Instance.SetLastSelectedWeaponTree(selectedWeaponTree);
         }
 
         SaveProgress();
-        SetMessage($"출격 기체 선택: {ship.DisplayName}");
+
+        SetMessage($"출격 기체 선택: {ship.DisplayName} / {GetWeaponDisplayName(selectedWeaponTree)}");
         return true;
     }
-
     public bool TryDevelopShip(string shipId)
     {
         ShipDefinition ship = FindShipDefinition(shipId);
@@ -780,11 +782,45 @@ public class SettlementController : MonoBehaviour
             return;
         }
 
-        SaveProgress();
-        SetMessage($"탐사 시작: {selectedShip.DisplayName} / {GetWeaponDisplayName(selectedWeaponTree)}");
-        RunManager.Instance.StartNewRunAndLoadExpedition(selectedWeaponTree, SelectedShipId);
-    }
+        selectedWeaponTree = ResolveWeaponTreeForShip(selectedShip);
 
+        if (PermanentProgress.Instance != null)
+        {
+            PermanentProgress.Instance.SetSelectedShipId(selectedShip.ShipId);
+            PermanentProgress.Instance.SetLastSelectedWeaponTree(selectedWeaponTree);
+        }
+
+        SaveProgress();
+
+        SetMessage($"탐사 시작: {selectedShip.DisplayName} / {GetWeaponDisplayName(selectedWeaponTree)}");
+        RunManager.Instance.StartNewRunAndLoadExpedition(selectedWeaponTree, selectedShip.ShipId);
+    }
+    private WeaponTreeType ResolveWeaponTreeForShip(ShipDefinition ship)
+    {
+        if (ship == null)
+        {
+            return defaultWeaponTree;
+        }
+
+        string id = ship.ShipId.ToLowerInvariant();
+
+        if (id.Contains("shotgun"))
+        {
+            return WeaponTreeType.Shotgun;
+        }
+
+        if (id.Contains("sniper"))
+        {
+            return WeaponTreeType.Sniper;
+        }
+
+        if (id.Contains("machine") || id.Contains("basic"))
+        {
+            return WeaponTreeType.MachineGun;
+        }
+
+        return ship.DefaultWeaponTree;
+    }
     public string GetBuildingDisplayName(BuildingType buildingType)
     {
         BuildingDefinition definition = FindBuildingDefinition(buildingType);

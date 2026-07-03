@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 05_rf_emp_bomb
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_emp_bomb"
+  displayName: "EMP \ud3ed\ud0c4"
+  description: "\uc8fc\ubcc0 \uc801 \ud0c4\ud658\uc744 \uc81c\uac70\ud558\uace0 \uac00\uae4c\uc6b4 \uc801\uc5d0\uac8c \ud53c\ud574\ub97c \uc900\ub2e4."
+  icon: {fileID: 0}
+  rarity: 0
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 1
+  availability: 0
+  cost: 65
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 1
+  startWithFullCharges: 1
+  rechargeSeconds: 18
+  effects:
+  - effectType: 3
+    value: 1
+    radius: 5
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1
+  - effectType: 4
+    value: 8
+    radius: 5
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

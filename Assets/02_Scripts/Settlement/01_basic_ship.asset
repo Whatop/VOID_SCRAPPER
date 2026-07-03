@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: 01_basic_ship
   m_EditorClassIdentifier: 
   shipId: basic_ship
-  displayName: "\uAE30\uBCF8 \uAE30\uCCB4"
-  description: "\uD45C\uC900\uD615 \uD0D0\uC0AC\uC6A9 \uAE30\uCCB4."
+  displayName: "표준 회수정"
+  description: "기본 수확용 기체. 중거리 기관총으로 적을 밀어내고 잔해와 컨테이너를 안정적으로 파괴한다."
   previewSprite: {fileID: 21300000, guid: ef696ea238a6c7c4da05ebee40c886b1, type: 3}
   unlockedByDefault: 1
   unlockFlag: 
@@ -25,4 +25,9 @@ MonoBehaviour:
   moveSpeedBonusPercent: 0
   dashDistanceBonus: 0
   dashCooldownReduction: 0
-  passiveDescription: "\uCD94\uAC00 \uD328\uC2DC\uBE0C \uC5C6\uC74C."
+  cargoCapacity: 100
+  harvestYieldBonusPercent: 0
+  harvestObjectDamageBonusPercent: 10
+  emergencyReturnCapacityRatio: 0.7
+  defaultReinforcementId: rf_emergency_return_anchor
+  passiveDescription: "수확 오브젝트 피해 +10%, 기본 기체 용량 100."

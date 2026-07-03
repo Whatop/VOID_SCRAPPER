@@ -244,8 +244,8 @@ MonoBehaviour:
   markerType: 1
   markerTransform: {fileID: 8054064912569669180}
   visible: 1
-  markerSprite: {fileID: 0}
-  markerColor: {r: 1, g: 1, b: 1, a: 1}
+  markerSprite: {fileID: 21300000, guid: 0a5e3355c8b94fb439bb3416622c7886, type: 3}
+  markerColor: {r: 1, g: 1, b: 0, a: 1}
   markerScale: 1
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 1

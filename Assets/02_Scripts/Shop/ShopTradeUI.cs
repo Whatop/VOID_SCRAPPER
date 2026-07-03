@@ -9,62 +9,108 @@ public class ShopTradeUI : MonoBehaviour
     {
         None,
         Repair,
-        Trait,
-        Reinforcement
+        Reinforcement,
+        Trait
+    }
+
+    private enum ShopVisualState
+    {
+        Friendly,
+        Neutral,
+        Warning
     }
 
     private struct ShopOption
     {
-        public ShopOptionKind kind;
-        public TraitDefinition trait;
-        public string title;
-        public string description;
-        public int cost;
+        public ShopOptionKind Kind;
+        public string Title;
+        public string ConditionText;
+        public string DescriptionText;
+        public int Cost;
+        public Sprite Icon;
+        public TraitDefinition Trait;
+        public ReinforcementDefinition Reinforcement;
     }
 
-    [Header("Root")]
+    [Header("Î£®Ìä∏ / ÌéòÏù¥ÏßÄ")]
     [SerializeField] private GameObject root;
+    [SerializeField] private GameObject tradePageRoot;
+    [SerializeField] private GameObject maintenancePageRoot;
+    [SerializeField] private Button tradeTabButton;
+    [SerializeField] private Button maintenanceTabButton;
 
-    [Header("Left Detail")]
-    [SerializeField] private TextMeshProUGUI detailTitleText;
-    [SerializeField] private TextMeshProUGUI detailDescriptionText;
-    [SerializeField] private TextMeshProUGUI detailCostText;
-    [SerializeField] private Button buyButton;
-    [SerializeField] private TextMeshProUGUI buyButtonText;
-
-    [Header("Right Items - Repair")]
-    [SerializeField] private Button repairOptionButton;
-    [SerializeField] private TextMeshProUGUI repairOptionText;
-
-    [Header("Right Items - Trait")]
-    [SerializeField] private Button[] traitOptionButtons = new Button[3];
-    [SerializeField] private TextMeshProUGUI[] traitOptionTexts = new TextMeshProUGUI[3];
-
-    [Header("Right Items - Reinforcement")]
-    [SerializeField] private Button[] reinforcementOptionButtons = new Button[3];
-    [SerializeField] private TextMeshProUGUI[] reinforcementOptionTexts = new TextMeshProUGUI[3];
-
-    [Header("Close")]
-    [SerializeField] private Button closeButton;
-
-    [Header("Pause")]
+    [Header("ÏùºÏãúÏ†ïÏßÄ")]
     [SerializeField] private bool pauseGameWhileOpen = true;
 
-    [Header("Fallback Text")]
-    [SerializeField] private string noItemTitle = "ªÛ«∞ æ¯¿Ω";
-    [SerializeField] private string noItemDescription = "±∏∏≈ ∞°¥…«— ªÛ«∞¿Ã æ¯Ω¿¥œ¥Ÿ.";
-    [SerializeField] private string buyText = "±∏∏≈";
-    [SerializeField] private string cannotBuyText = "±∏∏≈ ∫“∞°";
+    [Header("ÏÉÅÏ†ê ÏÉÅÌÉú ÌëúÏãú - Î°úÏßÅ ÏóÜÏùå")]
+    [SerializeField] private Image stateDotImage;
+    [SerializeField] private TextMeshProUGUI stateText;
+    [SerializeField] private ShopVisualState visualState = ShopVisualState.Neutral;
+    [SerializeField] private Color friendlyColor = new Color(0.2f, 1f, 0.3f);
+    [SerializeField] private Color neutralColor = new Color(1f, 0.9f, 0.2f);
+    [SerializeField] private Color warningColor = new Color(1f, 0.55f, 0.15f);
+
+    [Header("ÏôºÏ™Ω ÏÉÅÏÑ∏ Ï†ïÎ≥¥")]
+    [SerializeField] private Image detailIconImage;
+    [SerializeField] private TextMeshProUGUI selectedItemLabelText;
+    [SerializeField] private TextMeshProUGUI itemNameText;
+    [SerializeField] private TextMeshProUGUI conditionText;
+    [SerializeField] private TextMeshProUGUI bodyText;
+    [SerializeField] private TextMeshProUGUI priceText;
+
+    [Header("Í±∞Îûò ÌÉ≠ - ÏàòÎ¶¨ 1Í∞ú")]
+    [SerializeField] private Button repairButton;
+    [SerializeField] private Image repairButtonIcon;
+    [SerializeField] private TextMeshProUGUI repairButtonText;
+    [SerializeField] private TextMeshProUGUI repairButtonNameText;
+    [SerializeField] private TextMeshProUGUI repairButtonPriceText;
+    [SerializeField] private Sprite repairIcon;
+
+    [Header("Í±∞Îûò ÌÉ≠ - Reinforcement 2Í∞ú")]
+    [SerializeField] private Button[] reinforcementButtons = new Button[2];
+    [SerializeField] private Image[] reinforcementButtonIcons = new Image[2];
+    [SerializeField] private TextMeshProUGUI[] reinforcementButtonTexts = new TextMeshProUGUI[2];
+    [SerializeField] private TextMeshProUGUI[] reinforcementButtonNameTexts = new TextMeshProUGUI[2];
+    [SerializeField] private TextMeshProUGUI[] reinforcementButtonPriceTexts = new TextMeshProUGUI[2];
+
+    [Header("Í±∞Îûò ÌÉ≠ - Trait 3Í∞ú")]
+    [SerializeField] private Button[] traitButtons = new Button[3];
+    [SerializeField] private Image[] traitButtonIcons = new Image[3];
+    [SerializeField] private TextMeshProUGUI[] traitButtonTexts = new TextMeshProUGUI[3];
+    [SerializeField] private TextMeshProUGUI[] traitButtonNameTexts = new TextMeshProUGUI[3];
+    [SerializeField] private TextMeshProUGUI[] traitButtonPriceTexts = new TextMeshProUGUI[3];
+
+    [Header("ÌïòÎã® - ÌòÑÏû¨ Ïï°Ìã∞Î∏å")]
+    [SerializeField] private Image currentActiveIconImage;
+    [SerializeField] private TextMeshProUGUI currentActiveNameText;
+    [SerializeField] private TextMeshProUGUI currentActiveTypeText;
+
+    [Header("ÌïòÎã® Î≤ÑÌäº")]
+    [SerializeField] private Button buyButton;
+    [SerializeField] private Button exitButton;
+    [SerializeField] private TextMeshProUGUI buyButtonText;
+    [SerializeField] private string buyText = "Íµ¨Îß§";
+    [SerializeField] private string cannotBuyText = "Íµ¨Îß§ Î∂àÍ∞Ä";
+
+    [Header("Í∏∞Î≥∏ Ïù¥ÎØ∏ÏßÄ")]
+    [SerializeField] private Sprite activeFallbackIcon;
+    [SerializeField] private Sprite traitFallbackIcon;
+
+    [Header("Ï†ïÎπÑÏÜå UI")]
+    [SerializeField] private ShopMaintenanceBayUI maintenanceBayUI;
 
     private ShopStructure currentShop;
     private ShopStockController currentStock;
+    private ShopActiveMaintenanceBay currentMaintenanceBay;
     private GameObject currentPlayer;
-
-    private bool isOpen;
-    private ShopOption selectedOption;
+    private PlayerReinforcementController currentReinforcementController;
 
     private readonly List<TraitDefinition> traitChoices = new List<TraitDefinition>();
-    private readonly List<TraitDefinition> reinforcementChoices = new List<TraitDefinition>();
+    private readonly List<ReinforcementDefinition> reinforcementChoices = new List<ReinforcementDefinition>();
+
+    private ShopOption selectedOption;
+    private bool isOpen;
+    private bool pauseRequested;
 
     public bool IsOpen => isOpen;
 
@@ -75,8 +121,12 @@ public class ShopTradeUI : MonoBehaviour
             root = gameObject;
         }
 
-        BindStaticButtons();
-        Close();
+        BindButtons();
+
+        if (root != null)
+        {
+            root.SetActive(false);
+        }
     }
 
     private void OnDisable()
@@ -87,20 +137,20 @@ public class ShopTradeUI : MonoBehaviour
     private void OnDestroy()
     {
         ReleasePause();
-        UnbindStaticButtons();
-        ClearDynamicButtonListeners();
+        UnbindButtons();
     }
 
     public void Open(ShopStructure shop, GameObject playerObject)
     {
         currentShop = shop;
         currentPlayer = playerObject;
-        currentStock = shop != null ? shop.GetComponent<ShopStockController>() : null;
 
-        if (currentStock == null && shop != null)
-        {
-            currentStock = shop.GetComponentInChildren<ShopStockController>(true);
-        }
+        currentStock = shop != null ? shop.GetComponent<ShopStockController>() : null;
+        currentMaintenanceBay = shop != null ? shop.ActiveMaintenanceBay : null;
+
+        currentReinforcementController = currentPlayer != null
+            ? currentPlayer.GetComponentInChildren<PlayerReinforcementController>(true)
+            : null;
 
         isOpen = true;
 
@@ -110,25 +160,31 @@ public class ShopTradeUI : MonoBehaviour
         }
 
         RequestPause();
-
+        ApplyTopStateVisual();
         RollShopItems();
-        RefreshOptionButtons();
-        SelectDefaultOption();
+        selectedOption = default;
+        RefreshTradePage();
+        ShowTradePage();
     }
 
     public void Close()
     {
         isOpen = false;
 
+        if (maintenanceBayUI != null)
+        {
+            maintenanceBayUI.Close();
+        }
+
         currentShop = null;
         currentStock = null;
+        currentMaintenanceBay = null;
         currentPlayer = null;
+        currentReinforcementController = null;
 
         traitChoices.Clear();
         reinforcementChoices.Clear();
         selectedOption = default;
-
-        ClearDynamicButtonListeners();
 
         if (root != null)
         {
@@ -138,145 +194,195 @@ public class ShopTradeUI : MonoBehaviour
         ReleasePause();
     }
 
+    private void BindButtons()
+    {
+        if (tradeTabButton != null)
+        {
+            tradeTabButton.onClick.RemoveListener(ShowTradePage);
+            tradeTabButton.onClick.AddListener(ShowTradePage);
+        }
+
+        if (maintenanceTabButton != null)
+        {
+            maintenanceTabButton.onClick.RemoveListener(ShowMaintenancePage);
+            maintenanceTabButton.onClick.AddListener(ShowMaintenancePage);
+        }
+
+        if (buyButton != null)
+        {
+            buyButton.onClick.RemoveListener(OnClickBuy);
+            buyButton.onClick.AddListener(OnClickBuy);
+        }
+
+        if (exitButton != null)
+        {
+            exitButton.onClick.RemoveListener(Close);
+            exitButton.onClick.AddListener(Close);
+        }
+
+        if (repairButton != null)
+        {
+            repairButton.onClick.RemoveAllListeners();
+            repairButton.onClick.AddListener(() => SelectOption(BuildRepairOption()));
+        }
+
+        for (int i = 0; i < reinforcementButtons.Length; i++)
+        {
+            int captured = i;
+
+            if (reinforcementButtons[captured] != null)
+            {
+                reinforcementButtons[captured].onClick.RemoveAllListeners();
+                reinforcementButtons[captured].onClick.AddListener(() => OnClickReinforcementSlot(captured));
+            }
+        }
+
+        for (int i = 0; i < traitButtons.Length; i++)
+        {
+            int captured = i;
+
+            if (traitButtons[captured] != null)
+            {
+                traitButtons[captured].onClick.RemoveAllListeners();
+                traitButtons[captured].onClick.AddListener(() => OnClickTraitSlot(captured));
+            }
+        }
+
+        if (maintenanceBayUI != null)
+        {
+            maintenanceBayUI.ExitRequested -= Close;
+            maintenanceBayUI.ExitRequested += Close;
+        }
+    }
+
+    private void UnbindButtons()
+    {
+        if (tradeTabButton != null)
+        {
+            tradeTabButton.onClick.RemoveListener(ShowTradePage);
+        }
+
+        if (maintenanceTabButton != null)
+        {
+            maintenanceTabButton.onClick.RemoveListener(ShowMaintenancePage);
+        }
+
+        if (buyButton != null)
+        {
+            buyButton.onClick.RemoveListener(OnClickBuy);
+        }
+
+        if (exitButton != null)
+        {
+            exitButton.onClick.RemoveListener(Close);
+        }
+
+        if (maintenanceBayUI != null)
+        {
+            maintenanceBayUI.ExitRequested -= Close;
+        }
+    }
+
+    private void ShowTradePage()
+    {
+        if (!isOpen)
+        {
+            return;
+        }
+
+        if (tradePageRoot != null)
+        {
+            tradePageRoot.SetActive(true);
+        }
+
+        if (maintenancePageRoot != null)
+        {
+            maintenancePageRoot.SetActive(false);
+        }
+
+        if (maintenanceBayUI != null)
+        {
+            maintenanceBayUI.Close();
+        }
+
+        RefreshCurrentActiveBar();
+    }
+
+    private void ShowMaintenancePage()
+    {
+        if (!isOpen)
+        {
+            return;
+        }
+
+        if (tradePageRoot != null)
+        {
+            tradePageRoot.SetActive(false);
+        }
+
+        if (maintenancePageRoot != null)
+        {
+            maintenancePageRoot.SetActive(true);
+        }
+
+        if (maintenanceBayUI != null)
+        {
+            maintenanceBayUI.Open(currentShop, currentPlayer, currentMaintenanceBay);
+        }
+    }
+
     private void RollShopItems()
     {
         traitChoices.Clear();
         reinforcementChoices.Clear();
 
-        if (currentStock != null)
-        {
-            traitChoices.AddRange(currentStock.RollTraitChoices());
-            reinforcementChoices.AddRange(currentStock.RollReinforcementChoices());
-        }
-    }
-
-    private void RefreshOptionButtons()
-    {
-        RefreshRepairButton();
-        RefreshTraitButtons();
-        RefreshReinforcementButtons();
-    }
-
-    private void RefreshRepairButton()
-    {
-        if (repairOptionButton == null)
+        if (currentStock == null)
         {
             return;
         }
 
-        bool visible = currentShop != null;
-        repairOptionButton.gameObject.SetActive(visible);
-        repairOptionButton.onClick.RemoveAllListeners();
+        List<ReinforcementDefinition> rolledReinforcements = currentStock.RollReinforcementChoices();
+        List<TraitDefinition> rolledTraits = currentStock.RollTraitChoices();
 
-        if (!visible)
+        for (int i = 0; i < rolledReinforcements.Count && i < 2; i++)
         {
-            return;
+            if (rolledReinforcements[i] != null)
+            {
+                reinforcementChoices.Add(rolledReinforcements[i]);
+            }
         }
 
-        if (repairOptionText != null)
+        for (int i = 0; i < rolledTraits.Count && i < 3; i++)
         {
-            repairOptionText.text = $"ºˆ∏Æ\n{currentShop.RepairCost}C";
+            if (rolledTraits[i] != null)
+            {
+                traitChoices.Add(rolledTraits[i]);
+            }
         }
-
-        repairOptionButton.onClick.AddListener(() =>
-        {
-            SelectOption(BuildRepairOption());
-        });
     }
 
-    private void RefreshTraitButtons()
+    private void RefreshTradePage()
     {
-        for (int i = 0; i < traitOptionButtons.Length; i++)
+        RefreshRepairSlot();
+        RefreshReinforcementSlots();
+        RefreshTraitSlots();
+        RefreshCurrentActiveBar();
+
+        if (selectedOption.Kind == ShopOptionKind.None)
         {
-            Button button = traitOptionButtons[i];
-            TextMeshProUGUI label = i < traitOptionTexts.Length ? traitOptionTexts[i] : null;
-
-            if (button == null)
-            {
-                continue;
-            }
-
-            button.onClick.RemoveAllListeners();
-
-            bool visible = i < traitChoices.Count && traitChoices[i] != null;
-            button.gameObject.SetActive(visible);
-
-            if (!visible)
-            {
-                if (label != null)
-                {
-                    label.text = string.Empty;
-                }
-
-                continue;
-            }
-
-            TraitDefinition trait = traitChoices[i];
-
-            if (label != null)
-            {
-                label.text = $"{trait.DisplayName}\n{currentStock.TraitCost}C";
-            }
-
-            button.onClick.AddListener(() =>
-            {
-                SelectOption(BuildTraitOption(trait));
-            });
+            SelectFirstAvailableOption();
+        }
+        else
+        {
+            RefreshBuyButtonState();
         }
     }
 
-    private void RefreshReinforcementButtons()
-    {
-        for (int i = 0; i < reinforcementOptionButtons.Length; i++)
-        {
-            Button button = reinforcementOptionButtons[i];
-            TextMeshProUGUI label = i < reinforcementOptionTexts.Length ? reinforcementOptionTexts[i] : null;
-
-            if (button == null)
-            {
-                continue;
-            }
-
-            button.onClick.RemoveAllListeners();
-
-            bool visible = i < reinforcementChoices.Count && reinforcementChoices[i] != null;
-            button.gameObject.SetActive(visible);
-
-            if (!visible)
-            {
-                if (label != null)
-                {
-                    label.text = string.Empty;
-                }
-
-                continue;
-            }
-
-            TraitDefinition reinforcement = reinforcementChoices[i];
-
-            if (label != null)
-            {
-                label.text = $"{reinforcement.DisplayName}\n{currentStock.ReinforcementCost}C";
-            }
-
-            button.onClick.AddListener(() =>
-            {
-                SelectOption(BuildReinforcementOption(reinforcement));
-            });
-        }
-    }
-
-    private void SelectDefaultOption()
+    private void SelectFirstAvailableOption()
     {
         if (currentShop != null)
         {
             SelectOption(BuildRepairOption());
-            return;
-        }
-
-        if (traitChoices.Count > 0)
-        {
-            SelectOption(BuildTraitOption(traitChoices[0]));
             return;
         }
 
@@ -286,96 +392,180 @@ public class ShopTradeUI : MonoBehaviour
             return;
         }
 
+        if (traitChoices.Count > 0)
+        {
+            SelectOption(BuildTraitOption(traitChoices[0]));
+            return;
+        }
+
         SelectEmptyOption();
     }
 
-    private ShopOption BuildRepairOption()
+    private void RefreshRepairSlot()
     {
-        return new ShopOption
+        if (repairButton != null)
         {
-            kind = ShopOptionKind.Repair,
-            trait = null,
-            title = "ºˆ∏Æ",
-            description = currentShop != null
-                ? $"±‚√º √º∑¬¿ª {currentShop.RepairAmount:0.#} »∏∫π«—¥Ÿ.\nªÛ¡°∏∂¥Ÿ «◊ªÛ ¡¶∞¯µ«¥¬ »Æ¡§ ªÛ«∞¿Ã¥Ÿ."
-                : "±‚√º √º∑¬¿ª »∏∫π«—¥Ÿ.",
-            cost = currentShop != null ? currentShop.RepairCost : 0
-        };
+            repairButton.gameObject.SetActive(currentShop != null);
+        }
+
+        SetIcon(repairButtonIcon, repairIcon);
+
+        string name = "ÏàòÎ¶¨";
+        string price = currentShop != null ? $"{currentShop.RepairCost}C" : string.Empty;
+        SetCardText(repairButtonText, repairButtonNameText, repairButtonPriceText, name, price);
     }
 
-    private ShopOption BuildTraitOption(TraitDefinition trait)
+    private void RefreshReinforcementSlots()
     {
-        return new ShopOption
+        for (int i = 0; i < reinforcementButtons.Length; i++)
         {
-            kind = ShopOptionKind.Trait,
-            trait = trait,
-            title = trait != null ? trait.DisplayName : "√ﬂ∞° ∆Øº∫",
-            description = trait != null
-                ? $"{GetTraitCategoryText(trait)}\n{trait.Description}"
-                : "«ˆ¿Á ∑±ø° ∆Øº∫¿ª √ﬂ∞°«—¥Ÿ.",
-            cost = currentStock != null ? currentStock.TraitCost : 0
-        };
+            ReinforcementDefinition definition = i < reinforcementChoices.Count ? reinforcementChoices[i] : null;
+            bool visible = definition != null;
+
+            if (reinforcementButtons[i] != null)
+            {
+                reinforcementButtons[i].gameObject.SetActive(visible);
+            }
+
+            if (!visible)
+            {
+                SetIcon(GetArrayItem(reinforcementButtonIcons, i), null);
+                ClearCardText(
+                    GetArrayItem(reinforcementButtonTexts, i),
+                    GetArrayItem(reinforcementButtonNameTexts, i),
+                    GetArrayItem(reinforcementButtonPriceTexts, i)
+                );
+                continue;
+            }
+
+            Sprite icon = definition.Icon != null ? definition.Icon : activeFallbackIcon;
+            int cost = currentStock != null ? currentStock.GetReinforcementCost(definition) : definition.Cost;
+
+            SetIcon(GetArrayItem(reinforcementButtonIcons, i), icon);
+            SetCardText(
+                GetArrayItem(reinforcementButtonTexts, i),
+                GetArrayItem(reinforcementButtonNameTexts, i),
+                GetArrayItem(reinforcementButtonPriceTexts, i),
+                definition.DisplayName,
+                $"{cost}C"
+            );
+        }
     }
 
-    private ShopOption BuildReinforcementOption(TraitDefinition reinforcement)
+    private void RefreshTraitSlots()
     {
-        return new ShopOption
+        for (int i = 0; i < traitButtons.Length; i++)
         {
-            kind = ShopOptionKind.Reinforcement,
-            trait = reinforcement,
-            title = reinforcement != null ? reinforcement.DisplayName : "±‚√º ∫∏∞≠",
-            description = reinforcement != null
-                ? $"±‚√º ∫∏∞≠\n{reinforcement.Description}"
-                : "±‚√º ¥…∑¬ƒ°∏¶ «‚ªÛΩ√≈∞∞≈≥™ √ﬂ∞° ¥…∑¬¿ª ∫Œø©«—¥Ÿ.",
-            cost = currentStock != null ? currentStock.ReinforcementCost : 0
-        };
+            TraitDefinition definition = i < traitChoices.Count ? traitChoices[i] : null;
+            bool visible = definition != null;
+
+            if (traitButtons[i] != null)
+            {
+                traitButtons[i].gameObject.SetActive(visible);
+            }
+
+            if (!visible)
+            {
+                SetIcon(GetArrayItem(traitButtonIcons, i), null);
+                ClearCardText(
+                    GetArrayItem(traitButtonTexts, i),
+                    GetArrayItem(traitButtonNameTexts, i),
+                    GetArrayItem(traitButtonPriceTexts, i)
+                );
+                continue;
+            }
+
+            Sprite icon = definition.Icon != null ? definition.Icon : traitFallbackIcon;
+            int cost = currentStock != null ? currentStock.TraitCost : 0;
+
+            SetIcon(GetArrayItem(traitButtonIcons, i), icon);
+            SetCardText(
+                GetArrayItem(traitButtonTexts, i),
+                GetArrayItem(traitButtonNameTexts, i),
+                GetArrayItem(traitButtonPriceTexts, i),
+                definition.DisplayName,
+                $"{cost}C"
+            );
+        }
+    }
+
+    private void RefreshCurrentActiveBar()
+    {
+        currentReinforcementController = currentPlayer != null
+            ? currentPlayer.GetComponentInChildren<PlayerReinforcementController>(true)
+            : currentReinforcementController;
+
+        ReinforcementDefinition currentActive = currentReinforcementController != null
+            ? currentReinforcementController.EquippedDefinition
+            : null;
+
+        Sprite icon = currentActive != null && currentActive.Icon != null
+            ? currentActive.Icon
+            : activeFallbackIcon;
+
+        SetIcon(currentActiveIconImage, icon);
+
+        if (currentActiveNameText != null)
+        {
+            currentActiveNameText.text = currentActive != null ? currentActive.DisplayName : "Ïû•Ï∞© ÏóÜÏùå";
+        }
+
+        if (currentActiveTypeText != null)
+        {
+            currentActiveTypeText.text = currentActive != null ? currentActive.GetUseTypeText() : string.Empty;
+        }
+    }
+
+    private void OnClickReinforcementSlot(int index)
+    {
+        if (index < 0 || index >= reinforcementChoices.Count)
+        {
+            return;
+        }
+
+        SelectOption(BuildReinforcementOption(reinforcementChoices[index]));
+    }
+
+    private void OnClickTraitSlot(int index)
+    {
+        if (index < 0 || index >= traitChoices.Count)
+        {
+            return;
+        }
+
+        SelectOption(BuildTraitOption(traitChoices[index]));
     }
 
     private void SelectOption(ShopOption option)
     {
         selectedOption = option;
 
-        if (detailTitleText != null)
-        {
-            detailTitleText.text = option.title;
-        }
+        SetIcon(detailIconImage, option.Icon);
 
-        if (detailDescriptionText != null)
-        {
-            detailDescriptionText.text = option.description;
-        }
+        SetText(selectedItemLabelText, "ÏÑ†ÌÉùÎêú ÏïÑÏù¥ÌÖú");
+        SetText(itemNameText, option.Title);
+        SetText(conditionText, option.ConditionText);
+        SetText(bodyText, option.DescriptionText);
+        SetText(priceText, option.Cost > 0 ? $"{option.Cost}C" : "Î¨¥Î£å");
 
-        if (detailCostText != null)
-        {
-            detailCostText.text = $"« ø‰ ¿Á»≠: {option.cost} ≈©∑πµ˜";
-        }
-
-        RefreshBuyButton();
+        RefreshBuyButtonState();
     }
 
     private void SelectEmptyOption()
     {
         selectedOption = default;
 
-        if (detailTitleText != null)
-        {
-            detailTitleText.text = noItemTitle;
-        }
+        SetIcon(detailIconImage, null);
+        SetText(selectedItemLabelText, "ÏÑ†ÌÉùÎêú ÏïÑÏù¥ÌÖú");
+        SetText(itemNameText, "ÏÉÅÌíà ÏóÜÏùå");
+        SetText(conditionText, string.Empty);
+        SetText(bodyText, "Íµ¨Îß§ Í∞ÄÎä•Ìïú ÏÉÅÌíàÏù¥ ÏóÜÏäµÎãàÎã§.");
+        SetText(priceText, string.Empty);
 
-        if (detailDescriptionText != null)
-        {
-            detailDescriptionText.text = noItemDescription;
-        }
-
-        if (detailCostText != null)
-        {
-            detailCostText.text = string.Empty;
-        }
-
-        RefreshBuyButton();
+        RefreshBuyButtonState();
     }
 
-    private void RefreshBuyButton()
+    private void RefreshBuyButtonState()
     {
         bool canBuy = CanBuySelectedOption();
 
@@ -392,175 +582,322 @@ public class ShopTradeUI : MonoBehaviour
 
     private bool CanBuySelectedOption()
     {
-        switch (selectedOption.kind)
+        switch (selectedOption.Kind)
         {
             case ShopOptionKind.Repair:
                 return currentShop != null && currentShop.CanBuyRepair(currentPlayer);
 
-            case ShopOptionKind.Trait:
-                return currentStock != null && currentStock.CanBuyTrait(selectedOption.trait);
-
             case ShopOptionKind.Reinforcement:
-                return currentStock != null && currentStock.CanBuyReinforcement(selectedOption.trait);
+                return currentStock != null &&
+                       currentStock.CanBuyReinforcement(selectedOption.Reinforcement, currentShop, currentPlayer);
+
+            case ShopOptionKind.Trait:
+                return currentStock != null && currentStock.CanBuyTrait(selectedOption.Trait);
 
             default:
                 return false;
         }
     }
 
-    private void BuySelectedOption()
+    private void OnClickBuy()
     {
+        if (!CanBuySelectedOption())
+        {
+            RefreshBuyButtonState();
+            return;
+        }
+
         bool success = false;
 
-        switch (selectedOption.kind)
+        switch (selectedOption.Kind)
         {
             case ShopOptionKind.Repair:
                 success = currentShop != null && currentShop.TryBuyRepair(currentPlayer);
                 break;
 
-            case ShopOptionKind.Trait:
-                success = currentStock != null &&
-                          currentStock.TryBuyTrait(currentShop, selectedOption.trait, currentPlayer);
+            case ShopOptionKind.Reinforcement:
+                success = TryBuyReinforcement();
                 break;
 
-            case ShopOptionKind.Reinforcement:
+            case ShopOptionKind.Trait:
                 success = currentStock != null &&
-                          currentStock.TryBuyReinforcement(currentShop, selectedOption.trait, currentPlayer);
+                          currentStock.TryBuyTrait(currentShop, selectedOption.Trait, currentPlayer);
                 break;
         }
 
         if (!success)
         {
-            RefreshBuyButton();
+            RefreshBuyButtonState();
             return;
         }
 
-        RemovePurchasedOptionFromLocalList();
-        RefreshOptionButtons();
-
-        if (selectedOption.kind == ShopOptionKind.Repair)
+        if (selectedOption.Kind == ShopOptionKind.Reinforcement)
         {
-            SelectOption(BuildRepairOption());
+            RemoveReinforcementFromChoices(selectedOption.Reinforcement);
+            selectedOption = default;
         }
-        else
+        else if (selectedOption.Kind == ShopOptionKind.Trait)
         {
-            SelectDefaultOption();
+            RemoveTraitFromChoices(selectedOption.Trait);
+            selectedOption = default;
+        }
+
+        RefreshTradePage();
+
+        if (maintenanceBayUI != null && maintenanceBayUI.IsOpen)
+        {
+            maintenanceBayUI.Open(currentShop, currentPlayer, currentMaintenanceBay);
         }
     }
 
-    private void RemovePurchasedOptionFromLocalList()
+    private bool TryBuyReinforcement()
     {
-        if (selectedOption.trait == null)
+        if (selectedOption.Reinforcement == null || currentStock == null)
         {
-            return;
+            return false;
         }
 
-        if (selectedOption.kind == ShopOptionKind.Trait)
+        bool purchased = currentStock.TryBuyReinforcement(
+            currentShop,
+            selectedOption.Reinforcement,
+            currentPlayer
+        );
+
+        if (!purchased)
         {
-            traitChoices.Remove(selectedOption.trait);
+            return false;
         }
-        else if (selectedOption.kind == ShopOptionKind.Reinforcement)
-        {
-            reinforcementChoices.Remove(selectedOption.trait);
-        }
+
+        currentReinforcementController = currentPlayer != null
+            ? currentPlayer.GetComponentInChildren<PlayerReinforcementController>(true)
+            : null;
+
+        RefreshCurrentActiveBar();
+        return true;
     }
 
-    private string GetTraitCategoryText(TraitDefinition trait)
+    private ShopOption BuildRepairOption()
     {
-        if (trait == null)
+        return new ShopOption
         {
-            return string.Empty;
-        }
-
-        if (trait.Category == TraitCategory.Shared)
-        {
-            return "∞¯¿Ø ∆Øº∫";
-        }
-
-        return trait.WeaponTreeType switch
-        {
-            WeaponTreeType.Shotgun => "º¶∞« ¿¸øÎ ∆Øº∫",
-            WeaponTreeType.Sniper => "¿˙∞› ¿¸øÎ ∆Øº∫",
-            WeaponTreeType.MachineGun => "±‚∞¸√— ¿¸øÎ ∆Øº∫",
-            _ => "¿¸øÎ ∆Øº∫"
+            Kind = ShopOptionKind.Repair,
+            Title = "ÏàòÎ¶¨",
+            ConditionText = "Ï†ïÎπÑ ÏÑúÎπÑÏä§",
+            DescriptionText = currentShop != null
+                ? $"Í∏∞Ï≤¥ Ï≤¥Î†•ÏùÑ {currentShop.RepairAmount:0.#} ÌöåÎ≥µÌïúÎã§."
+                : "Í∏∞Ï≤¥ Ï≤¥Î†•ÏùÑ ÌöåÎ≥µÌïúÎã§.",
+            Cost = currentShop != null ? currentShop.RepairCost : 0,
+            Icon = repairIcon,
+            Trait = null,
+            Reinforcement = null
         };
     }
 
-    private void BindStaticButtons()
+    private ShopOption BuildReinforcementOption(ReinforcementDefinition definition)
     {
-        if (buyButton != null)
+        if (definition == null)
         {
-            buyButton.onClick.AddListener(BuySelectedOption);
+            return default;
         }
 
-        if (closeButton != null)
+        int cost = currentStock != null ? currentStock.GetReinforcementCost(definition) : definition.Cost;
+
+        return new ShopOption
         {
-            closeButton.onClick.AddListener(Close);
-        }
+            Kind = ShopOptionKind.Reinforcement,
+            Title = definition.DisplayName,
+            ConditionText = $"{definition.GetRarityText()} / {definition.GetUseTypeText()}",
+            DescriptionText =
+                $"Îì±Í∏â: {definition.GetRarityText()}\n" +
+                $"{definition.GetAvailabilityText()}\n\n" +
+                $"{definition.Description}\n\n" +
+                $"Ìö®Í≥º\n{definition.BuildEffectSummary()}",
+            Cost = cost,
+            Icon = definition.Icon != null ? definition.Icon : activeFallbackIcon,
+            Trait = null,
+            Reinforcement = definition
+        };
     }
 
-    private void UnbindStaticButtons()
+    private ShopOption BuildTraitOption(TraitDefinition definition)
     {
-        if (buyButton != null)
+        if (definition == null)
         {
-            buyButton.onClick.RemoveListener(BuySelectedOption);
+            return default;
         }
 
-        if (closeButton != null)
+        return new ShopOption
         {
-            closeButton.onClick.RemoveListener(Close);
-        }
+            Kind = ShopOptionKind.Trait,
+            Title = definition.DisplayName,
+            ConditionText = definition.GetCategoryText(),
+            DescriptionText = definition.Description,
+            Cost = currentStock != null ? currentStock.TraitCost : 0,
+            Icon = definition.Icon != null ? definition.Icon : traitFallbackIcon,
+            Trait = definition,
+            Reinforcement = null
+        };
     }
 
-    private void ClearDynamicButtonListeners()
+    private void RemoveReinforcementFromChoices(ReinforcementDefinition definition)
     {
-        if (repairOptionButton != null)
-        {
-            repairOptionButton.onClick.RemoveAllListeners();
-        }
-
-        ClearButtonArray(traitOptionButtons);
-        ClearButtonArray(reinforcementOptionButtons);
-    }
-
-    private void ClearButtonArray(Button[] buttons)
-    {
-        if (buttons == null)
+        if (definition == null)
         {
             return;
         }
 
-        for (int i = 0; i < buttons.Length; i++)
+        for (int i = reinforcementChoices.Count - 1; i >= 0; i--)
         {
-            if (buttons[i] != null)
+            if (reinforcementChoices[i] == null ||
+                reinforcementChoices[i].EquipmentId == definition.EquipmentId)
             {
-                buttons[i].onClick.RemoveAllListeners();
+                reinforcementChoices.RemoveAt(i);
+            }
+        }
+    }
+
+    private void RemoveTraitFromChoices(TraitDefinition definition)
+    {
+        if (definition == null)
+        {
+            return;
+        }
+
+        for (int i = traitChoices.Count - 1; i >= 0; i--)
+        {
+            if (traitChoices[i] == null ||
+                traitChoices[i].TraitId == definition.TraitId)
+            {
+                traitChoices.RemoveAt(i);
             }
         }
     }
 
     private void RequestPause()
     {
-        if (!pauseGameWhileOpen)
+        if (!pauseGameWhileOpen || pauseRequested)
         {
             return;
         }
 
+        pauseRequested = true;
         GameplayPauseManager.Instance.PushPause(this, "ShopTradeUI");
         GameplayPauseManager.Instance.RegisterCancelHandler(this, Close);
     }
 
     private void ReleasePause()
     {
-        if (!pauseGameWhileOpen)
+        if (!pauseRequested)
         {
             return;
         }
+
+        pauseRequested = false;
 
         if (GameplayPauseManager.Instance != null)
         {
             GameplayPauseManager.Instance.UnregisterCancelHandler(this);
             GameplayPauseManager.Instance.PopPause(this);
         }
+    }
+
+    private void ApplyTopStateVisual()
+    {
+        string stateLabel;
+        Color stateColor;
+
+        switch (visualState)
+        {
+            case ShopVisualState.Friendly:
+                stateLabel = "ÏπúÌôî ÏÉÅÌÉú";
+                stateColor = friendlyColor;
+                break;
+
+            case ShopVisualState.Warning:
+                stateLabel = "Í≤ΩÍ≥† ÏÉÅÌÉú";
+                stateColor = warningColor;
+                break;
+
+            default:
+                stateLabel = "Ï§ëÎ¶Ω ÏÉÅÌÉú";
+                stateColor = neutralColor;
+                break;
+        }
+
+        SetText(stateText, stateLabel);
+
+        if (stateDotImage != null)
+        {
+            stateDotImage.color = stateColor;
+        }
+    }
+
+    private void SetCardText(
+        TextMeshProUGUI legacyCombinedText,
+        TextMeshProUGUI nameText,
+        TextMeshProUGUI priceTextField,
+        string nameValue,
+        string priceValue)
+    {
+        bool hasSeparateText = nameText != null || priceTextField != null;
+
+        if (nameText != null)
+        {
+            nameText.text = nameValue;
+        }
+
+        if (priceTextField != null)
+        {
+            priceTextField.text = priceValue;
+        }
+
+        if (legacyCombinedText != null)
+        {
+            legacyCombinedText.text = hasSeparateText
+                ? nameValue
+                : string.IsNullOrWhiteSpace(priceValue) ? nameValue : $"{nameValue}\n{priceValue}";
+        }
+    }
+
+    private void ClearCardText(
+        TextMeshProUGUI legacyCombinedText,
+        TextMeshProUGUI nameText,
+        TextMeshProUGUI priceTextField)
+    {
+        SetText(legacyCombinedText, string.Empty);
+        SetText(nameText, string.Empty);
+        SetText(priceTextField, string.Empty);
+    }
+
+    private void SetIcon(Image image, Sprite sprite)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        image.sprite = sprite;
+        image.enabled = sprite != null;
+        image.preserveAspect = true;
+    }
+
+    private void SetText(TextMeshProUGUI text, string value)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.text = value;
+    }
+
+    private T GetArrayItem<T>(T[] array, int index) where T : UnityEngine.Object
+    {
+        if (array == null || index < 0 || index >= array.Length)
+        {
+            return null;
+        }
+
+        return array[index];
     }
 }

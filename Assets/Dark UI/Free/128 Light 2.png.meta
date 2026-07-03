@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: 4c5a0d6878b96be4f9f82216b59eca51
+AssetOrigin:
+  serializedVersion: 1
+  productId: 199010
+  packageName: Dark Theme UI
+  packageVersion: 1.1
+  assetPath: Assets/Dark UI/Free/128 Light 2.png
+  uploadId: 761092
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -34,7 +41,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -49,8 +56,8 @@ TextureImporter:
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
-  spriteBorder: {x: 125, y: 125, z: 125, w: 125}
-  spriteGenerateFallbackPhysicsShape: 1
+  spriteBorder: {x: 128, y: 128, z: 128, w: 128}
+  spriteGenerateFallbackPhysicsShape: 0
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
@@ -72,7 +79,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -114,7 +121,7 @@ TextureImporter:
     physicsShape: []
     bones: []
     spriteID: 5e97eb03825dee720800000000000000
-    internalID: 0
+    internalID: 1537655665
     vertices: []
     indices: 
     edges: []
@@ -128,10 +135,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 199010
-  packageName: Dark Theme UI
-  packageVersion: 1.1
-  assetPath: Assets/Dark UI/Free/128 Light 2.png
-  uploadId: 761092

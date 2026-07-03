@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76550ba17cf27ff4e83cbf20bad23b80, type: 3}
+  m_Name: 03_rf_shield_cell
+  m_EditorClassIdentifier: 
+  equipmentId: "rf_shield_cell"
+  displayName: "\ubcf4\ud638\ub9c9 \uc140"
+  description: "Armor\ub97c \uc989\uc2dc \ucda9\uc804\ud55c\ub2e4. \uccb4\ub825 \uc190\uc2e4 \uc804\uc5d0 \ud55c \ubc88 \ubc84\ud2f8 \uc2dc\uac04\uc744 \ub9cc\ub4e0\ub2e4."
+  icon: {fileID: 0}
+  rarity: 0
+  rarityPriceMultiplier: 0
+  randomDropWeight: 0
+  dismantleScrapReward: 0
+  useType: 1
+  availability: 0
+  cost: 45
+  canAppearInShop: 1
+  canAppearAsRandomDrop: 1
+  maxCharges: 1
+  startWithFullCharges: 1
+  rechargeSeconds: 18
+  effects:
+  - effectType: 1
+    value: 8
+    radius: 0
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1

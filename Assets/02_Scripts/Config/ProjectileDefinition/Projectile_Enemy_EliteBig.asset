@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uC5D8\uB9AC\uD2B8 \uB300\uD615\uD0C4"
   projectilePrefab: {fileID: 4939712952834317954, guid: d8e363955fc22e146a1ee571abb60b99, type: 3}
   damage: 6
-  speed: 10
+  speed: 9
   range: 12
   lifeTime: 2.5
   pierceCount: 3

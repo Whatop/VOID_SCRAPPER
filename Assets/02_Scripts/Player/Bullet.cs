@@ -40,6 +40,7 @@ public class Bullet : MonoBehaviour
     private float lifeTimer;
     private float range;
     private float damage;
+    private float harvestObjectDamageMultiplier = 1f;
 
     private int remainingPierceCount;
 
@@ -130,7 +131,8 @@ public class Bullet : MonoBehaviour
         float rangeOverride = -1f,
         int pierceOverride = -1,
         float homingAngleBonus = 0f,
-        float homingRangeBonus = 0f)
+        float homingRangeBonus = 0f,
+        float harvestDamageMultiplier = 1f)
     {
         owner = projectileOwner;
         moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : Vector2.up;
@@ -183,6 +185,7 @@ public class Bullet : MonoBehaviour
 
         homingAngle = Mathf.Max(0f, homingAngle + homingAngleBonus);
         homingRange = Mathf.Max(0f, homingRange + homingRangeBonus);
+        harvestObjectDamageMultiplier = Mathf.Max(0.05f, harvestDamageMultiplier);
 
         lifeTimer = Mathf.Max(0.05f, lifeTime);
         damagedTargets.Clear();
@@ -207,6 +210,7 @@ public class Bullet : MonoBehaviour
         homingRange = 0f;
 
         owner = ProjectileOwner.Player;
+        harvestObjectDamageMultiplier = 1f;
         damagedTargets.Clear();
 
         if (rb != null)
@@ -351,6 +355,17 @@ public class Bullet : MonoBehaviour
                 }
 
                 TryApplyDamageToTarget(playerHealth, playerHealth.TakeDamage);
+                return;
+            }
+        }
+
+        if (owner == ProjectileOwner.Player)
+        {
+            HarvestObjectHealth harvestObject = other.GetComponentInParent<HarvestObjectHealth>();
+
+            if (harvestObject != null)
+            {
+                TryApplyDamageToTarget(harvestObject, value => harvestObject.TakeDamage(value * harvestObjectDamageMultiplier));
                 return;
             }
         }

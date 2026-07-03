@@ -24,3 +24,21 @@ MonoBehaviour:
   randomRewards: []
   healDropChance: 0
   healAmount: 0
+  enableReinforcementDrop: 1
+  reinforcementDropChance: 1
+  minReinforcementDropCount: 1
+  maxReinforcementDropCount: 1
+  reinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}
+  includeCatalogReinforcements: 1
+  reinforcementDropPool: []
+  excludeEmergencyReturnEquipment: 1
+  preventDuplicateReinforcementDrops: 1
+  useReinforcementRarityWeight: 1
+  enableTraitDrop: 0
+  traitDropChance: 0
+  minTraitDropCount: 1
+  maxTraitDropCount: 1
+  traitCatalog: {fileID: 0}
+  includeCatalogTraits: 1
+  traitDropPool: []
+  preventDuplicateTraitDrops: 1

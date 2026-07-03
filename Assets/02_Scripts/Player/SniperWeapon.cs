@@ -29,6 +29,7 @@ public class SniperWeapon : PlayerWeaponBase
         get
         {
             float maxChargeTime = GetMaxChargeTime();
+
             if (maxChargeTime <= 0f)
             {
                 return 1f;
@@ -137,6 +138,8 @@ public class SniperWeapon : PlayerWeaponBase
 
         if (fired)
         {
+            SpawnMuzzleEffect(direction);
+
             RegisterAttack();
             NotifyFired(finalChargeRatio);
         }

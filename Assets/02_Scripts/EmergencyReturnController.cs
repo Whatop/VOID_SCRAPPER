@@ -6,6 +6,9 @@ using UnityEngine.InputSystem.Controls;
 [DisallowMultipleComponent]
 public class EmergencyReturnController : MonoBehaviour
 {
+    [Header("Legacy Direct Input")]
+    [SerializeField] private bool allowDirectInput;
+
     [Header("Input Actions Optional")]
     [SerializeField] private InputActionAsset inputActions;
     [SerializeField] private string actionMapName = "Player";
@@ -30,21 +33,23 @@ public class EmergencyReturnController : MonoBehaviour
     [SerializeField] private bool blockDuringBossBattle = true;
 
     [Header("Complete")]
-    [Tooltip("ÄÑ¸é °ÔÀÌÁö°¡ 100% µÈ µÚ F¸¦ ¶¼¾ß Å»ÃâÇÕ´Ï´Ù. ²ô¸é °ÔÀÌÁö 100% Áï½Ã Å»ÃâÇÕ´Ï´Ù.")]
+    [Tooltip("Ñ¸  100%   F  Å»Õ´Ï´.   100%  Å»Õ´Ï´.")]
     [SerializeField] private bool completeOnReleaseAfterGaugeFull = true;
 
     [Header("Messages")]
-    [SerializeField] private string readyMessage = "±ä±ÞÅ»Ãâ ÁØºñ ¿Ï·á. F¸¦ ¶¼¸é Å»ÃâÇÕ´Ï´Ù.";
-    [SerializeField] private string canceledMessage = "±ä±ÞÅ»ÃâÀÌ Ãë¼ÒµÇ¾ú½À´Ï´Ù.";
-    [SerializeField] private string noRunMessage = "ÁøÇà ÁßÀÎ Å½»ç°¡ ¾ø½À´Ï´Ù.";
-    [SerializeField] private string combatMessage = "ÀüÅõ Áß¿¡´Â ±ä±ÞÅ»ÃâÇÒ ¼ö ¾ø½À´Ï´Ù.";
-    [SerializeField] private string bossBattleMessage = "º¸½ºÀü Áß¿¡´Â ±ä±ÞÅ»ÃâÇÒ ¼ö ¾ø½À´Ï´Ù.";
-    [SerializeField] private string pausedMessage = "UI°¡ ¿­·Á ÀÖ´Â µ¿¾È¿¡´Â ±ä±ÞÅ»ÃâÇÒ ¼ö ¾ø½À´Ï´Ù.";
-    [SerializeField] private string movementCancelMessage = "ÀÌµ¿ÇØ¼­ ±ä±ÞÅ»ÃâÀÌ Ãë¼ÒµÇ¾ú½À´Ï´Ù.";
-    [SerializeField] private string alreadyReturningMessage = "ÀÌ¹Ì ±ä±ÞÅ»Ãâ ÁßÀÔ´Ï´Ù.";
+    [SerializeField] private string readyMessage = "Å» Øº Ï·. F  Å»Õ´Ï´.";
+    [SerializeField] private string canceledMessage = "Å» ÒµÇ¾Ï´.";
+    [SerializeField] private string noRunMessage = "  Å½ç°¡ Ï´.";
+    [SerializeField] private string combatMessage = " ß¿ Å»  Ï´.";
+    [SerializeField] private string bossBattleMessage = " ß¿ Å»  Ï´.";
+    [SerializeField] private string pausedMessage = "UI  Ö´ È¿ Å»  Ï´.";
+    [SerializeField] private string movementCancelMessage = "ÌµØ¼ Å» ÒµÇ¾Ï´.";
+    [SerializeField] private string alreadyReturningMessage = "Ì¹ Å» Ô´Ï´.";
 
     private InputAction emergencyReturnAction;
     private Coroutine returnRoutine;
+    private bool useExternalReleaseKey;
+    private Key externalReleaseKey;
 
     private bool isPreparing;
     private bool holdRequired;
@@ -84,6 +89,11 @@ public class EmergencyReturnController : MonoBehaviour
 
     private void Update()
     {
+        if (!allowDirectInput)
+        {
+            return;
+        }
+
         if (isPreparing)
         {
             return;
@@ -98,6 +108,21 @@ public class EmergencyReturnController : MonoBehaviour
     public bool TryStartByHoldKey()
     {
         return TryStartEmergencyReturn(true);
+    }
+
+    public bool TryStartByExternalHoldKey(Key holdKey)
+    {
+        useExternalReleaseKey = true;
+        externalReleaseKey = holdKey;
+
+        bool started = TryStartEmergencyReturn(true);
+
+        if (!started)
+        {
+            useExternalReleaseKey = false;
+        }
+
+        return started;
     }
 
     public bool TryStartFromMenu()
@@ -142,8 +167,8 @@ public class EmergencyReturnController : MonoBehaviour
         }
         else
         {
-            // °ÔÀÌÁö UI°¡ ¾ø´Â Å×½ºÆ® ¾À¿¡¼­¸¸ ÃÖ¼Ò ÇÇµå¹é Á¦°ø.
-            ShowWarning("±ä±ÞÅ»Ãâ ÁØºñ Áß...");
+            //  UI  ×½Æ®  Ö¼ Çµ .
+            ShowWarning("Å» Øº ...");
         }
 
         returnRoutine = StartCoroutine(PrepareRoutine());
@@ -353,6 +378,7 @@ public class EmergencyReturnController : MonoBehaviour
         isPreparing = false;
         holdRequired = false;
         gaugeFilled = false;
+        useExternalReleaseKey = false;
         returnRoutine = null;
 
         if (gaugeUI != null)
@@ -399,6 +425,7 @@ public class EmergencyReturnController : MonoBehaviour
         isPreparing = false;
         holdRequired = false;
         gaugeFilled = false;
+        useExternalReleaseKey = false;
 
         if (returnRoutine != null)
         {
@@ -500,6 +527,17 @@ public class EmergencyReturnController : MonoBehaviour
 
     private bool WasEmergencyReturnReleasedThisFrame()
     {
+        if (useExternalReleaseKey)
+        {
+            if (Keyboard.current == null)
+            {
+                return false;
+            }
+
+            KeyControl externalKey = Keyboard.current[externalReleaseKey];
+            return externalKey != null && externalKey.wasReleasedThisFrame;
+        }
+
         if (emergencyReturnAction != null && emergencyReturnAction.WasReleasedThisFrame())
         {
             return true;

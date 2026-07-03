@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6461298621347480817}
   - component: {fileID: 3014114588815043874}
   - component: {fileID: -6155725199462713330}
+  - component: {fileID: 2785288026569375596}
   m_Layer: 8
   m_Name: Core
   m_TagString: Untagged
@@ -300,3 +301,17 @@ MonoBehaviour:
   faceBossToPlayerWhenArrived: 1
   bossRotationOffset: -90
   logSequence: 0
+--- !u!114 &2785288026569375596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1313109600501432131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dcc0e3b7b931d4397e963decc0b769, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  anchorTransform: {fileID: 6304785954078690802}
+  worldOffset: {x: 0, y: 1, z: 0}

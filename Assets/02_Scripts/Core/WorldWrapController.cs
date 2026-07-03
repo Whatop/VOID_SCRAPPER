@@ -18,6 +18,14 @@ public class WorldWrapController : MonoBehaviour
     [Header("Optional")]
     [SerializeField] private bool useRigidbodyMovePosition = true;
 
+    [Header("Background Rebase")]
+    [Tooltip("월드랩으로 플레이어가 순간이동할 때 배경 파라allax가 튀지 않도록 보정합니다.")]
+    [SerializeField] private bool rebaseBackgroundOnWrap = true;
+
+    [SerializeField] private SpaceBackgroundGenerator2D[] backgroundGenerators;
+
+    [SerializeField] private bool autoFindBackgroundGenerator = true;
+
     private Rigidbody2D targetRb;
 
     public event Action<Vector2> Wrapped;
@@ -25,6 +33,7 @@ public class WorldWrapController : MonoBehaviour
     private void Start()
     {
         ResolveTarget();
+        ResolveBackgroundGenerators();
     }
 
     private void LateUpdate()
@@ -86,6 +95,7 @@ public class WorldWrapController : MonoBehaviour
             target.position = newPosition;
         }
 
+        RebaseBackgrounds(delta);
         Wrapped?.Invoke(delta);
     }
 
@@ -104,6 +114,65 @@ public class WorldWrapController : MonoBehaviour
         if (target != null && targetRb == null)
         {
             targetRb = target.GetComponent<Rigidbody2D>();
+        }
+    }
+
+    private void ResolveBackgroundGenerators()
+    {
+        if (!autoFindBackgroundGenerator)
+        {
+            return;
+        }
+
+        if (backgroundGenerators != null && backgroundGenerators.Length > 0)
+        {
+            bool hasValid = false;
+
+            for (int i = 0; i < backgroundGenerators.Length; i++)
+            {
+                if (backgroundGenerators[i] != null)
+                {
+                    hasValid = true;
+                    break;
+                }
+            }
+
+            if (hasValid)
+            {
+                return;
+            }
+        }
+
+        SpaceBackgroundGenerator2D found = FindFirstObjectByType<SpaceBackgroundGenerator2D>();
+
+        if (found != null)
+        {
+            backgroundGenerators = new[] { found };
+        }
+    }
+
+    private void RebaseBackgrounds(Vector2 delta)
+    {
+        if (!rebaseBackgroundOnWrap)
+        {
+            return;
+        }
+
+        ResolveBackgroundGenerators();
+
+        if (backgroundGenerators == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < backgroundGenerators.Length; i++)
+        {
+            SpaceBackgroundGenerator2D generator = backgroundGenerators[i];
+
+            if (generator != null)
+            {
+                generator.RebaseAfterWorldWrap(delta);
+            }
         }
     }
 

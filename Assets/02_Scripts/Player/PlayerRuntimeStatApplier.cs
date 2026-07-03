@@ -10,19 +10,25 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     [SerializeField] private PlayerWeaponController weaponController;
     [SerializeField] private PlayerWeaponModifiers weaponModifiers;
     [SerializeField] private PlayerRuntimeBonusState runtimeBonusState;
+    [SerializeField] private PlayerCargoController cargoController;
 
     [Header("Base Stats")]
     [SerializeField] private float baseMaxHp = 20f;
     [SerializeField] private float baseMoveSpeed = 6f;
     [SerializeField] private float baseDashDistance = 5f;
     [SerializeField] private float baseDashCooldown = 1.1f;
+    [SerializeField] private int baseCargoCapacity = 100;
+    [Range(0f, 1f)]
+    [SerializeField] private float baseEmergencyReturnCapacityRatio = 0.7f;
+
+    [Header("Cargo Weight")]
+    [SerializeField] private int scrapCargoWeight = 1;
+    [SerializeField] private int coreShardCargoWeight = 12;
 
     [Header("Trait Apply Rule")]
-    [Tooltip("false¸é ÇöÀç ·¹º§ È¿°ú¸¸ Àû¿ë. true¸é 1·¹º§ºÎÅÍ ÇöÀç ·¹º§±îÁö ´©Àû Àû¿ë.")]
     [SerializeField] private bool applyTraitEffectsCumulatively;
 
     [Header("Building Fallback")]
-    [Tooltip("BuildingDefinition¿¡ modifier°¡ ºñ¾î ÀÖÀ¸¸é SettlementControllerÀÇ ±âº» È¿°úÇ¥ ±âÁØÀ¸·Î Àû¿ë.")]
     [SerializeField] private bool useFallbackBuildingEffects = true;
 
     [Header("Debug")]
@@ -36,13 +42,23 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         public float moveSpeed;
         public float dashDistance;
         public float dashCooldown;
+        public int cargoCapacity;
+        public float emergencyReturnCapacityRatio;
 
-        public RuntimeStats(float baseMaxHp, float baseMoveSpeed, float baseDashDistance, float baseDashCooldown)
+        public RuntimeStats(
+            float baseMaxHp,
+            float baseMoveSpeed,
+            float baseDashDistance,
+            float baseDashCooldown,
+            int baseCargoCapacity,
+            float baseEmergencyReturnCapacityRatio)
         {
             maxHp = Mathf.Max(1f, baseMaxHp);
             moveSpeed = Mathf.Max(0.1f, baseMoveSpeed);
             dashDistance = Mathf.Max(0.1f, baseDashDistance);
             dashCooldown = Mathf.Max(0.05f, baseDashCooldown);
+            cargoCapacity = Mathf.Max(1, baseCargoCapacity);
+            emergencyReturnCapacityRatio = Mathf.Clamp01(baseEmergencyReturnCapacityRatio);
         }
     }
 
@@ -68,7 +84,9 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
             baseMaxHp,
             baseMoveSpeed,
             baseDashDistance,
-            baseDashCooldown
+            baseDashCooldown,
+            baseCargoCapacity,
+            baseEmergencyReturnCapacityRatio
         );
 
         ResetRuntimeModifiers();
@@ -80,7 +98,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         ApplyPermanentTraits(progress, traitDefinitions, selectedWeaponTree);
         ApplyRunTraits(runContext, traitDefinitions, selectedWeaponTree);
 
-        CommitStats(refillHealth);
+        CommitStats(refillHealth, runContext);
 
         if (weaponController != null)
         {
@@ -90,10 +108,10 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         if (logApplyResult)
         {
             Debug.Log(
-                $"Runtime Stat Apply ¿Ï·á / " +
-                $"Weapon: {selectedWeaponTree}, Ship: {selectedShipId}, " +
+                $"Runtime Stat Apply ì™„ë£Œ / Weapon: {selectedWeaponTree}, Ship: {selectedShipId}, " +
                 $"HP: {runtimeStats.maxHp}, Move: {runtimeStats.moveSpeed:0.##}, " +
-                $"DashDistance: {runtimeStats.dashDistance:0.##}, DashCooldown: {runtimeStats.dashCooldown:0.##}",
+                $"DashDistance: {runtimeStats.dashDistance:0.##}, DashCooldown: {runtimeStats.dashCooldown:0.##}, " +
+                $"Cargo: {runtimeStats.cargoCapacity}, EmergencyReturnRatio: {runtimeStats.emergencyReturnCapacityRatio:0.##}",
                 this
             );
         }
@@ -134,6 +152,16 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         if (runtimeBonusState == null)
         {
             runtimeBonusState = gameObject.AddComponent<PlayerRuntimeBonusState>();
+        }
+
+        if (cargoController == null)
+        {
+            cargoController = GetComponent<PlayerCargoController>();
+        }
+
+        if (cargoController == null)
+        {
+            cargoController = gameObject.AddComponent<PlayerCargoController>();
         }
     }
 
@@ -250,6 +278,14 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         ApplyMoveSpeedPercent(ship.MoveSpeedBonusPercent);
         runtimeStats.dashDistance += ship.DashDistanceBonus;
         runtimeStats.dashCooldown -= Mathf.Abs(ship.DashCooldownReduction);
+        runtimeStats.cargoCapacity = ship.CargoCapacity;
+        runtimeStats.emergencyReturnCapacityRatio = ship.EmergencyReturnCapacityRatio;
+
+        if (runtimeBonusState != null)
+        {
+            runtimeBonusState.AddHarvestYieldPercent(ship.HarvestYieldBonusPercent);
+            runtimeBonusState.AddHarvestObjectDamagePercent(ship.HarvestObjectDamageBonusPercent);
+        }
 
         ClampStats();
     }
@@ -269,10 +305,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         ClampStats();
     }
 
-    private void ApplyBuilding(
-        PermanentProgress progress,
-        IReadOnlyList<BuildingDefinition> buildingDefinitions,
-        BuildingType buildingType)
+    private void ApplyBuilding(PermanentProgress progress, IReadOnlyList<BuildingDefinition> buildingDefinitions, BuildingType buildingType)
     {
         int level = progress.GetBuildingLevel(buildingType);
         if (level <= 0)
@@ -281,9 +314,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         }
 
         BuildingDefinition definition = FindBuildingDefinition(buildingDefinitions, buildingType);
-        BuildingLevelDefinition levelDefinition = definition != null
-            ? definition.GetLevelDefinition(level)
-            : null;
+        BuildingLevelDefinition levelDefinition = definition != null ? definition.GetLevelDefinition(level) : null;
 
         bool appliedFromDefinition = ApplyBuildingLevelDefinition(levelDefinition);
 
@@ -325,10 +356,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
                 break;
 
             case BuildingModifierType.RepairEfficiencyBonus:
-                if (runtimeBonusState != null)
-                {
-                    runtimeBonusState.AddRepairEfficiencyPercent(value);
-                }
+                runtimeBonusState?.AddRepairEfficiencyPercent(value);
                 break;
 
             case BuildingModifierType.MoveSpeedPercent:
@@ -344,52 +372,31 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
                 break;
 
             case BuildingModifierType.DamagePercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddDamagePercent(value);
-                }
+                weaponModifiers?.AddDamagePercent(value);
                 break;
 
             case BuildingModifierType.ProjectileSpeedPercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddProjectileSpeedPercent(value);
-                }
+                weaponModifiers?.AddProjectileSpeedPercent(value);
                 break;
 
             case BuildingModifierType.FireRatePercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddFireRatePercent(value);
-                }
+                weaponModifiers?.AddFireRatePercent(value);
                 break;
 
             case BuildingModifierType.ScrapGainPercent:
-                if (runtimeBonusState != null)
-                {
-                    runtimeBonusState.AddScrapGainPercent(value);
-                }
+                runtimeBonusState?.AddScrapGainPercent(value);
                 break;
 
             case BuildingModifierType.HealEfficiencyPercent:
-                if (runtimeBonusState != null)
-                {
-                    runtimeBonusState.AddHealEfficiencyPercent(value);
-                }
+                runtimeBonusState?.AddHealEfficiencyPercent(value);
                 break;
 
             case BuildingModifierType.PickupRangeBonus:
-                if (runtimeBonusState != null)
-                {
-                    runtimeBonusState.AddPickupRangeBonus(value);
-                }
+                runtimeBonusState?.AddPickupRangeBonus(value);
                 break;
 
             case BuildingModifierType.CreditsGainPercent:
-                if (runtimeBonusState != null)
-                {
-                    runtimeBonusState.AddCreditsGainPercent(value);
-                }
+                runtimeBonusState?.AddCreditsGainPercent(value);
                 break;
         }
     }
@@ -422,22 +429,19 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         {
             case 1:
                 runtimeStats.maxHp += 2f;
+                runtimeStats.cargoCapacity += 10;
                 break;
 
             case 2:
                 runtimeStats.maxHp += 4f;
-                if (runtimeBonusState != null)
-                {
-                    runtimeBonusState.AddRepairEfficiencyPercent(10f);
-                }
+                runtimeStats.cargoCapacity += 20;
+                runtimeBonusState?.AddRepairEfficiencyPercent(10f);
                 break;
 
             default:
                 runtimeStats.maxHp += 6f;
-                if (runtimeBonusState != null)
-                {
-                    runtimeBonusState.AddRepairEfficiencyPercent(20f);
-                }
+                runtimeStats.cargoCapacity += 30;
+                runtimeBonusState?.AddRepairEfficiencyPercent(20f);
                 break;
         }
     }
@@ -500,25 +504,25 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         {
             case 1:
                 runtimeBonusState.AddScrapGainPercent(10f);
+                runtimeBonusState.AddHarvestYieldPercent(5f);
                 break;
 
             case 2:
                 runtimeBonusState.AddScrapGainPercent(10f);
+                runtimeBonusState.AddHarvestYieldPercent(8f);
                 runtimeBonusState.AddHealEfficiencyPercent(25f);
                 break;
 
             default:
                 runtimeBonusState.AddScrapGainPercent(10f);
+                runtimeBonusState.AddHarvestYieldPercent(12f);
                 runtimeBonusState.AddHealEfficiencyPercent(25f);
                 runtimeBonusState.AddPickupRangeBonus(1.5f);
                 break;
         }
     }
 
-    private void ApplyPermanentTraits(
-        PermanentProgress progress,
-        IReadOnlyList<TraitDefinition> traitDefinitions,
-        WeaponTreeType selectedWeaponTree)
+    private void ApplyPermanentTraits(PermanentProgress progress, IReadOnlyList<TraitDefinition> traitDefinitions, WeaponTreeType selectedWeaponTree)
     {
         if (progress == null || traitDefinitions == null)
         {
@@ -550,10 +554,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         ClampStats();
     }
 
-    private void ApplyRunTraits(
-        RunContext runContext,
-        IReadOnlyList<TraitDefinition> traitDefinitions,
-        WeaponTreeType selectedWeaponTree)
+    private void ApplyRunTraits(RunContext runContext, IReadOnlyList<TraitDefinition> traitDefinitions, WeaponTreeType selectedWeaponTree)
     {
         if (runContext == null || runContext.SelectedTraitIds == null || traitDefinitions == null)
         {
@@ -594,9 +595,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
                 continue;
             }
 
-            bool shouldApply = applyTraitEffectsCumulatively
-                ? effect.Level <= level
-                : effect.Level == level;
+            bool shouldApply = applyTraitEffectsCumulatively ? effect.Level <= level : effect.Level == level;
 
             if (!shouldApply)
             {
@@ -612,24 +611,15 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         switch (effectType)
         {
             case TraitEffectType.DamagePercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddDamagePercent(value);
-                }
+                weaponModifiers?.AddDamagePercent(value);
                 break;
 
             case TraitEffectType.ProjectileSpeedPercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddProjectileSpeedPercent(value);
-                }
+                weaponModifiers?.AddProjectileSpeedPercent(value);
                 break;
 
             case TraitEffectType.RangePercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddRangePercent(value);
-                }
+                weaponModifiers?.AddRangePercent(value);
                 break;
 
             case TraitEffectType.MoveSpeedPercent:
@@ -649,73 +639,77 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
                 break;
 
             case TraitEffectType.HealEfficiencyPercent:
-                if (runtimeBonusState != null)
-                {
-                    runtimeBonusState.AddHealEfficiencyPercent(value);
-                }
+                runtimeBonusState?.AddHealEfficiencyPercent(value);
                 break;
 
             case TraitEffectType.PickupRangeBonus:
-                if (runtimeBonusState != null)
-                {
-                    runtimeBonusState.AddPickupRangeBonus(value);
-                }
+                runtimeBonusState?.AddPickupRangeBonus(value);
                 break;
 
             case TraitEffectType.SpreadReductionPercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddSpreadReductionPercent(Mathf.Abs(value));
-                }
+                weaponModifiers?.AddSpreadReductionPercent(Mathf.Abs(value));
                 break;
 
             case TraitEffectType.ProjectileCountBonus:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddProjectileCount(Mathf.RoundToInt(value));
-                }
+                weaponModifiers?.AddProjectileCount(Mathf.RoundToInt(value));
                 break;
 
             case TraitEffectType.PierceCountBonus:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddPierceCount(Mathf.RoundToInt(value));
-                }
+                weaponModifiers?.AddPierceCount(Mathf.RoundToInt(value));
                 break;
 
             case TraitEffectType.ChargeTimeReductionPercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddChargeSpeedPercent(Mathf.Abs(value));
-                }
+                weaponModifiers?.AddChargeSpeedPercent(Mathf.Abs(value));
                 break;
 
             case TraitEffectType.ChargeDamagePercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddChargeDamagePercent(value);
-                }
+                weaponModifiers?.AddChargeDamagePercent(value);
                 break;
 
             case TraitEffectType.HomingAngleBonus:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddHomingAngle(value);
-                }
+                weaponModifiers?.AddHomingAngle(value);
                 break;
 
             case TraitEffectType.HomingRangeBonus:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddHomingRange(value);
-                }
+                weaponModifiers?.AddHomingRange(value);
                 break;
 
             case TraitEffectType.FireRatePercent:
-                if (weaponModifiers != null)
-                {
-                    weaponModifiers.AddFireRatePercent(value);
-                }
+                weaponModifiers?.AddFireRatePercent(value);
+                break;
+
+            case TraitEffectType.CargoCapacityBonus:
+                runtimeStats.cargoCapacity += Mathf.RoundToInt(value);
+                runtimeBonusState?.AddCargoCapacityBonus(value);
+                break;
+
+            case TraitEffectType.HarvestYieldPercent:
+                runtimeBonusState?.AddHarvestYieldPercent(value);
+                break;
+
+            case TraitEffectType.HarvestObjectDamagePercent:
+                runtimeBonusState?.AddHarvestObjectDamagePercent(value);
+                break;
+
+            case TraitEffectType.EmergencyReturnCapacityRatioBonus:
+                runtimeStats.emergencyReturnCapacityRatio += value * 0.01f;
+                runtimeBonusState?.AddEmergencyReturnCapacityRatioBonus(value);
+                break;
+
+            case TraitEffectType.RadarScanRadiusBonus:
+                runtimeBonusState?.AddRadarScanRadiusBonus(value);
+                break;
+
+            case TraitEffectType.ActiveCooldownReductionPercent:
+                runtimeBonusState?.AddActiveCooldownReductionPercent(value);
+                break;
+
+            case TraitEffectType.RadarTauntDurationBonus:
+                runtimeBonusState?.AddRadarTauntDurationBonus(value);
+                break;
+
+            case TraitEffectType.RadarStealthDurationBonus:
+                runtimeBonusState?.AddRadarStealthDurationBonus(value);
                 break;
         }
     }
@@ -725,7 +719,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         runtimeStats.moveSpeed *= 1f + (percent * 0.01f);
     }
 
-    private void CommitStats(bool refillHealth)
+    private void CommitStats(bool refillHealth, RunContext runContext)
     {
         ClampStats();
 
@@ -744,6 +738,16 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
             playerDash.SetDashDistance(runtimeStats.dashDistance);
             playerDash.SetDashCooldown(runtimeStats.dashCooldown);
         }
+
+        if (runContext != null && runContext.IsActive)
+        {
+            runContext.SetCargoRule(runtimeStats.cargoCapacity, runtimeStats.emergencyReturnCapacityRatio, scrapCargoWeight, coreShardCargoWeight);
+        }
+
+        if (cargoController != null)
+        {
+            cargoController.SetRuntimeCargoRule(runtimeStats.cargoCapacity, runtimeStats.emergencyReturnCapacityRatio);
+        }
     }
 
     private void ClampStats()
@@ -752,5 +756,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         runtimeStats.moveSpeed = Mathf.Max(0.1f, runtimeStats.moveSpeed);
         runtimeStats.dashDistance = Mathf.Max(0.1f, runtimeStats.dashDistance);
         runtimeStats.dashCooldown = Mathf.Max(0.05f, runtimeStats.dashCooldown);
+        runtimeStats.cargoCapacity = Mathf.Max(1, runtimeStats.cargoCapacity);
+        runtimeStats.emergencyReturnCapacityRatio = Mathf.Clamp01(runtimeStats.emergencyReturnCapacityRatio);
     }
 }
