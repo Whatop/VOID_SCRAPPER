@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_shield_cell"
   displayName: "\ubcf4\ud638\ub9c9 \uc140"
   description: "Armor\ub97c \uc989\uc2dc \ucda9\uc804\ud55c\ub2e4. \uccb4\ub825 \uc190\uc2e4 \uc804\uc5d0 \ud55c \ubc88 \ubc84\ud2f8 \uc2dc\uac04\uc744 \ub9cc\ub4e0\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 635da5bb8e7fe004c540f6ebe798646b, type: 3}
   rarity: 0
   rarityPriceMultiplier: 0
   randomDropWeight: 0

@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -94,6 +94,8 @@ public class RunResultPanelUI : MonoBehaviour
 
     public void Close()
     {
+        AudioManager.Play(SoundEventIds.UiClick);
+
         if (isClosing)
         {
             return;
@@ -274,6 +276,7 @@ public class RunResultPanelUI : MonoBehaviour
         }
 
         Show(resultData);
+        AudioManager.Play(SoundEventIds.ResultRewardTotal);
         showRoutine = null;
     }
 

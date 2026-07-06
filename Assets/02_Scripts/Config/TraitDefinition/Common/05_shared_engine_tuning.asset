@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: shared_engine_tuning
   displayName: "엔진 튜닝"
   description: "기본 이동속도를 올려 수확과 회피 동선을 줄인다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: a907b7badba57997ee1b326e921e20e9, type: 3}
   category: 0
   weaponTreeType: 2
   shopItemType: 0

@@ -28,6 +28,7 @@ public class GameBootstrap : MonoBehaviour
 
         CacheReferences();
         InjectConfig();
+        AudioManager.EnsureExists();
     }
 
     private void Start()
@@ -74,27 +75,27 @@ public class GameBootstrap : MonoBehaviour
 
         if (gameStateManager == null)
         {
-            Debug.LogError("GameStateManager°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.", this);
+            Debug.LogError("GameStateManagerï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò½ï¿½ï¿½Ï´ï¿½.", this);
         }
 
         if (sceneFlowManager == null)
         {
-            Debug.LogError("SceneFlowManager°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.", this);
+            Debug.LogError("SceneFlowManagerï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò½ï¿½ï¿½Ï´ï¿½.", this);
         }
 
         if (runManager == null)
         {
-            Debug.LogError("RunManager°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.", this);
+            Debug.LogError("RunManagerï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò½ï¿½ï¿½Ï´ï¿½.", this);
         }
 
         if (saveManager == null)
         {
-            Debug.LogError("SaveManager°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.", this);
+            Debug.LogError("SaveManagerï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò½ï¿½ï¿½Ï´ï¿½.", this);
         }
 
         if (permanentProgress == null)
         {
-            Debug.LogError("PermanentProgress°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.", this);
+            Debug.LogError("PermanentProgressï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò½ï¿½ï¿½Ï´ï¿½.", this);
         }
     }
 

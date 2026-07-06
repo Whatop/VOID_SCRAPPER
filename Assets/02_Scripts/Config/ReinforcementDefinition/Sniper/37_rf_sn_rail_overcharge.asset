@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_sn_rail_overcharge"
   displayName: "\ub808\uc77c \uacfc\ucda9\uc804\uae30"
   description: "\uc2a4\ub098\uc774\ud37c \uae30\uccb4 \uc804\uc6a9. \uac15\ud55c \ub2e8\ubc1c \ud0c0\uc774\ubc0d\uc744 \uc704\ud55c \uace0\ubc30\uc728 \uacf5\uaca9\ub825 \ubc84\ud504\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 2c2e48b0039266596b01ee98c07776d4, type: 3}
   rarity: 3
   rarityPriceMultiplier: 0
   randomDropWeight: 0

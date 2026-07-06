@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: sn_focus_lens
   displayName: "집중 렌즈"
   description: "레이더 탐색 범위와 차징 피해를 함께 올린다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: bdb2abc639bb6a6e4e18eba3d5d1c830, type: 3}
   category: 1
   weaponTreeType: 1
   shopItemType: 0

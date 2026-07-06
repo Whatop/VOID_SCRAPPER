@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_sn_scan_marker"
   displayName: "\uc2a4\uce94 \ub9c8\ucee4"
   description: "\uc2a4\ub098\uc774\ud37c \uae30\uccb4 \uc804\uc6a9. \ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \ud45c\uc801 \uc9d1\uc911\uc6a9 \uacf5\uaca9\ub825 \ubc84\ud504\ub85c \ub3d9\uc791\ud55c\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: f48b971e1951e6e322c81c150ed405ad, type: 3}
   rarity: 2
   rarityPriceMultiplier: 0
   randomDropWeight: 0

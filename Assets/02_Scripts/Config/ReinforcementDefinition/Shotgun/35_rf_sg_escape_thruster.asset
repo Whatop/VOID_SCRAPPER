@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_sg_escape_thruster"
   displayName: "\uc774\ud0c8 \ucd94\uc9c4\uae30"
   description: "\uc0f7\uac74 \uae30\uccb4 \uc804\uc6a9. \uc9e7\uc740 \ubb34\uc801\uacfc \uc774\ub3d9\uc18d\ub3c4 \uc99d\uac00\ub85c \uc774\ud0c8\ud55c\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 7c7d29e0ad2e09634a47805a52380694, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
   randomDropWeight: 0

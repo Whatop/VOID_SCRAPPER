@@ -428,6 +428,8 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         SetWarningVisual(true);
         StateChanged?.Invoke(this);
 
+        AudioManager.PlayAt(SoundEventIds.ShopWarning, transform.position);
+
         if (warningAudioSource != null)
         {
             warningAudioSource.Play();
@@ -484,6 +486,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         SetWarningVisual(false);
         TriggerShieldBreakBurst();
+        AudioManager.PlayAt(SoundEventIds.ShopHostile, transform.position);
         SetGlobalHostile();
     }
 

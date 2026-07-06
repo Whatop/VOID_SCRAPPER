@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_decoy_beacon"
   displayName: "\ubbf8\ub07c \ube44\ucf58"
   description: "\ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \uc8fc\ubcc0 \uc801\uc744 \ubc00\uccd0\ub0b4\ub294 \ubc29\uc5b4 \ud384\uc2a4\ub85c \ub3d9\uc791\ud55c\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 16b6b18eca649bc17caf7aed99ae6e2c, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
   randomDropWeight: 0

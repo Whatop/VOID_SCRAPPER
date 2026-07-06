@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: shared_accelerator_coil
   displayName: "가속 코일"
   description: "탄속을 높여 중거리 명중률을 올린다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: c96e3de97909b7edba85baafcffa16b9, type: 3}
   category: 0
   weaponTreeType: 2
   shopItemType: 0

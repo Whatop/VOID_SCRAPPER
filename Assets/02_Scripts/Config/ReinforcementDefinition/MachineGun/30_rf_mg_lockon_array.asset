@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_mg_lockon_array"
   displayName: "\ub77d\uc628 \ubc30\uc5f4\uae30"
   description: "\uae30\uad00\ucd1d \uae30\uccb4 \uc804\uc6a9. \ub2e8\uc77c \ubaa9\ud45c \uc555\ubc15\uc6a9 \uacf5\uaca9\ub825 \ubc84\ud504\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: f70b0769b71645ac0e8fa787b1aae8c1, type: 3}
   rarity: 2
   rarityPriceMultiplier: 0
   randomDropWeight: 0

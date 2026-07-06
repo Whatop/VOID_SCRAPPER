@@ -116,6 +116,7 @@ public class PlayerReinforcementController : MonoBehaviour
         if (!definition.CanUseFor(selectedTree))
         {
             ShowWarning($"{definition.DisplayName}은 현재 기체 트리에서 사용할 수 없습니다.");
+            AudioManager.Play(SoundEventIds.ActionDenied);
             return false;
         }
 
@@ -132,6 +133,7 @@ public class PlayerReinforcementController : MonoBehaviour
         }
 
         NotifyEquipmentChanged();
+        AudioManager.Play(SoundEventIds.ReinforcementEquip);
 
         if (updateRunContext)
         {
@@ -227,6 +229,7 @@ public class PlayerReinforcementController : MonoBehaviour
         if (equippedDefinition == null)
         {
             ShowWarning("장착한 Reinforcement가 없습니다.");
+            AudioManager.Play(SoundEventIds.ActionDenied);
             return false;
         }
 
@@ -243,6 +246,7 @@ public class PlayerReinforcementController : MonoBehaviour
         if (currentCharges <= 0)
         {
             ShowWarning(equippedDefinition.UsesRecharge ? "장비 충전 중입니다." : "장비 사용 횟수가 없습니다.");
+            AudioManager.Play(SoundEventIds.ActionDenied);
             return false;
         }
 
@@ -374,6 +378,7 @@ public class PlayerReinforcementController : MonoBehaviour
         rechargeTimer = 0f;
 
         Used?.Invoke(equippedDefinition);
+        AudioManager.Play(SoundEventIds.ReinforcementEquip);
 
         if (logUseResult && equippedDefinition != null)
         {
@@ -863,6 +868,7 @@ public class PlayerReinforcementController : MonoBehaviour
         }
 
         pickup.Initialize(definition, charges, dropPickupBlockSeconds);
+        AudioManager.PlayAt(SoundEventIds.ReinforcementDrop, position);
         return true;
     }
 

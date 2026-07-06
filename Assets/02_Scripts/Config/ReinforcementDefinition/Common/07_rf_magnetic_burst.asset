@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_magnetic_burst"
   displayName: "\uc790\uae30 \ubc29\ucd9c\uae30"
   description: "\uc9e7\uc740 \uc2dc\uac04 \uc774\ub3d9\uc18d\ub3c4\ub97c \ub192\uc5ec \ub4dc\ub78d \ud68c\uc218\uc640 \uc774\ud0c8\uc744 \ub3d5\ub294\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: fe358664be2b67226049cf250828f7ba, type: 3}
   rarity: 0
   rarityPriceMultiplier: 0
   randomDropWeight: 0

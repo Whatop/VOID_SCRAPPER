@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_scanner_pulse"
   displayName: "\uc2a4\uce90\ub108 \ud384\uc2a4"
   description: "\ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \ud0d0\uc0c9 \uac00\uc18d \uc7a5\ube44\ub85c \ub3d9\uc791\ud55c\ub2e4. \uc774\ub3d9\uc18d\ub3c4\ub97c \uc62c\ub824 \ud0d0\uc0c9 \ubc94\uc704\ub97c \ub113\ud78c\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: ed09f4ad121019d1b3d49367c48f762c, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
   randomDropWeight: 0

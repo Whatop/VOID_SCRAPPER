@@ -142,6 +142,7 @@ public class ShopTradeUI : MonoBehaviour
 
     public void Open(ShopStructure shop, GameObject playerObject)
     {
+        AudioManager.Play(SoundEventIds.ShopOpen);
         currentShop = shop;
         currentPlayer = playerObject;
 
@@ -169,6 +170,7 @@ public class ShopTradeUI : MonoBehaviour
 
     public void Close()
     {
+        AudioManager.Play(SoundEventIds.UiPanelClose);
         isOpen = false;
 
         if (maintenanceBayUI != null)
@@ -603,6 +605,7 @@ public class ShopTradeUI : MonoBehaviour
     {
         if (!CanBuySelectedOption())
         {
+            AudioManager.Play(SoundEventIds.ShopBuyFail);
             RefreshBuyButtonState();
             return;
         }
@@ -627,9 +630,12 @@ public class ShopTradeUI : MonoBehaviour
 
         if (!success)
         {
+            AudioManager.Play(SoundEventIds.ShopBuyFail);
             RefreshBuyButtonState();
             return;
         }
+
+        AudioManager.Play(SoundEventIds.ShopBuySuccess);
 
         if (selectedOption.Kind == ShopOptionKind.Reinforcement)
         {

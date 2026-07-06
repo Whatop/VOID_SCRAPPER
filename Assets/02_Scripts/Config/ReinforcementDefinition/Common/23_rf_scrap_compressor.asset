@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_scrap_compressor"
   displayName: "\uc2a4\ud06c\ub7a9 \uc555\ucd95\uae30"
   description: "\uc7a5\ube44 \uc2ac\ub86f\uc744 \uc810\uc720\ud558\ub294 \ub300\uc2e0 \uc804\ud22c \uc911 \ud654\ub825\uc744 \ubcf4\uac15\ud558\ub294 \uc561\ud2f0\ube0c \uc7a5\ube44\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 4e21a0806db5d619ff70a9a7055cee90, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
   randomDropWeight: 0

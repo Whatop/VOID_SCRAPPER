@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: sn_piercing_amplifier
   displayName: "관통 증폭"
   description: "스나이퍼 탄환의 관통 횟수를 늘린다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 8a10ce5784f4f039b76bd354738e76bd, type: 3}
   category: 1
   weaponTreeType: 1
   shopItemType: 0

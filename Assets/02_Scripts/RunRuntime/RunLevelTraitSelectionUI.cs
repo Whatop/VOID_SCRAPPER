@@ -197,6 +197,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
         if (newLevel <= 0)
         {
+            AudioManager.Play(SoundEventIds.ActionDenied);
             expeditionHUD?.ShowWarning("특성 적용에 실패했습니다.");
             return;
         }
@@ -211,6 +212,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
             traitEffectApplier.ApplyTraitLevel(trait, newLevel);
         }
 
+        AudioManager.Play(SoundEventIds.TraitSelect);
         expeditionHUD?.ShowWarning($"{trait.DisplayName} Lv{newLevel} 적용");
 
         if (pauseGameplayWhileSelecting)

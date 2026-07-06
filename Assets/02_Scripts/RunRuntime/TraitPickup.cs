@@ -204,6 +204,7 @@ public class TraitPickup : MonoBehaviour, IInteractable
         if (ShopRunBridge.HasRunTrait(traitDefinition.TraitId))
         {
             ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+            AudioManager.Play(SoundEventIds.ActionDenied);
             if (hud != null)
             {
                 hud.ShowWarning($"이미 보유한 특성입니다: {traitDefinition.DisplayName}");
@@ -217,6 +218,7 @@ public class TraitPickup : MonoBehaviour, IInteractable
         }
 
         ShopRuntimeEffectApplier.ApplyTraitImmediate(traitDefinition, playerObject);
+        AudioManager.PlayAt(SoundEventIds.TraitSelect, transform.position);
 
         ExpeditionHUD acquireHud = FindFirstObjectByType<ExpeditionHUD>();
         if (acquireHud != null)
@@ -347,6 +349,8 @@ public class TraitPickup : MonoBehaviour, IInteractable
 
         int amount = Mathf.Max(1, dismantleScrapReward);
         ShopRunBridge.AddCurrency(dismantleCurrency, amount);
+
+        AudioManager.PlayAt(SoundEventIds.ReinforcementDrop, transform.position);
 
         ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
         if (hud != null)

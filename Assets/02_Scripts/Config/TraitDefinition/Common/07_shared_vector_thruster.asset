@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: shared_vector_thruster
   displayName: "벡터 추진기"
   description: "대쉬 거리를 늘려 위험 구역에서 빠르게 이탈한다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 08ba1ca3291803d66ff5d77ae5a9f691, type: 3}
   category: 0
   weaponTreeType: 2
   shopItemType: 0

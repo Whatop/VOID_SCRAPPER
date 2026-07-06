@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_mg_ammo_capacitor"
   displayName: "\ud0c4\uc57d \uce90\ud328\uc2dc\ud130"
   description: "\uae30\uad00\ucd1d \uae30\uccb4 \uc804\uc6a9. \uc9e7\uc740 \uc2dc\uac04 \uacf5\uaca9\ub825\uacfc \uc5f0\uc0ac\ub825\uc744 \ud568\uaed8 \uc62c\ub9b0\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: c8968f1d902877e098d8ddcbc13a86c1, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
   randomDropWeight: 0

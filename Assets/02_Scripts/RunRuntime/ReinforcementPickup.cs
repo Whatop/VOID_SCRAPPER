@@ -223,8 +223,11 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
 
         if (!equipped)
         {
+            AudioManager.Play(SoundEventIds.ActionDenied);
             return;
         }
+
+        AudioManager.PlayAt(SoundEventIds.ReinforcementPickup, transform.position);
 
         if (previousDefinition != null)
         {
@@ -364,6 +367,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
             hud.ShowWarning($"{reinforcementDefinition.DisplayName} 분해: {dismantleCurrency} +{amount}");
         }
 
+        AudioManager.PlayAt(SoundEventIds.ReinforcementDrop, transform.position);
         reinforcementDefinition = null;
         storedCharges = -1;
         ApplyVisual();

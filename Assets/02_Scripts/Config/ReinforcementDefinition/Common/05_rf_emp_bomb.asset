@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_emp_bomb"
   displayName: "EMP \ud3ed\ud0c4"
   description: "\uc8fc\ubcc0 \uc801 \ud0c4\ud658\uc744 \uc81c\uac70\ud558\uace0 \uac00\uae4c\uc6b4 \uc801\uc5d0\uac8c \ud53c\ud574\ub97c \uc900\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: b617b31f2ec754bd9b0d9604d7853446, type: 3}
   rarity: 0
   rarityPriceMultiplier: 0
   randomDropWeight: 0

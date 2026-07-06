@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: shared_combat_gyro
   displayName: "전투 자이로"
   description: "탄 퍼짐을 줄여 안정적인 교전을 돕는다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 758c65f13a7207ddfff5f37b50ebb3df, type: 3}
   category: 0
   weaponTreeType: 2
   shopItemType: 0

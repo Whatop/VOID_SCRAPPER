@@ -1,0 +1,82 @@
+﻿Kind,Number,Id,KoreanName,Category,AssetPath,IconPath
+Trait,01,shared_cargo_bay,확장 적재실,Common,Config/TraitDefinition/Common/01_shared_cargo_bay.asset,Config/Icons/Trait/Common/01_shared_cargo_bay.png
+Trait,02,shared_salvage_protocol,수확 프로토콜,Common,Config/TraitDefinition/Common/02_shared_salvage_protocol.asset,Config/Icons/Trait/Common/02_shared_salvage_protocol.png
+Trait,03,shared_salvage_magnet,회수 자석,Common,Config/TraitDefinition/Common/03_shared_salvage_magnet.asset,Config/Icons/Trait/Common/03_shared_salvage_magnet.png
+Trait,04,shared_reinforced_plating,강화 장갑,Common,Config/TraitDefinition/Common/04_shared_reinforced_plating.asset,Config/Icons/Trait/Common/04_shared_reinforced_plating.png
+Trait,05,shared_engine_tuning,엔진 튜닝,Common,Config/TraitDefinition/Common/05_shared_engine_tuning.asset,Config/Icons/Trait/Common/05_shared_engine_tuning.png
+Trait,06,shared_dash_capacitor,대쉬 캐패시터,Common,Config/TraitDefinition/Common/06_shared_dash_capacitor.asset,Config/Icons/Trait/Common/06_shared_dash_capacitor.png
+Trait,07,shared_vector_thruster,벡터 추진기,Common,Config/TraitDefinition/Common/07_shared_vector_thruster.asset,Config/Icons/Trait/Common/07_shared_vector_thruster.png
+Trait,08,shared_repair_foam,정비 폼,Common,Config/TraitDefinition/Common/08_shared_repair_foam.asset,Config/Icons/Trait/Common/08_shared_repair_foam.png
+Trait,09,shared_targeting_bus,조준 버스,Common,Config/TraitDefinition/Common/09_shared_targeting_bus.asset,Config/Icons/Trait/Common/09_shared_targeting_bus.png
+Trait,10,shared_accelerator_coil,가속 코일,Common,Config/TraitDefinition/Common/10_shared_accelerator_coil.asset,Config/Icons/Trait/Common/10_shared_accelerator_coil.png
+Trait,11,shared_range_focusing,사거리 초점화,Common,Config/TraitDefinition/Common/11_shared_range_focusing.asset,Config/Icons/Trait/Common/11_shared_range_focusing.png
+Trait,12,shared_rapid_feed,급속 급탄,Common,Config/TraitDefinition/Common/12_shared_rapid_feed.asset,Config/Icons/Trait/Common/12_shared_rapid_feed.png
+Trait,13,shared_combat_gyro,전투 자이로,Common,Config/TraitDefinition/Common/13_shared_combat_gyro.asset,Config/Icons/Trait/Common/13_shared_combat_gyro.png
+Trait,14,shared_scrap_sorter,스크랩 분류기,Common,Config/TraitDefinition/Common/14_shared_scrap_sorter.asset,Config/Icons/Trait/Common/14_shared_scrap_sorter.png
+Trait,15,shared_return_container,복귀 보관함,Common,Config/TraitDefinition/Common/15_shared_return_container.asset,Config/Icons/Trait/Common/15_shared_return_container.png
+Trait,16,shared_radar_amplifier,레이더 증폭기,Common,Config/TraitDefinition/Common/16_shared_radar_amplifier.asset,Config/Icons/Trait/Common/16_shared_radar_amplifier.png
+Trait,17,shared_active_cooler,액티브 냉각기,Common,Config/TraitDefinition/Common/17_shared_active_cooler.asset,Config/Icons/Trait/Common/17_shared_active_cooler.png
+Trait,18,shared_bulkhead_cargo_frame,격벽 적재 프레임,Common,Config/TraitDefinition/Common/18_shared_bulkhead_cargo_frame.asset,Config/Icons/Trait/Common/18_shared_bulkhead_cargo_frame.png
+Trait,19,shared_collection_route,회수 항로 계산기,Common,Config/TraitDefinition/Common/19_shared_collection_route.asset,Config/Icons/Trait/Common/19_shared_collection_route.png
+Trait,20,shared_cutting_ammo,절단 탄약,Common,Config/TraitDefinition/Common/20_shared_cutting_ammo.asset,Config/Icons/Trait/Common/20_shared_cutting_ammo.png
+Trait,21,shared_longshot_stabilizer,장거리 안정기,Common,Config/TraitDefinition/Common/21_shared_longshot_stabilizer.asset,Config/Icons/Trait/Common/21_shared_longshot_stabilizer.png
+Trait,22,shared_survival_protocol,생존 프로토콜,Common,Config/TraitDefinition/Common/22_shared_survival_protocol.asset,Config/Icons/Trait/Common/22_shared_survival_protocol.png
+Trait,23,shared_lightweight_cargo,경량 적재함,Common,Config/TraitDefinition/Common/23_shared_lightweight_cargo.asset,Config/Icons/Trait/Common/23_shared_lightweight_cargo.png
+Trait,24,shared_return_protocol,복귀 프로토콜,Common,Config/TraitDefinition/Common/24_shared_return_protocol.asset,Config/Icons/Trait/Common/24_shared_return_protocol.png
+Trait,25,shared_standard_upgrade,표준 개수 키트,Common,Config/TraitDefinition/Common/25_shared_standard_upgrade.asset,Config/Icons/Trait/Common/25_shared_standard_upgrade.png
+Trait,26,mg_sustained_harvest_fire,지속 수확 사격,MachineGun,Config/TraitDefinition/MachineGun/26_mg_sustained_harvest_fire.asset,Config/Icons/Trait/MachineGun/26_mg_sustained_harvest_fire.png
+Trait,27,mg_guidance_control,유도 제어,MachineGun,Config/TraitDefinition/MachineGun/27_mg_guidance_control.asset,Config/Icons/Trait/MachineGun/27_mg_guidance_control.png
+Trait,28,mg_stable_feed,안정 급탄,MachineGun,Config/TraitDefinition/MachineGun/28_mg_stable_feed.asset,Config/Icons/Trait/MachineGun/28_mg_stable_feed.png
+Trait,29,mg_salvage_sweep,수확 탄막,MachineGun,Config/TraitDefinition/MachineGun/29_mg_salvage_sweep.asset,Config/Icons/Trait/MachineGun/29_mg_salvage_sweep.png
+Trait,30,mg_midrange_pressure,중거리 압박,MachineGun,Config/TraitDefinition/MachineGun/30_mg_midrange_pressure.asset,Config/Icons/Trait/MachineGun/30_mg_midrange_pressure.png
+Trait,31,sg_choke_barrel,산탄 압축,Shotgun,Config/TraitDefinition/Shotgun/31_sg_choke_barrel.asset,Config/Icons/Trait/Shotgun/31_sg_choke_barrel.png
+Trait,32,sg_extra_pellet,추가 펠릿,Shotgun,Config/TraitDefinition/Shotgun/32_sg_extra_pellet.asset,Config/Icons/Trait/Shotgun/32_sg_extra_pellet.png
+Trait,33,sg_breaching_drive,돌입 구동계,Shotgun,Config/TraitDefinition/Shotgun/33_sg_breaching_drive.asset,Config/Icons/Trait/Shotgun/33_sg_breaching_drive.png
+Trait,34,sg_close_harvest_burst,근접 수확 파쇄,Shotgun,Config/TraitDefinition/Shotgun/34_sg_close_harvest_burst.asset,Config/Icons/Trait/Shotgun/34_sg_close_harvest_burst.png
+Trait,35,sg_taunt_resonator,도발 공진기,Shotgun,Config/TraitDefinition/Shotgun/35_sg_taunt_resonator.asset,Config/Icons/Trait/Shotgun/35_sg_taunt_resonator.png
+Trait,36,sn_charge_accelerator,차징 가속,Sniper,Config/TraitDefinition/Sniper/36_sn_charge_accelerator.asset,Config/Icons/Trait/Sniper/36_sn_charge_accelerator.png
+Trait,37,sn_piercing_amplifier,관통 증폭,Sniper,Config/TraitDefinition/Sniper/37_sn_piercing_amplifier.asset,Config/Icons/Trait/Sniper/37_sn_piercing_amplifier.png
+Trait,38,sn_focus_lens,집중 렌즈,Sniper,Config/TraitDefinition/Sniper/38_sn_focus_lens.asset,Config/Icons/Trait/Sniper/38_sn_focus_lens.png
+Trait,39,sn_high_output_core,고출력 탄심,Sniper,Config/TraitDefinition/Sniper/39_sn_high_output_core.asset,Config/Icons/Trait/Sniper/39_sn_high_output_core.png
+Trait,40,sn_stealth_scan,은밀 스캔,Sniper,Config/TraitDefinition/Sniper/40_sn_stealth_scan.asset,Config/Icons/Trait/Sniper/40_sn_stealth_scan.png
+Reinforcement,00,rf_emergency_return_anchor,긴급복귀 앵커,Common,Config/ReinforcementDefinition/Common/00_rf_emergency_return_anchor.asset,Config/Icons/Reinforcement/Common/00_rf_emergency_return_anchor.png
+Reinforcement,01,rf_emergency_repair_kit,응급 수리 키트,Common,Config/ReinforcementDefinition/Common/01_rf_emergency_repair_kit.asset,Config/Icons/Reinforcement/Common/01_rf_emergency_repair_kit.png
+Reinforcement,02,rf_large_repair_pack,대형 수리 팩,Common,Config/ReinforcementDefinition/Common/02_rf_large_repair_pack.asset,Config/Icons/Reinforcement/Common/02_rf_large_repair_pack.png
+Reinforcement,03,rf_shield_cell,보호막 셀,Common,Config/ReinforcementDefinition/Common/03_rf_shield_cell.asset,Config/Icons/Reinforcement/Common/03_rf_shield_cell.png
+Reinforcement,04,rf_burst_barrier,순간 방벽,Common,Config/ReinforcementDefinition/Common/04_rf_burst_barrier.asset,Config/Icons/Reinforcement/Common/04_rf_burst_barrier.png
+Reinforcement,05,rf_emp_bomb,EMP 폭탄,Common,Config/ReinforcementDefinition/Common/05_rf_emp_bomb.asset,Config/Icons/Reinforcement/Common/05_rf_emp_bomb.png
+Reinforcement,06,rf_projectile_cleaner,탄막 청소기,Common,Config/ReinforcementDefinition/Common/06_rf_projectile_cleaner.asset,Config/Icons/Reinforcement/Common/06_rf_projectile_cleaner.png
+Reinforcement,07,rf_magnetic_burst,자기 방출기,Common,Config/ReinforcementDefinition/Common/07_rf_magnetic_burst.asset,Config/Icons/Reinforcement/Common/07_rf_magnetic_burst.png
+Reinforcement,08,rf_overdrive_injector,과부하 주입기,Common,Config/ReinforcementDefinition/Common/08_rf_overdrive_injector.asset,Config/Icons/Reinforcement/Common/08_rf_overdrive_injector.png
+Reinforcement,09,rf_coolant_canister,냉각 캐니스터,Common,Config/ReinforcementDefinition/Common/09_rf_coolant_canister.asset,Config/Icons/Reinforcement/Common/09_rf_coolant_canister.png
+Reinforcement,10,rf_thruster_ampoule,추진 앰플,Common,Config/ReinforcementDefinition/Common/10_rf_thruster_ampoule.asset,Config/Icons/Reinforcement/Common/10_rf_thruster_ampoule.png
+Reinforcement,11,rf_dash_coolant,대쉬 냉각제,Common,Config/ReinforcementDefinition/Common/11_rf_dash_coolant.asset,Config/Icons/Reinforcement/Common/11_rf_dash_coolant.png
+Reinforcement,12,rf_decoy_beacon,미끼 비콘,Common,Config/ReinforcementDefinition/Common/12_rf_decoy_beacon.asset,Config/Icons/Reinforcement/Common/12_rf_decoy_beacon.png
+Reinforcement,13,rf_gravity_mine,중력 기뢰,Common,Config/ReinforcementDefinition/Common/13_rf_gravity_mine.asset,Config/Icons/Reinforcement/Common/13_rf_gravity_mine.png
+Reinforcement,14,rf_auto_turret_pod,자동 포탑 포드,Common,Config/ReinforcementDefinition/Common/14_rf_auto_turret_pod.asset,Config/Icons/Reinforcement/Common/14_rf_auto_turret_pod.png
+Reinforcement,15,rf_repair_drone,수리 드론,Common,Config/ReinforcementDefinition/Common/15_rf_repair_drone.asset,Config/Icons/Reinforcement/Common/15_rf_repair_drone.png
+Reinforcement,16,rf_guard_drone,호위 드론,Common,Config/ReinforcementDefinition/Common/16_rf_guard_drone.asset,Config/Icons/Reinforcement/Common/16_rf_guard_drone.png
+Reinforcement,17,rf_phase_cloak,위상 은폐장,Common,Config/ReinforcementDefinition/Common/17_rf_phase_cloak.asset,Config/Icons/Reinforcement/Common/17_rf_phase_cloak.png
+Reinforcement,18,rf_armor_foam,장갑 폼 분사기,Common,Config/ReinforcementDefinition/Common/18_rf_armor_foam.asset,Config/Icons/Reinforcement/Common/18_rf_armor_foam.png
+Reinforcement,19,rf_core_stabilizer,코어 안정기,Common,Config/ReinforcementDefinition/Common/19_rf_core_stabilizer.asset,Config/Icons/Reinforcement/Common/19_rf_core_stabilizer.png
+Reinforcement,20,rf_scanner_pulse,스캐너 펄스,Common,Config/ReinforcementDefinition/Common/20_rf_scanner_pulse.asset,Config/Icons/Reinforcement/Common/20_rf_scanner_pulse.png
+Reinforcement,21,rf_hunter_jammer,추적 교란기,Common,Config/ReinforcementDefinition/Common/21_rf_hunter_jammer.asset,Config/Icons/Reinforcement/Common/21_rf_hunter_jammer.png
+Reinforcement,22,rf_warp_flare,워프 조명탄,Common,Config/ReinforcementDefinition/Common/22_rf_warp_flare.asset,Config/Icons/Reinforcement/Common/22_rf_warp_flare.png
+Reinforcement,23,rf_scrap_compressor,스크랩 압축기,Common,Config/ReinforcementDefinition/Common/23_rf_scrap_compressor.asset,Config/Icons/Reinforcement/Common/23_rf_scrap_compressor.png
+Reinforcement,24,rf_credit_converter,크레딧 변환기,Common,Config/ReinforcementDefinition/Common/24_rf_credit_converter.asset,Config/Icons/Reinforcement/Common/24_rf_credit_converter.png
+Reinforcement,25,rf_return_marker,귀환 표식기,Common,Config/ReinforcementDefinition/Common/25_rf_return_marker.asset,Config/Icons/Reinforcement/Common/25_rf_return_marker.png
+Reinforcement,26,rf_mg_cooling_core,기관총 냉각 코어,MachineGun,Config/ReinforcementDefinition/MachineGun/26_rf_mg_cooling_core.asset,Config/Icons/Reinforcement/MachineGun/26_rf_mg_cooling_core.png
+Reinforcement,27,rf_mg_guidance_drone,유도 보조 드론,MachineGun,Config/ReinforcementDefinition/MachineGun/27_rf_mg_guidance_drone.asset,Config/Icons/Reinforcement/MachineGun/27_rf_mg_guidance_drone.png
+Reinforcement,28,rf_mg_suppression_turret,제압 포탑,MachineGun,Config/ReinforcementDefinition/MachineGun/28_rf_mg_suppression_turret.asset,Config/Icons/Reinforcement/MachineGun/28_rf_mg_suppression_turret.png
+Reinforcement,29,rf_mg_ammo_capacitor,탄약 캐패시터,MachineGun,Config/ReinforcementDefinition/MachineGun/29_rf_mg_ammo_capacitor.asset,Config/Icons/Reinforcement/MachineGun/29_rf_mg_ammo_capacitor.png
+Reinforcement,30,rf_mg_lockon_array,락온 배열기,MachineGun,Config/ReinforcementDefinition/MachineGun/30_rf_mg_lockon_array.asset,Config/Icons/Reinforcement/MachineGun/30_rf_mg_lockon_array.png
+Reinforcement,31,rf_sg_breach_shield,돌입 보호막,Shotgun,Config/ReinforcementDefinition/Shotgun/31_rf_sg_breach_shield.asset,Config/Icons/Reinforcement/Shotgun/31_rf_sg_breach_shield.png
+Reinforcement,32,rf_sg_cone_emp,원뿔 EMP,Shotgun,Config/ReinforcementDefinition/Shotgun/32_rf_sg_cone_emp.asset,Config/Icons/Reinforcement/Shotgun/32_rf_sg_cone_emp.png
+Reinforcement,33,rf_sg_taunt_beacon,도발 비콘,Shotgun,Config/ReinforcementDefinition/Shotgun/33_rf_sg_taunt_beacon.asset,Config/Icons/Reinforcement/Shotgun/33_rf_sg_taunt_beacon.png
+Reinforcement,34,rf_sg_impact_booster,충격 증폭기,Shotgun,Config/ReinforcementDefinition/Shotgun/34_rf_sg_impact_booster.asset,Config/Icons/Reinforcement/Shotgun/34_rf_sg_impact_booster.png
+Reinforcement,35,rf_sg_escape_thruster,이탈 추진기,Shotgun,Config/ReinforcementDefinition/Shotgun/35_rf_sg_escape_thruster.asset,Config/Icons/Reinforcement/Shotgun/35_rf_sg_escape_thruster.png
+Reinforcement,36,rf_sn_focus_lens,집중 렌즈 장비,Sniper,Config/ReinforcementDefinition/Sniper/36_rf_sn_focus_lens.asset,Config/Icons/Reinforcement/Sniper/36_rf_sn_focus_lens.png
+Reinforcement,37,rf_sn_rail_overcharge,레일 과충전기,Sniper,Config/ReinforcementDefinition/Sniper/37_rf_sn_rail_overcharge.asset,Config/Icons/Reinforcement/Sniper/37_rf_sn_rail_overcharge.png
+Reinforcement,38,rf_sn_scan_marker,스캔 마커,Sniper,Config/ReinforcementDefinition/Sniper/38_rf_sn_scan_marker.asset,Config/Icons/Reinforcement/Sniper/38_rf_sn_scan_marker.png
+Reinforcement,39,rf_sn_stasis_anchor,정지 앵커,Sniper,Config/ReinforcementDefinition/Sniper/39_rf_sn_stasis_anchor.asset,Config/Icons/Reinforcement/Sniper/39_rf_sn_stasis_anchor.png
+Reinforcement,40,rf_sn_pierce_compressor,관통 압축기,Sniper,Config/ReinforcementDefinition/Sniper/40_rf_sn_pierce_compressor.asset,Config/Icons/Reinforcement/Sniper/40_rf_sn_pierce_compressor.png

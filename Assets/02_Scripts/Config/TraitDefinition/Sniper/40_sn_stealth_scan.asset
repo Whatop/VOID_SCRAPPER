@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: sn_stealth_scan
   displayName: "은밀 스캔"
   description: "스나이퍼의 선제 탐지 운용을 돕는 은밀 스캔 지속 보너스와 사거리 보정을 제공한다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: acb8911b0f289aad39da499bbc3f64dc, type: 3}
   category: 1
   weaponTreeType: 1
   shopItemType: 0

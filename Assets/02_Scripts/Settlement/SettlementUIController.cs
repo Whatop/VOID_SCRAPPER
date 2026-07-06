@@ -138,26 +138,31 @@ public class SettlementUIController : MonoBehaviour
 
     public void ShowMainPanel()
     {
+        AudioManager.Play(SoundEventIds.UiBack);
         ShowPanel(SettlementPanelKind.Main);
     }
 
     public void ShowRepairPanel()
     {
+        AudioManager.Play(SoundEventIds.UiPanelOpen);
         ShowPanel(SettlementPanelKind.Repair);
     }
 
     public void ShowTraitPanel()
     {
+        AudioManager.Play(SoundEventIds.UiPanelOpen);
         ShowPanel(SettlementPanelKind.Trait);
     }
 
     public void ShowSettingsPanel()
     {
+        AudioManager.Play(SoundEventIds.UiPanelOpen);
         OpenSettingsOverlay();
     }
 
     public void CloseSettingsAndReturnMain()
     {
+        AudioManager.Play(SoundEventIds.UiPanelClose);
         CloseSettingsOverlay();
     }
     private void OpenSettingsOverlay()
@@ -282,6 +287,8 @@ public class SettlementUIController : MonoBehaviour
 
     public void MovePreviewShipPrevious()
     {
+        AudioManager.Play(SoundEventIds.UiClick);
+
         if (settlementController != null)
         {
             settlementController.MovePreviewShipPrevious();
@@ -292,6 +299,8 @@ public class SettlementUIController : MonoBehaviour
 
     public void MovePreviewShipNext()
     {
+        AudioManager.Play(SoundEventIds.UiClick);
+
         if (settlementController != null)
         {
             settlementController.MovePreviewShipNext();
@@ -302,6 +311,8 @@ public class SettlementUIController : MonoBehaviour
 
     public void ExecuteShipAction()
     {
+        AudioManager.Play(SoundEventIds.UiClick);
+
         if (settlementController != null)
         {
             settlementController.TryExecutePreviewShipAction();
@@ -314,7 +325,8 @@ public class SettlementUIController : MonoBehaviour
     {
         if (settlementController != null)
         {
-            settlementController.TryRepairOrUpgradeBuilding(selectedBuilding);
+            bool success = settlementController.TryRepairOrUpgradeBuilding(selectedBuilding);
+            AudioManager.Play(success ? SoundEventIds.UiUpgradeSuccess : SoundEventIds.UiInsufficient);
         }
 
         Refresh();
@@ -322,7 +334,8 @@ public class SettlementUIController : MonoBehaviour
 
     public void ExecuteTraitAction()
     {
-        TryExecuteCurrentTraitAction();
+        bool success = TryExecuteCurrentTraitAction();
+        AudioManager.Play(success ? SoundEventIds.TraitSelect : SoundEventIds.UiInsufficient);
         Refresh();
     }
 
@@ -378,6 +391,7 @@ public class SettlementUIController : MonoBehaviour
             return;
         }
 
+        AudioManager.Play(SoundEventIds.UiLaunch);
         settlementController.LaunchExpedition();
     }
 
@@ -755,6 +769,7 @@ public class SettlementUIController : MonoBehaviour
 
     public void MoveBuildingPrevious()
     {
+        AudioManager.Play(SoundEventIds.UiClick);
         int index = GetSelectedBuildingIndex();
         index--;
 
@@ -770,6 +785,7 @@ public class SettlementUIController : MonoBehaviour
 
     public void MoveBuildingNext()
     {
+        AudioManager.Play(SoundEventIds.UiClick);
         int index = GetSelectedBuildingIndex();
         index = (index + 1) % buildingOrder.Length;
 

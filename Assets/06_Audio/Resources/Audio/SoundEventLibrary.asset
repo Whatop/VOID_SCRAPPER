@@ -1,0 +1,384 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16fda8a9af5e47bba72bc0b317ad0643, type: 3}
+  m_Name: SoundEventLibrary
+  m_EditorClassIdentifier: 
+  entries:
+  - eventId: ui_click
+    clips:
+    - {fileID: 8300000, guid: defb1d55615ae984381c624a4bab0b0c, type: 3}
+    volume: 0.9
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: ui_hover
+    clips:
+    - {fileID: 8300000, guid: c607c578f9f9e04469bddbe72c3c7874, type: 3}
+    volume: 0.55
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: ui_back
+    clips:
+    - {fileID: 8300000, guid: c42ec5828d7f912478aaf92144a545b4, type: 3}
+    volume: 0.75
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: ui_panel_open
+    clips:
+    - {fileID: 8300000, guid: ec538f75e91585c41bd544d7271f4526, type: 3}
+    volume: 0.8
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: ui_panel_close
+    clips:
+    - {fileID: 8300000, guid: f902d4a164799df42beae343e60e9c41, type: 3}
+    volume: 0.8
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: ui_insufficient
+    clips:
+    - {fileID: 8300000, guid: 1076e8dce267d8e4d85b2f3b44d01088, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: ui_upgrade_success
+    clips:
+    - {fileID: 8300000, guid: 02770ede097fe194ba2232e2ea84f766, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: ui_upgrade_fail
+    clips:
+    - {fileID: 8300000, guid: d279103c519e67d4a9ff9a050ee2fa94, type: 3}
+    volume: 0.85
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: ui_launch
+    clips:
+    - {fileID: 8300000, guid: 7abd15f0c5fd4514ba9b60b6d06ef8fb, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: trait_select
+    clips:
+    - {fileID: 8300000, guid: 8379eb938f5542f4b8b5944069b0e0f7, type: 3}
+    volume: 0.85
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: level_up
+    clips:
+    - {fileID: 8300000, guid: c369ffe5c6086504e951dabc5889350c, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: tab_status_open
+    clips:
+    - {fileID: 8300000, guid: c66ce470733a1a9468dfa4dd55b0ed71, type: 3}
+    volume: 0.8
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: tab_status_close
+    clips:
+    - {fileID: 8300000, guid: b1d78a7d0266bd241a2edd4f7c283637, type: 3}
+    volume: 0.8
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: warning_message
+    clips:
+    - {fileID: 8300000, guid: 1857be1cab565fe47a765be7eb968a73, type: 3}
+    volume: 0.85
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: action_denied
+    clips:
+    - {fileID: 8300000, guid: 6493672ef33e0704f851554a0594a1f5, type: 3}
+    volume: 0.85
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: shop_open
+    clips:
+    - {fileID: 8300000, guid: fe2f4027d63c04a40b2544aa93dbd4d8, type: 3}
+    volume: 0.85
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: shop_buy_success
+    clips:
+    - {fileID: 8300000, guid: 90c9f3364cda79c49adc988856245dde, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: shop_buy_fail
+    clips:
+    - {fileID: 8300000, guid: 6dfcff2d2af92e54fb855270bff4d3f6, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: shop_item_sold
+    clips:
+    - {fileID: 8300000, guid: 0435df60b9c20f149811f442ece82178, type: 3}
+    volume: 0.8
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: shop_transaction_complete
+    clips:
+    - {fileID: 8300000, guid: 21b54bf589f1a3542a5c59225733ab61, type: 3}
+    volume: 0.85
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: shop_warning
+    clips:
+    - {fileID: 8300000, guid: 31f2c8d081a60b342a13497e10bf1e14, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: shop_hostile
+    clips:
+    - {fileID: 8300000, guid: e4fedd4e295cd534a96b4fd7b641c7ed, type: 3}
+    volume: 0.95
+    pitchMin: 0.99
+    pitchMax: 1.01
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: reinforcement_equip
+    clips:
+    - {fileID: 8300000, guid: fcfacea269ccd3243b95be77833f0a07, type: 3}
+    volume: 0.85
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: reinforcement_drop
+    clips:
+    - {fileID: 8300000, guid: d67d252bda5e0df47bfc508b3ee5d0e9, type: 3}
+    volume: 0.8
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: reinforcement_pickup
+    clips:
+    - {fileID: 8300000, guid: 5dd315edf30b4cf4f80ab441d301fb64, type: 3}
+    volume: 0.85
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: reinforcement_use
+    clips:
+    - {fileID: 8300000, guid: d7c1c514eb8de974982d9560e7152197, type: 3}
+    volume: 0.85
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: radar_open
+    clips:
+    - {fileID: 8300000, guid: 9f655e216495f7f4eb084448df200ff7, type: 3}
+    volume: 0.85
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: radar_close
+    clips:
+    - {fileID: 8300000, guid: 8db94fe307116494cb8fd9f295d1fd03, type: 3}
+    volume: 0.8
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: radar_scan_pulse
+    clips:
+    - {fileID: 8300000, guid: 453237007cb814b4faf7c732026c1b0a, type: 3}
+    volume: 0.85
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: radar_fail
+    clips:
+    - {fileID: 8300000, guid: ee89507b2a3ade3458d6338ead4644bd, type: 3}
+    volume: 0.85
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: pickup_credit
+    clips:
+    - {fileID: 8300000, guid: 1bade44596b349a4f95f0d577ec2d614, type: 3}
+    volume: 0.75
+    pitchMin: 0.95
+    pitchMax: 1.05
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: pickup_scrap
+    clips:
+    - {fileID: 8300000, guid: 56662bbbcf0d8064a874f8024a6ec6a2, type: 3}
+    volume: 0.75
+    pitchMin: 0.95
+    pitchMax: 1.05
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: pickup_core
+    clips:
+    - {fileID: 8300000, guid: aa0e7b8d339365c47893b840e13ba0bf, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: pickup_heal
+    clips:
+    - {fileID: 8300000, guid: d39fabb6d13bf7f4294e38a00b8891be, type: 3}
+    volume: 0.8
+    pitchMin: 0.96
+    pitchMax: 1.04
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: pickup_experience
+    clips:
+    - {fileID: 8300000, guid: ef2c1d51eb244e94aa6216c86894d098, type: 3}
+    volume: 0.7
+    pitchMin: 0.95
+    pitchMax: 1.05
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: return_choice_open
+    clips:
+    - {fileID: 8300000, guid: 235cc80d3d109e449a8cc1bec695db5e, type: 3}
+    volume: 0.85
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: safe_return
+    clips:
+    - {fileID: 8300000, guid: a4765e0258c30e94eb145be334c0a5b7, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: result_count_tick
+    clips:
+    - {fileID: 8300000, guid: c2a6ee32a3e5ac04ba095db502caffb6, type: 3}
+    volume: 0.55
+    pitchMin: 0.96
+    pitchMax: 1.04
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: result_reward_total
+    clips:
+    - {fileID: 8300000, guid: 68a2255157d3b254cae275843b4c7df8, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: event_start
+    clips:
+    - {fileID: 8300000, guid: 9eed582259ba2ec4a8b16ee2f0265e42, type: 3}
+    volume: 0.85
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: event_complete
+    clips:
+    - {fileID: 8300000, guid: 3566ad9fd2b424c479a5a3a7503194db, type: 3}
+    volume: 0.9
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 128

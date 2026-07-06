@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_credit_converter"
   displayName: "\ud06c\ub808\ub527 \ubcc0\ud658\uae30"
   description: "\ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \ucda9\uc804\uc2dd \uc751\uae09 \ud68c\ubcf5 \uc7a5\ube44\ub85c \ub3d9\uc791\ud55c\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 664ea3dafb4cb3c469efbb0287521aca, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
   randomDropWeight: 0

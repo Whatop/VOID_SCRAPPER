@@ -177,6 +177,7 @@ public class PlayerInteractor : MonoBehaviour
 
         CurrentTarget.Interact(gameObject);
         Interacted?.Invoke(CurrentTarget);
+        AudioManager.Play(SoundEventIds.UiClick);
         return true;
     }
 

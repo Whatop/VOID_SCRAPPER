@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: shared_lightweight_cargo
   displayName: "경량 적재함"
   description: "적재 한도와 이동속도를 같이 올린다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 43f21462be113e1590ec565aeef5d3b9, type: 3}
   category: 0
   weaponTreeType: 2
   shopItemType: 0

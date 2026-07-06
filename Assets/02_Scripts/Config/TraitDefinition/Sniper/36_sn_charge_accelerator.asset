@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: sn_charge_accelerator
   displayName: "차징 가속"
   description: "스나이퍼 완충 사격 준비 시간을 줄인다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 4f31d3c4135565cb6b44286d3a8b4aab, type: 3}
   category: 1
   weaponTreeType: 1
   shopItemType: 0

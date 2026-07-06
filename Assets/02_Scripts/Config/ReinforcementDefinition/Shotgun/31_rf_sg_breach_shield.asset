@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_sg_breach_shield"
   displayName: "\ub3cc\uc785 \ubcf4\ud638\ub9c9"
   description: "\uc0f7\uac74 \uae30\uccb4 \uc804\uc6a9. \uc9c4\uc785 \uc9c1\ud6c4 \uc0dd\uc874\uc744 \uc704\ud574 \uc9e7\uc740 \ubb34\uc801\uacfc Armor\ub97c \uc81c\uacf5\ud55c\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: a7fce520cc9a1c97cbbbeb2b29ff5ecd, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
   randomDropWeight: 0

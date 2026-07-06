@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_large_repair_pack"
   displayName: "\ub300\ud615 \uc218\ub9ac \ud329"
   description: "\ud070 \ud3ed\uc73c\ub85c HP\ub97c \ud68c\ubcf5\ud55c\ub2e4. \ubcf4\uc2a4\uc804 \uc9c1\uc804 \ubcf4\uc874 \uac00\uce58\uac00 \ub192\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: f7d60017a76ff0e6bd16cd67faf142e5, type: 3}
   rarity: 0
   rarityPriceMultiplier: 0
   randomDropWeight: 0

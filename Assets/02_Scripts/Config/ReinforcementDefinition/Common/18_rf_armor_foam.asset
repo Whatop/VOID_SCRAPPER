@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_armor_foam"
   displayName: "\uc7a5\uac11 \ud3fc \ubd84\uc0ac\uae30"
   description: "\ucda9\uc804\uc2dd Armor \ubcf4\uac15 \uc7a5\ube44\ub2e4. \uc804\ud22c \uc911 \ubc29\uc5b4 \uc5ec\uc720\ub97c \ub9cc\ub4e0\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: f6d06553b62f7eb731829ce56ffb5210, type: 3}
   rarity: 0
   rarityPriceMultiplier: 0
   randomDropWeight: 0

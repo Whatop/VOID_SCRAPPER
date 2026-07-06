@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: shared_radar_amplifier
   displayName: "레이더 증폭기"
   description: "레이더 탐색 범위를 늘린다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 235d79c55702f13c18eb4f8a50812829, type: 3}
   category: 0
   weaponTreeType: 2
   shopItemType: 0

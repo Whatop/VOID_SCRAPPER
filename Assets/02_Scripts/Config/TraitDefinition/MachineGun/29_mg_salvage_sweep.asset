@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: mg_salvage_sweep
   displayName: "수확 탄막"
   description: "탄속과 회수 범위를 올려 수확 동선을 줄인다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 8ac392456e5257a7d24228599f93f8fa, type: 3}
   category: 1
   weaponTreeType: 2
   shopItemType: 0

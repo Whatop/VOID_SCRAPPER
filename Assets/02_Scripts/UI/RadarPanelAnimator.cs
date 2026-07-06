@@ -90,6 +90,7 @@ public class RadarPanelAnimator : MonoBehaviour
             return;
         }
 
+        AudioManager.Play(SoundEventIds.RadarOpen);
         StopCurrentRoutine();
         routine = StartCoroutine(OpenRoutine());
     }
@@ -102,6 +103,7 @@ public class RadarPanelAnimator : MonoBehaviour
             return;
         }
 
+        AudioManager.Play(SoundEventIds.RadarClose);
         StopCurrentRoutine();
         routine = StartCoroutine(CloseRoutine());
     }

@@ -301,6 +301,7 @@ public class RewardPickup : MonoBehaviour
                 break;
         }
 
+        PlayPickupSound();
         ReleaseSelf();
     }
 
@@ -358,6 +359,30 @@ public class RewardPickup : MonoBehaviour
         playerHealth.Heal(finalHealAmount);
     }
 
+    private void PlayPickupSound()
+    {
+        if (pickupKind == RewardPickupKind.Heal)
+        {
+            AudioManager.PlayAt(SoundEventIds.PickupHeal, transform.position);
+            return;
+        }
+
+        switch (currencyType)
+        {
+            case CurrencyType.Credits:
+                AudioManager.PlayAt(SoundEventIds.PickupCredit, transform.position);
+                break;
+
+            case CurrencyType.ScrapParts:
+                AudioManager.PlayAt(SoundEventIds.PickupScrap, transform.position);
+                break;
+
+            case CurrencyType.CoreShards:
+                AudioManager.PlayAt(SoundEventIds.PickupCore, transform.position);
+                break;
+        }
+    }
+
     private void ShowCargoBlockedWarning()
     {
         if (cargoBlockedWarningTimer > 0f)
@@ -370,6 +395,7 @@ public class RewardPickup : MonoBehaviour
 
         if (hud != null)
         {
+            AudioManager.Play(SoundEventIds.ActionDenied);
             hud.ShowWarning("기체 용량이 가득 찼습니다.");
         }
     }

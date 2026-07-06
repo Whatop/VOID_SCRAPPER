@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: shared_range_focusing
   displayName: "사거리 초점화"
   description: "무기 사거리를 늘려 위험한 근접전을 줄인다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: b0d9ad4c6168e3bf36469d75f8f92ce0, type: 3}
   category: 0
   weaponTreeType: 2
   shopItemType: 0

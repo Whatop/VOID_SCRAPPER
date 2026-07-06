@@ -4,7 +4,7 @@ using UnityEngine;
 public class RunLevelSystem : MonoBehaviour
 {
     [Header("EXP Table")]
-    [Tooltip("Lv2, Lv3, Lv4, Lv5, Lv6¿¡ ÇÊ¿äÇÑ ´©Àû °æÇèÄ¡")]
+    [Tooltip("Lv2, Lv3, Lv4, Lv5, Lv6ï¿½ï¿½ ï¿½Ê¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ä¡")]
     [SerializeField]
     private int[] cumulativeExpTable =
     {
@@ -115,6 +115,7 @@ public class RunLevelSystem : MonoBehaviour
             for (int level = previousLevel + 1; level <= CurrentLevel; level++)
             {
                 LeveledUp?.Invoke(level);
+                AudioManager.Play(SoundEventIds.LevelUp);
             }
         }
 

@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: shared_repair_foam
   displayName: "정비 폼"
   description: "회복 아이템과 회복 장비의 효율을 올린다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 722fe4f013c37014c46f366b0d665805, type: 3}
   category: 0
   weaponTreeType: 2
   shopItemType: 0

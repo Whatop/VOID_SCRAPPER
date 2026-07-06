@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_coolant_canister"
   displayName: "\ub0c9\uac01 \uce90\ub2c8\uc2a4\ud130"
   description: "\uc77c\uc815 \uc2dc\uac04 \uc5f0\uc0ac\ub825\uc744 \ud06c\uac8c \uc62c\ub9b0\ub2e4. \uc7a1\ubab9 \uc815\ub9ac\uc640 \ubcf4\uc2a4 \ub51c\ud0c0\uc784\uc5d0 \uac15\ud558\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 9daee67fb7c4d5c6254ecf39f076e819, type: 3}
   rarity: 0
   rarityPriceMultiplier: 0
   randomDropWeight: 0

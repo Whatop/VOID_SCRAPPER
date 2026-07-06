@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_dash_coolant"
   displayName: "\ub300\uc26c \ub0c9\uac01\uc81c"
   description: "\uc77c\uc815 \uc2dc\uac04 \ub300\uc26c \ucfe8\ub2e4\uc6b4\uc744 \uc904\uc778\ub2e4. \uc5f0\uc18d \ud68c\ud53c\uac00 \ud544\uc694\ud55c \uad6c\uac04\uc5d0\uc11c \uc4f4\ub2e4."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 4e6c2ada5930cc16bf00a5dc3fb55c99, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
   randomDropWeight: 0

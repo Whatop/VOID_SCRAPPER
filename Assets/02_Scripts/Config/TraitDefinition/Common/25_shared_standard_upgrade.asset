@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: shared_standard_upgrade
   displayName: "표준 개수 키트"
   description: "공격과 생존을 균형 있게 올린다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: c044efc6a141796e0807517c2c4c2911, type: 3}
   category: 0
   weaponTreeType: 2
   shopItemType: 0

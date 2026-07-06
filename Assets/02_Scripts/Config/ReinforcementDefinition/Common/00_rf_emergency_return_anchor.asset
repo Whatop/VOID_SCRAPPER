@@ -15,7 +15,7 @@ MonoBehaviour:
   equipmentId: "rf_emergency_return_anchor"
   displayName: "긴급복귀 앵커"
   description: "R을 유지해 긴급복귀를 준비한다. 긴급복귀 시 기체 용량의 일부까지만 자원을 보존한다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 2b4fbdb61334b654639cf0d9bee5c176, type: 3}
   rarity: 0
   rarityPriceMultiplier: 0
   randomDropWeight: 0

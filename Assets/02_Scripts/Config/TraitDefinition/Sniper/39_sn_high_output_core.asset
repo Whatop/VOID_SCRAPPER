@@ -15,7 +15,7 @@ MonoBehaviour:
   traitId: sn_high_output_core
   displayName: "고출력 탄심"
   description: "완충 사격 피해를 크게 높인다."
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 7bcb244bd88c906bc3e972716941a6f8, type: 3}
   category: 1
   weaponTreeType: 1
   shopItemType: 0
