@@ -99,6 +99,7 @@ public class SniperWeapon : PlayerWeaponBase
 
         UpdateCameraZoom();
 
+        AudioManager.PlayAt(SoundEventIds.SniperChargeStart, transform.position, 0.8f);
         NotifyChargeStarted();
         NotifyChargeChanged(ChargeRatio);
     }
@@ -139,6 +140,7 @@ public class SniperWeapon : PlayerWeaponBase
         if (fired)
         {
             SpawnMuzzleEffect(direction);
+            AudioManager.PlayAt(SoundEventIds.SniperFire, transform.position);
 
             RegisterAttack();
             NotifyFired(finalChargeRatio);
@@ -157,6 +159,7 @@ public class SniperWeapon : PlayerWeaponBase
             return;
         }
 
+        AudioManager.PlayAt(SoundEventIds.SniperChargeCancel, transform.position, 0.7f);
         NotifyChargeCanceled();
         ResetChargeState();
     }

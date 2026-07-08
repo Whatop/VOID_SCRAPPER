@@ -1,5 +1,6 @@
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public enum ShipTraitBranchKind
@@ -18,21 +19,56 @@ public class ShipTraitNodeButton : MonoBehaviour
     [SerializeField] private string nodeId;
     [SerializeField] private string fallbackLabel;
 
-    [Header("References")]
+    [Header("Prefab Parts")]
+    [Tooltip("루트 버튼. 비워두면 이 오브젝트의 Button을 사용합니다.")]
     [SerializeField] private Button button;
+
+    [Tooltip("노드 아이콘 Image. 자식 이름 Icon/IconImage를 쓰면 Reset에서 자동 연결됩니다.")]
     [SerializeField] private Image iconImage;
+
+    [Tooltip("선택사항. 아이콘 아래 번호/이름을 표시할 때만 연결합니다.")]
     [SerializeField] private TextMeshProUGUI labelText;
+
+    [Tooltip("선택사항. 노드의 현재 레벨을 별도로 표시할 때 연결합니다. 예: 1/3")]
+    [SerializeField] private TextMeshProUGUI levelText;
+
+    [Tooltip("잠김 오버레이 또는 자물쇠 루트 오브젝트입니다.")]
     [SerializeField] private GameObject lockRoot;
-    [SerializeField] private GameObject unlockedRoot;
+
+    [Tooltip("해금되어 탐사 시작 시 적용되는 상태 표시입니다.")]
+    [FormerlySerializedAs("unlockedRoot")]
+    [SerializeField] private GameObject activeRoot;
+
+    [Tooltip("해금은 됐지만 비활성화된 상태 표시입니다.")]
+    [SerializeField] private GameObject inactiveRoot;
+
+    [Tooltip("선택 테두리/하이라이트입니다.")]
     [SerializeField] private GameObject selectedRoot;
+
     [SerializeField] private CanvasGroup canvasGroup;
 
+    [Header("State Image Optional")]
+    [SerializeField] private Image stateImage;
+    [SerializeField] private Sprite lockedStateSprite;
+    [SerializeField] private Sprite availableStateSprite;
+    [FormerlySerializedAs("unlockedStateSprite")]
+    [SerializeField] private Sprite activeStateSprite;
+    [SerializeField] private Sprite inactiveStateSprite;
+    [SerializeField] private bool hideStateImageWhenAvailable = true;
+
     [Header("Option")]
-    [SerializeField] private bool allowClickWhenLocked;
+    [SerializeField] private bool allowClickWhenLocked = true;
+    [Range(0f, 1f)]
+    [SerializeField] private float lockedAlpha = 0.35f;
+    [Range(0f, 1f)]
+    [SerializeField] private float inactiveAlpha = 0.55f;
+    [Range(0f, 1f)]
+    [SerializeField] private float activeAlpha = 1f;
 
     private ShipTraitTreePanel owner;
     private bool isAvailable;
     private bool isUnlocked;
+    private bool isActive;
 
     public ShipTraitBranchKind BranchKind => branchKind;
 
@@ -51,25 +87,16 @@ public class ShipTraitNodeButton : MonoBehaviour
 
     public bool IsAvailable => isAvailable;
     public bool IsUnlocked => isUnlocked;
+    public bool IsActive => isActive;
 
     private void Reset()
     {
-        button = GetComponent<Button>();
-        canvasGroup = GetComponent<CanvasGroup>();
-        labelText = GetComponentInChildren<TextMeshProUGUI>(true);
+        CacheReferences();
     }
 
     private void Awake()
     {
-        if (button == null)
-        {
-            button = GetComponent<Button>();
-        }
-
-        if (canvasGroup == null)
-        {
-            canvasGroup = GetComponent<CanvasGroup>();
-        }
+        CacheReferences();
     }
 
     private void OnDestroy()
@@ -91,15 +118,21 @@ public class ShipTraitNodeButton : MonoBehaviour
         branchKind = targetBranchKind;
         nodeId = string.IsNullOrWhiteSpace(targetNodeId) ? name : targetNodeId;
 
-        if (button == null)
+        CacheReferences();
+
+        if (button != null)
         {
-            button = GetComponent<Button>();
+            button.onClick.RemoveListener(HandleClick);
+            button.onClick.AddListener(HandleClick);
         }
 
-        button.onClick.RemoveListener(HandleClick);
-        button.onClick.AddListener(HandleClick);
-
         SetStaticView(displayLabel, icon);
+    }
+
+    public void SetAllowClickWhenLocked(bool allow)
+    {
+        allowClickWhenLocked = allow;
+        RefreshButtonInteractable();
     }
 
     public void SetStaticView(string displayLabel, Sprite icon)
@@ -126,19 +159,42 @@ public class ShipTraitNodeButton : MonoBehaviour
         }
     }
 
+    public void SetLevelView(string levelLabel)
+    {
+        if (levelText == null)
+        {
+            return;
+        }
+
+        bool hasLevel = !string.IsNullOrWhiteSpace(levelLabel);
+        levelText.text = hasLevel ? levelLabel : string.Empty;
+        levelText.gameObject.SetActive(hasLevel);
+    }
+
     public void SetVisualState(bool available, bool unlocked, bool selected)
+    {
+        SetVisualState(available, unlocked, unlocked, selected);
+    }
+
+    public void SetVisualState(bool available, bool unlocked, bool active, bool selected)
     {
         isAvailable = available;
         isUnlocked = unlocked;
+        isActive = unlocked && active;
 
         if (lockRoot != null)
         {
             lockRoot.SetActive(!available);
         }
 
-        if (unlockedRoot != null)
+        if (activeRoot != null)
         {
-            unlockedRoot.SetActive(unlocked);
+            activeRoot.SetActive(unlocked && active);
+        }
+
+        if (inactiveRoot != null)
+        {
+            inactiveRoot.SetActive(unlocked && !active);
         }
 
         if (selectedRoot != null)
@@ -146,26 +202,135 @@ public class ShipTraitNodeButton : MonoBehaviour
             selectedRoot.SetActive(selected);
         }
 
-        if (button != null)
+        SetStateImage(available, unlocked, active);
+        RefreshButtonInteractable();
+        RefreshCanvasGroup(available, unlocked, active);
+    }
+
+    private void CacheReferences()
+    {
+        if (button == null)
         {
-            button.interactable = available || allowClickWhenLocked;
+            button = GetComponent<Button>();
         }
 
-        if (canvasGroup != null)
+        if (canvasGroup == null)
         {
-            if (!available)
-            {
-                canvasGroup.alpha = 0.35f;
-            }
-            else if (unlocked)
-            {
-                canvasGroup.alpha = 0.9f;
-            }
-            else
-            {
-                canvasGroup.alpha = 1f;
-            }
+            canvasGroup = GetComponent<CanvasGroup>();
         }
+
+        if (labelText == null)
+        {
+            labelText = FindChildComponent<TextMeshProUGUI>("Label", "LabelText", "Text", "Name", "NameText");
+        }
+
+        if (labelText == null)
+        {
+            labelText = GetComponentInChildren<TextMeshProUGUI>(true);
+        }
+
+        if (levelText == null)
+        {
+            levelText = FindChildComponent<TextMeshProUGUI>("Level", "LevelText", "LevelLabel", "NodeLevel");
+        }
+
+        if (iconImage == null)
+        {
+            iconImage = FindChildComponent<Image>("Icon", "IconImage", "NodeIcon");
+        }
+
+        if (stateImage == null)
+        {
+            stateImage = FindChildComponent<Image>("State", "StateImage", "StatusImage");
+        }
+
+        if (lockRoot == null)
+        {
+            lockRoot = FindChildObject("Lock", "LockRoot", "Locked", "LockImage");
+        }
+
+        if (activeRoot == null)
+        {
+            activeRoot = FindChildObject("Active", "ActiveRoot", "Unlocked", "UnlockedRoot");
+        }
+
+        if (inactiveRoot == null)
+        {
+            inactiveRoot = FindChildObject("Inactive", "InactiveRoot", "Disabled", "DisabledRoot");
+        }
+
+        if (selectedRoot == null)
+        {
+            selectedRoot = FindChildObject("Selected", "SelectedRoot", "Select", "Selection");
+        }
+    }
+
+    private void RefreshButtonInteractable()
+    {
+        if (button != null)
+        {
+            button.interactable = isAvailable || allowClickWhenLocked;
+        }
+    }
+
+    private void RefreshCanvasGroup(bool available, bool unlocked, bool active)
+    {
+        if (canvasGroup == null)
+        {
+            return;
+        }
+
+        if (!available)
+        {
+            canvasGroup.alpha = lockedAlpha;
+        }
+        else if (unlocked && !active)
+        {
+            canvasGroup.alpha = inactiveAlpha;
+        }
+        else
+        {
+            canvasGroup.alpha = activeAlpha;
+        }
+    }
+
+    private void SetStateImage(bool available, bool unlocked, bool active)
+    {
+        if (stateImage == null)
+        {
+            return;
+        }
+
+        Sprite targetSprite = null;
+
+        if (!available)
+        {
+            targetSprite = lockedStateSprite;
+        }
+        else if (unlocked && !active)
+        {
+            targetSprite = inactiveStateSprite;
+        }
+        else if (unlocked)
+        {
+            targetSprite = activeStateSprite;
+        }
+        else
+        {
+            targetSprite = availableStateSprite;
+        }
+
+        if (targetSprite != null)
+        {
+            stateImage.sprite = targetSprite;
+        }
+
+        bool shouldShow = !available || unlocked || !hideStateImageWhenAvailable;
+        bool hasSprite = stateImage.sprite != null;
+
+        stateImage.enabled = shouldShow && hasSprite;
+        stateImage.gameObject.SetActive(shouldShow && hasSprite);
+        stateImage.preserveAspect = true;
     }
 
     private void HandleClick()
@@ -183,15 +348,53 @@ public class ShipTraitNodeButton : MonoBehaviour
         owner.SelectNode(branchKind, NodeId);
     }
 
+    private T FindChildComponent<T>(params string[] candidateNames) where T : Component
+    {
+        GameObject child = FindChildObject(candidateNames);
+        return child != null ? child.GetComponent<T>() : null;
+    }
+
+    private GameObject FindChildObject(params string[] candidateNames)
+    {
+        if (candidateNames == null || candidateNames.Length == 0)
+        {
+            return null;
+        }
+
+        Transform[] children = GetComponentsInChildren<Transform>(true);
+
+        for (int i = 0; i < children.Length; i++)
+        {
+            Transform child = children[i];
+            if (child == null || child == transform)
+            {
+                continue;
+            }
+
+            for (int j = 0; j < candidateNames.Length; j++)
+            {
+                string candidate = candidateNames[j];
+
+                if (!string.IsNullOrWhiteSpace(candidate) &&
+                    string.Equals(child.name, candidate, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return child.gameObject;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private string BuildDefaultLabel(ShipTraitBranchKind kind)
     {
         return kind switch
         {
-            ShipTraitBranchKind.Shared => "���� Ư��",
-            ShipTraitBranchKind.MachineGun => "����� Ư��",
-            ShipTraitBranchKind.Sniper => "���� Ư��",
-            ShipTraitBranchKind.Shotgun => "���� Ư��",
-            _ => "Ư��"
+            ShipTraitBranchKind.Shared => "공유 특성",
+            ShipTraitBranchKind.MachineGun => "기관총 특성",
+            ShipTraitBranchKind.Sniper => "스나 특성",
+            ShipTraitBranchKind.Shotgun => "샷건 특성",
+            _ => "특성"
         };
     }
 }

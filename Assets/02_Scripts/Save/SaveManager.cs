@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using UnityEngine;
 
 public class SaveManager : MonoBehaviour
@@ -129,6 +129,11 @@ public class SaveManager : MonoBehaviour
         if (saveData.traitLevels == null)
         {
             saveData.traitLevels = new System.Collections.Generic.List<TraitLevelSaveData>();
+        }
+
+        if (saveData.disabledPermanentTraitIds == null)
+        {
+            saveData.disabledPermanentTraitIds = new System.Collections.Generic.List<string>();
         }
 
         if (saveData.unlockFlags == null)

@@ -554,6 +554,8 @@ public class BossPatternController : MonoBehaviour
             }
         }
 
+        AudioManager.PlayAt(SoundEventIds.BossLaserWarning, center);
+
         if (laserTelegraphTime > 0f)
         {
             yield return new WaitForSeconds(laserTelegraphTime);
@@ -563,6 +565,8 @@ public class BossPatternController : MonoBehaviour
 
         float duration = phase2 ? laserDurationPhase2 : laserDurationPhase1;
         float scaledDamage = laserDamage * GetDamageMultiplier();
+
+        AudioManager.PlayAt(SoundEventIds.BossLaserLoop, center);
 
         for (int i = 0; i < count; i++)
         {
@@ -598,6 +602,7 @@ public class BossPatternController : MonoBehaviour
             Vector2 origin = ResolveFirePosition();
             Vector2 baseDirection = ResolveDirectionToPlayer(origin);
 
+            AudioManager.PlayAt(SoundEventIds.BossSpreadFire, origin);
             FireSpread(
                 origin,
                 baseDirection,
@@ -644,6 +649,8 @@ public class BossPatternController : MonoBehaviour
             : (Vector2)transform.position + Vector2.up;
 
         float aimLineLength = GetEffectiveChargeAimLineLength();
+
+        AudioManager.PlayAt(SoundEventIds.BossChargeAim, ResolveFirePosition());
 
         GameObject aimLineObject = CreateLineObject(
             "Boss_Charge_AimLine",
@@ -715,6 +722,8 @@ public class BossPatternController : MonoBehaviour
         }
 
         fireDirection.Normalize();
+
+        AudioManager.PlayAt(SoundEventIds.BossChargeFire, finalOrigin);
 
         SpawnProjectile(
             finalOrigin,
@@ -1861,6 +1870,7 @@ public class BossPatternController : MonoBehaviour
 
         phase2 = true;
         nextPatternIndex = 0;
+        AudioManager.PlayAt(SoundEventIds.BossPhase2, transform.position);
 
         if (logPhaseChange)
         {
@@ -2276,6 +2286,7 @@ public class BossPatternController : MonoBehaviour
 
         deathHandled = true;
         casting = false;
+        AudioManager.PlayAt(SoundEventIds.BossDeath, transform.position);
 
         if (patternRoutine != null)
         {

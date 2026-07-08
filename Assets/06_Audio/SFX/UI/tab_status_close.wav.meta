@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: b1d78a7d0266bd241a2edd4f7c283637
+guid: ee83abea41eb86eb53c35bfc12bdf308
 AudioImporter:
   externalObjects: {}
   serializedVersion: 8
@@ -21,10 +21,3 @@ AudioImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 324429
-  packageName: The Complete UI Sound Effects Library
-  packageVersion: 1.0.1
-  assetPath: Assets/CelerisLab/CompleteUISFX/inventory_and_item_management/inventory_close_01.wav
-  uploadId: 792348

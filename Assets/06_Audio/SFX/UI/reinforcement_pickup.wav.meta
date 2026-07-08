@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 5dd315edf30b4cf4f80ab441d301fb64
+guid: 46d9ff83ab6c6c3260505181d9640519
 AudioImporter:
   externalObjects: {}
   serializedVersion: 8
@@ -21,10 +21,3 @@ AudioImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 324429
-  packageName: The Complete UI Sound Effects Library
-  packageVersion: 1.0.1
-  assetPath: Assets/CelerisLab/CompleteUISFX/inventory_and_item_management/item_pick_up_02.wav
-  uploadId: 792348

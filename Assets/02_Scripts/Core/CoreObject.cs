@@ -106,6 +106,7 @@ public class CoreObject : MonoBehaviour, IInteractable
             return;
         }
 
+        AudioManager.PlayAt(SoundEventIds.CoreInteractLoop, transform.position);
         activationRoutine = StartCoroutine(ActivateRoutine(interactor));
     }
 
@@ -169,6 +170,7 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         activated = true;
+        AudioManager.PlayAt(SoundEventIds.CoreActivate, transform.position);
 
         if (radarTarget != null)
         {
@@ -303,6 +305,8 @@ public class CoreObject : MonoBehaviour, IInteractable
         {
             return;
         }
+
+        AudioManager.PlayAt(SoundEventIds.BossSpawn, bossObject.transform.position);
 
         EnemyHealth bossHealth = bossObject.GetComponent<EnemyHealth>();
 

@@ -297,6 +297,7 @@ public class RunManager : MonoBehaviour
             selectedShipId = run.SelectedShipId,
             finalDepth = run.ExpeditionDepth,
             finalSeaRegionType = run.SeaRegionType,
+            bossDefeated = run.BossDefeated,
 
             runExperience = wallet.Experience,
             remainingCredits = wallet.Credits,

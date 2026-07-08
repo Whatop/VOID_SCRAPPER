@@ -251,6 +251,7 @@ public class PlayerDash : MonoBehaviour
         lastDashTime = Time.time;
 
         DashStarted?.Invoke(direction);
+        AudioManager.PlayAt(SoundEventIds.ShipDashStart, transform.position);
 
         if (controller != null)
         {
@@ -312,6 +313,7 @@ public class PlayerDash : MonoBehaviour
         dashRoutine = null;
 
         DashEnded?.Invoke();
+        AudioManager.PlayAt(SoundEventIds.ShipDashEnd, transform.position, 0.6f);
     }
 
     private DashEffectProfile ResolveDashEffectProfile()

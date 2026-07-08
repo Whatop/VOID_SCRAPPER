@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 public enum SettlementPanelKind
@@ -477,12 +477,11 @@ public class SettlementUIController : MonoBehaviour
             return;
         }
 
-        string title = settlementController.GetBuildingDisplayName(selectedBuilding);
-        string body = settlementController.BuildBuildingDetailText(selectedBuilding);
+        SettlementRepairViewData repairViewData = settlementController.BuildBuildingRepairViewData(selectedBuilding);
         string actionLabel = settlementController.GetBuildingActionLabel(selectedBuilding);
         int currentLevel = settlementController.GetBuildingLevel(selectedBuilding);
 
-        hud.SetRepairDetail(title, body, actionLabel);
+        hud.SetRepairDetail(repairViewData, actionLabel);
         hud.SetRepairPreview(
             selectedBuilding,
             currentLevel,

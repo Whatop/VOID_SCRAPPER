@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -57,7 +57,6 @@ public class SettlementHUD : MonoBehaviour
 
     [Header("Resources")]
     [SerializeField] private TextMeshProUGUI currencyText;
-    [SerializeField] private TextMeshProUGUI[] extraCurrencyTexts; // 우측위 재화표시를 공유로 해놔서 이제 필요없긴한대..
 
     [Header("Main Panel - Ship")]
     [SerializeField] private Image shipPreviewImage;
@@ -73,8 +72,28 @@ public class SettlementHUD : MonoBehaviour
 
     [Header("Repair Panel")]
     [SerializeField] private TextMeshProUGUI repairTitleText;
-    [SerializeField] private TextMeshProUGUI repairBodyText;
     [SerializeField] private TextMeshProUGUI repairActionButtonLabelText;
+
+    [Header("Repair Panel - Detail Text")]
+    [SerializeField] private TextMeshProUGUI repairDescriptionText;
+    [SerializeField] private TextMeshProUGUI repairCurrentStageText;
+    [SerializeField] private TextMeshProUGUI repairCurrentEffectText;
+    [SerializeField] private TextMeshProUGUI repairNextStageText;
+    [SerializeField] private TextMeshProUGUI repairNextEffectText;
+    [SerializeField] private TextMeshProUGUI repairRequiredCurrencyText;
+
+    [Header("Repair Panel - Cost Icons")]
+    [Tooltip("수리/강화에 스크랩이 필요할 때 활성화할 아이콘 루트입니다.")]
+    [SerializeField] private GameObject repairScrapCostIconRoot;
+    [Tooltip("수리/강화에 코어 조각이 필요할 때 활성화할 아이콘 루트입니다.")]
+    [SerializeField] private GameObject repairCoreShardCostIconRoot;
+    [Tooltip("스크랩 아이콘 Image입니다. 비워두면 Root의 Image를 사용합니다.")]
+    [SerializeField] private Image repairScrapCostIconImage;
+    [Tooltip("코어 조각 아이콘 Image입니다. 비워두면 Root의 Image를 사용합니다.")]
+    [SerializeField] private Image repairCoreShardCostIconImage;
+    [SerializeField] private Sprite repairScrapCostIconSprite;
+    [SerializeField] private Sprite repairCoreShardCostIconSprite;
+    [SerializeField] private bool hideRepairCostIconsWhenFree = true;
 
     [Header("Repair Panel - Building Preview")]
     [SerializeField] private Image repairPreviewImage;
@@ -94,7 +113,6 @@ public class SettlementHUD : MonoBehaviour
 
     [Header("Trait Panel")]
     [SerializeField] private TextMeshProUGUI traitTitleText;
-    [SerializeField] private TextMeshProUGUI traitBodyText;
     [SerializeField] private TextMeshProUGUI traitActionButtonLabelText;
 
     [Header("Launch")]
@@ -134,6 +152,14 @@ public class SettlementHUD : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        if (settlementController != null)
+        {
+            settlementController.Changed -= Refresh;
+        }
+    }
+
     public void Refresh()
     {
         if (settlementController == null)
@@ -164,24 +190,7 @@ public class SettlementHUD : MonoBehaviour
     public void SetCurrency(int scrapParts, int coreShards)
     {
         string text = $"스크랩 부품 {scrapParts}\n코어 조각 {coreShards}";
-
-        if (currencyText != null)
-        {
-            currencyText.text = text;
-        }
-
-        if (extraCurrencyTexts == null)
-        {
-            return;
-        }
-
-        foreach (TextMeshProUGUI target in extraCurrencyTexts)
-        {
-            if (target != null)
-            {
-                target.text = text;
-            }
-        }
+        SetText(currencyText, text);
     }
 
     public void SetSelectedWeapon(string weaponName)
@@ -225,8 +234,33 @@ public class SettlementHUD : MonoBehaviour
     public void SetRepairDetail(string title, string body, string actionLabel)
     {
         SetText(repairTitleText, title);
-        SetText(repairBodyText, body);
+        SetText(repairDescriptionText, body);
+        SetText(repairCurrentStageText, string.Empty);
+        SetText(repairCurrentEffectText, string.Empty);
+        SetText(repairNextStageText, string.Empty);
+        SetText(repairNextEffectText, string.Empty);
+        SetText(repairRequiredCurrencyText, string.Empty);
         SetText(repairActionButtonLabelText, actionLabel);
+        SetRepairCostIconVisuals(null);
+    }
+
+    public void SetRepairDetail(SettlementRepairViewData viewData, string actionLabel)
+    {
+        if (viewData == null)
+        {
+            SetRepairDetail("정착지 보수", "시설 데이터가 없습니다.", actionLabel);
+            return;
+        }
+
+        SetText(repairTitleText, viewData.Title);
+        SetText(repairDescriptionText, viewData.BodyText);
+        SetText(repairCurrentStageText, viewData.CurrentStageText);
+        SetText(repairCurrentEffectText, viewData.CurrentEffectText);
+        SetText(repairNextStageText, viewData.NextStageText);
+        SetText(repairNextEffectText, viewData.NextEffectText);
+        SetText(repairRequiredCurrencyText, viewData.RequiredCurrencyText);
+        SetText(repairActionButtonLabelText, actionLabel);
+        SetRepairCostIconVisuals(viewData);
     }
 
     public void SetRepairPreview(BuildingType buildingType, int currentLevel, int selectedIndex, int totalCount)
@@ -239,7 +273,6 @@ public class SettlementHUD : MonoBehaviour
     public void SetTraitDetail(string title, string body, string actionLabel)
     {
         SetText(traitTitleText, title);
-        SetText(traitBodyText, body);
         SetText(traitActionButtonLabelText, actionLabel);
     }
 
@@ -279,6 +312,9 @@ public class SettlementHUD : MonoBehaviour
         {
             repairPreviewImage.preserveAspect = true;
         }
+
+        InitializeRepairCostIconImage(ref repairScrapCostIconImage, repairScrapCostIconRoot, repairScrapCostIconSprite);
+        InitializeRepairCostIconImage(ref repairCoreShardCostIconImage, repairCoreShardCostIconRoot, repairCoreShardCostIconSprite);
     }
 
     private Sprite GetBuildingPreviewSprite(BuildingType buildingType, int currentLevel)
@@ -302,6 +338,76 @@ public class SettlementHUD : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void SetRepairCostIconVisuals(SettlementRepairViewData viewData)
+    {
+        bool showScrap = viewData != null && !viewData.IsMaxLevel && viewData.RequiredScrapCost > 0;
+        bool showCore = viewData != null && !viewData.IsMaxLevel && viewData.RequiredCoreShardCost > 0;
+
+        SetRepairCostIconActive(
+            repairScrapCostIconRoot,
+            repairScrapCostIconImage,
+            repairScrapCostIconSprite,
+            showScrap
+        );
+
+        SetRepairCostIconActive(
+            repairCoreShardCostIconRoot,
+            repairCoreShardCostIconImage,
+            repairCoreShardCostIconSprite,
+            showCore
+        );
+    }
+
+    private void SetRepairCostIconActive(GameObject root, Image image, Sprite sprite, bool active)
+    {
+        if (image == null && root != null)
+        {
+            image = root.GetComponent<Image>();
+        }
+
+        GameObject targetObject = root != null
+            ? root
+            : image != null ? image.gameObject : null;
+
+        bool shouldShow = active || !hideRepairCostIconsWhenFree;
+
+        if (targetObject != null)
+        {
+            targetObject.SetActive(shouldShow);
+        }
+
+        if (image != null)
+        {
+            if (sprite != null)
+            {
+                image.sprite = sprite;
+            }
+
+            image.enabled = shouldShow && image.sprite != null;
+            image.preserveAspect = true;
+        }
+    }
+
+    private void InitializeRepairCostIconImage(ref Image image, GameObject root, Sprite sprite)
+    {
+        if (image == null && root != null)
+        {
+            image = root.GetComponent<Image>();
+        }
+
+        if (image == null)
+        {
+            return;
+        }
+
+        if (sprite != null)
+        {
+            image.sprite = sprite;
+        }
+
+        image.preserveAspect = true;
     }
 
     private void SetImageSprite(Image image, Sprite sprite)

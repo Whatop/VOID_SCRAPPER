@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 081861aec0e4d60448d9bfacf915925e, type: 3}
   m_Name: Weapon_MachineGun
   m_EditorClassIdentifier: 
-  weaponId: 03
+  weaponId: 01
   displayName: weapon_MachineGun
   description: 
   weaponTreeType: 2

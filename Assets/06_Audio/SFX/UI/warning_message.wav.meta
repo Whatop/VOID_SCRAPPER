@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 1857be1cab565fe47a765be7eb968a73
+guid: aa3abf3f83c8fb586dc2cdf17950ce9d
 AudioImporter:
   externalObjects: {}
   serializedVersion: 8
@@ -21,10 +21,3 @@ AudioImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 324429
-  packageName: The Complete UI Sound Effects Library
-  packageVersion: 1.0.1
-  assetPath: Assets/CelerisLab/CompleteUISFX/negative_feedback_and_warnings/warning_pop_up_01.wav
-  uploadId: 792348

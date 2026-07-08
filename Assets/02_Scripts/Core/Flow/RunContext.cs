@@ -253,6 +253,7 @@ public class RunResultData
     public string selectedShipId;
     public ExpeditionDepth finalDepth;
     public SeaRegionType finalSeaRegionType;
+    public bool bossDefeated;
 
     public int runExperience;
     public int remainingCredits;

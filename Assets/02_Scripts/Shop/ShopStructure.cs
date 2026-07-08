@@ -395,6 +395,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     private void DamageShield(float damage)
     {
         currentShield = Mathf.Max(0f, currentShield - damage);
+        AudioManager.PlayAt(SoundEventIds.ShopShieldHit, transform.position, 0.7f);
         ShieldChanged?.Invoke(this, currentShield, maxShield);
 
         if (currentShield <= 0f)
@@ -486,6 +487,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         SetWarningVisual(false);
         TriggerShieldBreakBurst();
+        AudioManager.PlayAt(SoundEventIds.ShopShieldBreak, transform.position);
         AudioManager.PlayAt(SoundEventIds.ShopHostile, transform.position);
         SetGlobalHostile();
     }
@@ -587,6 +589,8 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         float step = count <= 1 ? 0f : totalAngle / (count - 1);
         float startAngle = -totalAngle * 0.5f;
 
+        AudioManager.PlayAt(SoundEventIds.ShopShotgunFire, origin);
+
         for (int i = 0; i < count; i++)
         {
             float angle = startAngle + (step * i);
@@ -666,6 +670,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
             }
 
             activeDrones.Add(drone);
+            AudioManager.PlayAt(SoundEventIds.SecurityDroneSpawn, drone.transform.position, 0.75f);
             TrySetDroneTarget(drone);
         }
     }

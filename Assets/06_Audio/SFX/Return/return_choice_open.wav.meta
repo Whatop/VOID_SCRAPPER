@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 235cc80d3d109e449a8cc1bec695db5e
+guid: f42db63753db4d22d5724ad981407a15
 AudioImporter:
   externalObjects: {}
   serializedVersion: 8
@@ -21,10 +21,3 @@ AudioImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 324429
-  packageName: The Complete UI Sound Effects Library
-  packageVersion: 1.0.1
-  assetPath: Assets/CelerisLab/CompleteUISFX/positive_feedback_and_success/objective_reached_01.wav
-  uploadId: 792348

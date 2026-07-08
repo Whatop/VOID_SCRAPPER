@@ -180,6 +180,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         invincibleTimer = invincibleTimeAfterHit;
 
         SpawnHitEffect(hitPoint);
+        AudioManager.PlayAt(SoundEventIds.ShipHit, hitPoint);
 
         if (remainingDamage <= 0f)
         {

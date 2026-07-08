@@ -1,7 +1,78 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+
+public class SettlementRepairViewData
+{
+    public string Title { get; }
+    public string BodyText { get; }
+    public string CurrentStageText { get; }
+    public string CurrentEffectText { get; }
+    public string NextStageText { get; }
+    public string NextEffectText { get; }
+    public string RequiredCurrencyText { get; }
+    public int RequiredScrapCost { get; }
+    public int RequiredCoreShardCost { get; }
+    public bool IsMaxLevel { get; }
+    public bool CanAffordNextLevel { get; }
+
+    public SettlementRepairViewData(
+        string title,
+        string bodyText,
+        string currentStageText,
+        string currentEffectText,
+        string nextStageText,
+        string nextEffectText,
+        string requiredCurrencyText,
+        int requiredScrapCost,
+        int requiredCoreShardCost,
+        bool isMaxLevel,
+        bool canAffordNextLevel)
+    {
+        Title = string.IsNullOrWhiteSpace(title) ? "정착지 보수" : title;
+        BodyText = string.IsNullOrWhiteSpace(bodyText) ? "시설 설명이 없습니다." : bodyText;
+        CurrentStageText = currentStageText ?? string.Empty;
+        CurrentEffectText = currentEffectText ?? string.Empty;
+        NextStageText = nextStageText ?? string.Empty;
+        NextEffectText = nextEffectText ?? string.Empty;
+        RequiredCurrencyText = string.IsNullOrWhiteSpace(requiredCurrencyText) ? "비용 없음" : requiredCurrencyText;
+        RequiredScrapCost = Mathf.Max(0, requiredScrapCost);
+        RequiredCoreShardCost = Mathf.Max(0, requiredCoreShardCost);
+        IsMaxLevel = isMaxLevel;
+        CanAffordNextLevel = canAffordNextLevel;
+    }
+
+    public string BuildFallbackBodyText()
+    {
+        StringBuilder builder = new StringBuilder();
+
+        AppendSection(builder, BodyText);
+        AppendSection(builder, CurrentStageText);
+        AppendSection(builder, CurrentEffectText);
+        AppendSection(builder, NextStageText);
+        AppendSection(builder, NextEffectText);
+        AppendSection(builder, RequiredCurrencyText);
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private static void AppendSection(StringBuilder builder, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        if (builder.Length > 0)
+        {
+            builder.AppendLine();
+            builder.AppendLine();
+        }
+
+        builder.AppendLine(value.TrimEnd());
+    }
+}
 
 public class SettlementController : MonoBehaviour
 {
@@ -389,8 +460,6 @@ public class SettlementController : MonoBehaviour
         builder.AppendLine(string.IsNullOrWhiteSpace(ship.PassiveDescription) ? "추가 패시브 없음." : ship.PassiveDescription);
         builder.AppendLine();
 
-        builder.AppendLine("상태:");
-        builder.AppendLine(ship.ShipId == SelectedShipId ? "현재 선택 중" : "개발 완료");
 
         return builder.ToString();
     }
@@ -536,39 +605,67 @@ public class SettlementController : MonoBehaviour
         return progress.CanSpend(GetBuildingScrapCost(buildingType, targetLevel), GetBuildingCoreCost(buildingType, targetLevel));
     }
 
-    public string BuildBuildingDetailText(BuildingType buildingType)
+    public SettlementRepairViewData BuildBuildingRepairViewData(BuildingType buildingType)
     {
         int level = GetBuildingLevel(buildingType);
         int maxLevel = GetBuildingMaxLevel(buildingType);
         bool isMax = level >= maxLevel;
 
-        StringBuilder builder = new StringBuilder();
-
-        builder.AppendLine(GetBuildingDescription(buildingType));
-        builder.AppendLine();
-        builder.AppendLine($"현재 단계: Lv {level} / {maxLevel}");
-        builder.AppendLine($"현재 효과: {GetBuildingEffectText(buildingType, level)}");
-        builder.AppendLine();
+        string title = GetBuildingDisplayName(buildingType);
+        string bodyText = GetBuildingDescription(buildingType);
+        string currentStageText = $"Lv {level} / {maxLevel}";
+        string currentEffectText = GetBuildingEffectText(buildingType, level);
+        string nextStageText;
+        string nextEffectText;
+        string requiredCurrencyText;
+        int requiredScrapCost = 0;
+        int requiredCoreCost = 0;
+        bool canAffordNextLevel = false;
 
         if (isMax)
         {
-            builder.AppendLine("다음 단계: 최대 단계입니다.");
-            return builder.ToString();
+            nextStageText = "최대 단계";
+            nextEffectText = "더 이상 업그레이드할 수 없습니다.";
+            requiredCurrencyText = "비용 없음";
+        }
+        else
+        {
+            int nextLevel = level + 1;
+            string nextAction = level == 0 ? "수리" : "업그레이드";
+            requiredScrapCost = GetBuildingScrapCost(buildingType, nextLevel);
+            requiredCoreCost = GetBuildingCoreCost(buildingType, nextLevel);
+
+            nextStageText = $"Lv {nextLevel} {nextAction}";
+            nextEffectText = GetBuildingEffectText(buildingType, nextLevel);
+            requiredCurrencyText = FormatCostForRepairPanel(requiredScrapCost, requiredCoreCost);
+
+            if (PermanentProgress.Instance != null)
+            {
+                canAffordNextLevel = PermanentProgress.Instance.CanSpend(requiredScrapCost, requiredCoreCost);
+            }
         }
 
-        int nextLevel = level + 1;
-        string nextAction = level == 0 ? "수리" : "업그레이드";
-        int scrapCost = GetBuildingScrapCost(buildingType, nextLevel);
-        int coreCost = GetBuildingCoreCost(buildingType, nextLevel);
-
-        builder.AppendLine($"다음 {nextAction}: Lv {nextLevel}");
-        builder.AppendLine($"다음 효과: {GetBuildingEffectText(buildingType, nextLevel)}");
-        builder.AppendLine();
-        builder.AppendLine("필요 재화:");
-        builder.AppendLine(FormatCost(scrapCost, coreCost));
-
-        return builder.ToString();
+        return new SettlementRepairViewData(
+            title,
+            bodyText,
+            currentStageText,
+            currentEffectText,
+            nextStageText,
+            nextEffectText,
+            requiredCurrencyText,
+            requiredScrapCost,
+            requiredCoreCost,
+            isMax,
+            canAffordNextLevel
+        );
     }
+
+    public string BuildBuildingDetailText(BuildingType buildingType)
+    {
+        SettlementRepairViewData viewData = BuildBuildingRepairViewData(buildingType);
+        return viewData != null ? viewData.BuildFallbackBodyText() : string.Empty;
+    }
+
     public bool TryUnlockOrUpgradeTrait(TraitDefinition trait)
     {
         if (trait == null)
@@ -1146,6 +1243,31 @@ public class SettlementController : MonoBehaviour
         return $"{sign}{absolute:0.#}%";
     }
 
+    private string FormatCostForRepairPanel(int scrapCost, int coreCost)
+    {
+        scrapCost = Mathf.Max(0, scrapCost);
+        coreCost = Mathf.Max(0, coreCost);
+
+        if (scrapCost <= 0 && coreCost <= 0)
+        {
+            return "비용 없음";
+        }
+
+        StringBuilder builder = new StringBuilder();
+
+        if (scrapCost > 0)
+        {
+            builder.AppendLine($"스크랩 {scrapCost}");
+        }
+
+        if (coreCost > 0)
+        {
+            builder.AppendLine($"코어 조각 {coreCost}");
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
     private string FormatCost(int scrapCost, int coreCost)
     {
         scrapCost = Mathf.Max(0, scrapCost);
@@ -1157,37 +1279,6 @@ public class SettlementController : MonoBehaviour
         }
 
         return $"스크랩 부품 {scrapCost}";
-    }
-
-    private string BuildOwnedAndMissingBlock(int requiredScrap, int requiredCore)
-    {
-        PermanentProgress progress = PermanentProgress.Instance;
-        int ownedScrap = progress != null ? progress.ScrapParts : 0;
-        int ownedCore = progress != null ? progress.CoreShards : 0;
-        int missingScrap = Mathf.Max(0, requiredScrap - ownedScrap);
-        int missingCore = Mathf.Max(0, requiredCore - ownedCore);
-
-        StringBuilder builder = new StringBuilder();
-        builder.AppendLine("현재 보유:");
-        builder.AppendLine($"스크랩 부품 {ownedScrap} / {Mathf.Max(0, requiredScrap)}");
-        builder.AppendLine($"코어 조각 {ownedCore} / {Mathf.Max(0, requiredCore)}");
-
-        if (missingScrap > 0 || missingCore > 0)
-        {
-            builder.AppendLine();
-            builder.AppendLine("부족:");
-            if (missingScrap > 0)
-            {
-                builder.AppendLine($"스크랩 부품 {missingScrap}");
-            }
-
-            if (missingCore > 0)
-            {
-                builder.AppendLine($"코어 조각 {missingCore}");
-            }
-        }
-
-        return builder.ToString();
     }
 
     private string FormatSignedPercent(float value)

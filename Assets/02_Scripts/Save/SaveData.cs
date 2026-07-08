@@ -4,16 +4,27 @@ using System.Collections.Generic;
 [Serializable]
 public class SaveData
 {
-    public int version = 1;
+    public int version = 2;
 
     public int scrapParts;
     public int coreShards;
+
+    public int totalRunCount;
+    public int safeReturnCount;
+    public int emergencyReturnCount;
+    public int deathCount;
+    public int bossDefeatCount;
+    public int totalCollectedScrapParts;
+    public int totalCollectedCoreShards;
+    public int totalCommittedScrapParts;
+    public int totalCommittedCoreShards;
 
     public WeaponTreeType lastSelectedWeaponTree = WeaponTreeType.MachineGun;
     public string selectedShipId = "basic_ship";
 
     public List<BuildingSaveData> buildingLevels = new List<BuildingSaveData>();
     public List<TraitLevelSaveData> traitLevels = new List<TraitLevelSaveData>();
+    public List<string> disabledPermanentTraitIds = new List<string>();
     public List<string> unlockFlags = new List<string>();
 }
 

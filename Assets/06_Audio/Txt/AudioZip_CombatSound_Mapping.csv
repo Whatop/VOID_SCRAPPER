@@ -1,0 +1,42 @@
+﻿SoundEventId,Folder,SourceFile,AppliedAs,Volume,PitchMin,PitchMax,Note
+ship_dash_start,06_Audio/SFX/Player,phaseJump3.ogg,ship_dash_start.ogg,0.85,0.98,1.04,플레이어 대쉬 시작
+ship_dash_end,06_Audio/SFX/Player,phaserDown2.ogg,ship_dash_end.ogg,0.55,0.98,1.03,플레이어 대쉬 종료
+ship_hit,06_Audio/SFX/Player,lowDown.ogg,ship_hit.ogg,0.75,0.96,1.03,플레이어 피격
+ship_death_breakup,06_Audio/SFX/Player,spaceTrash5.ogg,ship_death_breakup.ogg,1.0,0.95,1.02,플레이어 기체 파괴
+machinegun_fire_loop,06_Audio/SFX/Weapons,laser5.ogg,machinegun_fire_loop.ogg,0.32,0.96,1.06,기관총 발사
+shotgun_fire,06_Audio/SFX/Weapons,laser8.ogg,shotgun_fire.ogg,0.75,0.94,1.02,샷건 발사
+sniper_charge_start,06_Audio/SFX/Weapons,powerUp3.ogg,sniper_charge_start.ogg,0.68,0.97,1.02,스나이퍼 차징 시작
+sniper_charge_cancel,06_Audio/SFX/Weapons,phaserDown3.ogg,sniper_charge_cancel.ogg,0.55,0.98,1.02,스나이퍼 차징 취소
+sniper_fire,06_Audio/SFX/Weapons,zapThreeToneDown.ogg,sniper_fire.ogg,0.95,0.92,1.0,스나이퍼 발사
+enemy_alert,06_Audio/SFX/Enemies,twoTone1.ogg,enemy_alert.ogg,0.5,0.96,1.05,적 경계
+enemy_basic_fire,06_Audio/SFX/Enemies,laser6.ogg,enemy_basic_fire.ogg,0.45,0.94,1.06,기본 적 사격
+enemy_shotgun_fire,06_Audio/SFX/Enemies,laser7.ogg,enemy_shotgun_fire.ogg,0.65,0.94,1.03,샷건형 적 사격
+enemy_charger_aim_loop,06_Audio/SFX/Enemies,powerUp8.ogg,enemy_charger_aim_loop.ogg,0.55,0.98,1.02,차징형 적 조준 예고
+enemy_charger_fire,06_Audio/SFX/Enemies,zap2.ogg,enemy_charger_fire.ogg,0.82,0.94,1.02,차징형 적 발사
+enemy_elite_spread_fire,06_Audio/SFX/Enemies,laser9.ogg,enemy_elite_spread_fire.ogg,0.7,0.94,1.03,엘리트 확산탄
+enemy_elite_big_fire,06_Audio/SFX/Enemies,zapThreeToneUp.ogg,enemy_elite_big_fire.ogg,0.9,0.94,1.02,엘리트 대형탄
+enemy_hit,06_Audio/SFX/Enemies,pepSound4.ogg,enemy_hit.ogg,0.38,0.92,1.08,적 피격
+enemy_death,06_Audio/SFX/Enemies,spaceTrash1.ogg,enemy_death.ogg,0.72,0.94,1.04,적 파괴
+object_container_hit,06_Audio/SFX/Objects,pepSound5.ogg,object_container_hit.ogg,0.45,0.94,1.06,컨테이너 피격
+object_container_break,06_Audio/SFX/Objects,spaceTrash2.ogg,object_container_break.ogg,0.85,0.94,1.04,컨테이너 파괴
+object_debris_hit,06_Audio/SFX/Objects,lowRandom.ogg,object_debris_hit.ogg,0.55,0.92,1.05,잔해 피격
+object_debris_break,06_Audio/SFX/Objects,spaceTrash3.ogg,object_debris_break.ogg,0.95,0.92,1.02,고가치 잔해 파괴
+object_shipwreck_break,06_Audio/SFX/Objects,spaceTrash4.ogg,object_shipwreck_break.ogg,0.95,0.9,1.0,파괴된 선체 파괴
+object_meteor_hit,06_Audio/SFX/Objects,lowThreeTone.ogg,object_meteor_hit.ogg,0.45,0.95,1.04,운석 피격
+object_meteor_break,06_Audio/SFX/Objects,spaceTrash2.ogg,object_meteor_break.ogg,0.75,0.88,0.96,운석 파괴
+core_interact_loop,06_Audio/SFX/Boss,powerUp1.ogg,core_interact_loop.ogg,0.65,0.96,1.02,코어 상호작용 시작
+core_activate,06_Audio/SFX/Boss,powerUp12.ogg,core_activate.ogg,0.85,0.96,1.02,코어 활성화
+boss_spawn,06_Audio/SFX/Boss,lowThreeTone.ogg,boss_spawn.ogg,0.9,0.82,0.92,보스 등장
+boss_laser_warning,06_Audio/SFX/Boss,phaserUp7.ogg,boss_laser_warning.ogg,0.7,0.96,1.02,보스 레이저 예고
+boss_laser_loop,06_Audio/SFX/Boss,laser3.ogg,boss_laser_loop.ogg,0.72,0.94,1.02,보스 레이저 발동
+boss_spread_fire,06_Audio/SFX/Boss,laser4.ogg,boss_spread_fire.ogg,0.7,0.94,1.03,보스 확산 포격
+boss_charge_aim,06_Audio/SFX/Boss,powerUp10.ogg,boss_charge_aim.ogg,0.68,0.96,1.02,보스 차징포 조준
+boss_charge_fire,06_Audio/SFX/Boss,zapThreeToneDown.ogg,boss_charge_fire.ogg,0.95,0.88,0.98,보스 차징포 발사
+boss_phase2,06_Audio/SFX/Boss,powerUp11.ogg,boss_phase2.ogg,0.92,0.92,1.0,보스 2페이즈
+boss_death,06_Audio/SFX/Boss,spaceTrash5.ogg,boss_death.ogg,1.0,0.82,0.95,보스 파괴
+return_beacon_spawn,06_Audio/SFX/Return,highUp.ogg,return_beacon_spawn.ogg,0.75,0.96,1.02,귀환 비콘 생성
+wormhole_enter,06_Audio/SFX/Return,phaseJump5.ogg,wormhole_enter.ogg,0.9,0.94,1.02,웜홀 진입
+shop_shield_hit,06_Audio/SFX/Shop,highDown.ogg,shop_shield_hit.ogg,0.45,0.94,1.05,상점 보호막 피격
+shop_shield_break,06_Audio/SFX/Shop,zapTwoTone2.ogg,shop_shield_break.ogg,0.85,0.92,1.0,상점 보호막 파괴
+shop_shotgun_fire,06_Audio/SFX/Shop,laser7.ogg,shop_shotgun_fire.ogg,0.65,0.92,1.02,상점 산탄 사격
+security_drone_spawn,06_Audio/SFX/Shop,powerUp4.ogg,security_drone_spawn.ogg,0.55,0.96,1.05,보안 드론 호출

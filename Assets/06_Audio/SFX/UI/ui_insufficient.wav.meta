@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 1076e8dce267d8e4d85b2f3b44d01088
+guid: 0d099262453325ad65fed9840bfb7ef7
 AudioImporter:
   externalObjects: {}
   serializedVersion: 8
@@ -21,10 +21,3 @@ AudioImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 324429
-  packageName: The Complete UI Sound Effects Library
-  packageVersion: 1.0.1
-  assetPath: Assets/CelerisLab/CompleteUISFX/shop_and_economy/insufficient_currency_01.wav
-  uploadId: 792348

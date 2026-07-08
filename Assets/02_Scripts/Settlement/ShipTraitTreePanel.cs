@@ -1,9 +1,82 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+
+
+public enum ShipTraitUnlockConditionKind
+{
+    UnlockFlag,
+    ShipUnlocked,
+    UnlockedShipCount,
+    BuildingLevel,
+    TraitLevel,
+    TotalRunCount,
+    SafeReturnCount,
+    EmergencyReturnCount,
+    BossDefeatCount,
+    TotalCollectedScrapParts,
+    TotalCollectedCoreShards,
+    TotalCommittedScrapParts,
+    TotalCommittedCoreShards,
+    OwnedScrapParts,
+    OwnedCoreShards
+}
+
+[Serializable]
+public class ShipTraitUnlockCondition
+{
+    [Tooltip("조건 종류. 조건을 만족해야 이 특성을 해금/강화할 수 있습니다.")]
+    public ShipTraitUnlockConditionKind conditionKind = ShipTraitUnlockConditionKind.UnlockFlag;
+
+    [Tooltip("UnlockFlag, ShipUnlocked, TraitLevel 조건에서 사용하는 ID입니다. 예: boss_01_clear, basic_ship, shared_01")]
+    public string targetId;
+
+    [Tooltip("BuildingLevel 조건에서 사용하는 건물 종류입니다.")]
+    public BuildingType buildingType;
+
+    [Tooltip("필요 수치입니다. Flag/ShipUnlocked 조건은 1 이상이면 완료로 처리합니다.")]
+    [Min(0)]
+    public int requiredValue = 1;
+
+    [Tooltip("비워두면 조건 종류 기준으로 자동 표시합니다. 플레이어에게 보여줄 문구를 직접 쓰고 싶을 때 사용합니다.")]
+    public string displayNameOverride;
+}
+
+[Serializable]
+public class ShipTraitBranchGate
+{
+    [Tooltip("잠금 기준을 적용할 브랜치입니다.")]
+    public ShipTraitBranchKind branchKind = ShipTraitBranchKind.Shared;
+
+    [Tooltip("켜두면 조건과 무관하게 기본 개방됩니다. 공유/기관총 브랜치에 사용합니다.")]
+    public bool unlockedByDefault = true;
+
+    [Tooltip("필요한 총 해금 기체 수입니다. 0이면 사용하지 않습니다.")]
+    [Min(0)]
+    public int requiredUnlockedShipCount;
+
+    [Tooltip("필요한 특정 기체 ID입니다. 비워두면 사용하지 않습니다.")]
+    public string requiredShipId;
+
+    [Tooltip("필요한 UnlockFlag입니다. 비워두면 사용하지 않습니다.")]
+    public string requiredUnlockFlag;
+
+    [Header("Locked Visual Optional")]
+    [Tooltip("브랜치가 잠겼을 때 켤 오버레이/자물쇠 오브젝트입니다.")]
+    public GameObject lockedOverlayObject;
+
+    [Tooltip("브랜치 패널 전체 알파를 조절하고 싶을 때 연결합니다.")]
+    public CanvasGroup panelCanvasGroup;
+
+    [Range(0f, 1f)]
+    public float lockedAlpha = 0.35f;
+
+    [Tooltip("잠긴 브랜치 패널의 클릭/스크롤 입력을 막습니다.")]
+    public bool disableInteractionWhenLocked = true;
+}
 
 [Serializable]
 public class ShipTraitBranchNodeEntry
@@ -11,8 +84,24 @@ public class ShipTraitBranchNodeEntry
     public ShipTraitBranchKind branchKind;
 
     [Header("Node Identity")]
+    [Tooltip("비워두면 TraitDefinition.TraitId 또는 ReinforcementDefinition.EquipmentId를 사용합니다.")]
     public string nodeId;
+
+    [Tooltip("Auto Generate Node Buttons를 쓰면 비워둡니다. 런타임에 자동 생성된 버튼이 들어갑니다.")]
     public ShipTraitNodeButton nodeButton;
+
+    [Header("Content Source Optional")]
+    [Tooltip("해금 시 영구 특성으로 적용할 TraitDefinition입니다. 탐사 시작 시 PlayerRuntimeStatApplier가 이 ID를 기준으로 기본 적용합니다.")]
+    public TraitDefinition traitDefinition;
+
+    [Tooltip("해금 시 탐사 시작 장비 후보로 사용할 ReinforcementDefinition입니다. 장비는 레벨 없이 1회 해금으로 처리합니다.")]
+    public ReinforcementDefinition reinforcementDefinition;
+
+    [Tooltip("꺼두면 위 Definition에서 ID/이름/아이콘/설명/최대레벨/브랜치를 자동으로 가져옵니다.")]
+    public bool manualOverrideDefinitionFields;
+
+    [Tooltip("ReinforcementDefinition.Cost를 스크랩 비용으로 자동 사용할지 여부입니다. 노드 Scrap/Core 비용이 0일 때만 적용합니다.")]
+    public bool useReinforcementCostAsScrapCost;
 
     [Header("Display")]
     public string displayName;
@@ -38,11 +127,66 @@ public class ShipTraitBranchNodeEntry
     public string requiredShipId;
     public string requiredUnlockFlag;
 
+    [Header("Additional Unlock Conditions")]
+    public List<ShipTraitUnlockCondition> unlockConditions = new List<ShipTraitUnlockCondition>();
+
     [Header("Tree Prerequisites")]
     public List<string> prerequisiteNodeIds = new List<string>();
 
     [Header("Option")]
     public bool hideWhenLocked;
+}
+
+public class ShipTraitDetailViewData
+{
+    public string DescriptionText { get; }
+    public string BranchText { get; }
+    public string LevelText { get; }
+    public string StatusText { get; }
+    public string CostText { get; }
+
+    public ShipTraitDetailViewData(
+        string descriptionText,
+        string branchText,
+        string levelText,
+        string statusText,
+        string costText)
+    {
+        DescriptionText = string.IsNullOrWhiteSpace(descriptionText) ? "특성 설명이 없습니다." : descriptionText;
+        BranchText = branchText ?? string.Empty;
+        LevelText = levelText ?? string.Empty;
+        StatusText = statusText ?? string.Empty;
+        CostText = costText ?? string.Empty;
+    }
+
+    public string BuildFallbackBodyText()
+    {
+        StringBuilder builder = new StringBuilder();
+
+        AppendSection(builder, DescriptionText);
+        AppendSection(builder, BranchText);
+        AppendSection(builder, LevelText);
+        AppendSection(builder, StatusText);
+        AppendSection(builder, CostText);
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private static void AppendSection(StringBuilder builder, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        if (builder.Length > 0)
+        {
+            builder.AppendLine();
+            builder.AppendLine();
+        }
+
+        builder.AppendLine(value.TrimEnd());
+    }
 }
 
 public class ShipTraitTreePanel : MonoBehaviour
@@ -57,8 +201,69 @@ public class ShipTraitTreePanel : MonoBehaviour
     [SerializeField] private GameObject shotgunPanelObject;
     [SerializeField] private bool deactivateBranchPanelWhenLocked = true;
 
-    [Header("Static Nodes In ScrollView")]
+    [Header("Branch Tab Mode")]
+    [Tooltip("켜두면 브랜치 패널을 모두 펼쳐두지 않고, 탭으로 하나씩 전환합니다.")]
+    [SerializeField] private bool useBranchTabMode = true;
+    [SerializeField] private ShipTraitBranchKind defaultSelectedBranch = ShipTraitBranchKind.Shared;
+    [Tooltip("잠긴 탭을 화면에서 숨깁니다. 꺼두면 잠금 표시만 하고 클릭 시 잠금 사유를 표시합니다.")]
+    [SerializeField] private bool hideLockedBranchTabs;
+    [Tooltip("잠긴 탭 클릭을 허용합니다. 클릭하면 패널 전환 대신 잠금 사유를 메시지로 표시합니다.")]
+    [SerializeField] private bool allowLockedBranchTabClick = true;
+    [SerializeField] private ShipTraitBranchTabButton sharedTabButton;
+    [SerializeField] private ShipTraitBranchTabButton machineGunTabButton;
+    [SerializeField] private ShipTraitBranchTabButton sniperTabButton;
+    [SerializeField] private ShipTraitBranchTabButton shotgunTabButton;
+
+    [Header("Branch Unlock Gates")]
+    [Tooltip("공유 브랜치. 기본 개방으로 둡니다.")]
+    [SerializeField] private ShipTraitBranchGate sharedBranchGate = new ShipTraitBranchGate
+    {
+        branchKind = ShipTraitBranchKind.Shared,
+        unlockedByDefault = true,
+        requiredUnlockedShipCount = 0
+    };
+
+    [Tooltip("기관총 브랜치. 기본 기체/기본 무기로 시작하므로 기본 개방으로 둡니다.")]
+    [SerializeField] private ShipTraitBranchGate machineGunBranchGate = new ShipTraitBranchGate
+    {
+        branchKind = ShipTraitBranchKind.MachineGun,
+        unlockedByDefault = true,
+        requiredUnlockedShipCount = 0
+    };
+
+    [Tooltip("스나이퍼 브랜치. 스나이퍼 기체 해금 조건을 넣습니다.")]
+    [SerializeField] private ShipTraitBranchGate sniperBranchGate = new ShipTraitBranchGate
+    {
+        branchKind = ShipTraitBranchKind.Sniper,
+        unlockedByDefault = false,
+        requiredUnlockedShipCount = 2
+    };
+
+    [Tooltip("샷건 브랜치. 샷건 기체 해금 조건을 넣습니다.")]
+    [SerializeField] private ShipTraitBranchGate shotgunBranchGate = new ShipTraitBranchGate
+    {
+        branchKind = ShipTraitBranchKind.Shotgun,
+        unlockedByDefault = false,
+        requiredUnlockedShipCount = 3
+    };
+
+    [Header("Branch Nodes")]
     [SerializeField] private List<ShipTraitBranchNodeEntry> branchNodes = new List<ShipTraitBranchNodeEntry>();
+    [SerializeField] private bool allowLockedNodeSelection = true;
+
+    [Header("Generated Nodes In ScrollView")]
+    [Tooltip("켜두면 Branch Nodes 목록을 기준으로 ScrollView Content 아래에 ShipTraitNodeButton 프리팹을 자동 생성합니다.")]
+    [SerializeField] private bool autoGenerateNodeButtons = true;
+    [SerializeField] private ShipTraitNodeButton nodeButtonPrefab;
+    [Tooltip("브랜치별 Content Root가 비어 있을 때 사용할 기본 ScrollView Content입니다.")]
+    [SerializeField] private Transform defaultNodeContentRoot;
+    [SerializeField] private Transform sharedNodeContentRoot;
+    [SerializeField] private Transform machineGunNodeContentRoot;
+    [SerializeField] private Transform sniperNodeContentRoot;
+    [SerializeField] private Transform shotgunNodeContentRoot;
+    [Tooltip("Content Root를 안 넣었을 때 기존 Branch Panel Object를 생성 위치로 사용합니다.")]
+    [SerializeField] private bool useBranchPanelObjectAsRootFallback = true;
+    [SerializeField] private bool rebuildGeneratedNodesOnEnable = true;
 
     [Header("Ship Catalog")]
     [SerializeField] private List<ShipDefinition> shipDefinitions = new List<ShipDefinition>();
@@ -69,14 +274,46 @@ public class ShipTraitTreePanel : MonoBehaviour
     [Header("Detail UI")]
     [SerializeField] private Image selectedIconImage;
     [SerializeField] private TextMeshProUGUI titleText;
-    [SerializeField] private TextMeshProUGUI bodyText;
     [SerializeField] private TextMeshProUGUI costText;
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private TextMeshProUGUI messageText;
 
+    [Header("Detail UI - Separated Text")]
+    [SerializeField] private TextMeshProUGUI descriptionText;
+    [SerializeField] private TextMeshProUGUI branchText;
+    [Tooltip("선택한 특성의 현재 레벨을 따로 표시할 텍스트입니다. 예: Lv 1 / 3")]
+    [SerializeField] private TextMeshProUGUI levelText;
+
+    [Header("Detail UI - Cost Icons")]
+    [Tooltip("스크랩 비용이 1 이상일 때 활성화할 아이콘 루트입니다.")]
+    [SerializeField] private GameObject scrapCostIconRoot;
+    [Tooltip("코어 조각 비용이 1 이상일 때 활성화할 아이콘 루트입니다.")]
+    [SerializeField] private GameObject coreShardCostIconRoot;
+    [Tooltip("스크랩 아이콘 Image입니다. 비워두면 Root의 Image를 자동 사용합니다.")]
+    [SerializeField] private Image scrapCostIconImage;
+    [Tooltip("코어 조각 아이콘 Image입니다. 비워두면 Root의 Image를 자동 사용합니다.")]
+    [SerializeField] private Image coreShardCostIconImage;
+    [SerializeField] private Sprite scrapCostIconSprite;
+    [SerializeField] private Sprite coreShardCostIconSprite;
+    [SerializeField] private bool hideCostIconsWhenFree = true;
+
+    [Header("Detail UI - Lock Mark")]
+    [SerializeField] private Image detailLockImage;
+    [SerializeField] private Sprite lockedDetailSprite;
+    [SerializeField] private Sprite unlockedDetailSprite;
+    [SerializeField] private bool hideLockImageWhenAvailable = true;
+
     [Header("Unlock Button")]
     [SerializeField] private Button unlockButton;
     [SerializeField] private TextMeshProUGUI unlockButtonLabelText;
+
+    [Header("Activation Toggle Button")]
+    [Tooltip("해금된 특성을 탐사 시작 기본 적용에서 제외/재적용하는 버튼입니다.")]
+    [SerializeField] private Button traitActivationToggleButton;
+    [SerializeField] private TextMeshProUGUI traitActivationToggleButtonLabelText;
+    [SerializeField] private bool hideActivationToggleButtonUntilUnlocked;
+
+    private readonly List<ShipTraitNodeButton> generatedNodeButtons = new List<ShipTraitNodeButton>();
 
     private ShipTraitBranchKind selectedBranch = ShipTraitBranchKind.Shared;
     private string selectedNodeId;
@@ -95,8 +332,8 @@ public class ShipTraitTreePanel : MonoBehaviour
             {
                 branchKind = ShipTraitBranchKind.Shared,
                 nodeId = "shared_01",
-                displayName = "���� Ư�� 1",
-                description = "���� Ư�� ù ��° ����Դϴ�.",
+                displayName = "공유 특성 1",
+                description = "공유 특성 첫 번째 노드입니다.",
                 requiredUnlockedShipCount = 1,
                 maxLevel = 1
             },
@@ -104,8 +341,8 @@ public class ShipTraitTreePanel : MonoBehaviour
             {
                 branchKind = ShipTraitBranchKind.Shared,
                 nodeId = "shared_02",
-                displayName = "���� Ư�� 2",
-                description = "���� Ư�� �� ��° ����Դϴ�.",
+                displayName = "공유 특성 2",
+                description = "공유 특성 두 번째 노드입니다.",
                 requiredUnlockedShipCount = 1,
                 prerequisiteNodeIds = new List<string> { "shared_01" },
                 maxLevel = 1
@@ -114,8 +351,8 @@ public class ShipTraitTreePanel : MonoBehaviour
             {
                 branchKind = ShipTraitBranchKind.Shared,
                 nodeId = "shared_03",
-                displayName = "���� Ư�� 3",
-                description = "���� Ư�� �� ��° ����Դϴ�.",
+                displayName = "공유 특성 3",
+                description = "공유 특성 세 번째 노드입니다.",
                 requiredUnlockedShipCount = 1,
                 prerequisiteNodeIds = new List<string> { "shared_02" },
                 maxLevel = 1
@@ -124,8 +361,8 @@ public class ShipTraitTreePanel : MonoBehaviour
             {
                 branchKind = ShipTraitBranchKind.Shared,
                 nodeId = "shared_04",
-                displayName = "���� Ư�� 4",
-                description = "���� Ư�� �� ��° ����Դϴ�.",
+                displayName = "공유 특성 4",
+                description = "공유 특성 네 번째 노드입니다.",
                 requiredUnlockedShipCount = 1,
                 prerequisiteNodeIds = new List<string> { "shared_03" },
                 maxLevel = 1
@@ -134,8 +371,8 @@ public class ShipTraitTreePanel : MonoBehaviour
             {
                 branchKind = ShipTraitBranchKind.MachineGun,
                 nodeId = "machinegun_01",
-                displayName = "����� Ư�� 1",
-                description = "����� Ʈ�� ù ��° ����Դϴ�.",
+                displayName = "기관총 특성 1",
+                description = "기관총 트리 첫 번째 노드입니다.",
                 requiredUnlockedShipCount = 1,
                 maxLevel = 1
             },
@@ -143,8 +380,8 @@ public class ShipTraitTreePanel : MonoBehaviour
             {
                 branchKind = ShipTraitBranchKind.Sniper,
                 nodeId = "sniper_01",
-                displayName = "���� Ư�� 1",
-                description = "�������� Ʈ�� ù ��° ����Դϴ�.",
+                displayName = "스나 특성 1",
+                description = "스나이퍼 트리 첫 번째 노드입니다.",
                 requiredUnlockedShipCount = 2,
                 maxLevel = 1
             },
@@ -152,12 +389,18 @@ public class ShipTraitTreePanel : MonoBehaviour
             {
                 branchKind = ShipTraitBranchKind.Shotgun,
                 nodeId = "shotgun_01",
-                displayName = "���� Ư�� 1",
-                description = "���� Ʈ�� ù ��° ����Դϴ�.",
+                displayName = "샷건 특성 1",
+                description = "샷건 트리 첫 번째 노드입니다.",
                 requiredUnlockedShipCount = 3,
                 maxLevel = 1
             }
         };
+    }
+
+    private void OnValidate()
+    {
+        SyncBranchGates();
+        SyncBranchNodesFromDefinitions();
     }
 
     private void Awake()
@@ -167,11 +410,19 @@ public class ShipTraitTreePanel : MonoBehaviour
             settlementController = FindFirstObjectByType<SettlementController>();
         }
 
+        SyncBranchGates();
+        EnsureGeneratedNodeButtons(false);
         BindNodes();
+        BindBranchTabs();
 
         if (unlockButton != null)
         {
             unlockButton.onClick.AddListener(HandleUnlockButtonClick);
+        }
+
+        if (traitActivationToggleButton != null)
+        {
+            traitActivationToggleButton.onClick.AddListener(HandleActivationToggleButtonClick);
         }
     }
 
@@ -192,6 +443,7 @@ public class ShipTraitTreePanel : MonoBehaviour
             PermanentProgress.Instance.Changed += HandleExternalChanged;
         }
 
+        EnsureGeneratedNodeButtons(rebuildGeneratedNodesOnEnable);
         RefreshPanel();
     }
 
@@ -219,6 +471,11 @@ public class ShipTraitTreePanel : MonoBehaviour
         {
             unlockButton.onClick.RemoveListener(HandleUnlockButtonClick);
         }
+
+        if (traitActivationToggleButton != null)
+        {
+            traitActivationToggleButton.onClick.RemoveListener(HandleActivationToggleButtonClick);
+        }
     }
 
     public void SetTargetShipId(string shipId)
@@ -235,7 +492,23 @@ public class ShipTraitTreePanel : MonoBehaviour
 
     public void SelectBranch(ShipTraitBranchKind branchKind)
     {
-        ShipTraitBranchNodeEntry firstEntry = FindFirstSelectableEntry(branchKind, CountUnlockedShips());
+        SelectBranchTab(branchKind);
+    }
+
+    public void SelectBranchTab(ShipTraitBranchKind branchKind)
+    {
+        int unlockedShipCount = CountUnlockedShips();
+
+        if (!IsBranchGateAvailable(branchKind, unlockedShipCount))
+        {
+            SetMessage(BuildBranchGateLockReason(branchKind, unlockedShipCount));
+            RefreshBranchTabs(unlockedShipCount);
+            return;
+        }
+
+        selectedBranch = branchKind;
+
+        ShipTraitBranchNodeEntry firstEntry = FindFirstSelectableEntry(branchKind, unlockedShipCount);
 
         if (firstEntry == null)
         {
@@ -244,6 +517,9 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         if (firstEntry == null)
         {
+            hasSelection = false;
+            selectedNodeId = string.Empty;
+            RefreshPanel();
             return;
         }
 
@@ -261,7 +537,11 @@ public class ShipTraitTreePanel : MonoBehaviour
 
     public void RefreshPanel()
     {
+        SyncBranchGates();
+        SyncBranchNodesFromDefinitions();
+        EnsureGeneratedNodeButtons(false);
         BindNodes();
+        BindBranchTabs();
 
         int unlockedShipCount = CountUnlockedShips();
 
@@ -289,7 +569,7 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         if (entry == null)
         {
-            SetMessage("�ر��� Ư�� ��带 �����ϼ���.");
+            SetMessage("해금할 특성을 선택하세요.");
             return false;
         }
 
@@ -305,7 +585,7 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         if (progress == null)
         {
-            SetMessage("PermanentProgress�� ���� Ư���� �ر��� �� �����ϴ�.");
+            SetMessage("PermanentProgress가 없어 특성을 해금할 수 없습니다.");
             return false;
         }
 
@@ -315,16 +595,16 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         if (currentLevel >= maxLevel)
         {
-            SetMessage($"{GetDisplayName(entry)}�� �̹� �ִ� �����Դϴ�.");
+            SetMessage($"{GetDisplayName(entry)}은 이미 최대 레벨입니다.");
             return false;
         }
 
-        int scrapCost = Mathf.Max(0, entry.scrapCost);
-        int coreCost = Mathf.Max(0, entry.coreShardCost);
+        int scrapCost = GetEntryScrapCost(entry);
+        int coreCost = GetEntryCoreShardCost(entry);
 
         if (!progress.TrySpend(scrapCost, coreCost))
         {
-            SetMessage($"��ȭ ����. �ʿ�: {FormatCost(scrapCost, coreCost)}");
+            SetMessage($"재화 부족.\n{FormatCost(scrapCost, coreCost)}");
             RefreshPanel();
             return false;
         }
@@ -336,13 +616,315 @@ public class ShipTraitTreePanel : MonoBehaviour
             SaveManager.Instance.Save(progress);
         }
 
-        SetMessage($"{GetDisplayName(entry)} �ر� �Ϸ�. {currentLevel + 1}/{maxLevel}");
+        string completeMessage = IsReinforcementNode(entry)
+            ? $"{GetDisplayName(entry)} 장비 해금 완료. 다음 탐사 시작 시 기본 장비 후보로 사용됩니다."
+            : $"{GetDisplayName(entry)} 해금 완료. {currentLevel + 1}/{maxLevel}";
+        SetMessage(completeMessage);
         RefreshPanel();
         return true;
     }
 
+    public bool TryToggleSelectedTraitActive()
+    {
+        ShipTraitBranchNodeEntry entry = FindEntry(selectedBranch, selectedNodeId);
+
+        if (entry == null)
+        {
+            SetMessage("비활성화할 특성을 선택하세요.");
+            return false;
+        }
+
+        PermanentProgress progress = PermanentProgress.Instance;
+        if (progress == null)
+        {
+            SetMessage("PermanentProgress가 없어 특성 상태를 바꿀 수 없습니다.");
+            return false;
+        }
+
+        string nodeId = GetEntryNodeId(entry);
+        if (progress.GetTraitLevel(nodeId) <= 0)
+        {
+            SetMessage("해금된 특성만 비활성화할 수 있습니다.");
+            return false;
+        }
+
+        bool wasActive = progress.IsTraitActive(nodeId);
+        progress.SetTraitActive(nodeId, !wasActive);
+
+        if (SaveManager.Instance != null)
+        {
+            SaveManager.Instance.Save(progress);
+        }
+
+        bool isActiveNow = progress.IsTraitActive(nodeId);
+        string displayName = GetDisplayName(entry);
+        string targetText = IsReinforcementNode(entry) ? "시작 장비 후보" : "탐사 시작 기본 특성";
+        string stateText = isActiveNow ? "활성화" : "비활성화";
+
+        SetMessage($"{displayName} {stateText}. 다음 탐사부터 {targetText}에 {(isActiveNow ? "포함됩니다" : "포함되지 않습니다")}.");
+        RefreshPanel();
+        return true;
+    }
+
+    private void SyncBranchGates()
+    {
+        if (sharedBranchGate != null)
+        {
+            sharedBranchGate.branchKind = ShipTraitBranchKind.Shared;
+        }
+
+        if (machineGunBranchGate != null)
+        {
+            machineGunBranchGate.branchKind = ShipTraitBranchKind.MachineGun;
+        }
+
+        if (sniperBranchGate != null)
+        {
+            sniperBranchGate.branchKind = ShipTraitBranchKind.Sniper;
+        }
+
+        if (shotgunBranchGate != null)
+        {
+            shotgunBranchGate.branchKind = ShipTraitBranchKind.Shotgun;
+        }
+    }
+
+    private void SyncBranchNodesFromDefinitions()
+    {
+        if (branchNodes == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < branchNodes.Count; i++)
+        {
+            SyncBranchNodeFromDefinition(branchNodes[i]);
+        }
+    }
+
+    private void EnsureGeneratedNodeButtons(bool forceRebuild)
+    {
+        if (!autoGenerateNodeButtons || nodeButtonPrefab == null)
+        {
+            return;
+        }
+
+        if (forceRebuild || HasMissingGeneratedNodeButtons())
+        {
+            RebuildGeneratedNodeButtons();
+        }
+    }
+
+    private bool HasMissingGeneratedNodeButtons()
+    {
+        if (branchNodes == null || branchNodes.Count == 0)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < branchNodes.Count; i++)
+        {
+            ShipTraitBranchNodeEntry entry = branchNodes[i];
+            if (entry == null)
+            {
+                continue;
+            }
+
+            if (entry.nodeButton == null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void RebuildGeneratedNodeButtons()
+    {
+        DestroyGeneratedNodeButtons();
+
+        if (branchNodes == null || nodeButtonPrefab == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < branchNodes.Count; i++)
+        {
+            ShipTraitBranchNodeEntry entry = branchNodes[i];
+            if (entry == null)
+            {
+                continue;
+            }
+
+            Transform contentRoot = GetNodeContentRoot(entry.branchKind);
+            if (contentRoot == null)
+            {
+                continue;
+            }
+
+            if (entry.nodeButton != null && !generatedNodeButtons.Contains(entry.nodeButton))
+            {
+                entry.nodeButton.gameObject.SetActive(false);
+            }
+
+            ShipTraitNodeButton nodeButton = Instantiate(nodeButtonPrefab, contentRoot);
+            string nodeId = GetEntryNodeId(entry);
+            nodeButton.gameObject.name = string.IsNullOrWhiteSpace(nodeId)
+                ? $"ShipTraitNode_{i:00}"
+                : $"ShipTraitNode_{i:00}_{nodeId}";
+            nodeButton.gameObject.SetActive(true);
+
+            generatedNodeButtons.Add(nodeButton);
+            entry.nodeButton = nodeButton;
+        }
+    }
+
+    private void DestroyGeneratedNodeButtons()
+    {
+        if (generatedNodeButtons.Count == 0)
+        {
+            return;
+        }
+
+        if (branchNodes != null)
+        {
+            for (int i = 0; i < branchNodes.Count; i++)
+            {
+                ShipTraitBranchNodeEntry entry = branchNodes[i];
+                if (entry == null || entry.nodeButton == null)
+                {
+                    continue;
+                }
+
+                if (generatedNodeButtons.Contains(entry.nodeButton))
+                {
+                    entry.nodeButton = null;
+                }
+            }
+        }
+
+        for (int i = 0; i < generatedNodeButtons.Count; i++)
+        {
+            ShipTraitNodeButton nodeButton = generatedNodeButtons[i];
+            if (nodeButton == null)
+            {
+                continue;
+            }
+
+            GameObject nodeObject = nodeButton.gameObject;
+            nodeObject.SetActive(false);
+
+            if (Application.isPlaying)
+            {
+                Destroy(nodeObject);
+            }
+            else
+            {
+                DestroyImmediate(nodeObject);
+            }
+        }
+
+        generatedNodeButtons.Clear();
+    }
+
+    private Transform GetNodeContentRoot(ShipTraitBranchKind branchKind)
+    {
+        Transform branchRoot = branchKind switch
+        {
+            ShipTraitBranchKind.Shared => sharedNodeContentRoot,
+            ShipTraitBranchKind.MachineGun => machineGunNodeContentRoot,
+            ShipTraitBranchKind.Sniper => sniperNodeContentRoot,
+            ShipTraitBranchKind.Shotgun => shotgunNodeContentRoot,
+            _ => null
+        };
+
+        if (branchRoot != null)
+        {
+            return branchRoot;
+        }
+
+        if (defaultNodeContentRoot != null)
+        {
+            return defaultNodeContentRoot;
+        }
+
+        if (!useBranchPanelObjectAsRootFallback)
+        {
+            return null;
+        }
+
+        GameObject branchPanelObject = GetBranchPanelObject(branchKind);
+        return branchPanelObject != null ? branchPanelObject.transform : null;
+    }
+
+    private void SyncBranchNodeFromDefinition(ShipTraitBranchNodeEntry entry)
+    {
+        if (entry == null || entry.manualOverrideDefinitionFields)
+        {
+            return;
+        }
+
+        if (entry.traitDefinition != null)
+        {
+            entry.nodeId = entry.traitDefinition.TraitId;
+            entry.displayName = entry.traitDefinition.DisplayName;
+            entry.icon = entry.traitDefinition.Icon;
+            entry.description = entry.traitDefinition.Description;
+            entry.maxLevel = entry.traitDefinition.MaxLevel;
+            entry.branchKind = InferBranchKind(entry.traitDefinition);
+            return;
+        }
+
+        if (entry.reinforcementDefinition != null)
+        {
+            entry.nodeId = entry.reinforcementDefinition.EquipmentId;
+            entry.displayName = entry.reinforcementDefinition.DisplayName;
+            entry.icon = entry.reinforcementDefinition.Icon;
+            entry.description = entry.reinforcementDefinition.Description;
+            entry.maxLevel = 1;
+            entry.branchKind = InferBranchKind(entry.reinforcementDefinition);
+        }
+    }
+
+    private ShipTraitBranchKind InferBranchKind(TraitDefinition trait)
+    {
+        if (trait == null || trait.Category == TraitCategory.Shared)
+        {
+            return ShipTraitBranchKind.Shared;
+        }
+
+        return trait.WeaponTreeType switch
+        {
+            WeaponTreeType.MachineGun => ShipTraitBranchKind.MachineGun,
+            WeaponTreeType.Sniper => ShipTraitBranchKind.Sniper,
+            WeaponTreeType.Shotgun => ShipTraitBranchKind.Shotgun,
+            _ => ShipTraitBranchKind.Shared
+        };
+    }
+
+    private ShipTraitBranchKind InferBranchKind(ReinforcementDefinition reinforcement)
+    {
+        if (reinforcement == null)
+        {
+            return ShipTraitBranchKind.Shared;
+        }
+
+        return reinforcement.Availability switch
+        {
+            ReinforcementAvailability.MachineGunOnly => ShipTraitBranchKind.MachineGun,
+            ReinforcementAvailability.SniperOnly => ShipTraitBranchKind.Sniper,
+            ReinforcementAvailability.ShotgunOnly => ShipTraitBranchKind.Shotgun,
+            _ => ShipTraitBranchKind.Shared
+        };
+    }
+
     private void BindNodes()
     {
+        if (branchNodes == null)
+        {
+            return;
+        }
+
         foreach (ShipTraitBranchNodeEntry entry in branchNodes)
         {
             if (entry == null || entry.nodeButton == null)
@@ -355,13 +937,134 @@ public class ShipTraitTreePanel : MonoBehaviour
                 entry.branchKind,
                 GetEntryNodeId(entry),
                 GetDisplayName(entry),
-                entry.icon
+                GetEntryIcon(entry)
             );
+            entry.nodeButton.SetAllowClickWhenLocked(allowLockedNodeSelection);
         }
+    }
+
+    private void BindBranchTabs()
+    {
+        BindBranchTab(sharedTabButton, ShipTraitBranchKind.Shared);
+        BindBranchTab(machineGunTabButton, ShipTraitBranchKind.MachineGun);
+        BindBranchTab(sniperTabButton, ShipTraitBranchKind.Sniper);
+        BindBranchTab(shotgunTabButton, ShipTraitBranchKind.Shotgun);
+    }
+
+    private void BindBranchTab(ShipTraitBranchTabButton tabButton, ShipTraitBranchKind branchKind)
+    {
+        if (tabButton == null)
+        {
+            return;
+        }
+
+        tabButton.Bind(
+            this,
+            branchKind,
+            GetBranchDisplayName(branchKind)
+        );
+
+        tabButton.SetAllowClickWhenLocked(allowLockedBranchTabClick);
+    }
+
+    private void RefreshBranchTabs(int unlockedShipCount)
+    {
+        RefreshBranchTab(sharedTabButton, ShipTraitBranchKind.Shared, unlockedShipCount);
+        RefreshBranchTab(machineGunTabButton, ShipTraitBranchKind.MachineGun, unlockedShipCount);
+        RefreshBranchTab(sniperTabButton, ShipTraitBranchKind.Sniper, unlockedShipCount);
+        RefreshBranchTab(shotgunTabButton, ShipTraitBranchKind.Shotgun, unlockedShipCount);
+    }
+
+    private void RefreshBranchTab(
+        ShipTraitBranchTabButton tabButton,
+        ShipTraitBranchKind branchKind,
+        int unlockedShipCount)
+    {
+        if (tabButton == null)
+        {
+            return;
+        }
+
+        bool available = IsBranchGateAvailable(branchKind, unlockedShipCount);
+        bool selected = selectedBranch == branchKind;
+        bool visible = available || !hideLockedBranchTabs;
+
+        tabButton.SetVisualState(available, selected, visible);
+    }
+
+    private void EnsureSelectedBranchAvailable(int unlockedShipCount)
+    {
+        if (IsBranchGateAvailable(selectedBranch, unlockedShipCount))
+        {
+            return;
+        }
+
+        ShipTraitBranchKind fallbackBranch = FindFirstAvailableBranch(unlockedShipCount);
+        selectedBranch = fallbackBranch;
+        selectedNodeId = string.Empty;
+        hasSelection = false;
+    }
+
+    private ShipTraitBranchKind FindFirstAvailableBranch(int unlockedShipCount)
+    {
+        if (IsBranchGateAvailable(defaultSelectedBranch, unlockedShipCount))
+        {
+            return defaultSelectedBranch;
+        }
+
+        if (IsBranchGateAvailable(ShipTraitBranchKind.Shared, unlockedShipCount))
+        {
+            return ShipTraitBranchKind.Shared;
+        }
+
+        if (IsBranchGateAvailable(ShipTraitBranchKind.MachineGun, unlockedShipCount))
+        {
+            return ShipTraitBranchKind.MachineGun;
+        }
+
+        if (IsBranchGateAvailable(ShipTraitBranchKind.Shotgun, unlockedShipCount))
+        {
+            return ShipTraitBranchKind.Shotgun;
+        }
+
+        if (IsBranchGateAvailable(ShipTraitBranchKind.Sniper, unlockedShipCount))
+        {
+            return ShipTraitBranchKind.Sniper;
+        }
+
+        return ShipTraitBranchKind.Shared;
     }
 
     private void RefreshBranchPanelObjects(int unlockedShipCount)
     {
+        if (useBranchTabMode)
+        {
+            EnsureSelectedBranchAvailable(unlockedShipCount);
+
+            SetBranchPanelActiveForTabMode(
+                ShipTraitBranchKind.Shared,
+                IsBranchGateAvailable(ShipTraitBranchKind.Shared, unlockedShipCount)
+            );
+
+            SetBranchPanelActiveForTabMode(
+                ShipTraitBranchKind.MachineGun,
+                IsBranchGateAvailable(ShipTraitBranchKind.MachineGun, unlockedShipCount)
+            );
+
+            SetBranchPanelActiveForTabMode(
+                ShipTraitBranchKind.Sniper,
+                IsBranchGateAvailable(ShipTraitBranchKind.Sniper, unlockedShipCount)
+            );
+
+            SetBranchPanelActiveForTabMode(
+                ShipTraitBranchKind.Shotgun,
+                IsBranchGateAvailable(ShipTraitBranchKind.Shotgun, unlockedShipCount)
+            );
+
+            RefreshBranchTabs(unlockedShipCount);
+            return;
+        }
+
         SetBranchPanelActive(
             ShipTraitBranchKind.Shared,
             IsBranchGateAvailable(ShipTraitBranchKind.Shared, unlockedShipCount)
@@ -383,23 +1086,35 @@ public class ShipTraitTreePanel : MonoBehaviour
         );
     }
 
+    private void SetBranchPanelActiveForTabMode(ShipTraitBranchKind branchKind, bool available)
+    {
+        GameObject panelObject = GetBranchPanelObject(branchKind);
+
+        if (panelObject != null)
+        {
+            panelObject.SetActive(available && selectedBranch == branchKind);
+        }
+
+        RefreshBranchGateVisual(branchKind, available);
+    }
+
     private void SetBranchPanelActive(ShipTraitBranchKind branchKind, bool available)
     {
         GameObject panelObject = GetBranchPanelObject(branchKind);
 
-        if (panelObject == null)
+        if (panelObject != null)
         {
-            return;
+            if (deactivateBranchPanelWhenLocked)
+            {
+                panelObject.SetActive(available);
+            }
+            else
+            {
+                panelObject.SetActive(true);
+            }
         }
 
-        if (deactivateBranchPanelWhenLocked)
-        {
-            panelObject.SetActive(available);
-        }
-        else
-        {
-            panelObject.SetActive(true);
-        }
+        RefreshBranchGateVisual(branchKind, available);
     }
 
     private GameObject GetBranchPanelObject(ShipTraitBranchKind branchKind)
@@ -414,25 +1129,124 @@ public class ShipTraitTreePanel : MonoBehaviour
         };
     }
 
+    private ShipTraitBranchGate GetBranchGate(ShipTraitBranchKind branchKind)
+    {
+        return branchKind switch
+        {
+            ShipTraitBranchKind.Shared => sharedBranchGate,
+            ShipTraitBranchKind.MachineGun => machineGunBranchGate,
+            ShipTraitBranchKind.Sniper => sniperBranchGate,
+            ShipTraitBranchKind.Shotgun => shotgunBranchGate,
+            _ => null
+        };
+    }
+
+    private void RefreshBranchGateVisual(ShipTraitBranchKind branchKind, bool available)
+    {
+        ShipTraitBranchGate gate = GetBranchGate(branchKind);
+
+        if (gate == null)
+        {
+            return;
+        }
+
+        if (gate.lockedOverlayObject != null)
+        {
+            gate.lockedOverlayObject.SetActive(!available);
+        }
+
+        if (gate.panelCanvasGroup != null)
+        {
+            gate.panelCanvasGroup.alpha = available ? 1f : gate.lockedAlpha;
+
+            if (gate.disableInteractionWhenLocked)
+            {
+                gate.panelCanvasGroup.interactable = available;
+                gate.panelCanvasGroup.blocksRaycasts = available;
+            }
+        }
+    }
+
     private bool IsBranchGateAvailable(ShipTraitBranchKind branchKind, int unlockedShipCount)
     {
-        ShipTraitBranchNodeEntry gateEntry = FindFirstEntry(branchKind);
+        ShipTraitBranchGate gate = GetBranchGate(branchKind);
 
-        if (gateEntry == null)
+        if (gate == null)
+        {
+            return true;
+        }
+
+        gate.branchKind = branchKind;
+
+        if (gate.unlockedByDefault)
+        {
+            return true;
+        }
+
+        if (gate.requiredUnlockedShipCount > 0 &&
+            unlockedShipCount < gate.requiredUnlockedShipCount)
         {
             return false;
         }
 
-        return IsEntryGateAvailable(gateEntry, unlockedShipCount);
+        if (!string.IsNullOrWhiteSpace(gate.requiredShipId))
+        {
+            ShipDefinition requiredShip = FindShipDefinition(gate.requiredShipId);
+
+            if (requiredShip == null || !IsShipUnlocked(requiredShip))
+            {
+                return false;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(gate.requiredUnlockFlag))
+        {
+            PermanentProgress progress = PermanentProgress.Instance;
+
+            if (progress == null || !progress.HasUnlockFlag(gate.requiredUnlockFlag))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void EnsureValidSelection(int unlockedShipCount)
     {
+        if (useBranchTabMode)
+        {
+            EnsureSelectedBranchAvailable(unlockedShipCount);
+
+            ShipTraitBranchNodeEntry selectedTabEntry = FindEntry(selectedBranch, selectedNodeId);
+
+            if (!hasSelection || selectedTabEntry == null)
+            {
+                ShipTraitBranchNodeEntry firstInTab = FindFirstSelectableEntry(selectedBranch, unlockedShipCount);
+
+                if (firstInTab == null)
+                {
+                    firstInTab = FindFirstEntry(selectedBranch);
+                }
+
+                if (firstInTab != null)
+                {
+                    selectedNodeId = GetEntryNodeId(firstInTab);
+                    hasSelection = true;
+                }
+                else
+                {
+                    selectedNodeId = string.Empty;
+                    hasSelection = false;
+                }
+            }
+
+            return;
+        }
+
         ShipTraitBranchNodeEntry selectedEntry = FindEntry(selectedBranch, selectedNodeId);
 
-        if (!hasSelection ||
-            selectedEntry == null ||
-            !IsNodeSelectable(selectedEntry, unlockedShipCount))
+        if (!hasSelection || selectedEntry == null)
         {
             ShipTraitBranchNodeEntry firstSelectable = FindFirstSelectableEntry(unlockedShipCount);
 
@@ -466,12 +1280,19 @@ public class ShipTraitTreePanel : MonoBehaviour
 
             bool selectable = IsNodeSelectable(entry, unlockedShipCount);
             bool unlocked = IsNodeUnlocked(entry);
+            bool active = IsNodeActive(entry);
             bool selected =
                 hasSelection &&
                 selectedBranch == entry.branchKind &&
                 selectedNodeId == GetEntryNodeId(entry);
 
-            if (entry.hideWhenLocked)
+            bool visibleInCurrentTab = !useBranchTabMode || entry.branchKind == selectedBranch;
+
+            if (!visibleInCurrentTab)
+            {
+                entry.nodeButton.gameObject.SetActive(false);
+            }
+            else if (entry.hideWhenLocked)
             {
                 entry.nodeButton.gameObject.SetActive(selectable);
             }
@@ -480,7 +1301,8 @@ public class ShipTraitTreePanel : MonoBehaviour
                 entry.nodeButton.gameObject.SetActive(true);
             }
 
-            entry.nodeButton.SetVisualState(selectable, unlocked, selected);
+            entry.nodeButton.SetVisualState(selectable, unlocked, active, selected);
+            entry.nodeButton.SetLevelView(BuildNodeButtonLevelText(entry));
         }
     }
 
@@ -491,24 +1313,31 @@ public class ShipTraitTreePanel : MonoBehaviour
         if (entry == null)
         {
             SetIcon(null);
-            SetText(titleText, "Ư�� ����");
-            SetText(bodyText, "����� Ư�� ��尡 �����ϴ�.");
-            SetText(costText, string.Empty);
-            SetText(statusText, string.Empty);
-            SetUnlockButton(false, "Ư�� ����");
+            SetText(titleText, "특성 없음");
+            ClearDetailTexts("연결된 특성 노드가 없습니다.");
+            SetDetailLockVisual(false);
+            SetUnlockButton(false, "특성 없음");
+            SetActivationToggleButton(false, "비활성화", false);
             return;
         }
 
         bool selectable = IsNodeSelectable(entry, unlockedShipCount);
         bool unlocked = IsNodeUnlocked(entry);
+        bool active = IsNodeActive(entry);
         bool canUnlock = CanUnlockEntry(entry, unlockedShipCount);
+        ShipTraitDetailViewData viewData = BuildTraitDetailViewData(entry, selectable, unlocked, unlockedShipCount);
 
-        SetIcon(entry.icon);
+        SetIcon(GetEntryIcon(entry));
         SetText(titleText, GetDisplayName(entry));
-        SetText(bodyText, BuildDetailText(entry, selectable, unlocked, unlockedShipCount));
-        SetText(costText, BuildCostText(entry));
-        SetText(statusText, BuildStatusText(entry, selectable, unlocked, unlockedShipCount));
+        SetText(descriptionText, viewData.DescriptionText);
+        SetText(branchText, viewData.BranchText);
+        SetText(levelText, viewData.LevelText);
+        SetText(statusText, viewData.StatusText);
+        SetText(costText, viewData.CostText);
+        SetCostIconVisuals(entry);
+        SetDetailLockVisual(!selectable);
         SetUnlockButton(canUnlock, BuildUnlockButtonLabel(entry, selectable, unlocked));
+        SetActivationToggleButton(unlocked, BuildActivationToggleButtonLabel(entry, unlocked, active), unlocked || !hideActivationToggleButtonUntilUnlocked);
     }
 
     private bool CanUnlockEntry(ShipTraitBranchNodeEntry entry, int unlockedShipCount)
@@ -539,19 +1368,34 @@ public class ShipTraitTreePanel : MonoBehaviour
         }
 
         return progress.CanSpend(
-            Mathf.Max(0, entry.scrapCost),
-            Mathf.Max(0, entry.coreShardCost)
+            GetEntryScrapCost(entry),
+            GetEntryCoreShardCost(entry)
         );
     }
 
     private bool IsNodeSelectable(ShipTraitBranchNodeEntry entry, int unlockedShipCount)
     {
+        if (entry == null)
+        {
+            return false;
+        }
+
+        if (!IsBranchGateAvailable(entry.branchKind, unlockedShipCount))
+        {
+            return false;
+        }
+
         if (!IsEntryGateAvailable(entry, unlockedShipCount))
         {
             return false;
         }
 
         if (!AreNodePrerequisitesMet(entry))
+        {
+            return false;
+        }
+
+        if (!AreAdditionalUnlockConditionsMet(entry, unlockedShipCount))
         {
             return false;
         }
@@ -623,6 +1467,145 @@ public class ShipTraitTreePanel : MonoBehaviour
         return true;
     }
 
+    private bool AreAdditionalUnlockConditionsMet(ShipTraitBranchNodeEntry entry, int unlockedShipCount)
+    {
+        if (entry == null)
+        {
+            return false;
+        }
+
+        if (entry.unlockConditions == null || entry.unlockConditions.Count == 0)
+        {
+            return true;
+        }
+
+        foreach (ShipTraitUnlockCondition condition in entry.unlockConditions)
+        {
+            if (!IsUnlockConditionMet(condition, unlockedShipCount))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private ShipTraitUnlockCondition FindFirstUnmetAdditionalUnlockCondition(
+        ShipTraitBranchNodeEntry entry,
+        int unlockedShipCount)
+    {
+        if (entry == null || entry.unlockConditions == null)
+        {
+            return null;
+        }
+
+        foreach (ShipTraitUnlockCondition condition in entry.unlockConditions)
+        {
+            if (!IsUnlockConditionMet(condition, unlockedShipCount))
+            {
+                return condition;
+            }
+        }
+
+        return null;
+    }
+
+    private bool IsUnlockConditionMet(ShipTraitUnlockCondition condition, int unlockedShipCount)
+    {
+        if (condition == null)
+        {
+            return true;
+        }
+
+        int requiredValue = GetConditionRequiredValue(condition);
+        return GetUnlockConditionCurrentValue(condition, unlockedShipCount) >= requiredValue;
+    }
+
+    private int GetConditionRequiredValue(ShipTraitUnlockCondition condition)
+    {
+        if (condition == null)
+        {
+            return 1;
+        }
+
+        int value = Mathf.Max(0, condition.requiredValue);
+        return value <= 0 ? 1 : value;
+    }
+
+    private int GetUnlockConditionCurrentValue(ShipTraitUnlockCondition condition, int unlockedShipCount)
+    {
+        if (condition == null)
+        {
+            return 0;
+        }
+
+        PermanentProgress progress = PermanentProgress.Instance;
+
+        switch (condition.conditionKind)
+        {
+            case ShipTraitUnlockConditionKind.UnlockFlag:
+                if (progress == null || string.IsNullOrWhiteSpace(condition.targetId))
+                {
+                    return 0;
+                }
+
+                return progress.HasUnlockFlag(condition.targetId) ? 1 : 0;
+
+            case ShipTraitUnlockConditionKind.ShipUnlocked:
+                if (string.IsNullOrWhiteSpace(condition.targetId))
+                {
+                    return 0;
+                }
+
+                ShipDefinition ship = FindShipDefinition(condition.targetId);
+                return ship != null && IsShipUnlocked(ship) ? 1 : 0;
+
+            case ShipTraitUnlockConditionKind.UnlockedShipCount:
+                return Mathf.Max(0, unlockedShipCount);
+
+            case ShipTraitUnlockConditionKind.BuildingLevel:
+                return progress != null ? progress.GetBuildingLevel(condition.buildingType) : 0;
+
+            case ShipTraitUnlockConditionKind.TraitLevel:
+                return progress != null && !string.IsNullOrWhiteSpace(condition.targetId)
+                    ? progress.GetTraitLevel(condition.targetId)
+                    : 0;
+
+            case ShipTraitUnlockConditionKind.TotalRunCount:
+                return progress != null ? progress.TotalRunCount : 0;
+
+            case ShipTraitUnlockConditionKind.SafeReturnCount:
+                return progress != null ? progress.SafeReturnCount : 0;
+
+            case ShipTraitUnlockConditionKind.EmergencyReturnCount:
+                return progress != null ? progress.EmergencyReturnCount : 0;
+
+            case ShipTraitUnlockConditionKind.BossDefeatCount:
+                return progress != null ? progress.BossDefeatCount : 0;
+
+            case ShipTraitUnlockConditionKind.TotalCollectedScrapParts:
+                return progress != null ? progress.TotalCollectedScrapParts : 0;
+
+            case ShipTraitUnlockConditionKind.TotalCollectedCoreShards:
+                return progress != null ? progress.TotalCollectedCoreShards : 0;
+
+            case ShipTraitUnlockConditionKind.TotalCommittedScrapParts:
+                return progress != null ? progress.TotalCommittedScrapParts : 0;
+
+            case ShipTraitUnlockConditionKind.TotalCommittedCoreShards:
+                return progress != null ? progress.TotalCommittedCoreShards : 0;
+
+            case ShipTraitUnlockConditionKind.OwnedScrapParts:
+                return progress != null ? progress.ScrapParts : 0;
+
+            case ShipTraitUnlockConditionKind.OwnedCoreShards:
+                return progress != null ? progress.CoreShards : 0;
+
+            default:
+                return 0;
+        }
+    }
+
     private bool IsNodeUnlocked(ShipTraitBranchNodeEntry entry)
     {
         if (entry == null)
@@ -650,6 +1633,27 @@ public class ShipTraitTreePanel : MonoBehaviour
         return progress.GetTraitLevel(nodeId) > 0;
     }
 
+    private bool IsNodeActive(ShipTraitBranchNodeEntry entry)
+    {
+        if (entry == null)
+        {
+            return false;
+        }
+
+        return IsNodeActive(GetEntryNodeId(entry));
+    }
+
+    private bool IsNodeActive(string nodeId)
+    {
+        if (string.IsNullOrWhiteSpace(nodeId))
+        {
+            return false;
+        }
+
+        PermanentProgress progress = PermanentProgress.Instance;
+        return progress != null && progress.IsTraitActive(nodeId);
+    }
+
     private int GetNodeLevel(ShipTraitBranchNodeEntry entry)
     {
         if (entry == null || PermanentProgress.Instance == null)
@@ -657,7 +1661,8 @@ public class ShipTraitTreePanel : MonoBehaviour
             return 0;
         }
 
-        return PermanentProgress.Instance.GetTraitLevel(GetEntryNodeId(entry));
+        int rawLevel = PermanentProgress.Instance.GetTraitLevel(GetEntryNodeId(entry));
+        return Mathf.Clamp(rawLevel, 0, GetEntryMaxLevel(entry));
     }
 
     private int GetEntryMaxLevel(ShipTraitBranchNodeEntry entry)
@@ -667,7 +1672,127 @@ public class ShipTraitTreePanel : MonoBehaviour
             return 1;
         }
 
+        if (entry.reinforcementDefinition != null)
+        {
+            return 1;
+        }
+
+        if (entry.traitDefinition != null)
+        {
+            return Mathf.Max(1, entry.traitDefinition.MaxLevel);
+        }
+
         return Mathf.Max(1, entry.maxLevel);
+    }
+
+    private int GetEntryScrapCost(ShipTraitBranchNodeEntry entry)
+    {
+        if (entry == null)
+        {
+            return 0;
+        }
+
+        int scrapCost = Mathf.Max(0, entry.scrapCost);
+        int coreCost = Mathf.Max(0, entry.coreShardCost);
+
+        if (scrapCost <= 0 && coreCost <= 0 &&
+            entry.useReinforcementCostAsScrapCost &&
+            entry.reinforcementDefinition != null)
+        {
+            return entry.reinforcementDefinition.Cost;
+        }
+
+        return scrapCost;
+    }
+
+    private int GetEntryCoreShardCost(ShipTraitBranchNodeEntry entry)
+    {
+        return entry != null ? Mathf.Max(0, entry.coreShardCost) : 0;
+    }
+
+    private bool IsReinforcementNode(ShipTraitBranchNodeEntry entry)
+    {
+        return entry != null && entry.reinforcementDefinition != null;
+    }
+
+    private Sprite GetEntryIcon(ShipTraitBranchNodeEntry entry)
+    {
+        if (entry == null)
+        {
+            return null;
+        }
+
+        if (entry.manualOverrideDefinitionFields && entry.icon != null)
+        {
+            return entry.icon;
+        }
+
+        if (entry.traitDefinition != null && entry.traitDefinition.Icon != null)
+        {
+            return entry.traitDefinition.Icon;
+        }
+
+        if (entry.reinforcementDefinition != null && entry.reinforcementDefinition.Icon != null)
+        {
+            return entry.reinforcementDefinition.Icon;
+        }
+
+        return entry.icon;
+    }
+
+    private string GetEntryDescription(ShipTraitBranchNodeEntry entry)
+    {
+        if (entry == null)
+        {
+            return "특성 설명이 없습니다.";
+        }
+
+        if (entry.manualOverrideDefinitionFields && !string.IsNullOrWhiteSpace(entry.description))
+        {
+            return entry.description;
+        }
+
+        if (entry.traitDefinition != null)
+        {
+            return entry.traitDefinition.Description;
+        }
+
+        if (entry.reinforcementDefinition != null)
+        {
+            return entry.reinforcementDefinition.Description;
+        }
+
+        return !string.IsNullOrWhiteSpace(entry.description)
+            ? entry.description
+            : GetDefaultDescription(entry.branchKind);
+    }
+
+    private ShipTraitDetailViewData BuildTraitDetailViewData(
+        ShipTraitBranchNodeEntry entry,
+        bool selectable,
+        bool unlocked,
+        int unlockedShipCount)
+    {
+        if (entry == null)
+        {
+            return new ShipTraitDetailViewData(
+                "연결된 특성 노드가 없습니다.",
+                string.Empty,
+                string.Empty,
+                "없음",
+                string.Empty
+            );
+        }
+
+        string description = GetEntryDescription(entry);
+
+        return new ShipTraitDetailViewData(
+            description,
+            GetBranchDisplayName(entry.branchKind),
+            BuildLevelText(entry),
+            BuildStatusText(entry, selectable, unlocked, unlockedShipCount),
+            BuildCostText(entry)
+        );
     }
 
     private string BuildDetailText(
@@ -676,69 +1801,34 @@ public class ShipTraitTreePanel : MonoBehaviour
         bool unlocked,
         int unlockedShipCount)
     {
-        StringBuilder builder = new StringBuilder();
+        ShipTraitDetailViewData viewData = BuildTraitDetailViewData(entry, selectable, unlocked, unlockedShipCount);
+        return viewData != null ? viewData.BuildFallbackBodyText() : string.Empty;
+    }
 
-        string description = !string.IsNullOrWhiteSpace(entry.description)
-            ? entry.description
-            : GetDefaultDescription(entry.branchKind);
+    private string BuildLevelText(ShipTraitBranchNodeEntry entry)
+    {
+        if (entry == null || IsReinforcementNode(entry))
+        {
+            return string.Empty;
+        }
 
         int currentLevel = GetNodeLevel(entry);
         int maxLevel = GetEntryMaxLevel(entry);
 
-        builder.AppendLine(description);
-        builder.AppendLine();
+        return $"Lv {currentLevel} / {maxLevel}";
+    }
 
-        builder.AppendLine($"��� ID: {GetEntryNodeId(entry)}");
-        builder.AppendLine($"�귣ġ: {GetBranchDisplayName(entry.branchKind)}");
-        builder.AppendLine($"����: {currentLevel}/{maxLevel}");
-        builder.AppendLine($"����: {BuildStatusText(entry, selectable, unlocked, unlockedShipCount)}");
-
-        if (entry.requiredUnlockedShipCount > 0)
+    private string BuildNodeButtonLevelText(ShipTraitBranchNodeEntry entry)
+    {
+        if (entry == null || IsReinforcementNode(entry))
         {
-            builder.AppendLine($"�ʿ� �ر� ��ü ��: {entry.requiredUnlockedShipCount}");
-            builder.AppendLine($"���� �ر� ��ü ��: {unlockedShipCount}");
+            return string.Empty;
         }
 
-        if (!string.IsNullOrWhiteSpace(entry.requiredShipId))
-        {
-            ShipDefinition requiredShip = FindShipDefinition(entry.requiredShipId);
-            string shipName = requiredShip != null ? requiredShip.DisplayName : entry.requiredShipId;
-            bool shipUnlocked = requiredShip != null && IsShipUnlocked(requiredShip);
+        int currentLevel = GetNodeLevel(entry);
+        int maxLevel = GetEntryMaxLevel(entry);
 
-            builder.AppendLine($"�ʿ� ��ü: {shipName} / {(shipUnlocked ? "�رݵ�" : "���")}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(entry.requiredUnlockFlag))
-        {
-            bool flagUnlocked = PermanentProgress.Instance != null &&
-                                PermanentProgress.Instance.HasUnlockFlag(entry.requiredUnlockFlag);
-
-            builder.AppendLine($"�ʿ� �÷���: {entry.requiredUnlockFlag} / {(flagUnlocked ? "����" : "�̺���")}");
-        }
-
-        if (entry.prerequisiteNodeIds != null && entry.prerequisiteNodeIds.Count > 0)
-        {
-            builder.AppendLine();
-            builder.AppendLine("���� ���:");
-
-            foreach (string prerequisiteNodeId in entry.prerequisiteNodeIds)
-            {
-                if (string.IsNullOrWhiteSpace(prerequisiteNodeId))
-                {
-                    continue;
-                }
-
-                builder.AppendLine($"- {prerequisiteNodeId}: {(IsNodeUnlocked(prerequisiteNodeId) ? "�رݵ�" : "���")}");
-            }
-        }
-
-        if (!selectable)
-        {
-            builder.AppendLine();
-            builder.AppendLine(BuildLockReason(entry, unlockedShipCount));
-        }
-
-        return builder.ToString().TrimEnd();
+        return $"{currentLevel}/{maxLevel}";
     }
 
     private string BuildStatusText(
@@ -749,63 +1839,88 @@ public class ShipTraitTreePanel : MonoBehaviour
     {
         if (entry == null)
         {
-            return "����";
+            return "없음";
+        }
+
+        if (!IsBranchGateAvailable(entry.branchKind, unlockedShipCount))
+        {
+            return "브랜치 잠김";
         }
 
         if (!IsEntryGateAvailable(entry, unlockedShipCount))
         {
-            return "�귣ġ ���";
+            return "노드 잠김";
         }
 
         if (!AreNodePrerequisitesMet(entry))
         {
-            return "���� Ư�� �ʿ�";
+            return "선행 특성 필요";
+        }
+
+        if (!AreAdditionalUnlockConditionsMet(entry, unlockedShipCount))
+        {
+            return "조건 미달";
         }
 
         if (unlocked)
         {
+            if (!IsNodeActive(entry))
+            {
+                return "비활성화";
+            }
+
             int currentLevel = GetNodeLevel(entry);
             int maxLevel = GetEntryMaxLevel(entry);
 
             if (currentLevel >= maxLevel)
             {
-                return "�ִ� ����";
+                if (IsReinforcementNode(entry))
+                {
+                    return "보유 중";
+                }
+
+                return maxLevel > 1 ? "최대 레벨" : "적용 완료";
             }
 
-            return "��ȭ ����";
+            return "강화 가능";
         }
 
         if (!selectable)
         {
-            return "���";
+            return "잠김";
         }
 
         PermanentProgress progress = PermanentProgress.Instance;
 
         if (progress == null)
         {
-            return "���� ������ ����";
+            return "진행 데이터 없음";
         }
 
-        if (!progress.CanSpend(Mathf.Max(0, entry.scrapCost), Mathf.Max(0, entry.coreShardCost)))
+        if (!progress.CanSpend(GetEntryScrapCost(entry), GetEntryCoreShardCost(entry)))
         {
-            return "��ȭ ����";
+            return "재화 부족";
         }
 
-        return "�ر� ����";
+        return "해금 가능";
     }
 
     private string BuildLockReason(ShipTraitBranchNodeEntry entry, int unlockedShipCount)
     {
         if (entry == null)
         {
-            return "��� �����Ͱ� �����ϴ�.";
+            return "특성 데이터가 없습니다.";
+        }
+
+        if (!IsBranchGateAvailable(entry.branchKind, unlockedShipCount))
+        {
+            return BuildBranchGateLockReason(entry.branchKind, unlockedShipCount);
         }
 
         if (entry.requiredUnlockedShipCount > 0 &&
             unlockedShipCount < entry.requiredUnlockedShipCount)
         {
-            return $"��ü �ر� ���� �����մϴ�. {unlockedShipCount}/{entry.requiredUnlockedShipCount}";
+            return $"기체 해금 수가 부족합니다. {unlockedShipCount}/{entry.requiredUnlockedShipCount}";
         }
 
         if (!string.IsNullOrWhiteSpace(entry.requiredShipId))
@@ -814,7 +1929,7 @@ public class ShipTraitTreePanel : MonoBehaviour
 
             if (requiredShip == null || !IsShipUnlocked(requiredShip))
             {
-                return $"�ʿ� ��ü�� ���� �رݵ��� �ʾҽ��ϴ�. �ʿ� ��ü ID: {entry.requiredShipId}";
+                return $"필요 기체가 아직 해금되지 않았습니다. 필요 기체 ID: {entry.requiredShipId}";
             }
         }
 
@@ -824,7 +1939,7 @@ public class ShipTraitTreePanel : MonoBehaviour
 
             if (progress == null || !progress.HasUnlockFlag(entry.requiredUnlockFlag))
             {
-                return $"�ʿ� �ر� �÷��װ� �����ϴ�. �ʿ� �÷���: {entry.requiredUnlockFlag}";
+                return $"필요 해금 플래그가 없습니다. 필요 플래그: {entry.requiredUnlockFlag}";
             }
         }
 
@@ -839,12 +1954,177 @@ public class ShipTraitTreePanel : MonoBehaviour
 
                 if (!IsNodeUnlocked(prerequisiteNodeId))
                 {
-                    return $"���� Ư���� �ʿ��մϴ�. �ʿ� ���: {prerequisiteNodeId}";
+                    return $"선행 특성이 필요합니다. 필요 특성: {GetPrerequisiteDisplayName(prerequisiteNodeId)}";
                 }
             }
         }
 
-        return "���";
+        ShipTraitUnlockCondition unmetCondition = FindFirstUnmetAdditionalUnlockCondition(entry, unlockedShipCount);
+        if (unmetCondition != null)
+        {
+            return $"조건이 부족합니다. {BuildUnlockConditionProgressText(unmetCondition, unlockedShipCount)}";
+        }
+
+        return "잠김";
+    }
+
+    private string BuildBranchGateLockReason(ShipTraitBranchKind branchKind, int unlockedShipCount)
+    {
+        ShipTraitBranchGate gate = GetBranchGate(branchKind);
+
+        if (gate == null)
+        {
+            return "브랜치가 잠겨 있습니다.";
+        }
+
+        if (gate.requiredUnlockedShipCount > 0 &&
+            unlockedShipCount < gate.requiredUnlockedShipCount)
+        {
+            return $"{GetBranchDisplayName(branchKind)} 개방 조건: 기체 해금 {unlockedShipCount}/{gate.requiredUnlockedShipCount}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(gate.requiredShipId))
+        {
+            ShipDefinition requiredShip = FindShipDefinition(gate.requiredShipId);
+            string shipName = requiredShip != null ? requiredShip.DisplayName : gate.requiredShipId;
+            return $"{GetBranchDisplayName(branchKind)} 개방 조건: {shipName} 기체 해금 필요";
+        }
+
+        if (!string.IsNullOrWhiteSpace(gate.requiredUnlockFlag))
+        {
+            return $"{GetBranchDisplayName(branchKind)} 개방 조건: {gate.requiredUnlockFlag}";
+        }
+
+        return $"{GetBranchDisplayName(branchKind)} 브랜치가 잠겨 있습니다.";
+    }
+
+    private string BuildUnlockConditionRequirementText(ShipTraitUnlockCondition condition)
+    {
+        if (condition == null)
+        {
+            return string.Empty;
+        }
+
+        string displayName = GetUnlockConditionDisplayName(condition);
+
+        if (IsBinaryUnlockCondition(condition.conditionKind))
+        {
+            return displayName;
+        }
+
+        return $"{displayName}: {GetConditionRequiredValue(condition)} 이상";
+    }
+
+    private string BuildUnlockConditionProgressText(ShipTraitUnlockCondition condition, int unlockedShipCount)
+    {
+        if (condition == null)
+        {
+            return string.Empty;
+        }
+
+        string displayName = GetUnlockConditionDisplayName(condition);
+        int currentValue = GetUnlockConditionCurrentValue(condition, unlockedShipCount);
+        int requiredValue = GetConditionRequiredValue(condition);
+
+        if (IsBinaryUnlockCondition(condition.conditionKind))
+        {
+            return $"{displayName}: {(currentValue >= requiredValue ? "완료" : "미완료")}";
+        }
+
+        return $"{displayName}: {currentValue}/{requiredValue}";
+    }
+
+    private string GetUnlockConditionDisplayName(ShipTraitUnlockCondition condition)
+    {
+        if (condition == null)
+        {
+            return "조건";
+        }
+
+        if (!string.IsNullOrWhiteSpace(condition.displayNameOverride))
+        {
+            return condition.displayNameOverride;
+        }
+
+        switch (condition.conditionKind)
+        {
+            case ShipTraitUnlockConditionKind.UnlockFlag:
+                return string.IsNullOrWhiteSpace(condition.targetId)
+                    ? "특정 조건 달성"
+                    : $"조건 달성({condition.targetId})";
+
+            case ShipTraitUnlockConditionKind.ShipUnlocked:
+                if (string.IsNullOrWhiteSpace(condition.targetId))
+                {
+                    return "기체 해금";
+                }
+
+                ShipDefinition ship = FindShipDefinition(condition.targetId);
+                string shipName = ship != null ? ship.DisplayName : condition.targetId;
+                return $"기체 해금: {shipName}";
+
+            case ShipTraitUnlockConditionKind.UnlockedShipCount:
+                return "기체 해금 수";
+
+            case ShipTraitUnlockConditionKind.BuildingLevel:
+                return $"{GetBuildingDisplayName(condition.buildingType)} 레벨";
+
+            case ShipTraitUnlockConditionKind.TraitLevel:
+                return string.IsNullOrWhiteSpace(condition.targetId)
+                    ? "특성 레벨"
+                    : $"{GetPrerequisiteDisplayName(condition.targetId)} 레벨";
+
+            case ShipTraitUnlockConditionKind.TotalRunCount:
+                return "탐사 완료 횟수";
+
+            case ShipTraitUnlockConditionKind.SafeReturnCount:
+                return "안전 복귀 횟수";
+
+            case ShipTraitUnlockConditionKind.EmergencyReturnCount:
+                return "긴급 복귀 횟수";
+
+            case ShipTraitUnlockConditionKind.BossDefeatCount:
+                return "보스 처치 횟수";
+
+            case ShipTraitUnlockConditionKind.TotalCollectedScrapParts:
+                return "누적 스크랩 획득";
+
+            case ShipTraitUnlockConditionKind.TotalCollectedCoreShards:
+                return "누적 코어 조각 획득";
+
+            case ShipTraitUnlockConditionKind.TotalCommittedScrapParts:
+                return "누적 스크랩 반입";
+
+            case ShipTraitUnlockConditionKind.TotalCommittedCoreShards:
+                return "누적 코어 조각 반입";
+
+            case ShipTraitUnlockConditionKind.OwnedScrapParts:
+                return "보유 스크랩";
+
+            case ShipTraitUnlockConditionKind.OwnedCoreShards:
+                return "보유 코어 조각";
+
+            default:
+                return "조건";
+        }
+    }
+
+    private bool IsBinaryUnlockCondition(ShipTraitUnlockConditionKind conditionKind)
+    {
+        return conditionKind == ShipTraitUnlockConditionKind.UnlockFlag ||
+               conditionKind == ShipTraitUnlockConditionKind.ShipUnlocked;
+    }
+
+    private string GetBuildingDisplayName(BuildingType buildingType)
+    {
+        return buildingType switch
+        {
+            BuildingType.Hangar => "격납고",
+            BuildingType.EngineWorkshop => "엔진공방",
+            BuildingType.WeaponLab => "화기연구소",
+            BuildingType.RecoveryProcessor => "회수처리장",
+            _ => buildingType.ToString()
+        };
     }
 
     private string BuildCostText(ShipTraitBranchNodeEntry entry)
@@ -854,15 +2134,23 @@ public class ShipTraitTreePanel : MonoBehaviour
             return string.Empty;
         }
 
-        int scrapCost = Mathf.Max(0, entry.scrapCost);
-        int coreCost = Mathf.Max(0, entry.coreShardCost);
+        int currentLevel = GetNodeLevel(entry);
+        int maxLevel = GetEntryMaxLevel(entry);
+
+        if (currentLevel >= maxLevel)
+        {
+            return "비용 없음";
+        }
+
+        int scrapCost = GetEntryScrapCost(entry);
+        int coreCost = GetEntryCoreShardCost(entry);
 
         if (scrapCost <= 0 && coreCost <= 0)
         {
-            return "��� ����";
+            return "비용 없음";
         }
 
-        return $"�ʿ� ��ȭ: {FormatCost(scrapCost, coreCost)}";
+        return FormatCost(scrapCost, coreCost);
     }
 
     private string BuildUnlockButtonLabel(
@@ -872,7 +2160,7 @@ public class ShipTraitTreePanel : MonoBehaviour
     {
         if (entry == null)
         {
-            return "Ư�� ����";
+            return "특성 없음";
         }
 
         int currentLevel = GetNodeLevel(entry);
@@ -880,47 +2168,65 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         if (!selectable)
         {
-            return "���";
+            return "잠김";
         }
 
         if (currentLevel >= maxLevel)
         {
-            return "�ִ� ����";
+            if (IsReinforcementNode(entry))
+            {
+                return "보유 중";
+            }
+
+            return maxLevel > 1 ? "최대 레벨" : "적용 완료";
         }
 
         if (unlocked)
         {
-            return $"��ȭ {currentLevel}/{maxLevel}";
+            return $"강화 {currentLevel}/{maxLevel}";
         }
 
-        return "�ر�";
+        return IsReinforcementNode(entry) ? "장비 해금" : "해금";
+    }
+
+    private string BuildActivationToggleButtonLabel(
+        ShipTraitBranchNodeEntry entry,
+        bool unlocked,
+        bool active)
+    {
+        if (entry == null)
+        {
+            return "비활성화";
+        }
+
+        if (!unlocked)
+        {
+            return "해금 후 사용";
+        }
+
+        return active ? "비활성화" : "활성화";
     }
 
     private string FormatCost(int scrapCost, int coreCost)
     {
         if (scrapCost <= 0 && coreCost <= 0)
         {
-            return "����";
+            return "비용 없음";
         }
 
         StringBuilder builder = new StringBuilder();
 
         if (scrapCost > 0)
         {
-            builder.Append($"��ũ�� {scrapCost}");
+            builder.AppendLine($"스크랩 {scrapCost}");
         }
 
         if (coreCost > 0)
         {
-            if (builder.Length > 0)
-            {
-                builder.Append(" / ");
-            }
-
-            builder.Append($"�ھ� {coreCost}");
+            builder.AppendLine($"코어 조각 {coreCost}");
         }
 
-        return builder.ToString();
+        return builder.ToString().TrimEnd();
     }
 
     private int CountUnlockedShips()
@@ -1068,6 +2374,24 @@ public class ShipTraitTreePanel : MonoBehaviour
         return null;
     }
 
+    private ShipTraitBranchNodeEntry FindEntryByNodeId(string nodeId)
+    {
+        if (string.IsNullOrWhiteSpace(nodeId))
+        {
+            return null;
+        }
+
+        foreach (ShipTraitBranchNodeEntry entry in branchNodes)
+        {
+            if (entry != null && GetEntryNodeId(entry) == nodeId)
+            {
+                return entry;
+            }
+        }
+
+        return null;
+    }
+
     private ShipTraitBranchNodeEntry FindFirstEntry(ShipTraitBranchKind branchKind)
     {
         foreach (ShipTraitBranchNodeEntry entry in branchNodes)
@@ -1137,6 +2461,16 @@ public class ShipTraitTreePanel : MonoBehaviour
             return string.Empty;
         }
 
+        if (entry.traitDefinition != null)
+        {
+            return entry.traitDefinition.TraitId;
+        }
+
+        if (entry.reinforcementDefinition != null)
+        {
+            return entry.reinforcementDefinition.EquipmentId;
+        }
+
         if (!string.IsNullOrWhiteSpace(entry.nodeId))
         {
             return entry.nodeId;
@@ -1155,7 +2489,22 @@ public class ShipTraitTreePanel : MonoBehaviour
     {
         if (entry == null)
         {
-            return "Ư��";
+            return "특성";
+        }
+
+        if (entry.manualOverrideDefinitionFields && !string.IsNullOrWhiteSpace(entry.displayName))
+        {
+            return entry.displayName;
+        }
+
+        if (entry.traitDefinition != null)
+        {
+            return entry.traitDefinition.DisplayName;
+        }
+
+        if (entry.reinforcementDefinition != null)
+        {
+            return entry.reinforcementDefinition.DisplayName;
         }
 
         if (!string.IsNullOrWhiteSpace(entry.displayName))
@@ -1166,15 +2515,21 @@ public class ShipTraitTreePanel : MonoBehaviour
         return GetBranchDisplayName(entry.branchKind);
     }
 
+    private string GetPrerequisiteDisplayName(string nodeId)
+    {
+        ShipTraitBranchNodeEntry entry = FindEntryByNodeId(nodeId);
+        return entry != null ? GetDisplayName(entry) : nodeId;
+    }
+
     private string GetBranchDisplayName(ShipTraitBranchKind branchKind)
     {
         return branchKind switch
         {
-            ShipTraitBranchKind.Shared => "���� Ư��",
-            ShipTraitBranchKind.MachineGun => "����� Ư��",
-            ShipTraitBranchKind.Sniper => "���� Ư��",
-            ShipTraitBranchKind.Shotgun => "���� Ư��",
-            _ => "Ư��"
+            ShipTraitBranchKind.Shared => "공유 특성",
+            ShipTraitBranchKind.MachineGun => "기관총 특성",
+            ShipTraitBranchKind.Sniper => "스나 특성",
+            ShipTraitBranchKind.Shotgun => "샷건 특성",
+            _ => "특성"
         };
     }
 
@@ -1183,18 +2538,18 @@ public class ShipTraitTreePanel : MonoBehaviour
         return branchKind switch
         {
             ShipTraitBranchKind.Shared =>
-                "��� ��ü�� ���� Ʈ���� �������� ����Ǵ� Ư�� �׷��Դϴ�.",
+                "모든 기체와 무기 트리에 공통으로 적용되는 특성 그룹입니다.",
 
             ShipTraitBranchKind.MachineGun =>
-                "����� Ʈ�� ���� Ư�� �׷��Դϴ�. ���� ��ݰ� ���� ������ ��ȭ�մϴ�.",
+                "기관총 트리 전용 특성 그룹입니다. 지속 사격과 유도 보정을 강화합니다.",
 
             ShipTraitBranchKind.Sniper =>
-                "�������� Ʈ�� ���� Ư�� �׷��Դϴ�. ��¡, ����, ��Ÿ� ������ ��ȭ�մϴ�.",
+                "스나이퍼 트리 전용 특성 그룹입니다. 차징, 관통, 장거리 교전을 강화합니다.",
 
             ShipTraitBranchKind.Shotgun =>
-                "���� Ʈ�� ���� Ư�� �׷��Դϴ�. ����, ��ź, �ٰŸ� ������ ��ȭ�մϴ�.",
+                "샷건 트리 전용 특성 그룹입니다. 돌입, 산탄, 근거리 생존을 강화합니다.",
 
-            _ => "Ư�� �׷��Դϴ�."
+            _ => "특성 그룹입니다."
         };
     }
 
@@ -1230,6 +2585,89 @@ public class ShipTraitTreePanel : MonoBehaviour
         selectedIconImage.preserveAspect = true;
     }
 
+    private void ClearDetailTexts(string bodyMessage)
+    {
+        SetText(descriptionText, bodyMessage);
+        SetText(branchText, string.Empty);
+        SetText(levelText, string.Empty);
+        SetText(statusText, string.Empty);
+        SetText(costText, string.Empty);
+        SetCostIconVisuals(null);
+    }
+
+    private void SetCostIconVisuals(ShipTraitBranchNodeEntry entry)
+    {
+        bool showScrap = false;
+        bool showCore = false;
+
+        if (entry != null)
+        {
+            int currentLevel = GetNodeLevel(entry);
+            int maxLevel = GetEntryMaxLevel(entry);
+
+            if (currentLevel < maxLevel)
+            {
+                showScrap = GetEntryScrapCost(entry) > 0;
+                showCore = GetEntryCoreShardCost(entry) > 0;
+            }
+        }
+
+        SetCostIconActive(scrapCostIconRoot, scrapCostIconImage, scrapCostIconSprite, showScrap);
+        SetCostIconActive(coreShardCostIconRoot, coreShardCostIconImage, coreShardCostIconSprite, showCore);
+    }
+
+    private void SetCostIconActive(GameObject root, Image image, Sprite sprite, bool active)
+    {
+        if (image == null && root != null)
+        {
+            image = root.GetComponent<Image>();
+        }
+
+        GameObject targetObject = root != null
+            ? root
+            : image != null ? image.gameObject : null;
+
+        if (targetObject != null)
+        {
+            targetObject.SetActive(active || !hideCostIconsWhenFree);
+        }
+
+        if (image != null)
+        {
+            if (sprite != null)
+            {
+                image.sprite = sprite;
+            }
+
+            image.enabled = (active || !hideCostIconsWhenFree) && image.sprite != null;
+            image.preserveAspect = true;
+        }
+    }
+
+    private void SetDetailLockVisual(bool locked)
+    {
+        if (detailLockImage == null)
+        {
+            return;
+        }
+
+        if (locked && lockedDetailSprite != null)
+        {
+            detailLockImage.sprite = lockedDetailSprite;
+        }
+        else if (!locked && unlockedDetailSprite != null)
+        {
+            detailLockImage.sprite = unlockedDetailSprite;
+        }
+
+        bool shouldShow = locked || !hideLockImageWhenAvailable;
+        bool hasSprite = detailLockImage.sprite != null;
+
+        detailLockImage.enabled = shouldShow && hasSprite;
+        detailLockImage.gameObject.SetActive(shouldShow && hasSprite);
+        detailLockImage.preserveAspect = true;
+    }
+
     private void SetUnlockButton(bool interactable, string label)
     {
         if (unlockButton != null)
@@ -1238,6 +2676,17 @@ public class ShipTraitTreePanel : MonoBehaviour
         }
 
         SetText(unlockButtonLabelText, label);
+    }
+
+    private void SetActivationToggleButton(bool interactable, string label, bool visible)
+    {
+        if (traitActivationToggleButton != null)
+        {
+            traitActivationToggleButton.interactable = interactable;
+            traitActivationToggleButton.gameObject.SetActive(visible);
+        }
+
+        SetText(traitActivationToggleButtonLabelText, label);
     }
 
     private void SetText(TextMeshProUGUI target, string value)
@@ -1257,6 +2706,11 @@ public class ShipTraitTreePanel : MonoBehaviour
     private void HandleUnlockButtonClick()
     {
         TryUnlockSelectedTrait();
+    }
+
+    private void HandleActivationToggleButtonClick()
+    {
+        TryToggleSelectedTraitActive();
     }
 
     private void HandleExternalChanged()

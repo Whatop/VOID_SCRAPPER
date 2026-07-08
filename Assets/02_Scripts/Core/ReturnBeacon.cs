@@ -26,6 +26,11 @@ public class ReturnBeacon : MonoBehaviour, IInteractable
         }
     }
 
+    private void OnEnable()
+    {
+        AudioManager.PlayAt(SoundEventIds.ReturnBeaconSpawn, transform.position, 0.8f);
+    }
+
     public bool CanInteract(GameObject interactor)
     {
         if (returning)
@@ -85,6 +90,7 @@ public class ReturnBeacon : MonoBehaviour, IInteractable
         }
 
         returning = true;
+        AudioManager.PlayAt(SoundEventIds.SafeReturn, transform.position);
 
         RunManager.Instance.CompleteRun(RunEndReason.SafeReturn);
 

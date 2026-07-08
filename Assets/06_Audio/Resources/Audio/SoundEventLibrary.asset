@@ -15,35 +15,42 @@ MonoBehaviour:
   entries:
   - eventId: ui_click
     clips:
-    - {fileID: 8300000, guid: defb1d55615ae984381c624a4bab0b0c, type: 3}
-    volume: 0.9
-    pitchMin: 0.97
-    pitchMax: 1.03
+    - {fileID: 8300000, guid: f5c3cac00fb5206edddf56e229f7b453, type: 3}
+    - {fileID: 8300000, guid: 9088fab03a5efaebb00999c3fdcf9d1f, type: 3}
+    - {fileID: 8300000, guid: 7a75902f548576567dec930b09de4d48, type: 3}
+    volume: 0.72
+    pitchMin: 0.98
+    pitchMax: 1.04
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: ui_hover
     clips:
-    - {fileID: 8300000, guid: c607c578f9f9e04469bddbe72c3c7874, type: 3}
-    volume: 0.55
-    pitchMin: 0.97
-    pitchMax: 1.03
+    - {fileID: 8300000, guid: f14325490feb2dc377ea7c4e5bbf643f, type: 3}
+    - {fileID: 8300000, guid: 05fa866fb37afc66de7d570496d0930c, type: 3}
+    - {fileID: 8300000, guid: d89f2a6a6f7d5293c4107d5aef6e0574, type: 3}
+    volume: 0.38
+    pitchMin: 0.98
+    pitchMax: 1.05
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: ui_back
     clips:
-    - {fileID: 8300000, guid: c42ec5828d7f912478aaf92144a545b4, type: 3}
-    volume: 0.75
-    pitchMin: 0.98
-    pitchMax: 1.02
+    - {fileID: 8300000, guid: 4d8bd34cbb79ad2c1c3607126c426cac, type: 3}
+    - {fileID: 8300000, guid: 0fdcd9710b832bd9250a40c71e435620, type: 3}
+    volume: 0.62
+    pitchMin: 0.97
+    pitchMax: 1.03
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: ui_panel_open
     clips:
-    - {fileID: 8300000, guid: ec538f75e91585c41bd544d7271f4526, type: 3}
-    volume: 0.8
+    - {fileID: 8300000, guid: 7bd67af3e313e995de00ba9a5cf9b51b, type: 3}
+    - {fileID: 8300000, guid: b2830e4f65792a6455471193c93bb2b1, type: 3}
+    - {fileID: 8300000, guid: bb191bae86970cd7a8734752830344bc, type: 3}
+    volume: 0.72
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -51,8 +58,10 @@ MonoBehaviour:
     priority: 128
   - eventId: ui_panel_close
     clips:
-    - {fileID: 8300000, guid: f902d4a164799df42beae343e60e9c41, type: 3}
-    volume: 0.8
+    - {fileID: 8300000, guid: ae756f74c2b191a347560cae4ffe1a44, type: 3}
+    - {fileID: 8300000, guid: e09ac32b0f988a42ceb7ad827e216456, type: 3}
+    - {fileID: 8300000, guid: 2a4fe553294c8ac8da06335921ddfb51, type: 3}
+    volume: 0.68
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -60,8 +69,10 @@ MonoBehaviour:
     priority: 128
   - eventId: ui_insufficient
     clips:
-    - {fileID: 8300000, guid: 1076e8dce267d8e4d85b2f3b44d01088, type: 3}
-    volume: 0.9
+    - {fileID: 8300000, guid: 0d099262453325ad65fed9840bfb7ef7, type: 3}
+    - {fileID: 8300000, guid: 8a12d1b3f4977286c34adf57af1590f1, type: 3}
+    - {fileID: 8300000, guid: cacbad4340c2b9fdf66b5829f17cfebe, type: 3}
+    volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -69,26 +80,30 @@ MonoBehaviour:
     priority: 128
   - eventId: ui_upgrade_success
     clips:
-    - {fileID: 8300000, guid: 02770ede097fe194ba2232e2ea84f766, type: 3}
-    volume: 0.9
+    - {fileID: 8300000, guid: 35680a92d266fbd16657a7af2232eb15, type: 3}
+    - {fileID: 8300000, guid: 71a5f0163356dd3600cbd65b3746f01a, type: 3}
+    - {fileID: 8300000, guid: 01256deb368f0f2367e9d0ef9d8f46cf, type: 3}
+    volume: 0.8
     pitchMin: 0.98
-    pitchMax: 1.02
+    pitchMax: 1.03
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: ui_upgrade_fail
     clips:
-    - {fileID: 8300000, guid: d279103c519e67d4a9ff9a050ee2fa94, type: 3}
-    volume: 0.85
-    pitchMin: 0.98
+    - {fileID: 8300000, guid: 0d6bb65f90d09decac0e1f1745755a8b, type: 3}
+    - {fileID: 8300000, guid: 05b84b86ef138389e549cc40d977ae42, type: 3}
+    volume: 0.75
+    pitchMin: 0.97
     pitchMax: 1.02
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: ui_launch
     clips:
-    - {fileID: 8300000, guid: 7abd15f0c5fd4514ba9b60b6d06ef8fb, type: 3}
-    volume: 0.9
+    - {fileID: 8300000, guid: 458d0eaaebbd9d9105bf84dffd731e69, type: 3}
+    - {fileID: 8300000, guid: 3b72e8fd0c5a6a4726c698d36203f92f, type: 3}
+    volume: 0.82
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -96,16 +111,20 @@ MonoBehaviour:
     priority: 128
   - eventId: trait_select
     clips:
-    - {fileID: 8300000, guid: 8379eb938f5542f4b8b5944069b0e0f7, type: 3}
-    volume: 0.85
-    pitchMin: 0.97
+    - {fileID: 8300000, guid: 876b809d18880688c0aca078b777e1b5, type: 3}
+    - {fileID: 8300000, guid: 2d67788eedd763c39320845c28670059, type: 3}
+    - {fileID: 8300000, guid: 72138704520e78c8cd3654dfe5b39674, type: 3}
+    volume: 0.78
+    pitchMin: 0.98
     pitchMax: 1.03
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: level_up
     clips:
-    - {fileID: 8300000, guid: c369ffe5c6086504e951dabc5889350c, type: 3}
+    - {fileID: 8300000, guid: 1187878f188fbc87ee07428a71ec3902, type: 3}
+    - {fileID: 8300000, guid: 631426d6bdcc8cb840979734bf284547, type: 3}
+    - {fileID: 8300000, guid: 45733492adb309c46102a28285ade41e, type: 3}
     volume: 0.9
     pitchMin: 0.98
     pitchMax: 1.02
@@ -114,8 +133,9 @@ MonoBehaviour:
     priority: 128
   - eventId: tab_status_open
     clips:
-    - {fileID: 8300000, guid: c66ce470733a1a9468dfa4dd55b0ed71, type: 3}
-    volume: 0.8
+    - {fileID: 8300000, guid: 18e69b9d92d60e0c9865dd040dbe8a61, type: 3}
+    - {fileID: 8300000, guid: f319824a7a91d0bcd1e94d8662f5e41c, type: 3}
+    volume: 0.72
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -123,8 +143,9 @@ MonoBehaviour:
     priority: 128
   - eventId: tab_status_close
     clips:
-    - {fileID: 8300000, guid: b1d78a7d0266bd241a2edd4f7c283637, type: 3}
-    volume: 0.8
+    - {fileID: 8300000, guid: ee83abea41eb86eb53c35bfc12bdf308, type: 3}
+    - {fileID: 8300000, guid: 6b0a89f61f63b003dc030ecdaedf0fef, type: 3}
+    volume: 0.7
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -132,8 +153,9 @@ MonoBehaviour:
     priority: 128
   - eventId: warning_message
     clips:
-    - {fileID: 8300000, guid: 1857be1cab565fe47a765be7eb968a73, type: 3}
-    volume: 0.85
+    - {fileID: 8300000, guid: aa3abf3f83c8fb586dc2cdf17950ce9d, type: 3}
+    - {fileID: 8300000, guid: af1ccf93626f6cfd56460cc6408779f2, type: 3}
+    volume: 0.82
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -141,8 +163,10 @@ MonoBehaviour:
     priority: 128
   - eventId: action_denied
     clips:
-    - {fileID: 8300000, guid: 6493672ef33e0704f851554a0594a1f5, type: 3}
-    volume: 0.85
+    - {fileID: 8300000, guid: b1459e20bdbe49cf80f970d431bc2730, type: 3}
+    - {fileID: 8300000, guid: daf1d1ec37c4aaf32a05e075c5611c9f, type: 3}
+    - {fileID: 8300000, guid: c23c0ed46fc454dba43bdd5c592ad3c7, type: 3}
+    volume: 0.76
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -150,8 +174,9 @@ MonoBehaviour:
     priority: 128
   - eventId: shop_open
     clips:
-    - {fileID: 8300000, guid: fe2f4027d63c04a40b2544aa93dbd4d8, type: 3}
-    volume: 0.85
+    - {fileID: 8300000, guid: ef49c793321c35790948f667c0771375, type: 3}
+    - {fileID: 8300000, guid: 6d971e10bee4c69ac4412f6c9ef1349f, type: 3}
+    volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -159,17 +184,21 @@ MonoBehaviour:
     priority: 128
   - eventId: shop_buy_success
     clips:
-    - {fileID: 8300000, guid: 90c9f3364cda79c49adc988856245dde, type: 3}
-    volume: 0.9
+    - {fileID: 8300000, guid: 42d77031271836702986d6a46e96882c, type: 3}
+    - {fileID: 8300000, guid: 9a3041aba3e787385a8a05ee43360036, type: 3}
+    - {fileID: 8300000, guid: 2d8508fc452085185b02d7de5bf57aef, type: 3}
+    volume: 0.82
     pitchMin: 0.98
-    pitchMax: 1.02
+    pitchMax: 1.03
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: shop_buy_fail
     clips:
-    - {fileID: 8300000, guid: 6dfcff2d2af92e54fb855270bff4d3f6, type: 3}
-    volume: 0.9
+    - {fileID: 8300000, guid: 01edb5dc00f6beabb98ca44202b0d720, type: 3}
+    - {fileID: 8300000, guid: 96f12a4f15e90c991ae8e3f9a9493c68, type: 3}
+    - {fileID: 8300000, guid: 11978a25641ce4acdb78e0716eebfb30, type: 3}
+    volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -177,8 +206,10 @@ MonoBehaviour:
     priority: 128
   - eventId: shop_item_sold
     clips:
-    - {fileID: 8300000, guid: 0435df60b9c20f149811f442ece82178, type: 3}
-    volume: 0.8
+    - {fileID: 8300000, guid: 9d69b3d37a0e76a7143db69b4cdb6682, type: 3}
+    - {fileID: 8300000, guid: 222fd21572e3888d0f7edb8ad0386ca4, type: 3}
+    - {fileID: 8300000, guid: 46b5fe9357e86b674f149fd676d0dff1, type: 3}
+    volume: 0.76
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -186,8 +217,8 @@ MonoBehaviour:
     priority: 128
   - eventId: shop_transaction_complete
     clips:
-    - {fileID: 8300000, guid: 21b54bf589f1a3542a5c59225733ab61, type: 3}
-    volume: 0.85
+    - {fileID: 8300000, guid: 6cebd07dcd67feabbcd7fc45661c5716, type: 3}
+    volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -195,62 +226,75 @@ MonoBehaviour:
     priority: 128
   - eventId: shop_warning
     clips:
-    - {fileID: 8300000, guid: 31f2c8d081a60b342a13497e10bf1e14, type: 3}
-    volume: 0.9
-    pitchMin: 0.98
+    - {fileID: 8300000, guid: 6ed60a2086af1a71a60b85d39fc85b60, type: 3}
+    - {fileID: 8300000, guid: f5f3d7704063c1c6197c2e395c76b504, type: 3}
+    - {fileID: 8300000, guid: 0ea386e2342a097c7d47eb99bfaf320c, type: 3}
+    volume: 0.86
+    pitchMin: 0.96
     pitchMax: 1.02
-    spatialBlend: 0
+    spatialBlend: 0.18
     loop: 0
     priority: 128
   - eventId: shop_hostile
     clips:
-    - {fileID: 8300000, guid: e4fedd4e295cd534a96b4fd7b641c7ed, type: 3}
-    volume: 0.95
-    pitchMin: 0.99
-    pitchMax: 1.01
-    spatialBlend: 0
+    - {fileID: 8300000, guid: 83d24511ea0f4ce20f643f81dcc0a7b5, type: 3}
+    - {fileID: 8300000, guid: 440e2f628e1dcb1a97509585da2de438, type: 3}
+    - {fileID: 8300000, guid: 945489f8336563e4a6f3710216cc8bab, type: 3}
+    volume: 0.78
+    pitchMin: 0.96
+    pitchMax: 1.02
+    spatialBlend: 0.25
     loop: 0
     priority: 128
   - eventId: reinforcement_equip
     clips:
-    - {fileID: 8300000, guid: fcfacea269ccd3243b95be77833f0a07, type: 3}
-    volume: 0.85
-    pitchMin: 0.97
+    - {fileID: 8300000, guid: 2d7bd38380d3f89a422a400f63cfb8f6, type: 3}
+    - {fileID: 8300000, guid: 9e242772e9cdbc101e07e202067662ff, type: 3}
+    - {fileID: 8300000, guid: 167c5573c50517214ed3b2e8b4f174b0, type: 3}
+    volume: 0.76
+    pitchMin: 0.98
     pitchMax: 1.03
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: reinforcement_drop
     clips:
-    - {fileID: 8300000, guid: d67d252bda5e0df47bfc508b3ee5d0e9, type: 3}
-    volume: 0.8
-    pitchMin: 0.97
-    pitchMax: 1.03
-    spatialBlend: 0
+    - {fileID: 8300000, guid: 45e050e0ec3f74dddfedfa8b6bebca59, type: 3}
+    - {fileID: 8300000, guid: 267d2de2bd3d7c00128ce25e41e091b0, type: 3}
+    - {fileID: 8300000, guid: 5dab79ee20c0ca0fd1b0ab1d0678bc94, type: 3}
+    volume: 0.66
+    pitchMin: 0.96
+    pitchMax: 1.04
+    spatialBlend: 0.15
     loop: 0
     priority: 128
   - eventId: reinforcement_pickup
     clips:
-    - {fileID: 8300000, guid: 5dd315edf30b4cf4f80ab441d301fb64, type: 3}
-    volume: 0.85
-    pitchMin: 0.97
+    - {fileID: 8300000, guid: 46d9ff83ab6c6c3260505181d9640519, type: 3}
+    - {fileID: 8300000, guid: 3a2d3e6ac8629e2c680547c857730d48, type: 3}
+    - {fileID: 8300000, guid: 9421da731103a3272f68d0a937fdcbd4, type: 3}
+    volume: 0.78
+    pitchMin: 0.98
     pitchMax: 1.03
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: reinforcement_use
     clips:
-    - {fileID: 8300000, guid: d7c1c514eb8de974982d9560e7152197, type: 3}
-    volume: 0.85
-    pitchMin: 0.97
-    pitchMax: 1.03
-    spatialBlend: 0
+    - {fileID: 8300000, guid: 772252150617c841f84827173a91dd8a, type: 3}
+    - {fileID: 8300000, guid: e741c74168ada604010ec564efd002c5, type: 3}
+    - {fileID: 8300000, guid: ec0dd9b624c34bbce07bb810f915cf10, type: 3}
+    volume: 0.82
+    pitchMin: 0.96
+    pitchMax: 1.04
+    spatialBlend: 0.1
     loop: 0
     priority: 128
   - eventId: radar_open
     clips:
-    - {fileID: 8300000, guid: 9f655e216495f7f4eb084448df200ff7, type: 3}
-    volume: 0.85
+    - {fileID: 8300000, guid: a0005a02d064161a52020803fd9c52f6, type: 3}
+    - {fileID: 8300000, guid: bb899d146d07ffba38a9d6a09c8ff153, type: 3}
+    volume: 0.7
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -258,8 +302,9 @@ MonoBehaviour:
     priority: 128
   - eventId: radar_close
     clips:
-    - {fileID: 8300000, guid: 8db94fe307116494cb8fd9f295d1fd03, type: 3}
-    volume: 0.8
+    - {fileID: 8300000, guid: 7d2ae141d085c283c42a416d5098b38c, type: 3}
+    - {fileID: 8300000, guid: 50e203ddea193bdff515b7037cd170f5, type: 3}
+    volume: 0.62
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -267,17 +312,20 @@ MonoBehaviour:
     priority: 128
   - eventId: radar_scan_pulse
     clips:
-    - {fileID: 8300000, guid: 453237007cb814b4faf7c732026c1b0a, type: 3}
-    volume: 0.85
-    pitchMin: 0.97
-    pitchMax: 1.03
-    spatialBlend: 0
+    - {fileID: 8300000, guid: a3fb1b6e929f8fc3836b0fa293297c66, type: 3}
+    - {fileID: 8300000, guid: f34bb59a3b76e41afe167b5e172f11a4, type: 3}
+    - {fileID: 8300000, guid: 5488ff0b1c32ca186ee81c549727b072, type: 3}
+    volume: 0.76
+    pitchMin: 0.96
+    pitchMax: 1.04
+    spatialBlend: 0.12
     loop: 0
     priority: 128
   - eventId: radar_fail
     clips:
-    - {fileID: 8300000, guid: ee89507b2a3ade3458d6338ead4644bd, type: 3}
-    volume: 0.85
+    - {fileID: 8300000, guid: 90e548c93db5f364ccd7b7fa78c20fd7, type: 3}
+    - {fileID: 8300000, guid: f71c0d7cd3db6ae2db9bf029c3ebd90b, type: 3}
+    volume: 0.72
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -285,26 +333,32 @@ MonoBehaviour:
     priority: 128
   - eventId: pickup_credit
     clips:
-    - {fileID: 8300000, guid: 1bade44596b349a4f95f0d577ec2d614, type: 3}
-    volume: 0.75
-    pitchMin: 0.95
-    pitchMax: 1.05
+    - {fileID: 8300000, guid: 0a36929b3d1c5100e432169beac7b4ba, type: 3}
+    - {fileID: 8300000, guid: 6c53cc7315c772e2be249c5ad4ee956f, type: 3}
+    - {fileID: 8300000, guid: 7e2ae0a54427a53f71366bba96bf8eab, type: 3}
+    volume: 0.58
+    pitchMin: 0.98
+    pitchMax: 1.06
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: pickup_scrap
     clips:
-    - {fileID: 8300000, guid: 56662bbbcf0d8064a874f8024a6ec6a2, type: 3}
-    volume: 0.75
-    pitchMin: 0.95
+    - {fileID: 8300000, guid: 3837e7872473fe9968a9ea1dbc07a3bb, type: 3}
+    - {fileID: 8300000, guid: 1899e58a76b1fdd19533274bf29aa7c0, type: 3}
+    - {fileID: 8300000, guid: 488466bc4650bdb2356300125419c386, type: 3}
+    volume: 0.62
+    pitchMin: 0.96
     pitchMax: 1.05
-    spatialBlend: 0
+    spatialBlend: 0.12
     loop: 0
     priority: 128
   - eventId: pickup_core
     clips:
-    - {fileID: 8300000, guid: aa0e7b8d339365c47893b840e13ba0bf, type: 3}
-    volume: 0.9
+    - {fileID: 8300000, guid: e76f6d22ae0a08004da481e160484cc0, type: 3}
+    - {fileID: 8300000, guid: b0ec84a2443cbc92c5544318f23f7626, type: 3}
+    - {fileID: 8300000, guid: 41379b804b268fa272ca98c915515ee4, type: 3}
+    volume: 0.88
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -312,26 +366,29 @@ MonoBehaviour:
     priority: 128
   - eventId: pickup_heal
     clips:
-    - {fileID: 8300000, guid: d39fabb6d13bf7f4294e38a00b8891be, type: 3}
-    volume: 0.8
-    pitchMin: 0.96
+    - {fileID: 8300000, guid: 153cc5ea7c7c1e0fa9b30e4ecbf9f6d7, type: 3}
+    - {fileID: 8300000, guid: 418aa20830172ac61fc3f7fee9cfc7cb, type: 3}
+    volume: 0.74
+    pitchMin: 0.98
     pitchMax: 1.04
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: pickup_experience
     clips:
-    - {fileID: 8300000, guid: ef2c1d51eb244e94aa6216c86894d098, type: 3}
-    volume: 0.7
-    pitchMin: 0.95
+    - {fileID: 8300000, guid: 92d61a43b95e911650c3a18a89306823, type: 3}
+    - {fileID: 8300000, guid: d7d002cd1ad2136101ea76a9fb502c2f, type: 3}
+    volume: 0.48
+    pitchMin: 0.98
     pitchMax: 1.05
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: return_choice_open
     clips:
-    - {fileID: 8300000, guid: 235cc80d3d109e449a8cc1bec695db5e, type: 3}
-    volume: 0.85
+    - {fileID: 8300000, guid: f42db63753db4d22d5724ad981407a15, type: 3}
+    - {fileID: 8300000, guid: bea9b97a8ab4e7b1542402dcae7c9712, type: 3}
+    volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -339,7 +396,8 @@ MonoBehaviour:
     priority: 128
   - eventId: safe_return
     clips:
-    - {fileID: 8300000, guid: a4765e0258c30e94eb145be334c0a5b7, type: 3}
+    - {fileID: 8300000, guid: 9a73e22079d94aa4f9befb4f5ced450c, type: 3}
+    - {fileID: 8300000, guid: d55fcc2be634f5719a84a9bc100b56bc, type: 3}
     volume: 0.9
     pitchMin: 0.98
     pitchMax: 1.02
@@ -348,17 +406,19 @@ MonoBehaviour:
     priority: 128
   - eventId: result_count_tick
     clips:
-    - {fileID: 8300000, guid: c2a6ee32a3e5ac04ba095db502caffb6, type: 3}
-    volume: 0.55
-    pitchMin: 0.96
-    pitchMax: 1.04
+    - {fileID: 8300000, guid: 57aeabe379d8a0deab5aa34447c8ae18, type: 3}
+    - {fileID: 8300000, guid: d3aca8cd94e3a76ff75af8fa092ecb13, type: 3}
+    volume: 0.36
+    pitchMin: 0.98
+    pitchMax: 1.08
     spatialBlend: 0
     loop: 0
     priority: 128
   - eventId: result_reward_total
     clips:
-    - {fileID: 8300000, guid: 68a2255157d3b254cae275843b4c7df8, type: 3}
-    volume: 0.9
+    - {fileID: 8300000, guid: 4a4f82877550f8a6ccdfe8cc5d5f5c5b, type: 3}
+    - {fileID: 8300000, guid: b2af439ad78dea43db42ac90dff25c0d, type: 3}
+    volume: 0.86
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -366,8 +426,9 @@ MonoBehaviour:
     priority: 128
   - eventId: event_start
     clips:
-    - {fileID: 8300000, guid: 9eed582259ba2ec4a8b16ee2f0265e42, type: 3}
-    volume: 0.85
+    - {fileID: 8300000, guid: 536da47e6ac3ef04ccf0191283420653, type: 3}
+    - {fileID: 8300000, guid: 5d8e81f72b26753e8ee3778164778b02, type: 3}
+    volume: 0.76
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
@@ -375,10 +436,464 @@ MonoBehaviour:
     priority: 128
   - eventId: event_complete
     clips:
-    - {fileID: 8300000, guid: 3566ad9fd2b424c479a5a3a7503194db, type: 3}
-    volume: 0.9
+    - {fileID: 8300000, guid: 4ee4fd743cea8f660ed53afc4d933a4d, type: 3}
+    - {fileID: 8300000, guid: 3dd442e880a3c8ec10e4179b9aa09c30, type: 3}
+    volume: 0.86
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
+    loop: 0
+    priority: 128
+  - eventId: ship_dash_start
+    clips:
+    - {fileID: 8300000, guid: 8d5027452c094fe7c81e80541e40b1c6, type: 3}
+    volume: 0.41
+    pitchMin: 0.96
+    pitchMax: 1.04
+    spatialBlend: 0.261
+    loop: 0
+    priority: 129
+  - eventId: ship_dash_end
+    clips:
+    - {fileID: 8300000, guid: ed6a68815d87c74e2a6b919a98b67982, type: 3}
+    - {fileID: 8300000, guid: 1cf36cb1cff6ccf5a152473cf51d9287, type: 3}
+    volume: 0.09
+    pitchMin: 0.96
+    pitchMax: 1.03
+    spatialBlend: 0.2
+    loop: 0
+    priority: 128
+  - eventId: ship_hit
+    clips:
+    - {fileID: 8300000, guid: 32174d60050f491d96f5b6d1219b2de2, type: 3}
+    - {fileID: 8300000, guid: a83292a050ca0c6c61b46802010f80f3, type: 3}
+    - {fileID: 8300000, guid: f03e3899af92e6468f030bffe6153821, type: 3}
+    - {fileID: 8300000, guid: 0cc82d37cb4686e581bc15748762864d, type: 3}
+    volume: 0.68
+    pitchMin: 0.94
+    pitchMax: 1.05
+    spatialBlend: 0.28
+    loop: 0
+    priority: 128
+  - eventId: ship_death_breakup
+    clips:
+    - {fileID: 8300000, guid: c7e2da32169f862d3a5d9b2506c0ac92, type: 3}
+    - {fileID: 8300000, guid: bab4c0337d1cd9b69b9eb95cc42c6f69, type: 3}
+    - {fileID: 8300000, guid: 5ef9ae4771c0c3b6e81b68b14b7c7909, type: 3}
+    volume: 0.86
+    pitchMin: 0.92
+    pitchMax: 1.03
+    spatialBlend: 0.35
+    loop: 0
+    priority: 128
+  - eventId: machinegun_fire_loop
+    clips:
+    - {fileID: 8300000, guid: 2b889383a0ab6f3292d3f728de113d16, type: 3}
+    - {fileID: 8300000, guid: 442d7559117242b2ca953f7365ddc7c4, type: 3}
+    - {fileID: 8300000, guid: ad7bab89c4571209615f0ca731c71c69, type: 3}
+    - {fileID: 8300000, guid: 17dae0aed8f7a0d0b14afac3c7d582fa, type: 3}
+    volume: 0.46
+    pitchMin: 0.94
+    pitchMax: 1.08
+    spatialBlend: 0.27
+    loop: 0
+    priority: 128
+  - eventId: shotgun_fire
+    clips:
+    - {fileID: 8300000, guid: ef95ac110ada9840c81d064fc2f5d499, type: 3}
+    - {fileID: 8300000, guid: 5806cc5e7f6a3d27f62e6b8994aae3b9, type: 3}
+    - {fileID: 8300000, guid: 58451c21392964738c7fe1dd79e51dcc, type: 3}
+    volume: 0.78
+    pitchMin: 0.9
+    pitchMax: 1.03
+    spatialBlend: 0.32
+    loop: 0
+    priority: 128
+  - eventId: sniper_charge_start
+    clips:
+    - {fileID: 8300000, guid: 412d06c95a057f5836dd1a7534ef7b80, type: 3}
+    - {fileID: 8300000, guid: 4f33ff5cdaa803ecf569fcd52faf914b, type: 3}
+    - {fileID: 8300000, guid: d27d750aa6a5a91ac6b15bfdb98cc659, type: 3}
+    volume: 0.7
+    pitchMin: 0.95
+    pitchMax: 1.04
+    spatialBlend: 0.25
+    loop: 0
+    priority: 128
+  - eventId: sniper_charge_cancel
+    clips:
+    - {fileID: 8300000, guid: 29d89afa26cd078b660eb7ce8a742532, type: 3}
+    - {fileID: 8300000, guid: cd511acb51398989278023e2fbc729de, type: 3}
+    - {fileID: 8300000, guid: 69246b1d4a1e342115837a338d4aaf7d, type: 3}
+    volume: 0.58
+    pitchMin: 0.95
+    pitchMax: 1.04
+    spatialBlend: 0.24
+    loop: 0
+    priority: 128
+  - eventId: sniper_fire
+    clips:
+    - {fileID: 8300000, guid: ed842490abf7426880f66083c7ddc2c2, type: 3}
+    - {fileID: 8300000, guid: e722784bf5dda31f9e7a8a744c1a6298, type: 3}
+    - {fileID: 8300000, guid: 02f46eeb6ed48eb6680d829565813efa, type: 3}
+    volume: 0.92
+    pitchMin: 0.88
+    pitchMax: 1.02
+    spatialBlend: 0.35
+    loop: 0
+    priority: 128
+  - eventId: enemy_alert
+    clips:
+    - {fileID: 8300000, guid: 570ee3ebaa190f6f4e8a975c75188cc5, type: 3}
+    - {fileID: 8300000, guid: 73bdf6f48250dff3999113d9dec8616c, type: 3}
+    - {fileID: 8300000, guid: 757f1bc6ba818501d527470e875065a5, type: 3}
+    volume: 0.58
+    pitchMin: 0.96
+    pitchMax: 1.04
+    spatialBlend: 0.3
+    loop: 0
+    priority: 128
+  - eventId: enemy_basic_fire
+    clips:
+    - {fileID: 8300000, guid: f6453b8a878143a1159276c92b194486, type: 3}
+    - {fileID: 8300000, guid: f53683c8d24eed90d374f20373f778c0, type: 3}
+    - {fileID: 8300000, guid: 3a5ba089d7ff1d0f2af500ec01a64185, type: 3}
+    volume: 0.44
+    pitchMin: 0.94
+    pitchMax: 1.08
+    spatialBlend: 0.35
+    loop: 0
+    priority: 128
+  - eventId: enemy_shotgun_fire
+    clips:
+    - {fileID: 8300000, guid: 77e315950dbe12ac7d0360009a0d7491, type: 3}
+    - {fileID: 8300000, guid: 7dce61fd017739b01876bc6ab6bad8f5, type: 3}
+    - {fileID: 8300000, guid: 042bb6e466d71cb328d4ced6adee7c7c, type: 3}
+    volume: 0.56
+    pitchMin: 0.92
+    pitchMax: 1.05
+    spatialBlend: 0.36
+    loop: 0
+    priority: 128
+  - eventId: enemy_charger_aim_loop
+    clips:
+    - {fileID: 8300000, guid: 413ea344d5119de26003eeb3793aafbc, type: 3}
+    - {fileID: 8300000, guid: 47e651a5ff397c20dc71ed0f332a8733, type: 3}
+    - {fileID: 8300000, guid: bc2e37b577a1fc714dc100f083b9aff6, type: 3}
+    volume: 0.5
+    pitchMin: 0.98
+    pitchMax: 1.04
+    spatialBlend: 0.3
+    loop: 0
+    priority: 128
+  - eventId: enemy_charger_fire
+    clips:
+    - {fileID: 8300000, guid: 9e82dfb747d39df1a0b5ff5f63bd9124, type: 3}
+    - {fileID: 8300000, guid: 2eb217b74b05365eccc96d8bbaa0f99a, type: 3}
+    - {fileID: 8300000, guid: 033dce16ffd6846db40925e294bcea95, type: 3}
+    volume: 0.7
+    pitchMin: 0.9
+    pitchMax: 1.03
+    spatialBlend: 0.36
+    loop: 0
+    priority: 128
+  - eventId: enemy_elite_spread_fire
+    clips:
+    - {fileID: 8300000, guid: 4f0803a6fef86ee8ac6c06e40e5980e1, type: 3}
+    - {fileID: 8300000, guid: b11804f0af81d42bd4ec46d061c91b1d, type: 3}
+    - {fileID: 8300000, guid: 1a794d0a30d4be3be845a5ef5d0f8f4e, type: 3}
+    volume: 0.62
+    pitchMin: 0.93
+    pitchMax: 1.04
+    spatialBlend: 0.36
+    loop: 0
+    priority: 128
+  - eventId: enemy_elite_big_fire
+    clips:
+    - {fileID: 8300000, guid: 9dccb49f55eda0bd5599440ed58c4d97, type: 3}
+    - {fileID: 8300000, guid: 14c1dce27a3b4e304b4c629c41702fbf, type: 3}
+    - {fileID: 8300000, guid: 3ab65e216a45aedd61de7f42299be23c, type: 3}
+    volume: 0.74
+    pitchMin: 0.88
+    pitchMax: 1.02
+    spatialBlend: 0.36
+    loop: 0
+    priority: 128
+  - eventId: enemy_hit
+    clips:
+    - {fileID: 8300000, guid: 2495c71c83a525724b74cfe3cfa94045, type: 3}
+    - {fileID: 8300000, guid: ebb3c5c4aec657547a9278c459e486ad, type: 3}
+    - {fileID: 8300000, guid: 749da76eefaaa7a8ffdab42a247d8e08, type: 3}
+    - {fileID: 8300000, guid: 568b017f949ade2cde783dcee468d1ee, type: 3}
+    volume: 0.42
+    pitchMin: 0.92
+    pitchMax: 1.1
+    spatialBlend: 0.28
+    loop: 0
+    priority: 128
+  - eventId: enemy_death
+    clips:
+    - {fileID: 8300000, guid: e959a319662563a519138ca25585fb9a, type: 3}
+    - {fileID: 8300000, guid: a943937961d5ae748e16254a980d06f5, type: 3}
+    - {fileID: 8300000, guid: dcd5570e45561edcde10d05d95237f0b, type: 3}
+    - {fileID: 8300000, guid: 7dd655bb30179ba8e30f1d2632dab79d, type: 3}
+    volume: 0.64
+    pitchMin: 0.92
+    pitchMax: 1.08
+    spatialBlend: 0.28
+    loop: 0
+    priority: 128
+  - eventId: object_container_hit
+    clips:
+    - {fileID: 8300000, guid: e93214f0c70f528bafcd20e11c8c6e7c, type: 3}
+    - {fileID: 8300000, guid: ada1636e2b5a779e82a4b9623ca9d9a8, type: 3}
+    - {fileID: 8300000, guid: b8a55370e8978e28cd05e0403ad7d394, type: 3}
+    volume: 0.48
+    pitchMin: 0.94
+    pitchMax: 1.07
+    spatialBlend: 0.25
+    loop: 0
+    priority: 128
+  - eventId: object_container_break
+    clips:
+    - {fileID: 8300000, guid: 5355cd38ff212186e796327e160f0f99, type: 3}
+    - {fileID: 8300000, guid: 31c007f6f5dfe6292ad8b2932d1007da, type: 3}
+    - {fileID: 8300000, guid: 0232c2355a2e0df77eb982f5001b5c7c, type: 3}
+    - {fileID: 8300000, guid: e6b7a69a4756e543acc450fbb6812621, type: 3}
+    volume: 0.68
+    pitchMin: 0.94
+    pitchMax: 1.06
+    spatialBlend: 0.28
+    loop: 0
+    priority: 128
+  - eventId: object_debris_hit
+    clips:
+    - {fileID: 8300000, guid: d3d294a7873cea13326502f069c203c2, type: 3}
+    - {fileID: 8300000, guid: 7541915c60abfee762d7828ab9ac1245, type: 3}
+    - {fileID: 8300000, guid: 399285faf20f1c35c10f4f70ac970c0a, type: 3}
+    volume: 0.58
+    pitchMin: 0.94
+    pitchMax: 1.04
+    spatialBlend: 0.28
+    loop: 0
+    priority: 128
+  - eventId: object_debris_break
+    clips:
+    - {fileID: 8300000, guid: 738e671916f39288566359497bd4db13, type: 3}
+    - {fileID: 8300000, guid: c8a291feefd8169c079f7641c1e07d13, type: 3}
+    - {fileID: 8300000, guid: 96fd66721c8ab921b3c82dfa57ae96b6, type: 3}
+    volume: 0.78
+    pitchMin: 0.92
+    pitchMax: 1.04
+    spatialBlend: 0.32
+    loop: 0
+    priority: 128
+  - eventId: object_shipwreck_break
+    clips:
+    - {fileID: 8300000, guid: 3312eafc8ffcc76534b60395a251bbff, type: 3}
+    - {fileID: 8300000, guid: 16a61644adf9e2eeffdfa5200ce4af36, type: 3}
+    - {fileID: 8300000, guid: 3685f30802183c27b6f57a1d55f33ecf, type: 3}
+    - {fileID: 8300000, guid: 770db15ced90ea4dac96ed6b622907b9, type: 3}
+    volume: 0.88
+    pitchMin: 0.9
+    pitchMax: 1.02
+    spatialBlend: 0.35
+    loop: 0
+    priority: 128
+  - eventId: object_meteor_hit
+    clips:
+    - {fileID: 8300000, guid: a68a3fba4f45166d69cd4406d88cb5e4, type: 3}
+    - {fileID: 8300000, guid: 46d68bfa0c6f629015fa863807bf1457, type: 3}
+    - {fileID: 8300000, guid: 0c861bcb1c7e2aab59927237b54a7df1, type: 3}
+    volume: 0.58
+    pitchMin: 0.88
+    pitchMax: 1.02
+    spatialBlend: 0.28
+    loop: 0
+    priority: 128
+  - eventId: object_meteor_break
+    clips:
+    - {fileID: 8300000, guid: 7a0fc3f359cd17b672067fec4fcd95b2, type: 3}
+    - {fileID: 8300000, guid: 22799670410a1bee5deefc564d4ea7d8, type: 3}
+    - {fileID: 8300000, guid: 89acc232755ea6e504aaed31194e9298, type: 3}
+    volume: 0.76
+    pitchMin: 0.85
+    pitchMax: 1
+    spatialBlend: 0.32
+    loop: 0
+    priority: 128
+  - eventId: core_interact_loop
+    clips:
+    - {fileID: 8300000, guid: c5e78722436d2c3b3513926961b2fe08, type: 3}
+    - {fileID: 8300000, guid: 5cd76bbeceda9cdf947a5f90e7dc8abc, type: 3}
+    - {fileID: 8300000, guid: 9d58387a76d9408e7c309a5c4ae6b9d6, type: 3}
+    volume: 0.55
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0.25
+    loop: 0
+    priority: 128
+  - eventId: core_activate
+    clips:
+    - {fileID: 8300000, guid: fc1aad4848027a7df7dd7179ef7fb1d6, type: 3}
+    - {fileID: 8300000, guid: e93d512953d903bf68812f57f82c478c, type: 3}
+    - {fileID: 8300000, guid: 5747e7c7396190dc2294cb248f58c122, type: 3}
+    volume: 0.82
+    pitchMin: 0.96
+    pitchMax: 1.03
+    spatialBlend: 0.28
+    loop: 0
+    priority: 128
+  - eventId: boss_spawn
+    clips:
+    - {fileID: 8300000, guid: c6605f34f5c150fdb4a12812d45adc78, type: 3}
+    - {fileID: 8300000, guid: 0d924c96171de7f8da7a6eacc09aa13b, type: 3}
+    - {fileID: 8300000, guid: 2b07f57a3afbeeeab27364e44b631a23, type: 3}
+    volume: 0.9
+    pitchMin: 0.92
+    pitchMax: 1.02
+    spatialBlend: 0.35
+    loop: 0
+    priority: 128
+  - eventId: boss_laser_warning
+    clips:
+    - {fileID: 8300000, guid: e62217be41044b00e9a7fb722511fc8d, type: 3}
+    - {fileID: 8300000, guid: b017bd06fff41ccf753a3743478eadaf, type: 3}
+    - {fileID: 8300000, guid: e0de732940e0b2f25f6417e7233f0f2d, type: 3}
+    volume: 0.62
+    pitchMin: 0.98
+    pitchMax: 1.04
+    spatialBlend: 0.3
+    loop: 0
+    priority: 128
+  - eventId: boss_laser_loop
+    clips:
+    - {fileID: 8300000, guid: 1d3f20ecb5816d14d2ffac5c2d7c0d76, type: 3}
+    - {fileID: 8300000, guid: 06b385a51da1ad19159dbde9bf74717c, type: 3}
+    - {fileID: 8300000, guid: bf9d2d59d92a267baac58adb4dfa3ad6, type: 3}
+    volume: 0.74
+    pitchMin: 0.96
+    pitchMax: 1.02
+    spatialBlend: 0.3
+    loop: 0
+    priority: 128
+  - eventId: boss_spread_fire
+    clips:
+    - {fileID: 8300000, guid: a84dfcef6ee5ae746794e5c2dd06d96b, type: 3}
+    - {fileID: 8300000, guid: f9a1b09e084dc7526f2e43dd7b2f5c57, type: 3}
+    - {fileID: 8300000, guid: 94d1a5ab9d9728a94907610d28719af8, type: 3}
+    volume: 0.7
+    pitchMin: 0.92
+    pitchMax: 1.04
+    spatialBlend: 0.36
+    loop: 0
+    priority: 128
+  - eventId: boss_charge_aim
+    clips:
+    - {fileID: 8300000, guid: 4710337639fa597f3a46e3d972a3c13b, type: 3}
+    - {fileID: 8300000, guid: b00496820a55500c0e9d35f9cab9acb2, type: 3}
+    - {fileID: 8300000, guid: fa0a5b14000112b68e99bc00b80a763f, type: 3}
+    volume: 0.58
+    pitchMin: 0.98
+    pitchMax: 1.04
+    spatialBlend: 0.3
+    loop: 0
+    priority: 128
+  - eventId: boss_charge_fire
+    clips:
+    - {fileID: 8300000, guid: 68230e98fa672a652d5cd7ed2d260f19, type: 3}
+    - {fileID: 8300000, guid: 6d0d5c362fe06f5bd5562b3c64b3a6c6, type: 3}
+    - {fileID: 8300000, guid: 2415bce0586cd36c655023f9594ea264, type: 3}
+    volume: 0.85
+    pitchMin: 0.93
+    pitchMax: 1.02
+    spatialBlend: 0.35
+    loop: 0
+    priority: 128
+  - eventId: boss_phase2
+    clips:
+    - {fileID: 8300000, guid: 84238208a79e09e294ce1b3e309139d3, type: 3}
+    - {fileID: 8300000, guid: ba068df4f7bf8da743612ed701fef7e1, type: 3}
+    - {fileID: 8300000, guid: 9cf722a76fe66242ac8550046f442a93, type: 3}
+    volume: 0.86
+    pitchMin: 0.96
+    pitchMax: 1.02
+    spatialBlend: 0.3
+    loop: 0
+    priority: 128
+  - eventId: boss_death
+    clips:
+    - {fileID: 8300000, guid: b7c7b4ae7737b855c02dc7ab5fcfcf68, type: 3}
+    - {fileID: 8300000, guid: ce80eb5a833efce83d581604e95b830f, type: 3}
+    - {fileID: 8300000, guid: 7c7c88ef9291e0e3b3238d71b309da34, type: 3}
+    volume: 0.95
+    pitchMin: 0.88
+    pitchMax: 1
+    spatialBlend: 0.4
+    loop: 0
+    priority: 128
+  - eventId: return_beacon_spawn
+    clips:
+    - {fileID: 8300000, guid: ddccb818be5650c4303d11aeda1b9d78, type: 3}
+    - {fileID: 8300000, guid: 02f52fffedd4c3de7e7870836aedf9d8, type: 3}
+    volume: 0.74
+    pitchMin: 0.98
+    pitchMax: 1.03
+    spatialBlend: 0.25
+    loop: 0
+    priority: 128
+  - eventId: wormhole_enter
+    clips:
+    - {fileID: 8300000, guid: d8aef8341e2c514ba59a4f03b0a0be98, type: 3}
+    - {fileID: 8300000, guid: 52db1e2b704723faa1ad4d6d325e5b61, type: 3}
+    - {fileID: 8300000, guid: 8bf5b4f18222559e74f2726e160e104d, type: 3}
+    volume: 0.86
+    pitchMin: 0.94
+    pitchMax: 1.02
+    spatialBlend: 0.25
+    loop: 0
+    priority: 128
+  - eventId: shop_shield_hit
+    clips:
+    - {fileID: 8300000, guid: 88a7568f03151a26ee288f5601277454, type: 3}
+    - {fileID: 8300000, guid: a84d9ff0ab7d12e0661c290b4ded0ae4, type: 3}
+    - {fileID: 8300000, guid: c26efe3a1900c638a5f8b4a11963298f, type: 3}
+    volume: 0.58
+    pitchMin: 0.94
+    pitchMax: 1.05
+    spatialBlend: 0.28
+    loop: 0
+    priority: 128
+  - eventId: shop_shield_break
+    clips:
+    - {fileID: 8300000, guid: 72e002de02e738bb9911418a4767fe69, type: 3}
+    - {fileID: 8300000, guid: fbccb7b02de6b44d6b433680f75aba71, type: 3}
+    - {fileID: 8300000, guid: 2507475045d37d6980771752a1b46736, type: 3}
+    volume: 0.82
+    pitchMin: 0.94
+    pitchMax: 1.03
+    spatialBlend: 0.32
+    loop: 0
+    priority: 128
+  - eventId: shop_shotgun_fire
+    clips:
+    - {fileID: 8300000, guid: f191b8e9f1d16a4692f490ddacac5157, type: 3}
+    - {fileID: 8300000, guid: 44359dd02bdaba1c99e341b1388e6b25, type: 3}
+    - {fileID: 8300000, guid: 6913548c6653b7df3aaa6c677a1cbb60, type: 3}
+    volume: 0.6
+    pitchMin: 0.94
+    pitchMax: 1.04
+    spatialBlend: 0.32
+    loop: 0
+    priority: 128
+  - eventId: security_drone_spawn
+    clips:
+    - {fileID: 8300000, guid: 14d0c385f5a6bfc41c0be00403f8000c, type: 3}
+    - {fileID: 8300000, guid: b620f4137dd04cb8e6c9b8349795006f, type: 3}
+    - {fileID: 8300000, guid: 53a9966f22d2c2cf090fdbe8d676d934, type: 3}
+    volume: 0.58
+    pitchMin: 0.94
+    pitchMax: 1.06
+    spatialBlend: 0.25
     loop: 0
     priority: 128

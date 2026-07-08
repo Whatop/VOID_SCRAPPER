@@ -149,6 +149,7 @@ public class EnemyAttackController : MonoBehaviour
             UpdateAimLine(origin, currentChargeDirection);
 
             ChargeStarted?.Invoke(this);
+            AudioManager.PlayAt(SoundEventIds.EnemyChargerAimLoop, transform.position, 0.75f);
             chargeRoutine = StartCoroutine(ChargeAndFireRoutine(target));
             return true;
         }
@@ -280,8 +281,29 @@ public class EnemyAttackController : MonoBehaviour
 
         if (firedAnyProjectile)
         {
+            AudioManager.PlayAt(ResolveFireSoundEventId(), transform.position);
             ProjectileFired?.Invoke(this);
         }
+    }
+
+    private string ResolveFireSoundEventId()
+    {
+        if (chargeTime > 0f)
+        {
+            return SoundEventIds.EnemyChargerFire;
+        }
+
+        if (useSecondaryProjectile)
+        {
+            return SoundEventIds.EnemyEliteSpreadFire;
+        }
+
+        if (projectileCount > 1 || spreadAngle > 0f)
+        {
+            return SoundEventIds.EnemyShotgunFire;
+        }
+
+        return SoundEventIds.EnemyBasicFire;
     }
 
     private bool FireProjectilePattern(

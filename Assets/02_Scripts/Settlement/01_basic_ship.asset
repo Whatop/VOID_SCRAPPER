@@ -12,10 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e9ce3912a9766e42913d99e6025d56b, type: 3}
   m_Name: 01_basic_ship
   m_EditorClassIdentifier: 
-  shipId: basic_ship
-  displayName: "표준 회수정"
-  description: "기본 수확용 기체. 중거리 기관총으로 적을 밀어내고 잔해와 컨테이너를 안정적으로 파괴한다."
+  shipId: muchingun_ship
+  displayName: "\uC2A4\uC704\uD37C"
+  description: "\uAE30\uBCF8 \uC218\uD655\uC6A9 \uAE30\uCCB4. \uC911\uAC70\uB9AC
+    \uAE30\uAD00\uCD1D\uC73C\uB85C \uC801\uC744 \uBC00\uC5B4\uB0B4\uACE0 \uC794\uD574\uC640
+    \uCEE8\uD14C\uC774\uB108\uB97C \uC548\uC815\uC801\uC73C\uB85C \uD30C\uAD34\uD55C\uB2E4."
   previewSprite: {fileID: 21300000, guid: ef696ea238a6c7c4da05ebee40c886b1, type: 3}
+  defaultWeaponTree: 2
   unlockedByDefault: 1
   unlockFlag: 
   requiredUnlockFlag: 
@@ -30,4 +33,5 @@ MonoBehaviour:
   harvestObjectDamageBonusPercent: 10
   emergencyReturnCapacityRatio: 0.7
   defaultReinforcementId: rf_emergency_return_anchor
-  passiveDescription: "수확 오브젝트 피해 +10%, 기본 기체 용량 100."
+  passiveDescription: "\uC218\uD655 \uC624\uBE0C\uC81D\uD2B8 \uD53C\uD574 +10%, \uAE30\uBCF8
+    \uAE30\uCCB4 \uC6A9\uB7C9 100."

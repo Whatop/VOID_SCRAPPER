@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class ExpeditionBootstrap : MonoBehaviour
@@ -28,6 +28,13 @@ public class ExpeditionBootstrap : MonoBehaviour
     [SerializeField] private bool restoreReinforcementFromRun = true;
     [SerializeField] private bool equipDefaultReinforcementWhenMissing = true;
     [SerializeField] private string fallbackDefaultReinforcementId = "rf_emergency_return_anchor";
+
+    [Header("Permanent Unlock Reinforcement")]
+    [Tooltip("추가특성 화면에서 ReinforcementDefinition 노드를 해금하면 새 탐사 시작 시 기본 장비 후보로 장착합니다.")]
+    [SerializeField] private bool equipUnlockedPermanentReinforcementOnRunStart = true;
+
+    [Tooltip("여기에 넣은 순서가 시작 장비 우선순위입니다. 비워두면 Reinforcement Catalog/Inspector 목록 순서를 사용합니다.")]
+    [SerializeField] private List<ReinforcementDefinition> permanentStartingReinforcementPriority = new List<ReinforcementDefinition>();
 
     [Header("Apply Option")]
     [SerializeField] private bool refillHealthOnApply = true;
@@ -246,7 +253,20 @@ public class ExpeditionBootstrap : MonoBehaviour
             restored = reinforcementController.RestoreFromRunContext(runContext, definitions);
         }
 
-        if (restored || !equipDefaultReinforcementWhenMissing)
+        if (restored)
+        {
+            return;
+        }
+
+        ReinforcementDefinition permanentDefinition = FindUnlockedPermanentReinforcement(runContext, definitions);
+
+        if (permanentDefinition != null)
+        {
+            reinforcementController.Equip(permanentDefinition);
+            return;
+        }
+
+        if (!equipDefaultReinforcementWhenMissing)
         {
             return;
         }
@@ -257,6 +277,62 @@ public class ExpeditionBootstrap : MonoBehaviour
         {
             reinforcementController.Equip(defaultDefinition);
         }
+    }
+
+    private ReinforcementDefinition FindUnlockedPermanentReinforcement(RunContext runContext, IReadOnlyList<ReinforcementDefinition> definitions)
+    {
+        if (!equipUnlockedPermanentReinforcementOnRunStart || PermanentProgress.Instance == null)
+        {
+            return null;
+        }
+
+        WeaponTreeType selectedTree = runContext != null
+            ? runContext.SelectedWeaponTree
+            : (PermanentProgress.Instance != null ? PermanentProgress.Instance.LastSelectedWeaponTree : debugWeaponTree);
+
+        ReinforcementDefinition priorityDefinition = FindFirstUnlockedPermanentReinforcement(
+            permanentStartingReinforcementPriority,
+            selectedTree
+        );
+
+        if (priorityDefinition != null)
+        {
+            return priorityDefinition;
+        }
+
+        return FindFirstUnlockedPermanentReinforcement(definitions, selectedTree);
+    }
+
+    private ReinforcementDefinition FindFirstUnlockedPermanentReinforcement(
+        IReadOnlyList<ReinforcementDefinition> definitions,
+        WeaponTreeType selectedTree)
+    {
+        if (definitions == null || PermanentProgress.Instance == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < definitions.Count; i++)
+        {
+            ReinforcementDefinition definition = definitions[i];
+
+            if (definition == null)
+            {
+                continue;
+            }
+
+            if (!definition.CanUseFor(selectedTree))
+            {
+                continue;
+            }
+
+            if (PermanentProgress.Instance.IsTraitActive(definition.EquipmentId))
+            {
+                return definition;
+            }
+        }
+
+        return null;
     }
 
     private ReinforcementDefinition FindDefaultReinforcement(RunContext runContext, IReadOnlyList<ReinforcementDefinition> definitions)

@@ -24,6 +24,7 @@ public class MachineGunWeapon : PlayerWeaponBase
     [SerializeField] private bool startFromLeft = true;
 
     private float fireTimer;
+    private float nextFireSoundTime;
     private bool nextShotLeft;
     private MachineGunShotSide lastShotSide = MachineGunShotSide.Center;
 
@@ -32,12 +33,14 @@ public class MachineGunWeapon : PlayerWeaponBase
     public override void OnEquip()
     {
         fireTimer = 0f;
+        nextFireSoundTime = 0f;
         ResetFirePointSide();
     }
 
     public override void OnUnequip()
     {
         fireTimer = 0f;
+        nextFireSoundTime = 0f;
         ResetFirePointSide();
     }
 
@@ -100,6 +103,13 @@ public class MachineGunWeapon : PlayerWeaponBase
         }
 
         SpawnMuzzleEffectFrom(selectedFirePoint, baseDirection);
+
+        if (Time.time >= nextFireSoundTime)
+        {
+            Vector3 soundPosition = selectedFirePoint != null ? selectedFirePoint.position : transform.position;
+            AudioManager.PlayAt(SoundEventIds.MachineGunFire, soundPosition, 0.45f);
+            nextFireSoundTime = Time.time + 0.08f;
+        }
 
         lastShotSide = shotSide;
         AdvanceFirePointSide();

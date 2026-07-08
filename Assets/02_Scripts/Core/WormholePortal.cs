@@ -107,6 +107,7 @@ public class WormholePortal : MonoBehaviour, IInteractable
             return;
         }
 
+        AudioManager.PlayAt(SoundEventIds.WormholeEnter, transform.position);
         RunManager.Instance.EnterDeepZone1();
     }
 

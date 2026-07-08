@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerRuntimeStatApplier : MonoBehaviour
@@ -537,8 +537,13 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
                 continue;
             }
 
-            int level = progress.GetTraitLevel(trait.TraitId);
+            int level = Mathf.Clamp(progress.GetTraitLevel(trait.TraitId), 0, trait.MaxLevel);
             if (level <= 0)
+            {
+                continue;
+            }
+
+            if (!progress.IsTraitActive(trait.TraitId))
             {
                 continue;
             }

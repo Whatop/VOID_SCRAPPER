@@ -11,7 +11,7 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private string resourcesDatabasePath = "Audio/SoundEventLibrary";
 
     [Header("Sources")]
-    [SerializeField] private int pooledSourceCount = 12;
+    [SerializeField] private int pooledSourceCount = 24;
     [SerializeField, Range(0f, 1f)] private float masterVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float sfxVolume = 1f;
 

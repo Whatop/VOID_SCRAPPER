@@ -209,6 +209,7 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
         currentHp = Mathf.Max(0f, currentHp - damage);
 
         SpawnEffect(hitEffectPrefab, hitEffectDuration, transform.position, Quaternion.identity);
+        AudioManager.PlayAt(ResolveHitSoundEventId(), transform.position, 0.65f);
         HealthChanged?.Invoke(this, currentHp, maxHp);
         Damaged?.Invoke(this);
 
@@ -293,6 +294,7 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
         }
 
         SpawnEffect(deathEffectPrefab, deathEffectDuration, transform.position, Quaternion.identity);
+        AudioManager.PlayAt(ResolveBreakSoundEventId(), transform.position);
 
         if (dropRewardOnDeath && rewardDropper != null)
         {
@@ -313,6 +315,36 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
             {
                 releaseRoutine = StartCoroutine(ReleaseAfterDeathRoutine());
             }
+        }
+    }
+
+    private string ResolveHitSoundEventId()
+    {
+        switch (objectKind)
+        {
+            case HarvestObjectKind.HighValueWreck:
+            case HarvestObjectKind.DestroyedHull:
+                return SoundEventIds.ObjectDebrisHit;
+
+            case HarvestObjectKind.SupplyContainer:
+            default:
+                return SoundEventIds.ObjectContainerHit;
+        }
+    }
+
+    private string ResolveBreakSoundEventId()
+    {
+        switch (objectKind)
+        {
+            case HarvestObjectKind.HighValueWreck:
+                return SoundEventIds.ObjectDebrisBreak;
+
+            case HarvestObjectKind.DestroyedHull:
+                return SoundEventIds.ObjectShipwreckBreak;
+
+            case HarvestObjectKind.SupplyContainer:
+            default:
+                return SoundEventIds.ObjectContainerBreak;
         }
     }
 

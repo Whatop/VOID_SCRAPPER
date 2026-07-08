@@ -53,6 +53,7 @@ public class MeteorObstacle : MonoBehaviour
     {
         currentHp -= damage;
         SpawnHitEffect();
+        AudioManager.PlayAt(SoundEventIds.ObjectMeteorHit, transform.position, 0.65f);
 
         if (currentHp <= 0)
         {
@@ -122,6 +123,8 @@ public class MeteorObstacle : MonoBehaviour
 
     private void ReleaseSelf()
     {
+        AudioManager.PlayAt(SoundEventIds.ObjectMeteorBreak, transform.position);
+
         if (PoolManager.Instance != null)
         {
             PoolManager.Instance.Release(gameObject);

@@ -171,6 +171,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         currentHp = Mathf.Max(0f, currentHp - damage);
 
         SpawnHitEffect();
+        AudioManager.PlayAt(SoundEventIds.EnemyHit, transform.position, 0.7f);
 
         HealthChanged?.Invoke(this, currentHp, maxHp);
         Damaged?.Invoke(this);
@@ -324,6 +325,11 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
         isDead = true;
         currentHp = 0f;
+
+        if (GetComponent<BossPatternController>() == null)
+        {
+            AudioManager.PlayAt(SoundEventIds.EnemyDeath, transform.position);
+        }
 
         if (knockbackRoutine != null)
         {

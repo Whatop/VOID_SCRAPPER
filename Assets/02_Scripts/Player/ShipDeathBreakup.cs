@@ -51,6 +51,7 @@ public class ShipDeathBreakup : MonoBehaviour
         }
 
         broken = true;
+        AudioManager.PlayAt(SoundEventIds.ShipDeathBreakup, transform.position);
 
         if (normalVisualRoot != null)
         {

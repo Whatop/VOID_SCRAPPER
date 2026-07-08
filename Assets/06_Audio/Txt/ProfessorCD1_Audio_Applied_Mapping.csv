@@ -1,0 +1,91 @@
+﻿SoundEventId,OutputFile,SourceFile,TrimSeconds,Volume,PitchMin,PitchMax,SpatialBlend
+ship_dash_start,06_Audio/SFX/Player/ship_dash_start_prof.wav,Misc Transportation/Rocket_JumpJetThruster1.wav,0.55,0.72,0.96,1.04,0.25
+ship_dash_start,06_Audio/SFX/Player/ship_dash_start_prof_02.wav,Misc Transportation/Rocket_JumpJetThruster2.wav,0.55,0.72,0.96,1.04,0.25
+ship_dash_start,06_Audio/SFX/Player/ship_dash_start_prof_03.wav,Misc Transportation/JetPack_ThrusterLoop02.wav,0.55,0.72,0.96,1.04,0.25
+ship_dash_end,06_Audio/SFX/Player/ship_dash_end_prof.wav,Machinery - Generators/Machine_Turbine_Powerdown.wav,0.55,0.48,0.96,1.03,0.2
+ship_dash_end,06_Audio/SFX/Player/ship_dash_end_prof_02.wav,Machinery - Servos/Robot_Powerdown.wav,0.65,0.48,0.96,1.03,0.2
+ship_hit,06_Audio/SFX/Player/ship_hit_prof.wav,Airplanes/Plane_P40_Hit_BangCanopy02.wav,,0.68,0.94,1.05,0.28
+ship_hit,06_Audio/SFX/Player/ship_hit_prof_02.wav,Airplanes/Plane_P40_Hit_BangCanopy05.wav,,0.68,0.94,1.05,0.28
+ship_hit,06_Audio/SFX/Player/ship_hit_prof_03.wav,Airplanes/Plane_P40_Hit_BangCanopy08.wav,0.5,0.68,0.94,1.05,0.28
+ship_hit,06_Audio/SFX/Player/ship_hit_prof_04.wav,Doors/Door_LargeMetal_Stop11.wav,0.45,0.68,0.94,1.05,0.28
+ship_death_breakup,06_Audio/SFX/Player/ship_death_breakup_prof.wav,Machinery - Servos/Robot_Servo_MetalCollapse.wav,1.8,0.86,0.92,1.03,0.35
+ship_death_breakup,06_Audio/SFX/Player/ship_death_breakup_prof_02.wav,Misc Transportation/Smash_Plastic_RC_Car_Crush2.wav,1.35,0.86,0.92,1.03,0.35
+ship_death_breakup,06_Audio/SFX/Player/ship_death_breakup_prof_03.wav,Machinery - Lifts/Lift_MetalGrind_LargeHit1.wav,1.7,0.86,0.92,1.03,0.35
+enemy_charger_aim_loop,06_Audio/SFX/Enemies/enemy_charger_aim_loop_prof.wav,Machinery - Servos/Servo_Zoom_Loop02.wav,,0.5,0.98,1.04,0.3
+enemy_charger_aim_loop,06_Audio/SFX/Enemies/enemy_charger_aim_loop_prof_02.wav,Machinery - Servos/Servo_Zoom_Loop03.wav,,0.5,0.98,1.04,0.3
+enemy_charger_aim_loop,06_Audio/SFX/Enemies/enemy_charger_aim_loop_prof_03.wav,Machinery - Misc/Machine_SmallMotorLoop.wav,,0.5,0.98,1.04,0.3
+enemy_hit,06_Audio/SFX/Enemies/enemy_hit_prof.wav,Airplanes/Plane_P40_Hit_BangCanopy03.wav,,0.42,0.92,1.1,0.28
+enemy_hit,06_Audio/SFX/Enemies/enemy_hit_prof_02.wav,Airplanes/Plane_P40_Hit_BangCanopy04.wav,,0.42,0.92,1.1,0.28
+enemy_hit,06_Audio/SFX/Enemies/enemy_hit_prof_03.wav,Airplanes/Plane_P40_Hit_BangCanopy07.wav,,0.42,0.92,1.1,0.28
+enemy_hit,06_Audio/SFX/Enemies/enemy_hit_prof_04.wav,Machinery - Misc/Electricity_Spark_Connect3.wav,,0.42,0.92,1.1,0.28
+enemy_death,06_Audio/SFX/Enemies/enemy_death_prof.wav,Misc Transportation/Crash_Plastic_RC_Car04.wav,,0.64,0.92,1.08,0.28
+enemy_death,06_Audio/SFX/Enemies/enemy_death_prof_02.wav,Misc Transportation/Crash_Plastic_RC_Car05.wav,,0.64,0.92,1.08,0.28
+enemy_death,06_Audio/SFX/Enemies/enemy_death_prof_03.wav,Misc Transportation/Crash_Plastic_RC_Car08.wav,,0.64,0.92,1.08,0.28
+enemy_death,06_Audio/SFX/Enemies/enemy_death_prof_04.wav,Misc Transportation/RCCopter_Crash_Concrete1.wav,0.58,0.64,0.92,1.08,0.28
+security_drone_spawn,06_Audio/SFX/Shop/security_drone_spawn_prof.wav,Machinery - Servos/Robot_Servo_Engage.wav,0.65,0.58,0.94,1.06,0.25
+security_drone_spawn,06_Audio/SFX/Shop/security_drone_spawn_prof_02.wav,Machinery - Servos/Robot_Transform_Servo02.wav,0.75,0.58,0.94,1.06,0.25
+security_drone_spawn,06_Audio/SFX/Shop/security_drone_spawn_prof_03.wav,Machinery - Servos/Servo_PanelOpen_Medium02.wav,,0.58,0.94,1.06,0.25
+object_container_hit,06_Audio/SFX/Objects/object_container_hit_prof.wav,Airplanes/Plane_P40_Hit_BangCanopy10.wav,,0.48,0.94,1.07,0.25
+object_container_hit,06_Audio/SFX/Objects/object_container_hit_prof_02.wav,Airplanes/Plane_P40_Hit_BangCanopy11.wav,,0.48,0.94,1.07,0.25
+object_container_hit,06_Audio/SFX/Objects/object_container_hit_prof_03.wav,Doors/Door_LargeMetal_Stop11.wav,0.35,0.48,0.94,1.07,0.25
+object_container_break,06_Audio/SFX/Objects/object_container_break_prof.wav,Misc Transportation/Crash_Plastic_RC_Car01.wav,0.5,0.68,0.94,1.06,0.28
+object_container_break,06_Audio/SFX/Objects/object_container_break_prof_02.wav,Misc Transportation/Crash_Plastic_RC_Car02.wav,0.55,0.68,0.94,1.06,0.28
+object_container_break,06_Audio/SFX/Objects/object_container_break_prof_03.wav,Misc Transportation/Crash_Plastic_RC_Car05.wav,0.38,0.68,0.94,1.06,0.28
+object_container_break,06_Audio/SFX/Objects/object_container_break_prof_04.wav,Doors/Door_LargeMetal_Stop11.wav,0.43,0.68,0.94,1.06,0.28
+object_debris_hit,06_Audio/SFX/Objects/object_debris_hit_prof.wav,Machinery - Misc/Machine_PileDriver_Hit04.wav,0.6,0.58,0.94,1.04,0.28
+object_debris_hit,06_Audio/SFX/Objects/object_debris_hit_prof_02.wav,Doors/Door_LargeMetal_Stop13.wav,0.55,0.58,0.94,1.04,0.28
+object_debris_hit,06_Audio/SFX/Objects/object_debris_hit_prof_03.wav,Airplanes/Plane_P40_Hit_BangCanopy12.wav,,0.58,0.94,1.04,0.28
+object_debris_break,06_Audio/SFX/Objects/object_debris_break_prof.wav,Doors/Door_LargeMetal_Stop01.wav,0.8,0.78,0.92,1.04,0.32
+object_debris_break,06_Audio/SFX/Objects/object_debris_break_prof_02.wav,Doors/Door_LargeMetal_Stop04.wav,0.85,0.78,0.92,1.04,0.32
+object_debris_break,06_Audio/SFX/Objects/object_debris_break_prof_03.wav,Misc Transportation/Smash_Plastic_RC_Car_Crash2.wav,0.95,0.78,0.92,1.04,0.32
+object_shipwreck_break,06_Audio/SFX/Objects/object_shipwreck_break_prof.wav,Machinery - Lifts/Lift_MetalGrind_LargeHit1.wav,1.65,0.88,0.9,1.02,0.35
+object_shipwreck_break,06_Audio/SFX/Objects/object_shipwreck_break_prof_02.wav,Machinery - Lifts/Lift_MetalGrind_LargeHit2.wav,1.7,0.88,0.9,1.02,0.35
+object_shipwreck_break,06_Audio/SFX/Objects/object_shipwreck_break_prof_03.wav,Machinery - Servos/Robot_Servo_MetalCollapse.wav,1.8,0.88,0.9,1.02,0.35
+object_shipwreck_break,06_Audio/SFX/Objects/object_shipwreck_break_prof_04.wav,Doors/Door_HeavyMetalClose.wav,1.25,0.88,0.9,1.02,0.35
+object_meteor_hit,06_Audio/SFX/Objects/object_meteor_hit_prof.wav,Machinery - Misc/Machine_PileDriver_Hit01.wav,0.55,0.58,0.88,1.02,0.28
+object_meteor_hit,06_Audio/SFX/Objects/object_meteor_hit_prof_02.wav,Machinery - Misc/Machine_PileDriver_Hit02.wav,0.55,0.58,0.88,1.02,0.28
+object_meteor_hit,06_Audio/SFX/Objects/object_meteor_hit_prof_03.wav,Machinery - Misc/Machine_PileDriver_Hit03.wav,0.55,0.58,0.88,1.02,0.28
+object_meteor_break,06_Audio/SFX/Objects/object_meteor_break_prof.wav,Machinery - Misc/Roll_HeavyStoneRumble_Loop.wav,0.9,0.76,0.85,1.0,0.32
+object_meteor_break,06_Audio/SFX/Objects/object_meteor_break_prof_02.wav,Machinery - Misc/Machine_PileDriver_Hit01.wav,0.75,0.76,0.85,1.0,0.32
+object_meteor_break,06_Audio/SFX/Objects/object_meteor_break_prof_03.wav,Misc Transportation/RCCopter_Crash_Dirt.wav,0.75,0.76,0.85,1.0,0.32
+core_interact_loop,06_Audio/SFX/Boss/core_interact_loop_prof.wav,Machinery - Misc/Machine_Scifi_GeneratorLoop1.wav,,0.55,0.98,1.02,0.25
+core_interact_loop,06_Audio/SFX/Boss/core_interact_loop_prof_02.wav,Machinery - Generators/Machine_Dynamo_Loop04.wav,,0.55,0.98,1.02,0.25
+core_interact_loop,06_Audio/SFX/Boss/core_interact_loop_prof_03.wav,Machinery - Generators/Machine_Generator_Loop23.wav,,0.55,0.98,1.02,0.25
+core_activate,06_Audio/SFX/Boss/core_activate_prof.wav,Machinery - Misc/Machine_Powerup01.wav,1.15,0.82,0.96,1.03,0.28
+core_activate,06_Audio/SFX/Boss/core_activate_prof_02.wav,Machinery - Misc/Machine_Powerup02.wav,1.15,0.82,0.96,1.03,0.28
+core_activate,06_Audio/SFX/Boss/core_activate_prof_03.wav,Machinery - Misc/Electricity_Lights_Powerup02.wav,,0.82,0.96,1.03,0.28
+boss_spawn,06_Audio/SFX/Boss/boss_spawn_prof.wav,Airplanes/Plane_Jet_Afterburner.wav,1.55,0.9,0.92,1.02,0.35
+boss_spawn,06_Audio/SFX/Boss/boss_spawn_prof_02.wav,Machinery - Generators/Machine_Generator_Start03.wav,1.45,0.9,0.92,1.02,0.35
+boss_spawn,06_Audio/SFX/Boss/boss_spawn_prof_03.wav,Machinery - Misc/Machine_Powerup03.wav,1.6,0.9,0.92,1.02,0.35
+boss_laser_warning,06_Audio/SFX/Boss/boss_laser_warning_prof.wav,Machinery - Misc/Electricity_Lights_Powerup01.wav,,0.62,0.98,1.04,0.3
+boss_laser_warning,06_Audio/SFX/Boss/boss_laser_warning_prof_02.wav,Machinery - Misc/Electricity_Lights_Powerup02.wav,,0.62,0.98,1.04,0.3
+boss_laser_warning,06_Audio/SFX/Boss/boss_laser_warning_prof_03.wav,Machinery - Servos/Servo_Zoom_Loop04.wav,,0.62,0.98,1.04,0.3
+boss_laser_loop,06_Audio/SFX/Boss/boss_laser_loop_prof.wav,Machinery - Misc/Electricity_ForcefieldLoop01.wav,1.2,0.74,0.96,1.02,0.3
+boss_laser_loop,06_Audio/SFX/Boss/boss_laser_loop_prof_02.wav,Machinery - Misc/Electricity_ForcefieldLoop03.wav,1.2,0.74,0.96,1.02,0.3
+boss_laser_loop,06_Audio/SFX/Boss/boss_laser_loop_prof_03.wav,Machinery - Misc/Electricity_ForcefieldLoop08.wav,1.1,0.74,0.96,1.02,0.3
+boss_charge_aim,06_Audio/SFX/Boss/boss_charge_aim_prof.wav,Machinery - Misc/SearchLight_Powerup.wav,1.0,0.58,0.98,1.04,0.3
+boss_charge_aim,06_Audio/SFX/Boss/boss_charge_aim_prof_02.wav,Machinery - Servos/Servo_LargeTurret_Loop.wav,1.0,0.58,0.98,1.04,0.3
+boss_charge_aim,06_Audio/SFX/Boss/boss_charge_aim_prof_03.wav,Machinery - Servos/Servo_Zoom_Loop01.wav,1.0,0.58,0.98,1.04,0.3
+boss_charge_fire,06_Audio/SFX/Boss/boss_charge_fire_prof.wav,Machinery - Misc/Electricity_ShockZap.wav,0.95,0.85,0.93,1.02,0.35
+boss_charge_fire,06_Audio/SFX/Boss/boss_charge_fire_prof_02.wav,Misc Transportation/Rocket_JumpJetThruster1.wav,0.85,0.85,0.93,1.02,0.35
+boss_charge_fire,06_Audio/SFX/Boss/boss_charge_fire_prof_03.wav,Misc Transportation/Rocket_JumpJetThruster2.wav,0.85,0.85,0.93,1.02,0.35
+boss_phase2,06_Audio/SFX/Boss/boss_phase2_prof.wav,Airplanes/Plane_Jet_PowerupLoop.wav,1.7,0.86,0.96,1.02,0.3
+boss_phase2,06_Audio/SFX/Boss/boss_phase2_prof_02.wav,Machinery - Generators/Machine_Generator_Start01.wav,1.7,0.86,0.96,1.02,0.3
+boss_phase2,06_Audio/SFX/Boss/boss_phase2_prof_03.wav,Machinery - Misc/Machine_Powerup04.wav,1.7,0.86,0.96,1.02,0.3
+boss_death,06_Audio/SFX/Boss/boss_death_prof.wav,Machinery - Servos/Robot_Servo_MetalCollapse.wav,2.1,0.95,0.88,1.0,0.4
+boss_death,06_Audio/SFX/Boss/boss_death_prof_02.wav,Machinery - Lifts/Lift_MetalGrind_LargeHit1.wav,2.1,0.95,0.88,1.0,0.4
+boss_death,06_Audio/SFX/Boss/boss_death_prof_03.wav,Misc Transportation/Smash_Plastic_RC_Car_Crush2.wav,1.6,0.95,0.88,1.0,0.4
+shop_shield_hit,06_Audio/SFX/Shop/shop_shield_hit_prof.wav,Machinery - Misc/Electricity_Spark_Connect1.wav,,0.58,0.94,1.05,0.28
+shop_shield_hit,06_Audio/SFX/Shop/shop_shield_hit_prof_02.wav,Machinery - Misc/Electricity_Spark_Connect3.wav,,0.58,0.94,1.05,0.28
+shop_shield_hit,06_Audio/SFX/Shop/shop_shield_hit_prof_03.wav,Machinery - Misc/Electricity_ShockZap.wav,0.55,0.58,0.94,1.05,0.28
+shop_shield_break,06_Audio/SFX/Shop/shop_shield_break_prof.wav,Machinery - Misc/Electricity_ShockZap.wav,0.95,0.82,0.94,1.03,0.32
+shop_shield_break,06_Audio/SFX/Shop/shop_shield_break_prof_02.wav,Doors/Door_LargeMetal_Stop01.wav,0.8,0.82,0.94,1.03,0.32
+shop_shield_break,06_Audio/SFX/Shop/shop_shield_break_prof_03.wav,Machinery - Misc/Electricity_Spark_Connect2.wav,0.8,0.82,0.94,1.03,0.32
+shop_hostile,06_Audio/SFX/Shop/shop_hostile_prof.wav,Machinery - Misc/Machine_Powerup05.wav,,0.78,0.96,1.02,0.25
+shop_hostile,06_Audio/SFX/Shop/shop_hostile_prof_02.wav,Machinery - Misc/Electricity_Lights_Powerup05.wav,0.85,0.78,0.96,1.02,0.25
+shop_hostile,06_Audio/SFX/Shop/shop_hostile_prof_03.wav,Machinery - Servos/Robot_Transform_Servo01.wav,0.9,0.78,0.96,1.02,0.25
+return_beacon_spawn,06_Audio/SFX/Return/return_beacon_spawn_prof.wav,Machinery - Misc/Electricity_Lights_Powerup03.wav,1.0,0.74,0.98,1.03,0.25
+return_beacon_spawn,06_Audio/SFX/Return/return_beacon_spawn_prof_02.wav,Machinery - Misc/Machine_Powerup05.wav,0.9,0.74,0.98,1.03,0.25
+wormhole_enter,06_Audio/SFX/Return/wormhole_enter_prof.wav,Airplanes/Plane_Jet_Afterburner.wav,1.4,0.86,0.94,1.02,0.25
+wormhole_enter,06_Audio/SFX/Return/wormhole_enter_prof_02.wav,Machinery - Generators/Machine_Turbine_Powerdown.wav,1.2,0.86,0.94,1.02,0.25
+wormhole_enter,06_Audio/SFX/Return/wormhole_enter_prof_03.wav,Misc Transportation/JetPack_LargeRumble_Loop.wav,1.0,0.86,0.94,1.02,0.25

@@ -72,6 +72,7 @@ public class ShotgunWeapon : PlayerWeaponBase
         }
 
         SpawnMuzzleEffect(baseDirection);
+        AudioManager.PlayAt(SoundEventIds.ShotgunFire, transform.position);
 
         RegisterAttack();
         NotifyFired();
