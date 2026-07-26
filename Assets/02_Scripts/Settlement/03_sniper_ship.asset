@@ -15,7 +15,10 @@ MonoBehaviour:
   shipId: sniper_ship
   displayName: "\uB79C\uC11C"
   description: "\uC740\uD3D0, \uC6D0\uAC70\uB9AC \uC804\uD22C \uD2B9\uD654\n"
-  previewSprite: {fileID: 21300000, guid: 478b2aeaca4f5ff4caec9dc8eaac6562, type: 3}
+  previewSprite: {fileID: 21300000, guid: 8e595ee4fe9f3b2418c917a07cd74635, type: 3}
+  machineGunSprite: {fileID: 0}
+  shotgunSprite: {fileID: 0}
+  sniperSprite: {fileID: 1093536261, guid: 0a01a15354de8284084df96f5005102f, type: 3}
   defaultWeaponTree: 1
   unlockedByDefault: 0
   unlockFlag: 

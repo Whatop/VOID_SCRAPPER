@@ -29,5 +29,5 @@ MonoBehaviour:
   secondaryProjectileDefinition: {fileID: 11400000, guid: 1f0760def503fa641a4ebe69e963b602, type: 2}
   secondaryProjectileCount: 1
   secondarySpreadAngle: 0
-  rewardDefinition: {fileID: 11400000, guid: d2c045ea2f82ffe4a8784c62046d6e08, type: 2}
+  rewardDefinition: {fileID: 11400000, guid: ec2ed22b01d9428d952ee60c94cba793, type: 2}
   radarMarkerType: 0

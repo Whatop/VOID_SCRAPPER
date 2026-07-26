@@ -15,13 +15,21 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [Header("Hit Effect")]
     [SerializeField] private GameObject hitEffectPrefab;
     [SerializeField] private float hitEffectDuration = 0.15f;
+    [SerializeField] private bool useProceduralHitEffectWhenPrefabMissing = true;
+    [SerializeField] private float hitEffectIntensity = 1.2f;
+
+    [Header("Camera Shake")]
+    [SerializeField] private float hitShakeAmplitude = 0.17f;
+    [SerializeField] private float hitShakeDuration = 0.14f;
+    [SerializeField] private float deathShakeAmplitude = 0.34f;
+    [SerializeField] private float deathShakeDuration = 0.32f;
 
     [Header("Death")]
     [SerializeField] private bool disableColliderOnDeath = true;
     [SerializeField] private MonoBehaviour[] componentsToDisableOnDeath;
 
     [Header("Legacy Death Return")]
-    [Tooltip("»ç¸Á ¿¬Ãâ ¾øÀÌ ¹Ù·Î Á¤ÂøÁö·Î µ¹¾Æ°¡°í ½ÍÀ» ¶§¸¸ ÄÒ´Ù. PlayerDeathSequenceController¸¦ ¾µ °Å¸é ²¨µĞ´Ù.")]
+    [Tooltip("ì‚¬ë§ ì—°ì¶œ ì—†ì´ ë°”ë¡œ ì •ì°©ì§€ë¡œ ëŒì•„ê°€ê³  ì‹¶ì„ ë•Œë§Œ ì¼­ë‹ˆë‹¤. PlayerDeathSequenceControllerë¥¼ ì“¸ ê±°ë©´ êº¼ë‘¡ë‹ˆë‹¤.")]
     [SerializeField] private bool completeRunDirectlyOnDeath;
 
     private Rigidbody2D rb;
@@ -135,10 +143,16 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     public void TakeDamage(float damage)
     {
-        TakeDamage(damage, transform.position);
+        TakeDamage(damage, transform.position, Vector2.zero);
     }
 
     public void TakeDamage(float damage, Vector2 hitPoint)
+    {
+        Vector2 incomingDirection = (Vector2)transform.position - hitPoint;
+        TakeDamage(damage, hitPoint, incomingDirection);
+    }
+
+    public void TakeDamage(float damage, Vector2 hitPoint, Vector2 incomingDirection)
     {
         if (isDead)
         {
@@ -179,7 +193,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         invincibleTimer = invincibleTimeAfterHit;
 
-        SpawnHitEffect(hitPoint);
+        PlayHitFeedback(damage, hitPoint, incomingDirection);
         AudioManager.PlayAt(SoundEventIds.ShipHit, hitPoint);
 
         if (remainingDamage <= 0f)
@@ -222,11 +236,27 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         invincibleTimer = Mathf.Max(invincibleTimer, duration);
     }
 
-    private void SpawnHitEffect(Vector2 position)
+    private void PlayHitFeedback(float damage, Vector2 position, Vector2 incomingDirection)
+    {
+        bool customEffectSpawned = SpawnHitEffect(position);
+        float damageScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, damage) / 2f), 0.8f, 1.8f);
+
+        CombatFeedbackManager.PlayHit(
+            position,
+            incomingDirection,
+            CombatFeedbackKind.Player,
+            hitEffectIntensity * damageScale,
+            hitShakeAmplitude * damageScale,
+            hitShakeDuration,
+            useProceduralHitEffectWhenPrefabMissing && !customEffectSpawned
+        );
+    }
+
+    private bool SpawnHitEffect(Vector2 position)
     {
         if (hitEffectPrefab == null)
         {
-            return;
+            return false;
         }
 
         if (PoolManager.Instance != null)
@@ -238,6 +268,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             GameObject effect = Instantiate(hitEffectPrefab, position, Quaternion.identity);
             Destroy(effect, hitEffectDuration);
         }
+
+        return true;
     }
 
     private void Die()
@@ -271,12 +303,22 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             }
         }
 
+        CombatFeedbackManager.PlayBreak(
+            transform.position,
+            CombatFeedbackKind.Player,
+            1.6f,
+            deathShakeAmplitude,
+            deathShakeDuration,
+            true
+        );
+
         Died?.Invoke();
 
         if (completeRunDirectlyOnDeath && RunManager.Instance != null && RunManager.Instance.HasActiveRun)
         {
             RunManager.Instance.CompleteRun(RunEndReason.Death);
         }
-        Debug.Log("ÇÃ·¹ÀÌ¾î ±âÃ¼°¡ ÆÄ±«µÇ¾ú½À´Ï´Ù.");
+
+        Debug.Log("í”Œë ˆì´ì–´ ê¸°ì²´ê°€ íŒŒê´´ë˜ì—ˆìŠµë‹ˆë‹¤.");
     }
 }

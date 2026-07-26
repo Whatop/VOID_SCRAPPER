@@ -14,6 +14,15 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     [Header("Hit Effect")]
     [SerializeField] private GameObject hitEffectPrefab;
     [SerializeField] private float hitEffectDuration = 0.12f;
+    [SerializeField] private bool useProceduralHitEffectWhenPrefabMissing = true;
+    [SerializeField] private float hitEffectIntensity = 0.9f;
+
+    [Header("Camera Shake")]
+    [SerializeField] private float hitShakeAmplitude = 0.04f;
+    [SerializeField] private float hitShakeDuration = 0.065f;
+    [SerializeField] private float deathShakeAmplitude = 0.11f;
+    [SerializeField] private float deathShakeDuration = 0.13f;
+    [SerializeField] private float bossFeedbackMultiplier = 1.65f;
 
     [Header("Knockback")]
     [SerializeField] private bool useSmoothKnockback = true;
@@ -33,6 +42,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     private bool isDead;
 
     private Rigidbody2D rb;
+    private bool isBoss;
     private Coroutine releaseRoutine;
     private Coroutine knockbackRoutine;
 
@@ -55,6 +65,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        isBoss = GetComponent<BossPatternController>() != null;
 
         if (rewardDropper == null)
         {
@@ -153,10 +164,15 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
     public void TakeDamage(int damage)
     {
-        TakeDamage((float)damage);
+        TakeDamage((float)damage, transform.position, Vector2.zero);
     }
 
     public void TakeDamage(float damage)
+    {
+        TakeDamage(damage, transform.position, Vector2.zero);
+    }
+
+    public void TakeDamage(float damage, Vector2 hitPoint, Vector2 incomingDirection)
     {
         if (isDead)
         {
@@ -170,8 +186,8 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
         currentHp = Mathf.Max(0f, currentHp - damage);
 
-        SpawnHitEffect();
-        AudioManager.PlayAt(SoundEventIds.EnemyHit, transform.position, 0.7f);
+        PlayHitFeedback(damage, hitPoint, incomingDirection);
+        AudioManager.PlayAt(SoundEventIds.EnemyHit, hitPoint, 0.7f);
 
         HealthChanged?.Invoke(this, currentHp, maxHp);
         Damaged?.Invoke(this);
@@ -298,22 +314,41 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         }
     }
 
-    private void SpawnHitEffect()
+    private void PlayHitFeedback(float damage, Vector2 position, Vector2 incomingDirection)
+    {
+        bool customEffectSpawned = SpawnHitEffect(position);
+        float typeMultiplier = isBoss ? Mathf.Max(1f, bossFeedbackMultiplier) : 1f;
+        float damageScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, damage) / 2f), 0.65f, 1.75f);
+
+        CombatFeedbackManager.PlayHit(
+            position,
+            incomingDirection,
+            isBoss ? CombatFeedbackKind.Boss : CombatFeedbackKind.Enemy,
+            hitEffectIntensity * damageScale * typeMultiplier,
+            hitShakeAmplitude * damageScale * typeMultiplier,
+            hitShakeDuration,
+            useProceduralHitEffectWhenPrefabMissing && !customEffectSpawned
+        );
+    }
+
+    private bool SpawnHitEffect(Vector2 position)
     {
         if (hitEffectPrefab == null)
         {
-            return;
+            return false;
         }
 
         if (PoolManager.Instance != null)
         {
-            PoolManager.Instance.SpawnAutoRelease(hitEffectPrefab, transform.position, hitEffectDuration);
+            PoolManager.Instance.SpawnAutoRelease(hitEffectPrefab, position, hitEffectDuration);
         }
         else
         {
-            GameObject effect = Instantiate(hitEffectPrefab, transform.position, Quaternion.identity);
+            GameObject effect = Instantiate(hitEffectPrefab, position, Quaternion.identity);
             Destroy(effect, hitEffectDuration);
         }
+
+        return true;
     }
 
     private void Die()
@@ -326,10 +361,20 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         isDead = true;
         currentHp = 0f;
 
-        if (GetComponent<BossPatternController>() == null)
+        if (!isBoss)
         {
             AudioManager.PlayAt(SoundEventIds.EnemyDeath, transform.position);
         }
+
+        float typeMultiplier = isBoss ? Mathf.Max(1f, bossFeedbackMultiplier) : 1f;
+        CombatFeedbackManager.PlayBreak(
+            transform.position,
+            isBoss ? CombatFeedbackKind.Boss : CombatFeedbackKind.Enemy,
+            1.15f * typeMultiplier,
+            deathShakeAmplitude * typeMultiplier,
+            deathShakeDuration * (isBoss ? 1.35f : 1f),
+            true
+        );
 
         if (knockbackRoutine != null)
         {

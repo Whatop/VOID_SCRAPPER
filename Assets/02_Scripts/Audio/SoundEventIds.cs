@@ -8,6 +8,13 @@ public static class SoundEventIds
     public const string UiInsufficient = "ui_insufficient";
     public const string UiUpgradeSuccess = "ui_upgrade_success";
     public const string UiUpgradeFail = "ui_upgrade_fail";
+    public const string UiUnlock = "ui_unlock";
+    public const string UiUpgrade = UiUpgradeSuccess;
+    public const string UiActivate = "ui_activate";
+    public const string UiDeactivate = "ui_deactivate";
+    public const string UiDisabled = "ui_disabled";
+    public const string UiSettings = "ui_settings";
+    public const string UiPause = "ui_pause";
     public const string UiLaunch = "ui_launch";
 
     public const string ShopOpen = "shop_open";
@@ -42,6 +49,7 @@ public static class SoundEventIds
     public const string PickupCore = "pickup_core";
     public const string PickupHeal = "pickup_heal";
     public const string PickupExperience = "pickup_experience";
+    public const string PickupTuningChip = PickupExperience;
 
     public const string LevelUp = "level_up";
 
@@ -95,4 +103,24 @@ public static class SoundEventIds
     public const string ShopShieldBreak = "shop_shield_break";
     public const string ShopShotgunFire = "shop_shotgun_fire";
     public const string SecurityDroneSpawn = "security_drone_spawn";
+
+    public const string RadarChargeStart = "radar_charge_start";
+
+    public const string RadarChargeLoop = "radar_charge_loop";
+
+    public const string RadarChargeCancel = "radar_charge_cancel";
+
+    public const string SniperChargeLoop = "sniper_charge_loop";
+
+    public const string ShipMovePuff = "ship_move_puff";
+
+    public const string AmbSpaceLoop = "amb_space_loop";
+
+    public const string AmbSettlementLoop = "amb_settlement_loop";
+
+    public const string MusicCombatLoop = "music_combat_loop";
+
+    public const string MusicBossLoop = "music_boss_loop";
+
+    public const string MusicSettlementLoop = "music_settlement_loop";
 }

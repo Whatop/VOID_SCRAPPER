@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "산탄 압축"
   description: "샷건 탄 퍼짐을 줄여 중거리 대응력을 높인다."
   icon: {fileID: 21300000, guid: 73cf1bed83fcd8a7169cec657d81ab40, type: 3}
+  rarity: 1
   category: 1
   weaponTreeType: 0
   shopItemType: 0

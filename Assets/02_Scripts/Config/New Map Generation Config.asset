@@ -15,9 +15,22 @@ MonoBehaviour:
   mapSize: {x: 120, y: 120}
   startSafeRadius: 14
   importantPointMinDistance: 28
+  enableFiniteBoundary: 1
+  boundaryWarningDistance: 7
+  boundaryResistanceDistance: 3
+  boundaryMaxOutwardSpeedReduction: 0.65
+  boundaryInwardPushSpeed: 2.4
+  boundaryHardInset: 0.35
+  keepCoreInsideBossCameraSafeArea: 1
+  bossArenaHalfExtents: {x: 14, y: 9.8}
+  bossIntroMaxZoomMultiplier: 3.5
+  bossCameraEdgePadding: 2.5
+  fallbackBossCameraBaseOrthographicSize: 4.2
+  fallbackBossCameraAspect: 1.7777778
   shopCount: 2
-  eventCount: 2
+  eventCount: 4
   coreCount: 1
+  fieldNpcCount: 2
   highValueWreckCount: 3
   supplyContainerCount: 16
   destroyedHullCount: 8
@@ -26,6 +39,19 @@ MonoBehaviour:
   shotgunEnemyCount: 5
   chargingEnemyCount: 4
   eliteEnemyCount: 2
+  enableEnemyRoles: 1
+  defenderBasicCount: 4
+  defenderShotgunCount: 2
+  rivalHarvesterCount: 1
+  scavengerCount: 1
+  roleStartGraceSeconds: 12
+  roleStartMovementUnlockDistance: 8
+  rolePreviewDistance: 26
+  roleActiveDistance: 18
+  roleActiveHoldSeconds: 8
+  roleRadarPreviewDuration: 10
+  maxConcurrentRivalActions: 1
+  maxConcurrentScavengerActions: 1
   deepZoneEnemyHpMultiplier: 1.2
   deepZoneEnemyDamageMultiplier: 1.2
   deepZoneScrapMultiplier: 1.3

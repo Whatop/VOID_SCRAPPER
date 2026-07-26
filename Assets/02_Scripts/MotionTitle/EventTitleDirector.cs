@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,26 +6,32 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class EventTitleDirector : MonoBehaviour
 {
+    [Serializable]
+    private class TitlePrefabOverride
+    {
+        public EventTitleType type;
+        public MotionTitleView prefab;
+    }
+
     public static EventTitleDirector Instance { get; private set; }
 
-    private const string DefaultNormalAreaName = "ÀÜÇØ ÇØ¿ª";
-    private const string DefaultDeepAreaName = "½ÉºÎ ÀÜÇØ ÇØ¿ª";
+    private const string DefaultNormalAreaName = "ì”í•´ í•´ì—­";
+    private const string DefaultDeepAreaName = "ì‹¬ë¶€ ì”í•´ í•´ì—­";
 
     [Header("Instance")]
-    [Tooltip("ÄÑ¸é EventTitleDirector.Instance·Î µî·ÏµË´Ï´Ù. ¿©·¯ °³¸¦ ¾µ ¶§´Â ¸ŞÀÎ ÇÏ³ª¸¸ ÄÑ¼¼¿ä.")]
     [SerializeField] private bool registerAsGlobalInstance = true;
-
-    [Tooltip("Global Instance°¡ Áßº¹µÉ ¶§ ÀÌ ¿ÀºêÁ§Æ®¸¦ »èÁ¦ÇÕ´Ï´Ù.")]
     [SerializeField] private bool destroyIfGlobalDuplicate = true;
-
-    [Tooltip("Global Instance·Î ¾µ ¶§ ¾À ÀüÈ¯¿¡µµ À¯ÁöÇÕ´Ï´Ù.")]
     [SerializeField] private bool dontDestroyGlobalInstance;
 
     [Header("References")]
     [SerializeField] private RectTransform titleRoot;
     [SerializeField] private MotionTitleView defaultTitlePrefab;
 
-    [Header("Title Rect - MTP-20")]
+    [Header("MTP Prefab Overrides")]
+    [Tooltip("ë¹„ì›Œë‘ë©´ defaultTitlePrefabì„ ì‚¬ìš©í•©ë‹ˆë‹¤. íƒì‚¬ ì‹œì‘, ì½”ì–´ ë°˜ì‘, ê·€í™˜ ê°™ì€ ì „ì—­ íƒ€ì´í‹€ íƒ€ì…ë³„ í”„ë¦¬íŒ¹ë§Œ ì§€ì •í•©ë‹ˆë‹¤.")]
+    [SerializeField] private List<TitlePrefabOverride> titlePrefabOverrides = new List<TitlePrefabOverride>();
+
+    [Header("Title Rect - MTP")]
     [SerializeField] private bool forceTitleRect = true;
     [SerializeField] private Vector2 titleSize = new Vector2(330f, 110f);
     [SerializeField] private Vector2 titleAnchor = new Vector2(0.5f, 0.5f);
@@ -58,6 +65,7 @@ public class EventTitleDirector : MonoBehaviour
         public EventTitleType type;
         public string title;
         public string subtitle;
+        public MotionTitleView prefabOverride;
     }
 
     private void Awake()
@@ -102,7 +110,7 @@ public class EventTitleDirector : MonoBehaviour
     public void ShowExpeditionStart(string areaName)
     {
         areaName = NormalizeAreaName(areaName);
-        Enqueue(EventTitleType.ExpeditionStart, "Å½»ç½ÃÀÛ!", areaName);
+        Enqueue(EventTitleType.ExpeditionStart, "íƒì‚¬ ì‹œì‘", areaName, null);
     }
 
     public void ShowExpeditionStart(ExpeditionDepth depth)
@@ -112,85 +120,81 @@ public class EventTitleDirector : MonoBehaviour
 
     public void ShowCoreReaction()
     {
-        Enqueue(EventTitleType.CoreReaction, "ÄÚ¾î ¹İÀÀ", "°­·ÄÇÑ ¿¡³ÊÁö ¹İÀÀ °¨Áö");
+        Enqueue(EventTitleType.CoreReaction, "ì½”ì–´ ë°˜ì‘", "ê°•ë ¥í•œ ì—ë„ˆì§€ ë°˜ì‘ ê°ì§€", null);
+    }
+
+    public void ShowBossEncounter(string bossName = "êµ¬íš ê´€ë¦¬ì", string subtitle = "SECTOR ADMINISTRATOR")
+    {
+        Enqueue(EventTitleType.BossEncounter, bossName, subtitle, null);
     }
 
     public void ShowSafeReturn()
     {
-        Enqueue(EventTitleType.SafeReturn, "¾ÈÀüº¹±Í!", "Á¤ÂøÁö·Î ±ÍÈ¯ÇÕ´Ï´Ù");
+        Enqueue(EventTitleType.SafeReturn, "ì•ˆì „ ê·€í™˜", "ì •ì°©ì§€ë¡œ ê·€í™˜í•©ë‹ˆë‹¤", null);
     }
 
     public void ShowEmergencyReturn()
     {
-        Enqueue(EventTitleType.EmergencyReturn, "±ä±Şº¹±Í!", "Á¤ÂøÁö·Î ±ÍÈ¯ÇÕ´Ï´Ù");
+        Enqueue(EventTitleType.EmergencyReturn, "ê¸´ê¸‰ ë³µê·€", "ì •ì°©ì§€ë¡œ ê·€í™˜í•©ë‹ˆë‹¤", null);
     }
 
     public void ShowSafeReturnComplete()
     {
-        Enqueue(EventTitleType.SafeReturnComplete, "¾ÈÀüº¹±Í¿Ï·á!", "");
+        Enqueue(EventTitleType.SafeReturnComplete, "ì•ˆì „ ê·€í™˜ ì™„ë£Œ", string.Empty, null);
     }
 
     public void ShowEmergencyReturnComplete()
     {
-        Enqueue(EventTitleType.EmergencyReturnComplete, "±ä±Şº¹±Í¿Ï·á!", "");
+        Enqueue(EventTitleType.EmergencyReturnComplete, "ê¸´ê¸‰ ë³µê·€ ì™„ë£Œ", string.Empty, null);
     }
 
     public void Show(EventTitleType type, string customTitle = "", string customSubtitle = "")
     {
+        ShowWithPrefab(null, type, customTitle, customSubtitle);
+    }
+
+    public void ShowWithPrefab(MotionTitleView prefabOverride, EventTitleType type, string customTitle = "", string customSubtitle = "")
+    {
+        string title = customTitle;
+        string subtitle = customSubtitle;
+
         switch (type)
         {
             case EventTitleType.ExpeditionStart:
-                Enqueue(
-                    EventTitleType.ExpeditionStart,
-                    string.IsNullOrWhiteSpace(customTitle) ? "Å½»ç½ÃÀÛ!" : customTitle,
-                    string.IsNullOrWhiteSpace(customSubtitle) ? NormalizeAreaName("") : customSubtitle
-                );
+                title = string.IsNullOrWhiteSpace(customTitle) ? "íƒì‚¬ ì‹œì‘" : customTitle;
+                subtitle = string.IsNullOrWhiteSpace(customSubtitle) ? NormalizeAreaName(string.Empty) : customSubtitle;
                 break;
 
             case EventTitleType.CoreReaction:
-                Enqueue(
-                    EventTitleType.CoreReaction,
-                    string.IsNullOrWhiteSpace(customTitle) ? "ÄÚ¾î ¹İÀÀ" : customTitle,
-                    string.IsNullOrWhiteSpace(customSubtitle) ? "°­·ÄÇÑ ¿¡³ÊÁö ¹İÀÀ °¨Áö" : customSubtitle
-                );
+                title = string.IsNullOrWhiteSpace(customTitle) ? "ì½”ì–´ ë°˜ì‘" : customTitle;
+                subtitle = string.IsNullOrWhiteSpace(customSubtitle) ? "ê°•ë ¥í•œ ì—ë„ˆì§€ ë°˜ì‘ ê°ì§€" : customSubtitle;
+                break;
+
+            case EventTitleType.BossEncounter:
+                title = string.IsNullOrWhiteSpace(customTitle) ? "êµ¬íš ê´€ë¦¬ì" : customTitle;
+                subtitle = string.IsNullOrWhiteSpace(customSubtitle) ? "SECTOR ADMINISTRATOR" : customSubtitle;
                 break;
 
             case EventTitleType.SafeReturn:
-                Enqueue(
-                    EventTitleType.SafeReturn,
-                    string.IsNullOrWhiteSpace(customTitle) ? "¾ÈÀüº¹±Í!" : customTitle,
-                    string.IsNullOrWhiteSpace(customSubtitle) ? "Á¤ÂøÁö·Î ±ÍÈ¯ÇÕ´Ï´Ù" : customSubtitle
-                );
+                title = string.IsNullOrWhiteSpace(customTitle) ? "ì•ˆì „ ê·€í™˜" : customTitle;
+                subtitle = string.IsNullOrWhiteSpace(customSubtitle) ? "ì •ì°©ì§€ë¡œ ê·€í™˜í•©ë‹ˆë‹¤" : customSubtitle;
                 break;
 
             case EventTitleType.EmergencyReturn:
-                Enqueue(
-                    EventTitleType.EmergencyReturn,
-                    string.IsNullOrWhiteSpace(customTitle) ? "±ä±Şº¹±Í!" : customTitle,
-                    string.IsNullOrWhiteSpace(customSubtitle) ? "Á¤ÂøÁö·Î ±ÍÈ¯ÇÕ´Ï´Ù" : customSubtitle
-                );
+                title = string.IsNullOrWhiteSpace(customTitle) ? "ê¸´ê¸‰ ë³µê·€" : customTitle;
+                subtitle = string.IsNullOrWhiteSpace(customSubtitle) ? "ì •ì°©ì§€ë¡œ ê·€í™˜í•©ë‹ˆë‹¤" : customSubtitle;
                 break;
 
             case EventTitleType.SafeReturnComplete:
-                Enqueue(
-                    EventTitleType.SafeReturnComplete,
-                    string.IsNullOrWhiteSpace(customTitle) ? "¾ÈÀüº¹±Í¿Ï·á!" : customTitle,
-                    customSubtitle
-                );
+                title = string.IsNullOrWhiteSpace(customTitle) ? "ì•ˆì „ ê·€í™˜ ì™„ë£Œ" : customTitle;
                 break;
 
             case EventTitleType.EmergencyReturnComplete:
-                Enqueue(
-                    EventTitleType.EmergencyReturnComplete,
-                    string.IsNullOrWhiteSpace(customTitle) ? "±ä±Şº¹±Í¿Ï·á!" : customTitle,
-                    customSubtitle
-                );
-                break;
-
-            default:
-                Enqueue(type, customTitle, customSubtitle);
+                title = string.IsNullOrWhiteSpace(customTitle) ? "ê¸´ê¸‰ ë³µê·€ ì™„ë£Œ" : customTitle;
                 break;
         }
+
+        Enqueue(type, title, subtitle, prefabOverride);
     }
 
     public void ClearQueue()
@@ -226,13 +230,15 @@ public class EventTitleDirector : MonoBehaviour
         }
     }
 
-    private void Enqueue(EventTitleType type, string title, string subtitle)
+    private void Enqueue(EventTitleType type, string title, string subtitle, MotionTitleView prefabOverride)
     {
-        if (defaultTitlePrefab == null)
+        MotionTitleView prefab = prefabOverride != null ? prefabOverride : GetPrefabForType(type);
+
+        if (prefab == null)
         {
             if (logWarnings)
             {
-                Debug.LogWarning("EventTitleDirector: defaultTitlePrefabÀÌ ºñ¾î ÀÖ½À´Ï´Ù.", this);
+                Debug.LogWarning($"EventTitleDirector: {type}ì— ì‚¬ìš©í•  MotionTitleView í”„ë¦¬íŒ¹ì´ ì—†ìŠµë‹ˆë‹¤.", this);
             }
 
             return;
@@ -252,7 +258,8 @@ public class EventTitleDirector : MonoBehaviour
         {
             type = type,
             title = title,
-            subtitle = subtitle
+            subtitle = subtitle,
+            prefabOverride = prefabOverride
         });
 
         if (!isPlaying && isActiveAndEnabled)
@@ -277,13 +284,15 @@ public class EventTitleDirector : MonoBehaviour
 
     private IEnumerator PlaySingleRoutine(TitleRequest request)
     {
-        if (defaultTitlePrefab == null)
+        MotionTitleView prefab = request.prefabOverride != null ? request.prefabOverride : GetPrefabForType(request.type);
+
+        if (prefab == null)
         {
             yield break;
         }
 
         Transform parent = titleRoot != null ? titleRoot : transform;
-        MotionTitleView view = Instantiate(defaultTitlePrefab, parent);
+        MotionTitleView view = Instantiate(prefab, parent);
 
         PrepareTitleRect(view.transform as RectTransform);
         view.gameObject.SetActive(true);
@@ -311,6 +320,24 @@ public class EventTitleDirector : MonoBehaviour
         {
             Destroy(view.gameObject);
         }
+    }
+
+    private MotionTitleView GetPrefabForType(EventTitleType type)
+    {
+        if (titlePrefabOverrides != null)
+        {
+            for (int i = 0; i < titlePrefabOverrides.Count; i++)
+            {
+                TitlePrefabOverride entry = titlePrefabOverrides[i];
+
+                if (entry != null && entry.type == type && entry.prefab != null)
+                {
+                    return entry.prefab;
+                }
+            }
+        }
+
+        return defaultTitlePrefab;
     }
 
     private void PrepareTitleRect(RectTransform rectTransform)

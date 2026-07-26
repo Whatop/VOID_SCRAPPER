@@ -6,6 +6,7 @@ public class BossDummyController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private EnemyHealth enemyHealth;
+    [SerializeField] private RewardDropper rewardDropper;
 
     [Header("Exit Object Prefabs")]
     [SerializeField] private GameObject returnBeaconPrefab;
@@ -14,10 +15,10 @@ public class BossDummyController : MonoBehaviour
     [Header("Spawn Positions")]
     [SerializeField] private bool useBossDeathPosition = true;
 
-    [Tooltip("±ÍÈ¯ ºñÄÜÀº ¿úÈ¦°ú °ãÄ¡Áö ¾Ê°Ô º¸½º »ç¸Á À§Ä¡ ±âÁØÀ¸·Î »ìÂ¦ ¿·¿¡ »ı¼ºÇÕ´Ï´Ù.")]
+    [Tooltip("ê·€í™˜ ë¹„ì½˜ì€ ì›œí™€ê³¼ ê²¹ì¹˜ì§€ ì•Šê²Œ ë³´ìŠ¤ ì‚¬ë§ ìœ„ì¹˜ ê¸°ì¤€ìœ¼ë¡œ ì‚´ì§ ì˜†ì— ìƒì„±í•©ë‹ˆë‹¤.")]
     [SerializeField] private Vector2 returnBeaconSpawnOffset = new Vector2(-1.5f, 0f);
 
-    [Tooltip("¿úÈ¦Àº ±âº»ÀûÀ¸·Î º¸½º°¡ Á×Àº À§Ä¡¿¡ »ı¼ºÇÕ´Ï´Ù.")]
+    [Tooltip("ì›œí™€ì€ ê¸°ë³¸ì ìœ¼ë¡œ ë³´ìŠ¤ê°€ ì£½ì€ ìœ„ì¹˜ì— ìƒì„±í•©ë‹ˆë‹¤.")]
     [SerializeField] private Vector2 wormholeSpawnOffset = Vector2.zero;
 
     [Header("External Config Optional")]
@@ -27,18 +28,39 @@ public class BossDummyController : MonoBehaviour
     [SerializeField] private bool hasConfiguredWormholePosition;
     [SerializeField] private Vector3 configuredWormholePosition;
 
-    [Header("Deep Zone Reward")]
-    [SerializeField] private bool grantDeepZoneAdditionalCoreDirectly = true;
+    [Header("Core Shard World Pickup")]
+    [Tooltip("ë³´ìŠ¤ ì²˜ì¹˜ í›„ ì½”ì–´ ì¡°ê°ì„ ì¦‰ì‹œ ì§€ê¸‰í•˜ì§€ ì•Šê³  ë°©ì „ëœ ì›”ë“œ ì½”ì–´ ìœ„ì¹˜ì— ë¬¼ë¦¬ ë“œëí•©ë‹ˆë‹¤.")]
+    [SerializeField] private bool dropCoreShardsAsWorldPickup = true;
+    [SerializeField] private int normalCoreShards = 1;
     [SerializeField] private int deepZoneAdditionalCoreShards = 1;
+    [Tooltip("ì¼œë‘ë©´ RewardPickup ì—°ê²°ì´ ì˜ëª»ë˜ì–´ë„ ì½”ì–´ë¥¼ ì¦‰ì‹œ ì§€ê¸‰í•˜ì§€ ì•Šê³  ì˜¤ë¥˜ë¥¼ ë“œëŸ¬ëƒ…ë‹ˆë‹¤.")]
+    [SerializeField] private bool forceWorldPickupOnly = true;
+    [Tooltip("ë””ë²„ê·¸ìš© ë ˆê±°ì‹œ ì˜µì…˜ì…ë‹ˆë‹¤. Force World Pickup Onlyê°€ êº¼ì ¸ ìˆì„ ë•Œë§Œ ì‚¬ìš©ë©ë‹ˆë‹¤.")]
+    [SerializeField] private bool fallbackToDirectCoreGrant;
+    [HideInInspector]
+    [SerializeField] private bool grantDeepZoneAdditionalCoreDirectly;
+
+    [Header("Selectable Boss Reward")]
+    [Tooltip("ë³´ìŠ¤ ì²˜ì¹˜ í›„ ê·€í™˜ ì˜¤ë¸Œì íŠ¸ë¥¼ ì—´ê¸° ì „ì— ì„ íƒí˜• ì¥ë¹„ ë³´ìƒì„ ì§€ê¸‰í•©ë‹ˆë‹¤.")]
+    [SerializeField] private bool grantSelectableBossReward = true;
+    [SerializeField] private int bossRewardChoiceCount = 3;
+
+    [Header("Boss Reward Capsule")]
+    [Tooltip("ì—°ê²°í•˜ë©´ ë³´ìŠ¤ ì‚¬ë§ ì¦‰ì‹œ UIë¥¼ ë„ìš°ì§€ ì•Šê³ , ë³´ìƒ ìº¡ìŠì„ íˆ¬í•˜í•œ ë’¤ E ìƒí˜¸ì‘ìš©ìœ¼ë¡œ ë³´ìƒì„ ì„ íƒí•©ë‹ˆë‹¤.")]
+    [SerializeField] private GameObject bossRewardCapsulePrefab;
+    [SerializeField] private Vector2 bossRewardCapsuleSpawnOffset = new Vector2(0f, -1f);
 
     [Header("State")]
     [SerializeField] private bool changeStateToExpeditionAfterDeath = true;
 
     private bool deathHandled;
+    private bool hasConfiguredCoreShardRewardPosition;
+    private Vector3 configuredCoreShardRewardPosition;
 
     private void Reset()
     {
         enemyHealth = GetComponent<EnemyHealth>();
+        rewardDropper = GetComponent<RewardDropper>();
     }
 
     private void Awake()
@@ -46,6 +68,11 @@ public class BossDummyController : MonoBehaviour
         if (enemyHealth == null)
         {
             enemyHealth = GetComponent<EnemyHealth>();
+        }
+
+        if (rewardDropper == null)
+        {
+            rewardDropper = GetComponent<RewardDropper>();
         }
     }
 
@@ -67,8 +94,14 @@ public class BossDummyController : MonoBehaviour
         }
     }
 
-    // ±âÁ¸ CoreObject ÄÚµå¿Í È£È¯¿ë.
-    // ¿¹Àü¿¡´Â ±ÍÈ¯ ºñÄÜ À§Ä¡¸¸ CoreObject¿¡¼­ ³Ñ°ÜÁá±â ¶§¹®¿¡ ±×´ë·Î À¯ÁöÇÑ´Ù.
+    public void ConfigureCoreShardRewardPoint(Vector3 worldPosition)
+    {
+        configuredCoreShardRewardPosition = worldPosition;
+        hasConfiguredCoreShardRewardPosition = true;
+    }
+
+    // ê¸°ì¡´ CoreObject ì½”ë“œì™€ í˜¸í™˜ìš©.
+    // ì˜ˆì „ì—ëŠ” ê·€í™˜ ë¹„ì½˜ ìœ„ì¹˜ë§Œ CoreObjectì—ì„œ ë„˜ê²¨ì¤¬ê¸° ë•Œë¬¸ì— ê·¸ëŒ€ë¡œ ìœ ì§€í•œë‹¤.
     public void ConfigureReturnBeacon(GameObject beaconPrefab, Vector3 spawnPosition)
     {
         returnBeaconPrefab = beaconPrefab;
@@ -76,8 +109,8 @@ public class BossDummyController : MonoBehaviour
         hasConfiguredReturnBeaconPosition = true;
     }
 
-    // »õ ±¸Á¶¿ë.
-    // CoreObject¿¡¼­ µÑ ´Ù ³Ñ±â°í ½ÍÀ¸¸é ÀÌ ¸Ş¼­µå¸¦ È£ÃâÇÏ¸é µÈ´Ù.
+    // ìƒˆ êµ¬ì¡°ìš©.
+    // CoreObjectì—ì„œ ë‘˜ ë‹¤ ë„˜ê¸°ê³  ì‹¶ìœ¼ë©´ ì´ ë©”ì„œë“œë¥¼ í˜¸ì¶œí•˜ë©´ ëœë‹¤.
     public void ConfigureExitObjects(
         GameObject beaconPrefab,
         Vector3 beaconSpawnPosition,
@@ -105,29 +138,98 @@ public class BossDummyController : MonoBehaviour
         if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
         {
             RunManager.Instance.MarkBossDefeated();
-
-            if (grantDeepZoneAdditionalCoreDirectly &&
-                RunManager.Instance.CurrentRun.ExpeditionDepth == ExpeditionDepth.DeepZone1 &&
-                deepZoneAdditionalCoreShards > 0)
-            {
-                RunManager.Instance.AddCurrency(CurrencyType.CoreShards, deepZoneAdditionalCoreShards);
-            }
+            DropOrGrantCoreShards();
         }
 
-        SpawnReturnBeacon();
-        SpawnWormholePortal();
+        CreateRewardExitCoordinator();
 
-        if (changeStateToExpeditionAfterDeath && GameStateManager.Instance != null)
+        if (!grantSelectableBossReward &&
+            changeStateToExpeditionAfterDeath &&
+            GameStateManager.Instance != null)
         {
             GameStateManager.Instance.ChangeState(GameState.Expedition);
         }
+    }
+
+    private void DropOrGrantCoreShards()
+    {
+        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
+        {
+            return;
+        }
+
+        int amount = Mathf.Max(0, normalCoreShards);
+
+        if (RunManager.Instance.CurrentRun.ExpeditionDepth == ExpeditionDepth.DeepZone1)
+        {
+            amount += Mathf.Max(0, deepZoneAdditionalCoreShards);
+        }
+
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        if (rewardDropper == null)
+        {
+            rewardDropper = GetComponent<RewardDropper>();
+        }
+
+        bool dropped = false;
+
+        if (dropCoreShardsAsWorldPickup && rewardDropper != null)
+        {
+            dropped = rewardDropper.TryDropCurrencyRewardAt(
+                ResolveCoreShardRewardPosition(),
+                CurrencyType.CoreShards,
+                amount
+            );
+        }
+
+        if (!dropped)
+        {
+            Debug.LogWarning(
+                "ì½”ì–´ ì¡°ê° ì›”ë“œ í”½ì—… ë“œëì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤. ë³´ìŠ¤ RewardDropperì™€ RewardPickup Prefab ì—°ê²°ì„ í™•ì¸í•˜ì„¸ìš”.",
+                this
+            );
+
+            if (!forceWorldPickupOnly && fallbackToDirectCoreGrant)
+            {
+                RunManager.Instance.AddCurrency(CurrencyType.CoreShards, amount);
+            }
+        }
+    }
+
+    private Vector3 ResolveCoreShardRewardPosition()
+    {
+        return hasConfiguredCoreShardRewardPosition
+            ? configuredCoreShardRewardPosition
+            : transform.position;
+    }
+
+    private void CreateRewardExitCoordinator()
+    {
+        GameObject coordinatorObject = new GameObject("BossRewardExitCoordinator");
+        coordinatorObject.transform.position = transform.position;
+
+        BossRewardExitCoordinator coordinator = coordinatorObject.AddComponent<BossRewardExitCoordinator>();
+        coordinator.Initialize(
+            returnBeaconPrefab,
+            ResolveReturnBeaconSpawnPosition(),
+            wormholePortalPrefab,
+            ResolveWormholeSpawnPosition(),
+            grantSelectableBossReward,
+            Mathf.Max(1, bossRewardChoiceCount),
+            bossRewardCapsulePrefab,
+            ResolveBossRewardCapsuleSpawnPosition()
+        );
     }
 
     private void SpawnReturnBeacon()
     {
         if (returnBeaconPrefab == null)
         {
-            Debug.LogWarning("º¸½º »ç¸Á ÈÄ »ı¼ºÇÒ returnBeaconPrefabÀÌ ¾ø½À´Ï´Ù.", this);
+            Debug.LogWarning("ë³´ìŠ¤ ì‚¬ë§ í›„ ìƒì„±í•  returnBeaconPrefabì´ ì—†ìŠµë‹ˆë‹¤.", this);
             return;
         }
 
@@ -139,12 +241,19 @@ public class BossDummyController : MonoBehaviour
     {
         if (wormholePortalPrefab == null)
         {
-            Debug.LogWarning("º¸½º »ç¸Á ÈÄ »ı¼ºÇÒ wormholePortalPrefabÀÌ ¾ø½À´Ï´Ù.", this);
+            Debug.LogWarning("ë³´ìŠ¤ ì‚¬ë§ í›„ ìƒì„±í•  wormholePortalPrefabì´ ì—†ìŠµë‹ˆë‹¤.", this);
             return;
         }
 
         Vector3 spawnPosition = ResolveWormholeSpawnPosition();
         Instantiate(wormholePortalPrefab, spawnPosition, Quaternion.identity);
+    }
+
+
+    private Vector3 ResolveBossRewardCapsuleSpawnPosition()
+    {
+        Vector3 basePosition = useBossDeathPosition ? transform.position : Vector3.zero;
+        return basePosition + (Vector3)bossRewardCapsuleSpawnOffset;
     }
 
     private Vector3 ResolveReturnBeaconSpawnPosition()

@@ -1,6 +1,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum RewardDropperDropPreset
+{
+    Default,
+    EventRescueSignal,
+    EventUnknownSafe,
+    EventUnknownCombat,
+    EventUnstableReactor,
+    EventBlackBox,
+    EnemyBasic,
+    EnemyShotgun,
+    EnemyCharging,
+    EnemyElite,
+    Boss
+}
+
 public class RewardDropper : MonoBehaviour
 {
     [Header("Reward")]
@@ -37,28 +52,129 @@ public class RewardDropper : MonoBehaviour
     [SerializeField] private float traitMaxScatterRadius = 1.05f;
     [SerializeField] private float traitScatterSpeed = 1.25f;
 
-    [Header("Shard Split")]
-    [SerializeField] private int amountPerShard = 1;
-    [SerializeField] private int maxShardsPerCurrency = 24;
+    [Header("Currency Shard Split")]
+    [Tooltip("켜두면 예전 테스트 세팅(amountPerShard=1)이어도 재화가 너무 많이 쪼개져 나오지 않습니다.")]
+    [SerializeField] private bool compactCurrencyDrops = true;
+
+    [Tooltip("compactCurrencyDrops가 켜져 있을 때 조각 하나가 대표하는 기본 재화량입니다. 5면 Credits 14가 대략 3조각으로 나옵니다.")]
+    [SerializeField] private int compactAmountPerShard = 5;
+
+    [Tooltip("compactCurrencyDrops가 켜져 있을 때 한 재화 타입당 최대 조각 수입니다.")]
+    [SerializeField] private int compactMaxShardsPerCurrency = 8;
+
+    [Header("Per-Currency Shard Size")]
+    [Tooltip("재화별로 조각 크기를 다르게 사용합니다. 작은 원형 픽업을 여러 개 뿌릴 때 적합합니다.")]
+    [SerializeField] private bool usePerCurrencyShardSize = true;
+    [SerializeField] private int creditsAmountPerShard = 5;
+    [SerializeField] private int scrapAmountPerShard = 1;
+    [SerializeField] private int coreAmountPerShard = 1;
+    [SerializeField] private int tuningChipAmountPerShard = 1;
+    [SerializeField] private int experienceAmountPerShard = 3;
+
+    [Tooltip("compactCurrencyDrops를 끌 때 사용하는 레거시 조각 크기입니다.")]
+    [SerializeField] private int amountPerShard = 5;
+
+    [Tooltip("compactCurrencyDrops를 끌 때 사용하는 레거시 최대 조각 수입니다.")]
+    [SerializeField] private int maxShardsPerCurrency = 8;
 
     [Header("Scatter")]
-    [SerializeField] private float minScatterRadius = 0.15f;
-    [SerializeField] private float maxScatterRadius = 0.75f;
-    [SerializeField] private float minScatterSpeed = 1.2f;
-    [SerializeField] private float maxScatterSpeed = 3.2f;
+    [SerializeField] private float minScatterRadius = 0.18f;
+    [SerializeField] private float maxScatterRadius = 0.8f;
+    [SerializeField] private float minScatterSpeed = 1.0f;
+    [SerializeField] private float maxScatterSpeed = 2.6f;
     [SerializeField] private float angleJitter = 15f;
 
     [Header("Debug")]
     [SerializeField] private bool logMissingPrefab = true;
+
+    public RewardDefinition RewardDefinition => rewardDefinition;
+    public bool CanSpawnCurrencyPickup => rewardPickupPrefab != null;
 
     public void SetRewardDefinition(RewardDefinition definition)
     {
         rewardDefinition = definition;
     }
 
+    public void ApplyPreset(RewardDropperDropPreset preset)
+    {
+        switch (preset)
+        {
+            case RewardDropperDropPreset.EventRescueSignal:
+                ApplyCurrencyTuning(5, 5, 0.22f, 0.85f, 1.0f, 2.4f, 16f);
+                ApplyItemTuning(0.4f, 1.1f, 1.4f, 0.3f, 0.95f, 1.15f);
+                break;
+
+            case RewardDropperDropPreset.EventUnknownSafe:
+                ApplyCurrencyTuning(4, 4, 0.15f, 0.55f, 0.8f, 1.8f, 10f);
+                ApplyItemTuning(0.35f, 0.9f, 1.1f, 0.25f, 0.8f, 1.0f);
+                break;
+
+            case RewardDropperDropPreset.EventUnknownCombat:
+                ApplyCurrencyTuning(5, 5, 0.22f, 0.8f, 1.0f, 2.4f, 14f);
+                ApplyItemTuning(0.4f, 1.1f, 1.35f, 0.3f, 0.95f, 1.1f);
+                break;
+
+            case RewardDropperDropPreset.EventUnstableReactor:
+                ApplyCurrencyTuning(5, 6, 0.28f, 1.05f, 1.2f, 2.8f, 18f);
+                ApplyItemTuning(0.45f, 1.35f, 1.55f, 0.35f, 1.05f, 1.2f);
+                break;
+
+            case RewardDropperDropPreset.EventBlackBox:
+                ApplyCurrencyTuning(6, 5, 0.2f, 0.85f, 0.9f, 2.2f, 12f);
+                ApplyItemTuning(0.55f, 1.45f, 1.35f, 0.35f, 1.05f, 1.05f);
+                break;
+
+            case RewardDropperDropPreset.EnemyBasic:
+                ApplyCurrencyTuning(3, 3, 0.12f, 0.5f, 0.75f, 1.6f, 8f);
+                ApplyItemTuning(0.3f, 0.8f, 1f, 0.25f, 0.7f, 0.9f);
+                break;
+
+            case RewardDropperDropPreset.EnemyShotgun:
+                ApplyCurrencyTuning(3, 3, 0.14f, 0.55f, 0.8f, 1.8f, 10f);
+                ApplyItemTuning(0.3f, 0.85f, 1f, 0.25f, 0.75f, 0.9f);
+                break;
+
+            case RewardDropperDropPreset.EnemyCharging:
+                ApplyCurrencyTuning(4, 4, 0.16f, 0.65f, 0.9f, 2.0f, 12f);
+                ApplyItemTuning(0.35f, 0.9f, 1.1f, 0.25f, 0.8f, 0.95f);
+                break;
+
+            case RewardDropperDropPreset.EnemyElite:
+                ApplyCurrencyTuning(5, 6, 0.22f, 0.9f, 1.0f, 2.5f, 15f);
+                ApplyItemTuning(0.4f, 1.15f, 1.3f, 0.3f, 0.95f, 1.1f);
+                break;
+
+            case RewardDropperDropPreset.Boss:
+                ApplyCurrencyTuning(6, 8, 0.3f, 1.2f, 1.2f, 3.0f, 15f);
+                ApplyItemTuning(0.55f, 1.6f, 1.7f, 0.45f, 1.25f, 1.35f);
+                break;
+
+            default:
+                ApplyCurrencyTuning(5, 8, 0.18f, 0.8f, 1.0f, 2.6f, 15f);
+                ApplyItemTuning(0.35f, 1.25f, 1.5f, 0.25f, 1.05f, 1.25f);
+                break;
+        }
+    }
+
     public void Drop()
     {
         DropAt(transform.position);
+    }
+
+    public void DropCurrencyRewardAt(Vector3 origin, CurrencyType currencyType, int amount)
+    {
+        TryDropCurrencyRewardAt(origin, currencyType, amount);
+    }
+
+    public bool TryDropCurrencyRewardAt(Vector3 origin, CurrencyType currencyType, int amount)
+    {
+        if (amount <= 0 || rewardPickupPrefab == null)
+        {
+            return false;
+        }
+
+        DropCurrency(origin, currencyType, amount);
+        return true;
     }
 
     public void DropAt(Vector3 origin)
@@ -91,6 +207,44 @@ public class RewardDropper : MonoBehaviour
         DropTraitItems(origin);
     }
 
+    private void ApplyCurrencyTuning(
+        int shardAmount,
+        int maxShardCount,
+        float scatterMin,
+        float scatterMax,
+        float speedMin,
+        float speedMax,
+        float jitter)
+    {
+        compactCurrencyDrops = true;
+        compactAmountPerShard = Mathf.Max(1, shardAmount);
+        compactMaxShardsPerCurrency = Mathf.Max(1, maxShardCount);
+        amountPerShard = compactAmountPerShard;
+        maxShardsPerCurrency = compactMaxShardsPerCurrency;
+        minScatterRadius = Mathf.Max(0f, Mathf.Min(scatterMin, scatterMax));
+        maxScatterRadius = Mathf.Max(minScatterRadius, Mathf.Max(scatterMin, scatterMax));
+        minScatterSpeed = Mathf.Max(0f, Mathf.Min(speedMin, speedMax));
+        maxScatterSpeed = Mathf.Max(minScatterSpeed, Mathf.Max(speedMin, speedMax));
+        angleJitter = Mathf.Max(0f, jitter);
+    }
+
+    private void ApplyItemTuning(
+        float reinforcementMinRadius,
+        float reinforcementMaxRadius,
+        float reinforcementSpeed,
+        float passiveMinRadius,
+        float passiveMaxRadius,
+        float passiveSpeed)
+    {
+        reinforcementMinScatterRadius = Mathf.Max(0f, Mathf.Min(reinforcementMinRadius, reinforcementMaxRadius));
+        reinforcementMaxScatterRadius = Mathf.Max(reinforcementMinScatterRadius, Mathf.Max(reinforcementMinRadius, reinforcementMaxRadius));
+        reinforcementScatterSpeed = Mathf.Max(0f, reinforcementSpeed);
+
+        traitMinScatterRadius = Mathf.Max(0f, Mathf.Min(passiveMinRadius, passiveMaxRadius));
+        traitMaxScatterRadius = Mathf.Max(traitMinScatterRadius, Mathf.Max(passiveMinRadius, passiveMaxRadius));
+        traitScatterSpeed = Mathf.Max(0f, passiveSpeed);
+    }
+
     private void DropCurrency(Vector3 origin, CurrencyType currencyType, int amount)
     {
         if (amount <= 0)
@@ -110,10 +264,7 @@ public class RewardDropper : MonoBehaviour
             return;
         }
 
-        int shardSize = Mathf.Max(1, amountPerShard);
-        int desiredShardCount = Mathf.CeilToInt((float)amount / shardSize);
-        int shardCount = Mathf.Clamp(desiredShardCount, 1, Mathf.Max(1, maxShardsPerCurrency));
-
+        int shardCount = CalculateShardCount(currencyType, amount);
         int baseAmount = amount / shardCount;
         int remainder = amount % shardCount;
 
@@ -148,6 +299,40 @@ public class RewardDropper : MonoBehaviour
 
             pickup.InitializeCurrency(currencyType, shardAmount, initialVelocity);
         }
+    }
+
+    private int CalculateShardCount(CurrencyType currencyType, int amount)
+    {
+        if (amount <= 0)
+        {
+            return 0;
+        }
+
+        if (compactCurrencyDrops)
+        {
+            int shardSize = usePerCurrencyShardSize
+                ? GetCurrencyShardSize(currencyType)
+                : Mathf.Max(1, compactAmountPerShard);
+            int desiredShardCount = Mathf.CeilToInt((float)amount / shardSize);
+            return Mathf.Clamp(desiredShardCount, 1, Mathf.Max(1, compactMaxShardsPerCurrency));
+        }
+
+        int legacyShardSize = Mathf.Max(1, amountPerShard);
+        int legacyDesiredShardCount = Mathf.CeilToInt((float)amount / legacyShardSize);
+        return Mathf.Clamp(legacyDesiredShardCount, 1, Mathf.Max(1, maxShardsPerCurrency));
+    }
+
+    private int GetCurrencyShardSize(CurrencyType currencyType)
+    {
+        return Mathf.Max(1, currencyType switch
+        {
+            CurrencyType.Credits => creditsAmountPerShard,
+            CurrencyType.ScrapParts => scrapAmountPerShard,
+            CurrencyType.CoreShards => coreAmountPerShard,
+            CurrencyType.TuningChips => tuningChipAmountPerShard,
+            CurrencyType.Experience => experienceAmountPerShard,
+            _ => compactAmountPerShard
+        });
     }
 
     private void DropHeal(Vector3 origin, float healAmount)

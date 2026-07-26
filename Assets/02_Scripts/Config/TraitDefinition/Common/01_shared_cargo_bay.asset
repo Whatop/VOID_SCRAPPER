@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "확장 적재실"
   description: "기체 적재 한도를 늘린다. 더 오래 수확하고 더 많은 자원을 싣고 돌아올 수 있다."
   icon: {fileID: 21300000, guid: 3af841ac026668dbe7ef29b0cff283ed, type: 3}
+  rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0

@@ -52,6 +52,8 @@ public class ShopStockController : MonoBehaviour
     private bool boughtTraitThisShop;
     private bool boughtReinforcementThisShop;
 
+    public TraitCatalog TraitCatalog => traitCatalog;
+    public ReinforcementCatalog ReinforcementCatalog => reinforcementCatalog;
     public int TraitCost => Mathf.Max(0, traitCost);
     public int FallbackReinforcementCost => Mathf.Max(0, fallbackReinforcementCost);
 

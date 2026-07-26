@@ -343,7 +343,8 @@ public class RunResultPanelUI : MonoBehaviour
 
         builder.AppendLine($"• 최종 해역: {GetDepthText(resultData.finalDepth)}");
         builder.AppendLine($"• 사용 무기: {GetWeaponText(resultData.selectedWeaponTree)}");
-        builder.AppendLine($"• 획득 경험치: {resultData.runExperience}");
+        builder.AppendLine($"• 완료한 고가치 목표: {resultData.objectiveSignalCount}");
+        builder.AppendLine($"• 미사용 튜닝 칩: {resultData.unusedTuningChips}");
         builder.AppendLine($"• 소멸 크레딧: {resultData.remainingCredits}");
 
         switch (resultData.endReason)

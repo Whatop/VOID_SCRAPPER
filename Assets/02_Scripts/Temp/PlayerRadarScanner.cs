@@ -23,15 +23,15 @@ public class PlayerRadarScanner : MonoBehaviour
     [SerializeField] private float scanRadius = 15f;
     [SerializeField] private LayerMask radarTargetLayer = ~0;
 
-    [Tooltip("·¹ÀÌ´õ°¡ ¿­·Á ÀÖÀ» ¶§ Q¸¦ Âª°Ô ´©¸£¸é ´İ½À´Ï´Ù. ±æ°Ô ´©¸£¸é Àç½ºÄµÇÕ´Ï´Ù.")]
+    [Tooltip("ë ˆì´ë”ê°€ ì—´ë ¤ ìˆì„ ë•Œ Që¥¼ ì§§ê²Œ ëˆ„ë¥´ë©´ ë‹«ìŠµë‹ˆë‹¤. ê¸¸ê²Œ ëˆ„ë¥´ë©´ ë‹¤ì‹œ ìŠ¤ìº”í•©ë‹ˆë‹¤.")]
     [SerializeField] private bool shortPressClosesRadar = true;
 
     [Header("Sniper Option")]
     [SerializeField] private float sniperLingerTime = 6f;
 
     [Header("Warning Messages")]
-    [SerializeField] private string holdNotEnoughMessage = "Q¸¦ 1ÃÊ µ¿¾È ´­·¯¾ß ·¹ÀÌ´õ ½ºÄµÀÌ °¡´ÉÇÕ´Ï´Ù.";
-    [SerializeField] private string noTargetMessage = "Å½ÁöµÈ ´ë»óÀÌ ¾ø½À´Ï´Ù.";
+    [SerializeField] private string holdNotEnoughMessage = "Që¥¼ 1ì´ˆ ë™ì•ˆ ëˆŒëŸ¬ì•¼ ë ˆì´ë” ìŠ¤ìº”ì´ ê°€ëŠ¥í•©ë‹ˆë‹¤.";
+    [SerializeField] private string noTargetMessage = "íƒì§€ëœ ëŒ€ìƒì´ ì—†ìŠµë‹ˆë‹¤.";
 
     [Header("Debug")]
     [SerializeField] private bool drawScanRadius = true;
@@ -98,9 +98,9 @@ public class PlayerRadarScanner : MonoBehaviour
 
         UpdateHoldInput();
 
-        // Áß¿ä:
-        // ÀüÅõ »óÅÂ¶ó°í ÇØ¼­ ·¹ÀÌ´õ¸¦ ÀÚµ¿À¸·Î ´İÁö ¾Ê´Â´Ù.
-        // ÀüÅõ Áß »ç¿ë ¿©ºÎ¿Í ´İ±â ¿©ºÎ´Â ÇÃ·¹ÀÌ¾î°¡ Q ÀÔ·ÂÀ¸·Î Á÷Á¢ ¼±ÅÃÇÑ´Ù.
+        // ß¿:
+        //  Â¶ Ø¼ Ì´ Úµ  Ê´Â´.
+        //    Î¿ İ± Î´ Ã·Ì¾î°¡ Q Ô·  Ñ´.
     }
 
     private void CacheReferences()
@@ -221,6 +221,9 @@ public class PlayerRadarScanner : MonoBehaviour
         isHolding = true;
         holdTimer = 0f;
 
+        AudioManager.PlayAt(SoundEventIds.RadarChargeStart, transform.position);
+        AudioManager.PlayLoop(SoundEventIds.RadarChargeLoop, "radar_charge", 1f);
+
         if (radarVFX != null)
         {
             radarVFX.SetScanRadius(scanRadius);
@@ -243,6 +246,9 @@ public class PlayerRadarScanner : MonoBehaviour
 
         if (finalHoldTime < holdTime)
         {
+            AudioManager.StopLoop("radar_charge");
+            AudioManager.PlayAt(SoundEventIds.RadarChargeCancel, transform.position, 0.7f);
+
             if (radarVFX != null)
             {
                 radarVFX.CancelCharge();
@@ -263,8 +269,14 @@ public class PlayerRadarScanner : MonoBehaviour
 
     private void CancelHold()
     {
+        bool wasHolding = isHolding;
         isHolding = false;
         holdTimer = 0f;
+
+        if (wasHolding)
+        {
+            AudioManager.StopLoop("radar_charge");
+        }
 
         if (radarVFX != null)
         {
@@ -293,6 +305,9 @@ public class PlayerRadarScanner : MonoBehaviour
 
             return false;
         }
+
+        AudioManager.StopLoop("radar_charge");
+        AudioManager.PlayAt(SoundEventIds.RadarScanPulse, transform.position);
 
         if (radarVFX != null)
         {

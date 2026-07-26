@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 
 public enum SettlementPanelKind
@@ -121,6 +121,7 @@ public class SettlementUIController : MonoBehaviour
 
     private void OnEnable()
     {
+        ConfigureSettlementButtonSounds();
         SubscribeController();
         SubscribeButtons();
     }
@@ -138,31 +139,26 @@ public class SettlementUIController : MonoBehaviour
 
     public void ShowMainPanel()
     {
-        AudioManager.Play(SoundEventIds.UiBack);
         ShowPanel(SettlementPanelKind.Main);
     }
 
     public void ShowRepairPanel()
     {
-        AudioManager.Play(SoundEventIds.UiPanelOpen);
         ShowPanel(SettlementPanelKind.Repair);
     }
 
     public void ShowTraitPanel()
     {
-        AudioManager.Play(SoundEventIds.UiPanelOpen);
         ShowPanel(SettlementPanelKind.Trait);
     }
 
     public void ShowSettingsPanel()
     {
-        AudioManager.Play(SoundEventIds.UiPanelOpen);
         OpenSettingsOverlay();
     }
 
     public void CloseSettingsAndReturnMain()
     {
-        AudioManager.Play(SoundEventIds.UiPanelClose);
         CloseSettingsOverlay();
     }
     private void OpenSettingsOverlay()
@@ -287,8 +283,6 @@ public class SettlementUIController : MonoBehaviour
 
     public void MovePreviewShipPrevious()
     {
-        AudioManager.Play(SoundEventIds.UiClick);
-
         if (settlementController != null)
         {
             settlementController.MovePreviewShipPrevious();
@@ -299,8 +293,6 @@ public class SettlementUIController : MonoBehaviour
 
     public void MovePreviewShipNext()
     {
-        AudioManager.Play(SoundEventIds.UiClick);
-
         if (settlementController != null)
         {
             settlementController.MovePreviewShipNext();
@@ -311,11 +303,14 @@ public class SettlementUIController : MonoBehaviour
 
     public void ExecuteShipAction()
     {
-        AudioManager.Play(SoundEventIds.UiClick);
-
         if (settlementController != null)
         {
-            settlementController.TryExecutePreviewShipAction();
+            ShipDefinition previewShip = settlementController.PreviewShip;
+            bool wasUnlocked = previewShip != null && settlementController.IsShipUnlocked(previewShip);
+            bool wasSelected = settlementController.IsPreviewShipSelected();
+
+            bool success = settlementController.TryExecutePreviewShipAction();
+            PlayShipActionResultSound(success, wasUnlocked, wasSelected);
         }
 
         Refresh();
@@ -325,8 +320,9 @@ public class SettlementUIController : MonoBehaviour
     {
         if (settlementController != null)
         {
+            int levelBefore = settlementController.GetBuildingLevel(selectedBuilding);
             bool success = settlementController.TryRepairOrUpgradeBuilding(selectedBuilding);
-            AudioManager.Play(success ? SoundEventIds.UiUpgradeSuccess : SoundEventIds.UiInsufficient);
+            PlayProgressActionResultSound(success, levelBefore);
         }
 
         Refresh();
@@ -334,8 +330,12 @@ public class SettlementUIController : MonoBehaviour
 
     public void ExecuteTraitAction()
     {
+        int levelBefore = selectedTrait != null && settlementController != null
+            ? settlementController.GetTraitLevel(selectedTrait)
+            : GetSelectedTreeTraitLevel();
+
         bool success = TryExecuteCurrentTraitAction();
-        AudioManager.Play(success ? SoundEventIds.TraitSelect : SoundEventIds.UiInsufficient);
+        PlayProgressActionResultSound(success, levelBefore);
         Refresh();
     }
 
@@ -593,6 +593,138 @@ public class SettlementUIController : MonoBehaviour
         return shipTraitTreePanel.UnlockButton != traitActionButton;
     }
 
+    private void ConfigureSettlementButtonSounds()
+    {
+        ConfigureCommonButtonSound(openRepairPanelButton);
+        ConfigureCommonButtonSound(openTraitPanelButton);
+        ConfigureCommonButtonSound(shipPreviousButton);
+        ConfigureCommonButtonSound(shipNextButton);
+        ConfigureCommonButtonSound(repairPreviousButton);
+        ConfigureCommonButtonSound(repairNextButton);
+
+        ConfigureSpecialButtonSound(openSettingsPanelButton, SoundEventIds.UiSettings);
+        ConfigureSpecialButtonSound(repairBackButton, SoundEventIds.UiBack);
+        ConfigureSpecialButtonSound(traitBackButton, SoundEventIds.UiBack);
+
+        ConfigureSilentButton(launchButton);
+
+        ConfigureActionButtonSound(shipActionButton);
+        ConfigureActionButtonSound(repairActionButton);
+        ConfigureActionButtonSound(traitActionButton);
+    }
+
+    private void ConfigureCommonButtonSound(Button targetButton)
+    {
+        ConfigureButtonSound(targetButton, SoundEventIds.UiClick, true, true, true);
+    }
+
+    private void ConfigureSpecialButtonSound(Button targetButton, string clickEventId)
+    {
+        ConfigureButtonSound(targetButton, clickEventId, true, true, true);
+    }
+
+    private void ConfigureSilentButton(Button targetButton)
+    {
+        ConfigureButtonSound(targetButton, string.Empty, false, false, false);
+    }
+
+    private void ConfigureButtonSound(Button targetButton, string clickEventId, bool playClick, bool playHover, bool playDisabledClick)
+    {
+        if (targetButton == null)
+        {
+            return;
+        }
+
+        UISoundButton soundButton = targetButton.GetComponent<UISoundButton>();
+        if (soundButton == null)
+        {
+            soundButton = targetButton.gameObject.AddComponent<UISoundButton>();
+        }
+
+        soundButton.SetClickSoundEnabled(playClick);
+        soundButton.SetHoverSoundEnabled(playHover);
+        soundButton.SetDisabledClickSoundEnabled(playDisabledClick);
+
+        if (!string.IsNullOrWhiteSpace(clickEventId))
+        {
+            soundButton.SetClickSoundEventId(clickEventId);
+        }
+
+        soundButton.SetHoverSoundEventId(SoundEventIds.UiHover);
+        soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
+    }
+
+    private void ConfigureActionButtonSound(Button targetButton)
+    {
+        if (targetButton == null)
+        {
+            return;
+        }
+
+        UISoundButton soundButton = targetButton.GetComponent<UISoundButton>();
+        if (soundButton == null)
+        {
+            soundButton = targetButton.gameObject.AddComponent<UISoundButton>();
+        }
+
+        soundButton.SetClickSoundEnabled(false);
+        soundButton.SetHoverSoundEnabled(false);
+        soundButton.SetDisabledClickSoundEnabled(true);
+        soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
+    }
+
+    private void PlayShipActionResultSound(bool success, bool wasUnlocked, bool wasSelected)
+    {
+        if (!success)
+        {
+            AudioManager.Play(SoundEventIds.UiDisabled);
+            return;
+        }
+
+        if (!wasUnlocked)
+        {
+            AudioManager.Play(SoundEventIds.UiUnlock);
+            return;
+        }
+
+        if (!wasSelected)
+        {
+            AudioManager.Play(SoundEventIds.UiActivate);
+            return;
+        }
+
+        AudioManager.Play(SoundEventIds.UiClick);
+    }
+
+    private void PlayProgressActionResultSound(bool success, int levelBefore)
+    {
+        if (!success)
+        {
+            AudioManager.Play(SoundEventIds.UiDisabled);
+            return;
+        }
+
+        AudioManager.Play(levelBefore <= 0
+            ? SoundEventIds.UiUnlock
+            : SoundEventIds.UiUpgradeSuccess);
+    }
+
+    private int GetSelectedTreeTraitLevel()
+    {
+        if (shipTraitTreePanel == null || PermanentProgress.Instance == null)
+        {
+            return 0;
+        }
+
+        string nodeId = shipTraitTreePanel.SelectedNodeId;
+        if (string.IsNullOrWhiteSpace(nodeId))
+        {
+            return 0;
+        }
+
+        return PermanentProgress.Instance.GetTraitLevel(nodeId);
+    }
+
     private void SubscribeController()
     {
         if (settlementController != null)
@@ -768,7 +900,6 @@ public class SettlementUIController : MonoBehaviour
 
     public void MoveBuildingPrevious()
     {
-        AudioManager.Play(SoundEventIds.UiClick);
         int index = GetSelectedBuildingIndex();
         index--;
 
@@ -784,7 +915,6 @@ public class SettlementUIController : MonoBehaviour
 
     public void MoveBuildingNext()
     {
-        AudioManager.Play(SoundEventIds.UiClick);
         int index = GetSelectedBuildingIndex();
         index = (index + 1) % buildingOrder.Length;
 

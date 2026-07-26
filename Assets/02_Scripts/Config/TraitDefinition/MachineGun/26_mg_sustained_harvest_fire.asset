@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "지속 수확 사격"
   description: "기관총의 연사력과 수확 오브젝트 처리 능력을 강화한다."
   icon: {fileID: 21300000, guid: 0f1a2f8128e8f9776cf2973b4a274b04, type: 3}
+  rarity: 1
   category: 1
   weaponTreeType: 2
   shopItemType: 0

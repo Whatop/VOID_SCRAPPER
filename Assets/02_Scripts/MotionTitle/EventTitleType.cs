@@ -1,9 +1,10 @@
 public enum EventTitleType
 {
-    ExpeditionStart,
-    CoreReaction,
-    SafeReturn,
-    EmergencyReturn,
-    SafeReturnComplete,
-    EmergencyReturnComplete
+    ExpeditionStart = 0,
+    CoreReaction = 1,
+    SafeReturn = 2,
+    EmergencyReturn = 3,
+    SafeReturnComplete = 4,
+    EmergencyReturnComplete = 5,
+    BossEncounter = 6
 }

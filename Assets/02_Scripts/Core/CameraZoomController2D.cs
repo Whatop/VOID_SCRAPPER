@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -13,6 +15,11 @@ public class CameraZoomController2D : MonoBehaviour
     [SerializeField] private float baseOrthographicSize = 4.2f;
     [SerializeField] private float zoomSmoothSpeed = 10f;
 
+    [Header("Cinematic Transition")]
+    [SerializeField] private bool useUnscaledTimeForTransitions = true;
+    [SerializeField] private AnimationCurve defaultTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [SerializeField] private float baseZoomTolerance = 0.0025f;
+
     [Header("Pixel Perfect Override")]
     [SerializeField] private bool disablePixelPerfectWhileZoomedOut = true;
     [SerializeField] private float pixelPerfectDisableThreshold = 1.01f;
@@ -25,9 +32,16 @@ public class CameraZoomController2D : MonoBehaviour
     private bool initialized;
     private bool pixelPerfectScanDone;
     private bool pixelPerfectOverridden;
+    private bool cinematicTransitionActive;
 
     public float BaseOrthographicSize => baseOrthographicSize;
     public float TargetZoomMultiplier => targetZoomMultiplier;
+    public float CurrentOrthographicSize => ResolveCurrentOrthographicSize();
+    public float CurrentZoomMultiplier => baseOrthographicSize <= 0f
+        ? 1f
+        : ResolveCurrentOrthographicSize() / baseOrthographicSize;
+    public bool IsCinematicTransitionActive => cinematicTransitionActive;
+    public bool IsAtBaseZoom => Mathf.Abs(CurrentZoomMultiplier - 1f) <= Mathf.Max(0.0001f, baseZoomTolerance);
 
     public bool HasCinemachineCamera
     {
@@ -60,7 +74,11 @@ public class CameraZoomController2D : MonoBehaviour
 
         ResolveReferences();
 
-        bool zoomedOut = targetZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold);
+        float currentMultiplier = CurrentZoomMultiplier;
+        bool zoomedOut =
+            cinematicTransitionActive ||
+            targetZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold) ||
+            currentMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold);
 
         if (zoomedOut)
         {
@@ -69,7 +87,11 @@ public class CameraZoomController2D : MonoBehaviour
 
         ApplyZoom(false);
 
-        if (!zoomedOut)
+        currentMultiplier = CurrentZoomMultiplier;
+
+        if (!cinematicTransitionActive &&
+            targetZoomMultiplier <= Mathf.Max(1f, pixelPerfectDisableThreshold) &&
+            currentMultiplier <= Mathf.Max(1f, pixelPerfectDisableThreshold) + baseZoomTolerance)
         {
             RestorePixelPerfectComponents();
         }
@@ -77,11 +99,13 @@ public class CameraZoomController2D : MonoBehaviour
 
     private void OnDisable()
     {
+        cinematicTransitionActive = false;
         RestorePixelPerfectComponents();
     }
 
     private void OnDestroy()
     {
+        cinematicTransitionActive = false;
         RestorePixelPerfectComponents();
     }
 
@@ -110,12 +134,20 @@ public class CameraZoomController2D : MonoBehaviour
 
         targetZoomMultiplier = Mathf.Max(0.1f, multiplier);
 
-        if (targetZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold))
+        if (targetZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold) ||
+            CurrentZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold))
         {
             DisablePixelPerfectComponents();
         }
 
         ApplyZoom(immediate);
+
+        if (!cinematicTransitionActive && immediate &&
+            targetZoomMultiplier <= Mathf.Max(1f, pixelPerfectDisableThreshold) &&
+            IsAtBaseZoom)
+        {
+            RestorePixelPerfectComponents();
+        }
     }
 
     public void ResetZoom()
@@ -127,7 +159,88 @@ public class CameraZoomController2D : MonoBehaviour
     {
         targetZoomMultiplier = 1f;
         ApplyZoom(immediate);
-        RestorePixelPerfectComponents();
+
+        if (immediate || IsAtBaseZoom)
+        {
+            RestorePixelPerfectComponents();
+        }
+    }
+
+    public IEnumerator AnimateZoomMultiplier(
+        float multiplier,
+        float duration,
+        AnimationCurve curve = null,
+        Action<float, float> progressCallback = null)
+    {
+        ResolveReferences();
+
+        float startMultiplier = CurrentZoomMultiplier;
+        float endMultiplier = Mathf.Max(0.1f, multiplier);
+        float safeDuration = Mathf.Max(0f, duration);
+        AnimationCurve transitionCurve = curve != null && curve.length > 0
+            ? curve
+            : defaultTransitionCurve;
+
+        cinematicTransitionActive = true;
+
+        if (Mathf.Max(startMultiplier, endMultiplier) > Mathf.Max(1f, pixelPerfectDisableThreshold))
+        {
+            DisablePixelPerfectComponents();
+        }
+
+        if (safeDuration <= 0.0001f)
+        {
+            targetZoomMultiplier = endMultiplier;
+            ApplyZoom(true);
+            progressCallback?.Invoke(1f, endMultiplier);
+            cinematicTransitionActive = false;
+            TryRestorePixelPerfectAtBase();
+            yield break;
+        }
+
+        float elapsed = 0f;
+
+        while (elapsed < safeDuration)
+        {
+            float deltaTime = useUnscaledTimeForTransitions
+                ? Time.unscaledDeltaTime
+                : Time.deltaTime;
+
+            elapsed += Mathf.Max(0f, deltaTime);
+
+            float normalized = Mathf.Clamp01(elapsed / safeDuration);
+            float eased = transitionCurve != null && transitionCurve.length > 0
+                ? Mathf.Clamp01(transitionCurve.Evaluate(normalized))
+                : Mathf.SmoothStep(0f, 1f, normalized);
+
+            float currentMultiplier = Mathf.LerpUnclamped(startMultiplier, endMultiplier, eased);
+
+            targetZoomMultiplier = currentMultiplier;
+            ApplyZoom(true);
+            progressCallback?.Invoke(eased, currentMultiplier);
+
+            yield return null;
+        }
+
+        targetZoomMultiplier = endMultiplier;
+        ApplyZoom(true);
+        progressCallback?.Invoke(1f, endMultiplier);
+
+        cinematicTransitionActive = false;
+        TryRestorePixelPerfectAtBase();
+    }
+
+    public void CancelCinematicTransition(bool restoreBaseZoom)
+    {
+        cinematicTransitionActive = false;
+
+        if (restoreBaseZoom)
+        {
+            targetZoomMultiplier = 1f;
+            ApplyZoom(true);
+        }
+
+        TryRestorePixelPerfectAtBase();
     }
 
     public void SetBaseOrthographicSize(float size)
@@ -183,6 +296,23 @@ public class CameraZoomController2D : MonoBehaviour
         }
     }
 
+    private float ResolveCurrentOrthographicSize()
+    {
+        ResolveReferences();
+
+        if (cinemachineCamera != null)
+        {
+            return Mathf.Max(0.1f, cinemachineCamera.Lens.OrthographicSize);
+        }
+
+        if (targetCamera != null && targetCamera.orthographic)
+        {
+            return Mathf.Max(0.1f, targetCamera.orthographicSize);
+        }
+
+        return Mathf.Max(0.1f, baseOrthographicSize);
+    }
+
     private void ApplyZoom(bool immediate)
     {
         if (!initialized)
@@ -220,6 +350,16 @@ public class CameraZoomController2D : MonoBehaviour
                 float t = 1f - Mathf.Exp(-zoomSmoothSpeed * Time.deltaTime);
                 targetCamera.orthographicSize = Mathf.Lerp(targetCamera.orthographicSize, targetSize, t);
             }
+        }
+    }
+
+    private void TryRestorePixelPerfectAtBase()
+    {
+        if (!cinematicTransitionActive &&
+            targetZoomMultiplier <= Mathf.Max(1f, pixelPerfectDisableThreshold) &&
+            IsAtBaseZoom)
+        {
+            RestorePixelPerfectComponents();
         }
     }
 
@@ -325,4 +465,19 @@ public class CameraZoomController2D : MonoBehaviour
         string typeName = component.GetType().Name;
         return typeName == "PixelPerfectCamera" || typeName == "CinemachinePixelPerfect";
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        baseOrthographicSize = Mathf.Max(0.1f, baseOrthographicSize);
+        zoomSmoothSpeed = Mathf.Max(0f, zoomSmoothSpeed);
+        pixelPerfectDisableThreshold = Mathf.Max(1f, pixelPerfectDisableThreshold);
+        baseZoomTolerance = Mathf.Max(0.0001f, baseZoomTolerance);
+
+        if (defaultTransitionCurve == null || defaultTransitionCurve.length == 0)
+        {
+            defaultTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        }
+    }
+#endif
 }

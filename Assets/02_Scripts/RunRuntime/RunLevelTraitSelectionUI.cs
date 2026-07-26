@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
@@ -5,9 +6,12 @@ using UnityEngine;
 
 public class RunLevelTraitSelectionUI : MonoBehaviour
 {
+    [Header("Legacy Level Trigger")]
+    [Tooltip("기본 OFF. 신규 구조에서는 특수 상자/NPC/보스가 이 UI를 직접 엽니다.")]
+    [SerializeField] private bool legacyExperienceLevelTriggerEnabled;
+
     [Header("References")]
     [SerializeField] private RunLevelSystem runLevelSystem;
-    [SerializeField] private RunTraitEffectApplier traitEffectApplier;
     [SerializeField] private ExpeditionHUD expeditionHUD;
 
     [Header("Trait Source")]
@@ -15,6 +19,11 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
     [SerializeField] private bool includeInspectorTraitDefinitions = true;
     [SerializeField] private bool includeHiddenTraits;
     [SerializeField] private List<TraitDefinition> traitDefinitions = new List<TraitDefinition>();
+
+    [Header("Reinforcement Source")]
+    [SerializeField] private ReinforcementCatalog reinforcementCatalog;
+    [SerializeField] private bool includeInspectorReinforcementDefinitions = true;
+    [SerializeField] private List<ReinforcementDefinition> reinforcementDefinitions = new List<ReinforcementDefinition>();
 
     [Header("UI")]
     [SerializeField] private GameObject panelRoot;
@@ -28,15 +37,23 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
     [SerializeField] private bool pauseGameplayWhileSelecting = true;
 
     private readonly List<TraitDefinition> resolvedTraits = new List<TraitDefinition>();
-    private readonly List<TraitDefinition> candidateBuffer = new List<TraitDefinition>();
-    private readonly List<TraitDefinition> choiceBuffer = new List<TraitDefinition>();
+    private readonly List<ReinforcementDefinition> resolvedReinforcements = new List<ReinforcementDefinition>();
+    private readonly List<RunRewardOption> currentOptions = new List<RunRewardOption>();
     private readonly Queue<int> pendingLevelQueue = new Queue<int>();
 
     private bool showing;
+    private Vector2 currentSourcePosition;
+    private Action<RunRewardChoiceResult> completionCallback;
+    private int tuningChipCostOnSelection;
+
+    public bool IsShowing => showing;
+    public TraitCatalog TraitCatalog => traitCatalog;
+    public ReinforcementCatalog ReinforcementCatalog => reinforcementCatalog;
 
     private void Awake()
     {
         ResolveReferences();
+        ResolveDefinitions();
         HideImmediate();
     }
 
@@ -48,6 +65,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
     private void Start()
     {
         ResolveReferences();
+        ResolveDefinitions();
     }
 
     private void OnDisable()
@@ -58,6 +76,174 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         {
             GameplayPauseManager.Instance.PopPause(this);
         }
+
+        showing = false;
+    }
+
+    public void ConfigureCatalogs(TraitCatalog traits, ReinforcementCatalog reinforcements)
+    {
+        if (traits != null)
+        {
+            traitCatalog = traits;
+        }
+
+        if (reinforcements != null)
+        {
+            reinforcementCatalog = reinforcements;
+        }
+
+        ResolveDefinitions();
+    }
+
+    public bool TryBuildRewardOptions(
+        SpecialRewardMode mode,
+        int requestedChoiceCount,
+        RunRewardRarity minimumRarity,
+        bool forceAtLeastOneRareOrBetter,
+        out List<RunRewardOption> options)
+    {
+        ResolveReferences();
+        ResolveDefinitions();
+
+        PlayerReinforcementController reinforcementController = FindFirstObjectByType<PlayerReinforcementController>();
+        string equippedId = reinforcementController != null
+            ? reinforcementController.EquippedReinforcementId
+            : string.Empty;
+
+        options = RunRewardChoiceGenerator.BuildOptionsFromDefinitions(
+            mode,
+            Mathf.Max(1, requestedChoiceCount),
+            minimumRarity,
+            resolvedTraits,
+            resolvedReinforcements,
+            ResolveSelectedWeaponTree(),
+            forceAtLeastOneRareOrBetter,
+            equippedId
+        );
+
+        return options != null && options.Count > 0;
+    }
+
+    public bool ShowSpecialContainerChoices(
+        SpecialRewardMode mode,
+        int requestedChoiceCount,
+        bool forceAtLeastOneRareOrBetter,
+        Vector2 sourcePosition,
+        Action<RunRewardChoiceResult> onCompleted,
+        out bool offeredRareOrBetter)
+    {
+        offeredRareOrBetter = false;
+        int finalCount = ResolveChoiceCount(requestedChoiceCount);
+
+        if (!TryBuildRewardOptions(
+                mode,
+                finalCount,
+                RunRewardRarity.Common,
+                forceAtLeastOneRareOrBetter,
+                out List<RunRewardOption> options))
+        {
+            return false;
+        }
+
+        offeredRareOrBetter = RunRewardChoiceGenerator.ContainsRareOrBetter(options);
+
+        string title = mode switch
+        {
+            SpecialRewardMode.TraitOnly => "특수 패시브 화물",
+            SpecialRewardMode.ReinforcementOnly => "특수 액티브 화물",
+            _ => "특수 장비 화물"
+        };
+
+        return ShowOptions(
+            title,
+            "탐사 중 사용할 보상 하나를 선택해라. 중복 특성은 자동으로 강화된다.",
+            options,
+            sourcePosition,
+            onCompleted,
+            0
+        );
+    }
+
+    public bool ShowBossRewardChoices(
+        int requestedChoiceCount,
+        bool rareGuaranteed,
+        Vector2 sourcePosition,
+        Action<RunRewardChoiceResult> onCompleted)
+    {
+        int finalCount = ResolveChoiceCount(requestedChoiceCount);
+        RunRewardRarity minimumRarity = rareGuaranteed
+            ? RunRewardRarity.Rare
+            : RunRewardRarity.Common;
+
+        if (!TryBuildRewardOptions(
+                SpecialRewardMode.Mixed,
+                finalCount,
+                minimumRarity,
+                rareGuaranteed,
+                out List<RunRewardOption> options))
+        {
+            return false;
+        }
+
+        return ShowOptions(
+            "보스 회수품",
+            "희귀 이상 장비를 선택해 현재 탐사 빌드를 완성해라.",
+            options,
+            sourcePosition,
+            onCompleted,
+            0
+        );
+    }
+
+    public bool ShowBlackMarketChoices(
+        int requestedChoiceCount,
+        Vector2 sourcePosition,
+        Action<RunRewardChoiceResult> onCompleted)
+    {
+        int finalCount = ResolveChoiceCount(requestedChoiceCount);
+
+        if (!TryBuildRewardOptions(
+                SpecialRewardMode.Mixed,
+                finalCount,
+                RunRewardRarity.Common,
+                false,
+                out List<RunRewardOption> options))
+        {
+            return false;
+        }
+
+        return ShowOptions(
+            "암시장 미확인 화물",
+            "구매할 장비 하나를 선택해라.",
+            options,
+            sourcePosition,
+            onCompleted,
+            0
+        );
+    }
+
+    public bool ShowTraitTuningChoices(
+        int tuningChipCost,
+        Vector2 sourcePosition,
+        Action<RunRewardChoiceResult> onCompleted)
+    {
+        ResolveDefinitions();
+        int finalCount = ResolveChoiceCount(choiceCount);
+        List<RunRewardOption> options = BuildOwnedTraitUpgradeOptions(finalCount);
+
+        if (options.Count <= 0)
+        {
+            return false;
+        }
+
+        return ShowOptions(
+            "현장 튜닝",
+            $"튜닝 칩 {Mathf.Max(1, tuningChipCost)}개를 사용해 보유 특성 하나를 강화한다.",
+            options,
+            sourcePosition,
+            onCompleted,
+            Mathf.Max(1, tuningChipCost)
+        );
     }
 
     private void ResolveReferences()
@@ -65,11 +251,6 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         if (runLevelSystem == null)
         {
             runLevelSystem = FindFirstObjectByType<RunLevelSystem>();
-        }
-
-        if (traitEffectApplier == null)
-        {
-            traitEffectApplier = FindFirstObjectByType<RunTraitEffectApplier>();
         }
 
         if (expeditionHUD == null)
@@ -84,14 +265,45 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
         if (canvasGroup == null)
         {
+            canvasGroup = panelRoot != null
+                ? panelRoot.GetComponent<CanvasGroup>()
+                : null;
+        }
+
+        if (canvasGroup == null)
+        {
             canvasGroup = GetComponent<CanvasGroup>();
+        }
+
+        // 선택 UI 매니저와 패널 루트가 같은 오브젝트여도
+        // 매니저 자체가 비활성화되어 검색/호출 불가능해지지 않게 유지한다.
+        if (panelRoot == gameObject && canvasGroup == null)
+        {
+            canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        }
+
+        ShopStockController shopStock = FindFirstObjectByType<ShopStockController>();
+
+        if (traitCatalog == null && shopStock != null)
+        {
+            traitCatalog = shopStock.TraitCatalog;
+        }
+
+        if (reinforcementCatalog == null && shopStock != null)
+        {
+            reinforcementCatalog = shopStock.ReinforcementCatalog;
         }
     }
 
     private void Subscribe()
     {
-        if (runLevelSystem != null)
+        ResolveReferences();
+
+        if (legacyExperienceLevelTriggerEnabled &&
+            runLevelSystem != null &&
+            runLevelSystem.LegacyExperienceLevelingEnabled)
         {
+            runLevelSystem.LeveledUp -= HandleLeveledUp;
             runLevelSystem.LeveledUp += HandleLeveledUp;
         }
     }
@@ -106,6 +318,11 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
     private void HandleLeveledUp(int newLevel)
     {
+        if (!legacyExperienceLevelTriggerEnabled)
+        {
+            return;
+        }
+
         pendingLevelQueue.Enqueue(newLevel);
 
         if (!showing)
@@ -118,48 +335,88 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
     {
         if (pendingLevelQueue.Count <= 0)
         {
-            Hide();
             return;
         }
 
         int level = pendingLevelQueue.Dequeue();
-        ShowForLevel(level);
-    }
+        int finalCount = ResolveChoiceCount(choiceCount);
 
-    private void ShowForLevel(int level)
-    {
-        ResolveReferences();
-        ResolveTraitDefinitions();
-        BuildCandidateList();
-        BuildChoiceList();
-
-        if (choiceBuffer.Count <= 0)
+        if (!TryBuildRewardOptions(
+                SpecialRewardMode.TraitOnly,
+                finalCount,
+                RunRewardRarity.Common,
+                false,
+                out List<RunRewardOption> options))
         {
             expeditionHUD?.ShowWarning("선택 가능한 특성이 없습니다.");
             ShowNextPendingLevel();
             return;
         }
 
+        ShowOptions(
+            $"레벨 {level} 달성 · 구버전",
+            "구버전 경험치 성장 선택입니다.",
+            options,
+            transform.position,
+            _ => ShowNextPendingLevel(),
+            0
+        );
+    }
+
+    private bool ShowOptions(
+        string title,
+        string body,
+        IReadOnlyList<RunRewardOption> options,
+        Vector2 sourcePosition,
+        Action<RunRewardChoiceResult> onCompleted,
+        int tuningChipCost)
+    {
+        ResolveReferences();
+
+        if (showing || options == null || options.Count <= 0 || choiceButtons == null || choiceButtons.Length <= 0)
+        {
+            return false;
+        }
+
+        currentOptions.Clear();
+
+        int visibleCount = Mathf.Min(options.Count, ResolveChoiceCount(options.Count));
+
+        for (int i = 0; i < visibleCount; i++)
+        {
+            if (options[i] != null)
+            {
+                currentOptions.Add(options[i]);
+            }
+        }
+
+        if (currentOptions.Count <= 0)
+        {
+            return false;
+        }
+
         showing = true;
+        currentSourcePosition = sourcePosition;
+        completionCallback = onCompleted;
+        tuningChipCostOnSelection = Mathf.Max(0, tuningChipCost);
 
         if (pauseGameplayWhileSelecting)
         {
-            GameplayPauseManager.Instance.PushPause(this, "LevelUpTraitSelection");
+            GameplayPauseManager.Instance.PushPause(this, "RunRewardChoice");
         }
 
         SetVisible(true);
+        AudioManager.Play(SoundEventIds.UiPanelOpen);
 
         if (titleText != null)
         {
-            titleText.text = $"레벨 {level} 달성";
+            titleText.text = title;
         }
 
         if (bodyText != null)
         {
-            bodyText.text = "이번 탐사 동안 적용할 특성을 선택해라.";
+            bodyText.text = body;
         }
-
-        RunRuntimeTraitStore store = RunRuntimeTraitStore.Instance;
 
         for (int i = 0; i < choiceButtons.Length; i++)
         {
@@ -170,78 +427,124 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
                 continue;
             }
 
-            if (i >= choiceBuffer.Count)
+            if (i >= currentOptions.Count)
             {
                 button.Clear();
                 continue;
             }
 
-            TraitDefinition trait = choiceBuffer[i];
-            int currentLevel = store != null ? store.GetLevel(trait.TraitId) : 0;
-            int nextLevel = Mathf.Clamp(currentLevel + 1, 1, trait.MaxLevel);
-            string effectText = TraitEffectTextUtility.BuildEffectText(trait, nextLevel);
-
-            button.Setup(trait, currentLevel, nextLevel, effectText, HandleTraitSelected);
+            button.SetupReward(currentOptions[i], HandleRewardSelected);
         }
+
+        return true;
     }
 
-    private void HandleTraitSelected(TraitDefinition trait)
+    private void HandleRewardSelected(RunRewardOption option)
     {
-        if (trait == null)
+        if (!showing || option == null)
         {
             return;
         }
 
-        RunRuntimeTraitStore store = RunRuntimeTraitStore.Instance;
-        int newLevel = store.AddOrUpgrade(trait);
+        bool tuningSpent = false;
 
-        if (newLevel <= 0)
+        if (tuningChipCostOnSelection > 0)
         {
+            RunWallet wallet = ResolveWallet();
+
+            if (wallet == null || !wallet.TrySpend(CurrencyType.TuningChips, tuningChipCostOnSelection))
+            {
+                AudioManager.Play(SoundEventIds.ActionDenied);
+                expeditionHUD?.ShowWarning("튜닝 칩이 부족합니다.");
+                return;
+            }
+
+            tuningSpent = true;
+        }
+
+        RunRewardChoiceResult result = RunRewardChoiceApplier.Apply(option, currentSourcePosition);
+
+        if (!result.Success)
+        {
+            if (tuningSpent)
+            {
+                ResolveWallet()?.Add(CurrencyType.TuningChips, tuningChipCostOnSelection);
+            }
+
             AudioManager.Play(SoundEventIds.ActionDenied);
-            expeditionHUD?.ShowWarning("특성 적용에 실패했습니다.");
+            expeditionHUD?.ShowWarning("보상 적용에 실패했습니다.");
             return;
         }
 
-        if (traitEffectApplier == null)
-        {
-            traitEffectApplier = FindFirstObjectByType<RunTraitEffectApplier>();
-        }
-
-        if (traitEffectApplier != null)
-        {
-            traitEffectApplier.ApplyTraitLevel(trait, newLevel);
-        }
-
-        AudioManager.Play(SoundEventIds.TraitSelect);
-        expeditionHUD?.ShowWarning($"{trait.DisplayName} Lv{newLevel} 적용");
-
-        if (pauseGameplayWhileSelecting)
-        {
-            GameplayPauseManager.Instance.PopPause(this);
-        }
-
-        showing = false;
-        SetVisible(false);
-        ShowNextPendingLevel();
+        Action<RunRewardChoiceResult> callback = completionCallback;
+        CloseChoice();
+        callback?.Invoke(result);
     }
 
-    private void ResolveTraitDefinitions()
+    private List<RunRewardOption> BuildOwnedTraitUpgradeOptions(int requestedCount)
     {
+        List<RunRewardOption> result = new List<RunRewardOption>();
+        RunRuntimeTraitStore store = RunRuntimeTraitStore.Instance;
+
+        for (int i = 0; i < resolvedTraits.Count; i++)
+        {
+            TraitDefinition trait = resolvedTraits[i];
+
+            if (trait == null)
+            {
+                continue;
+            }
+
+            int currentLevel = store.GetLevel(trait.TraitId);
+
+            if (currentLevel <= 0 || currentLevel >= trait.MaxLevel)
+            {
+                continue;
+            }
+
+            result.Add(RunRewardOption.FromTrait(trait));
+        }
+
+        Shuffle(result);
+
+        if (result.Count > requestedCount)
+        {
+            result.RemoveRange(requestedCount, result.Count - requestedCount);
+        }
+
+        return result;
+    }
+
+    private void ResolveDefinitions()
+    {
+        ResolveReferences();
         resolvedTraits.Clear();
+        resolvedReinforcements.Clear();
 
         if (traitCatalog != null)
         {
             traitCatalog.AppendAllTo(resolvedTraits);
         }
 
-        if (!includeInspectorTraitDefinitions || traitDefinitions == null)
+        if (includeInspectorTraitDefinitions && traitDefinitions != null)
         {
-            return;
+            for (int i = 0; i < traitDefinitions.Count; i++)
+            {
+                AppendUniqueTrait(traitDefinitions[i]);
+            }
         }
 
-        for (int i = 0; i < traitDefinitions.Count; i++)
+        if (reinforcementCatalog != null)
         {
-            AppendUniqueTrait(traitDefinitions[i]);
+            reinforcementCatalog.AppendAllTo(resolvedReinforcements);
+        }
+
+        if (includeInspectorReinforcementDefinitions && reinforcementDefinitions != null)
+        {
+            for (int i = 0; i < reinforcementDefinitions.Count; i++)
+            {
+                AppendUniqueReinforcement(reinforcementDefinitions[i]);
+            }
         }
     }
 
@@ -254,9 +557,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
         for (int i = 0; i < resolvedTraits.Count; i++)
         {
-            TraitDefinition existing = resolvedTraits[i];
-
-            if (existing != null && existing.TraitId == trait.TraitId)
+            if (resolvedTraits[i] != null && resolvedTraits[i].TraitId == trait.TraitId)
             {
                 return;
             }
@@ -265,78 +566,30 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         resolvedTraits.Add(trait);
     }
 
-    private void BuildCandidateList()
+    private void AppendUniqueReinforcement(ReinforcementDefinition definition)
     {
-        candidateBuffer.Clear();
-
-        RunRuntimeTraitStore store = RunRuntimeTraitStore.Instance;
-        WeaponTreeType selectedWeaponTree = ResolveSelectedWeaponTree();
-
-        for (int i = 0; i < resolvedTraits.Count; i++)
+        if (definition == null)
         {
-            TraitDefinition trait = resolvedTraits[i];
-
-            if (trait == null)
-            {
-                continue;
-            }
-
-            if (!trait.IsAvailableFor(selectedWeaponTree))
-            {
-                continue;
-            }
-
-            if (!IsLevelUpTraitEligible(trait))
-            {
-                continue;
-            }
-
-            if (store != null && !store.CanUpgrade(trait))
-            {
-                continue;
-            }
-
-            candidateBuffer.Add(trait);
+            return;
         }
+
+        for (int i = 0; i < resolvedReinforcements.Count; i++)
+        {
+            if (resolvedReinforcements[i] != null &&
+                resolvedReinforcements[i].EquipmentId == definition.EquipmentId)
+            {
+                return;
+            }
+        }
+
+        resolvedReinforcements.Add(definition);
     }
 
-    private bool IsLevelUpTraitEligible(TraitDefinition trait)
+    private RunWallet ResolveWallet()
     {
-        if (trait == null)
-        {
-            return false;
-        }
-
-        if (trait.CanAppearAsLevelUpTrait)
-        {
-            return true;
-        }
-
-        if (includeHiddenTraits && trait.IsHidden)
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    private void BuildChoiceList()
-    {
-        choiceBuffer.Clear();
-
-        int targetCount = Mathf.Clamp(choiceCount, 1, Mathf.Max(1, choiceButtons != null ? choiceButtons.Length : 1));
-
-        while (candidateBuffer.Count > 0 && choiceBuffer.Count < targetCount)
-        {
-            int index = Random.Range(0, candidateBuffer.Count);
-            TraitDefinition picked = candidateBuffer[index];
-            candidateBuffer.RemoveAt(index);
-
-            if (picked != null)
-            {
-                choiceBuffer.Add(picked);
-            }
-        }
+        return RunManager.Instance != null && RunManager.Instance.HasActiveRun
+            ? RunManager.Instance.CurrentRun.Wallet
+            : null;
     }
 
     private WeaponTreeType ResolveSelectedWeaponTree()
@@ -354,7 +607,13 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         return WeaponTreeType.MachineGun;
     }
 
-    private void Hide()
+    private int ResolveChoiceCount(int requested)
+    {
+        int capacity = choiceButtons != null ? choiceButtons.Length : 0;
+        return capacity > 0 ? Mathf.Clamp(requested, 1, capacity) : 0;
+    }
+
+    private void CloseChoice()
     {
         if (pauseGameplayWhileSelecting && showing)
         {
@@ -362,7 +621,11 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         }
 
         showing = false;
+        tuningChipCostOnSelection = 0;
+        completionCallback = null;
+        currentOptions.Clear();
         SetVisible(false);
+        AudioManager.Play(SoundEventIds.UiPanelClose);
     }
 
     private void HideImmediate()
@@ -373,7 +636,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
     private void SetVisible(bool visible)
     {
-        if (panelRoot != null)
+        if (panelRoot != null && panelRoot != gameObject)
         {
             panelRoot.SetActive(visible);
         }
@@ -383,6 +646,17 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
             canvasGroup.alpha = visible ? 1f : 0f;
             canvasGroup.interactable = visible;
             canvasGroup.blocksRaycasts = visible;
+        }
+    }
+
+    private static void Shuffle<T>(List<T> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int index = UnityEngine.Random.Range(0, i + 1);
+            T temp = list[i];
+            list[i] = list[index];
+            list[index] = temp;
         }
     }
 }
@@ -420,79 +694,40 @@ public static class TraitEffectTextUtility
 
     public static string FormatEffect(TraitEffectType effectType, float value)
     {
-        switch (effectType)
+        return effectType switch
         {
-            case TraitEffectType.DamagePercent:
-                return $"공격력 +{value:0.#}%";
-
-            case TraitEffectType.ProjectileSpeedPercent:
-                return $"탄속 +{value:0.#}%";
-
-            case TraitEffectType.RangePercent:
-                return $"사거리 +{value:0.#}%";
-
-            case TraitEffectType.MoveSpeedPercent:
-                return $"이동속도 +{value:0.#}%";
-
-            case TraitEffectType.DashCooldownReduction:
-                return $"대쉬 쿨다운 -{Mathf.Abs(value):0.##}초";
-
-            case TraitEffectType.DashDistanceBonus:
-                return $"대쉬 거리 +{value:0.##}";
-
-            case TraitEffectType.MaxHpBonus:
-                return $"최대 체력 +{value:0.#}";
-
-            case TraitEffectType.HealEfficiencyPercent:
-                return $"회복 자원 효과 +{value:0.#}%";
-
-            case TraitEffectType.PickupRangeBonus:
-                return $"아이템 흡수 범위 +{value:0.##}";
-
-            case TraitEffectType.SpreadReductionPercent:
-                return $"탄 퍼짐 -{Mathf.Abs(value):0.#}%";
-
-            case TraitEffectType.ProjectileCountBonus:
-                return $"탄 수 +{Mathf.RoundToInt(value)}";
-
-            case TraitEffectType.PierceCountBonus:
-                return $"관통 횟수 +{Mathf.RoundToInt(value)}";
-
-            case TraitEffectType.ChargeTimeReductionPercent:
-                return $"차징 시간 -{Mathf.Abs(value):0.#}%";
-
-            case TraitEffectType.ChargeDamagePercent:
-                return $"차징 피해 +{value:0.#}%";
-
-            case TraitEffectType.HomingAngleBonus:
-                return $"유도 각도 +{value:0.#}도";
-
-            case TraitEffectType.HomingRangeBonus:
-                return $"유도 거리 +{value:0.##}";
-
-            case TraitEffectType.FireRatePercent:
-                return $"연사력 +{value:0.#}%";
-
-            case TraitEffectType.CloseRangeDamageReductionPercent:
-                return $"근거리 피해 감소 +{value:0.#}%";
-
-            case TraitEffectType.DashDamageReductionPercent:
-                return $"대쉬 후 피해 감소 +{value:0.#}%";
-
-            case TraitEffectType.CloseRangeSuppressionPercent:
-                return $"근거리 제압 효과 +{value:0.#}%";
-
-            case TraitEffectType.ChargeSightBonusPercent:
-                return $"차징 중 시야 +{value:0.#}%";
-
-            case TraitEffectType.ChargedProjectileSizePercent:
-                return $"차징탄 크기 +{value:0.#}%";
-
-            case TraitEffectType.RemovePierceDamageFalloff:
-                return "관통 후 피해 감쇠 제거";
-
-            default:
-                return $"{effectType} {value:0.##}";
-        }
+            TraitEffectType.DamagePercent => $"공격력 +{value:0.#}%",
+            TraitEffectType.ProjectileSpeedPercent => $"탄속 +{value:0.#}%",
+            TraitEffectType.RangePercent => $"사거리 +{value:0.#}%",
+            TraitEffectType.MoveSpeedPercent => $"이동속도 +{value:0.#}%",
+            TraitEffectType.DashCooldownReduction => $"대쉬 쿨다운 -{Mathf.Abs(value):0.##}초",
+            TraitEffectType.DashDistanceBonus => $"대쉬 거리 +{value:0.##}",
+            TraitEffectType.MaxHpBonus => $"최대 체력 +{value:0.#}",
+            TraitEffectType.HealEfficiencyPercent => $"회복 자원 효과 +{value:0.#}%",
+            TraitEffectType.PickupRangeBonus => $"아이템 흡수 범위 +{value:0.##}",
+            TraitEffectType.SpreadReductionPercent => $"탄 퍼짐 -{Mathf.Abs(value):0.#}%",
+            TraitEffectType.ProjectileCountBonus => $"탄 수 +{Mathf.RoundToInt(value)}",
+            TraitEffectType.PierceCountBonus => $"관통 횟수 +{Mathf.RoundToInt(value)}",
+            TraitEffectType.ChargeTimeReductionPercent => $"차징 시간 -{Mathf.Abs(value):0.#}%",
+            TraitEffectType.ChargeDamagePercent => $"차징 피해 +{value:0.#}%",
+            TraitEffectType.HomingAngleBonus => $"유도 각도 +{value:0.#}도",
+            TraitEffectType.HomingRangeBonus => $"유도 거리 +{value:0.##}",
+            TraitEffectType.FireRatePercent => $"연사력 +{value:0.#}%",
+            TraitEffectType.CloseRangeDamageReductionPercent => $"근거리 피해 감소 +{value:0.#}%",
+            TraitEffectType.DashDamageReductionPercent => $"대쉬 후 피해 감소 +{value:0.#}%",
+            TraitEffectType.CloseRangeSuppressionPercent => $"근거리 제압 효과 +{value:0.#}%",
+            TraitEffectType.ChargeSightBonusPercent => $"차징 중 시야 +{value:0.#}%",
+            TraitEffectType.ChargedProjectileSizePercent => $"차징탄 크기 +{value:0.#}%",
+            TraitEffectType.RemovePierceDamageFalloff => "관통 후 피해 감쇠 제거",
+            TraitEffectType.CargoCapacityBonus => $"적재 한도 +{value:0.#}",
+            TraitEffectType.HarvestYieldPercent => $"수확량 +{value:0.#}%",
+            TraitEffectType.HarvestObjectDamagePercent => $"수확 오브젝트 피해 +{value:0.#}%",
+            TraitEffectType.EmergencyReturnCapacityRatioBonus => $"긴급복귀 보존 한도 +{value:0.#}%p",
+            TraitEffectType.RadarScanRadiusBonus => $"레이더 반경 +{value:0.#}",
+            TraitEffectType.ActiveCooldownReductionPercent => $"액티브 쿨다운 -{Mathf.Abs(value):0.#}%",
+            TraitEffectType.RadarTauntDurationBonus => $"도발 지속시간 +{value:0.#}초",
+            TraitEffectType.RadarStealthDurationBonus => $"은밀 표식 유지 +{value:0.#}초",
+            _ => $"{effectType} {value:0.##}"
+        };
     }
 }

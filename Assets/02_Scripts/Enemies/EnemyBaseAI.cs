@@ -23,7 +23,7 @@ public class EnemyBaseAI : MonoBehaviour
     [SerializeField] private string playerTag = "Player";
 
     [Header("Visual Facing")]
-    [Tooltip("ºñ¿öµÎ¸é ÀÚ±â transformÀ» È¸ÀüÇÕ´Ï´Ù. ±ÇÀå: VisualRoot ¶Ç´Â ShipBody¸¦ ³ÖÀ¸¼¼¿ä.")]
+    [Tooltip("ë¹„ì›Œë‘ë©´ ìžê¸° transformì„ íšŒì „í•©ë‹ˆë‹¤. ê¶Œìž¥: VisualRoot ë˜ëŠ” ShipBodyë¥¼ ë„£ìœ¼ì„¸ìš”.")]
     [SerializeField] private Transform visualRoot;
     [SerializeField] private bool rotateToFacingDirection = true;
     [SerializeField] private float rotationOffset = -90f;
@@ -62,6 +62,9 @@ public class EnemyBaseAI : MonoBehaviour
     private EnemyHealth health;
     private EnemyAttackController attackController;
     private RadarTarget radarTarget;
+    private EnemyRoleController roleController;
+    private EnemyVisionSensor visionSensor;
+    private EnemyAwarenessIndicator awarenessIndicator;
 
     private Vector2 spawnPosition;
     private Vector2 patrolTarget;
@@ -81,6 +84,12 @@ public class EnemyBaseAI : MonoBehaviour
     public EnemyState CurrentState => currentState;
     public EnemyDefinition EnemyDefinition => enemyDefinition;
     public Transform Player => player;
+    public EnemyHealth Health => health;
+    public EnemyAttackController AttackController => attackController;
+    public EnemyRoleController RoleController => roleController;
+    public EnemyVisionSensor VisionSensor => visionSensor;
+    public Vector2 HomePosition => spawnPosition;
+    public float BaseMoveSpeed => moveSpeed;
     public Vector2 DesiredVelocity => desiredVelocity;
     public Vector2 FacingDirection => facingDirection;
     public bool IsMoving => desiredVelocity.sqrMagnitude > 0.01f;
@@ -104,6 +113,9 @@ public class EnemyBaseAI : MonoBehaviour
         health = GetComponent<EnemyHealth>();
         attackController = GetComponent<EnemyAttackController>();
         radarTarget = GetComponent<RadarTarget>();
+        roleController = GetComponent<EnemyRoleController>();
+        visionSensor = GetComponent<EnemyVisionSensor>();
+        awarenessIndicator = GetComponent<EnemyAwarenessIndicator>();
         visualRoot = transform;
     }
 
@@ -113,6 +125,19 @@ public class EnemyBaseAI : MonoBehaviour
         health = GetComponent<EnemyHealth>();
         attackController = GetComponent<EnemyAttackController>();
         radarTarget = GetComponent<RadarTarget>();
+        roleController = GetComponent<EnemyRoleController>();
+        visionSensor = GetComponent<EnemyVisionSensor>();
+        awarenessIndicator = GetComponent<EnemyAwarenessIndicator>();
+
+        if (visionSensor == null)
+        {
+            visionSensor = gameObject.AddComponent<EnemyVisionSensor>();
+        }
+
+        if (awarenessIndicator == null)
+        {
+            awarenessIndicator = gameObject.AddComponent<EnemyAwarenessIndicator>();
+        }
 
         if (visualRoot == null)
         {
@@ -135,6 +160,11 @@ public class EnemyBaseAI : MonoBehaviour
         initialized = true;
 
         ResolvePlayer();
+
+        if (visionSensor != null)
+        {
+            visionSensor.SetTarget(player);
+        }
 
         if (enemyDefinition != null)
         {
@@ -169,6 +199,12 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         ResolvePlayer();
+
+        if (roleController != null && roleController.TryHandlePriority(this, Time.deltaTime))
+        {
+            ApplyFacingRotation(Time.deltaTime);
+            return;
+        }
 
         switch (currentState)
         {
@@ -248,6 +284,17 @@ public class EnemyBaseAI : MonoBehaviour
             radarTarget.SetMarkerType(enemyDefinition.RadarMarkerType);
         }
 
+        if (visionSensor != null)
+        {
+            visionSensor.ApplyDefinition(enemyDefinition);
+            visionSensor.SetTarget(player);
+        }
+
+        if (roleController != null)
+        {
+            roleController.RefreshRadarVisual();
+        }
+
         if (initialized && currentState == EnemyState.Patrol)
         {
             PickNewPatrolTarget();
@@ -257,6 +304,107 @@ public class EnemyBaseAI : MonoBehaviour
     public void SetTarget(Transform target)
     {
         player = target;
+
+        if (visionSensor != null)
+        {
+            visionSensor.SetTarget(target);
+        }
+    }
+
+    public void SetRoleController(EnemyRoleController controller)
+    {
+        roleController = controller;
+    }
+
+    public void SetHomePosition(Vector2 position, bool repickPatrolTarget = true)
+    {
+        spawnPosition = position;
+
+        if (repickPatrolTarget && currentState == EnemyState.Patrol)
+        {
+            PickNewPatrolTarget();
+        }
+    }
+
+    public void CommandMoveTo(Vector2 targetPosition, float speedMultiplier = 1f)
+    {
+        MoveTo(targetPosition, moveSpeed * Mathf.Max(0f, speedMultiplier));
+    }
+
+    public void CommandStopMoving()
+    {
+        StopMoving();
+    }
+
+    public void CommandFaceTo(Vector2 targetPosition)
+    {
+        FaceTo(targetPosition);
+    }
+
+    public void CommandAttackPlayer()
+    {
+        TryAttackPlayer();
+    }
+
+    public void CancelCurrentAttack()
+    {
+        if (attackController != null)
+        {
+            attackController.CancelCharge();
+        }
+    }
+
+    public void RequestState(EnemyState nextState)
+    {
+        SetState(nextState);
+    }
+
+    public void EngagePlayer()
+    {
+        ResolvePlayer();
+
+        if (currentState == EnemyState.Dead)
+        {
+            return;
+        }
+
+        if (player != null)
+        {
+            lastSeenPlayerPosition = player.position;
+            FaceTo(player.position);
+        }
+
+        if (visionSensor != null)
+        {
+            visionSensor.ForceDetectTarget(player);
+        }
+
+        SetState(EnemyState.Combat);
+    }
+
+    public bool CanSeePlayerForRole()
+    {
+        return CanSeePlayer() || CanDetectPlayerByRadar();
+    }
+
+    public bool CanDirectlySeePlayerForRole()
+    {
+        return CanSeePlayer();
+    }
+
+    public bool CanDetectPlayerByRadarForRole()
+    {
+        return CanDetectPlayerByRadar();
+    }
+
+    public bool CanSuspectPlayerForRole()
+    {
+        return CanSuspectPlayer();
+    }
+
+    public float GetDistanceToPlayerForRole()
+    {
+        return GetDistanceToPlayer();
     }
 
     public void NotifyDamagedByPlayer()
@@ -270,6 +418,11 @@ public class EnemyBaseAI : MonoBehaviour
         {
             lastSeenPlayerPosition = player.position;
             FaceTo(player.position);
+        }
+
+        if (visionSensor != null)
+        {
+            visionSensor.ForceDetectTarget(player);
         }
 
         SetState(EnemyState.Combat);
@@ -317,6 +470,11 @@ public class EnemyBaseAI : MonoBehaviour
 
     public bool IsThreateningPlayer()
     {
+        if (roleController != null)
+        {
+            return roleController.CountsAsThreat(currentState);
+        }
+
         return currentState == EnemyState.Alert ||
                currentState == EnemyState.Combat ||
                currentState == EnemyState.Search ||
@@ -325,9 +483,26 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void UpdatePatrol()
     {
+        if (roleController != null && roleController.TryHandlePatrol(this, Time.deltaTime))
+        {
+            return;
+        }
+
         if (CanSeePlayer())
         {
             SetState(EnemyState.Combat);
+            return;
+        }
+
+        if (CanSuspectPlayer() && player != null)
+        {
+            AlertTo(player.position);
+            return;
+        }
+
+        if (CanDetectPlayerByRadar())
+        {
+            AlertTo(player.position);
             return;
         }
 
@@ -341,10 +516,27 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void UpdateAlert()
     {
+        if (roleController != null && roleController.TryHandleAlert(this, Time.deltaTime))
+        {
+            return;
+        }
+
         if (CanSeePlayer())
         {
             SetState(EnemyState.Combat);
             return;
+        }
+
+        if (CanSuspectPlayer() && player != null)
+        {
+            alertTarget = player.position;
+            stateTimer = Mathf.Max(stateTimer, 0.35f);
+        }
+
+        if (CanDetectPlayerByRadar() && player != null)
+        {
+            alertTarget = player.position;
+            stateTimer = Mathf.Max(stateTimer, alertDuration * 0.5f);
         }
 
         stateTimer -= Time.deltaTime;
@@ -361,6 +553,11 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void UpdateCombat()
     {
+        if (roleController != null && roleController.TryHandleCombat(this, Time.deltaTime))
+        {
+            return;
+        }
+
         if (player == null)
         {
             SetState(EnemyState.Search);
@@ -369,7 +566,7 @@ public class EnemyBaseAI : MonoBehaviour
 
         FaceTo(player.position);
 
-        if (CanSeePlayer())
+        if (CanSeePlayer() || CanDetectPlayerByRadar())
         {
             lostSightTimer = 0f;
             lastSeenPlayerPosition = player.position;
@@ -511,9 +708,26 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void UpdateSearch()
     {
+        if (roleController != null && roleController.TryHandleSearch(this, Time.deltaTime))
+        {
+            return;
+        }
+
         if (CanSeePlayer())
         {
             SetState(EnemyState.Combat);
+            return;
+        }
+
+        if (CanSuspectPlayer() && player != null)
+        {
+            AlertTo(player.position);
+            return;
+        }
+
+        if (CanDetectPlayerByRadar() && player != null)
+        {
+            AlertTo(player.position);
             return;
         }
 
@@ -538,9 +752,26 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void UpdateReturn()
     {
+        if (roleController != null && roleController.TryHandleReturn(this, Time.deltaTime))
+        {
+            return;
+        }
+
         if (CanSeePlayer())
         {
             SetState(EnemyState.Combat);
+            return;
+        }
+
+        if (CanSuspectPlayer() && player != null)
+        {
+            AlertTo(player.position);
+            return;
+        }
+
+        if (CanDetectPlayerByRadar() && player != null)
+        {
+            AlertTo(player.position);
             return;
         }
 
@@ -555,6 +786,11 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void UpdateTaunt()
     {
+        if (roleController != null && roleController.TryHandleTaunt(this, Time.deltaTime))
+        {
+            return;
+        }
+
         if (CanSeePlayer() && player != null)
         {
             lastSeenPlayerPosition = player.position;
@@ -582,6 +818,11 @@ public class EnemyBaseAI : MonoBehaviour
     private void TryAttackPlayer()
     {
         if (attackController == null || player == null)
+        {
+            return;
+        }
+
+        if (!CanSeePlayer())
         {
             return;
         }
@@ -771,8 +1012,27 @@ public class EnemyBaseAI : MonoBehaviour
             return false;
         }
 
+        if (visionSensor != null)
+        {
+            return visionSensor.HasConfirmedSight(player);
+        }
+
         float sqrDistance = ((Vector2)player.position - (Vector2)transform.position).sqrMagnitude;
         return sqrDistance <= visionRange * visionRange;
+    }
+
+    private bool CanSuspectPlayer()
+    {
+        return player != null &&
+               visionSensor != null &&
+               visionSensor.HasVisualSuspicion;
+    }
+
+    private bool CanDetectPlayerByRadar()
+    {
+        return player != null &&
+               visionSensor != null &&
+               visionSensor.HasRadarContact(player);
     }
 
     private float GetDistanceToPlayer()
@@ -807,6 +1067,11 @@ public class EnemyBaseAI : MonoBehaviour
         if (found != null)
         {
             player = found.transform;
+
+            if (visionSensor != null)
+            {
+                visionSensor.SetTarget(player);
+            }
         }
     }
 
@@ -830,8 +1095,11 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, visionRange);
+        if (visionSensor == null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, visionRange);
+        }
 
         Gizmos.color = Color.green;
         Vector3 center = Application.isPlaying ? (Vector3)spawnPosition : transform.position;

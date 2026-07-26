@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum HarvestObjectKind
@@ -13,6 +14,9 @@ public enum HarvestObjectKind
 [RequireComponent(typeof(Collider2D))]
 public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 {
+    private static readonly HashSet<HarvestObjectHealth> ActiveRegistry = new HashSet<HarvestObjectHealth>();
+
+    public static IEnumerable<HarvestObjectHealth> ActiveObjects => ActiveRegistry;
     [Header("Harvest Object")]
     [SerializeField] private HarvestObjectKind objectKind = HarvestObjectKind.SupplyContainer;
 
@@ -31,6 +35,14 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
     [Header("Hit Effect")]
     [SerializeField] private GameObject hitEffectPrefab;
     [SerializeField] private float hitEffectDuration = 0.12f;
+    [SerializeField] private bool useProceduralHitEffectWhenPrefabMissing = true;
+    [SerializeField] private float hitEffectIntensity = 0.9f;
+
+    [Header("Camera Shake")]
+    [SerializeField] private float hitShakeAmplitude = 0.025f;
+    [SerializeField] private float hitShakeDuration = 0.05f;
+    [SerializeField] private float breakShakeAmplitude = 0.09f;
+    [SerializeField] private float breakShakeDuration = 0.11f;
 
     [Header("Death Effect")]
     [SerializeField] private GameObject deathEffectPrefab;
@@ -55,9 +67,18 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
     [SerializeField] private bool setPlayerAsEnemyTarget = true;
     [SerializeField] private string playerTag = "Player";
 
+    [Header("Projectile Interaction")]
+    [SerializeField] private bool takeDamageFromPlayerProjectiles = true;
+    [SerializeField] private bool takeDamageFromEnemyProjectiles;
+    [SerializeField] private bool blockProjectileWhenDamageIgnored = true;
+
     [Header("Knockback Optional")]
     [SerializeField] private bool receiveDashKnockback;
     [SerializeField] private float knockbackMultiplier = 1f;
+    [Tooltip("고정 오브젝트가 Transform 순간이동으로 밀리는 것을 막습니다. 켜두면 Dynamic Rigidbody2D만 넉백됩니다.")]
+    [SerializeField] private bool requireDynamicRigidbodyForKnockback = true;
+    [SerializeField] private bool useImpulseKnockback = true;
+    [SerializeField] private float maxKnockbackSpeed = 2f;
 
     private Rigidbody2D rb;
     private float currentHp;
@@ -69,10 +90,17 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
     public float MaxHp => maxHp;
     public float HpRatio => maxHp <= 0f ? 0f : currentHp / maxHp;
     public bool IsDead => isDead;
+    public bool BlocksProjectileWhenDamageIgnored => blockProjectileWhenDamageIgnored;
 
     public event Action<HarvestObjectHealth, float, float> HealthChanged;
     public event Action<HarvestObjectHealth> Damaged;
     public event Action<HarvestObjectHealth> Died;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetActiveRegistry()
+    {
+        ActiveRegistry.Clear();
+    }
 
     private void Reset()
     {
@@ -115,6 +143,8 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
 
     private void OnEnable()
     {
+        ActiveRegistry.Add(this);
+
         if (resetHealthOnEnable)
         {
             ResetHealth();
@@ -123,6 +153,8 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
 
     private void OnDisable()
     {
+        ActiveRegistry.Remove(this);
+
         if (releaseRoutine != null)
         {
             StopCoroutine(releaseRoutine);
@@ -134,6 +166,11 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
             rb.linearVelocity = Vector2.zero;
             rb.angularVelocity = 0f;
         }
+    }
+
+    private void OnDestroy()
+    {
+        ActiveRegistry.Remove(this);
     }
 
     public void SetRewardDefinition(RewardDefinition definition)
@@ -194,7 +231,20 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
         HealthChanged?.Invoke(this, currentHp, maxHp);
     }
 
+
+    public bool CanReceiveProjectileDamage(ProjectileOwner projectileOwner)
+    {
+        return projectileOwner == ProjectileOwner.Player
+            ? takeDamageFromPlayerProjectiles
+            : takeDamageFromEnemyProjectiles;
+    }
+
     public void TakeDamage(float damage)
+    {
+        TakeDamage(damage, transform.position, Vector2.zero);
+    }
+
+    public void TakeDamage(float damage, Vector2 hitPoint, Vector2 incomingDirection)
     {
         if (isDead)
         {
@@ -208,8 +258,21 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
 
         currentHp = Mathf.Max(0f, currentHp - damage);
 
-        SpawnEffect(hitEffectPrefab, hitEffectDuration, transform.position, Quaternion.identity);
-        AudioManager.PlayAt(ResolveHitSoundEventId(), transform.position, 0.65f);
+        bool customEffectSpawned = hitEffectPrefab != null;
+        SpawnEffect(hitEffectPrefab, hitEffectDuration, hitPoint, Quaternion.identity);
+
+        float damageScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, damage) / 2f), 0.7f, 1.65f);
+        CombatFeedbackManager.PlayHit(
+            hitPoint,
+            incomingDirection,
+            CombatFeedbackKind.Harvest,
+            hitEffectIntensity * damageScale,
+            hitShakeAmplitude * damageScale,
+            hitShakeDuration,
+            useProceduralHitEffectWhenPrefabMissing && !customEffectSpawned
+        );
+
+        AudioManager.PlayAt(ResolveHitSoundEventId(), hitPoint, 0.65f);
         HealthChanged?.Invoke(this, currentHp, maxHp);
         Damaged?.Invoke(this);
 
@@ -221,7 +284,7 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
 
     public void TakeDamage(int damage)
     {
-        TakeDamage((float)damage);
+        TakeDamage((float)damage, transform.position, Vector2.zero);
     }
 
     public void ApplyKnockback(Vector2 origin, float distance)
@@ -252,13 +315,30 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
 
         float finalDistance = distance * Mathf.Max(0f, knockbackMultiplier);
 
-        if (rb != null)
+        if (rb == null)
         {
-            rb.position += direction * finalDistance;
+            // 수확 오브젝트 Root를 Transform으로 순간 이동시키지 않습니다.
+            return;
+        }
+
+        if (requireDynamicRigidbodyForKnockback && rb.bodyType != RigidbodyType2D.Dynamic)
+        {
+            return;
+        }
+
+        if (useImpulseKnockback && rb.bodyType == RigidbodyType2D.Dynamic)
+        {
+            rb.AddForce(direction * finalDistance, ForceMode2D.Impulse);
+
+            float speedLimit = Mathf.Max(0.01f, maxKnockbackSpeed);
+            if (rb.linearVelocity.sqrMagnitude > speedLimit * speedLimit)
+            {
+                rb.linearVelocity = rb.linearVelocity.normalized * speedLimit;
+            }
         }
         else
         {
-            transform.position += (Vector3)(direction * finalDistance);
+            rb.MovePosition(rb.position + direction * finalDistance);
         }
     }
 
@@ -294,6 +374,14 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
         }
 
         SpawnEffect(deathEffectPrefab, deathEffectDuration, transform.position, Quaternion.identity);
+        CombatFeedbackManager.PlayBreak(
+            transform.position,
+            CombatFeedbackKind.Harvest,
+            1.25f,
+            breakShakeAmplitude,
+            breakShakeDuration,
+            deathEffectPrefab == null
+        );
         AudioManager.PlayAt(ResolveBreakSoundEventId(), transform.position);
 
         if (dropRewardOnDeath && rewardDropper != null)

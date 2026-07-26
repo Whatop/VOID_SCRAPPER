@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 [Serializable]
 public class WeaponLoadoutEntry
@@ -31,6 +32,15 @@ public class PlayerWeaponController : MonoBehaviour
 
     [Header("State Rule")]
     [SerializeField] private bool requireGameplayState;
+
+    [Header("UI Fire Blocking")]
+    [SerializeField] private bool blockFireOverUi = true;
+    [Tooltip("켜면 실제 버튼/스크롤 등 입력 가능한 UI만 사격을 막고, 장식용 HUD 이미지는 무시합니다.")]
+    [SerializeField] private bool blockOnlyInteractiveUi = true;
+
+    private readonly List<RaycastResult> uiRaycastResults = new List<RaycastResult>(16);
+    private PointerEventData pointerEventData;
+    private EventSystem pointerEventSystem;
 
     private InputAction fireAction;
     private PlayerWeaponBase currentWeapon;
@@ -199,7 +209,7 @@ public class PlayerWeaponController : MonoBehaviour
             return false;
         }
 
-        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        if (IsPointerOverBlockingUi())
         {
             return false;
         }
@@ -215,6 +225,67 @@ public class PlayerWeaponController : MonoBehaviour
         }
 
         return true;
+    }
+
+    private bool IsPointerOverBlockingUi()
+    {
+        if (!blockFireOverUi || EventSystem.current == null)
+        {
+            return false;
+        }
+
+        if (!blockOnlyInteractiveUi)
+        {
+            return EventSystem.current.IsPointerOverGameObject();
+        }
+
+        Vector2 pointerPosition;
+
+        if (Mouse.current != null)
+        {
+            pointerPosition = Mouse.current.position.ReadValue();
+        }
+        else
+        {
+            return false;
+        }
+
+        if (pointerEventData == null || pointerEventSystem != EventSystem.current)
+        {
+            pointerEventSystem = EventSystem.current;
+            pointerEventData = new PointerEventData(pointerEventSystem);
+        }
+
+        pointerEventData.position = pointerPosition;
+        uiRaycastResults.Clear();
+        EventSystem.current.RaycastAll(pointerEventData, uiRaycastResults);
+
+        for (int i = 0; i < uiRaycastResults.Count; i++)
+        {
+            GameObject hitObject = uiRaycastResults[i].gameObject;
+
+            if (hitObject == null)
+            {
+                continue;
+            }
+
+            Selectable selectable = hitObject.GetComponentInParent<Selectable>();
+
+            if (selectable != null && selectable.IsActive() && selectable.IsInteractable())
+            {
+                return true;
+            }
+
+            if (ExecuteEvents.GetEventHandler<IPointerClickHandler>(hitObject) != null ||
+                ExecuteEvents.GetEventHandler<IBeginDragHandler>(hitObject) != null ||
+                ExecuteEvents.GetEventHandler<IDragHandler>(hitObject) != null ||
+                ExecuteEvents.GetEventHandler<IScrollHandler>(hitObject) != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void HandleRunStarted(RunContext runContext)

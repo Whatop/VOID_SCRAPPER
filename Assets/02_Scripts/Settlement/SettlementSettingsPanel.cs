@@ -44,6 +44,7 @@ public class SettlementSettingsPanel : MonoBehaviour
         }
 
         InitializeSettings();
+        ConfigureButtonSounds();
         Close();
     }
 
@@ -195,6 +196,34 @@ public class SettlementSettingsPanel : MonoBehaviour
 
         PlayerPrefs.SetInt(ResolutionIndexKey, index);
         PlayerPrefs.Save();
+    }
+
+    private void ConfigureButtonSounds()
+    {
+        ConfigureButtonSound(openButton, SoundEventIds.UiSettings);
+        ConfigureButtonSound(closeButton, SoundEventIds.UiBack);
+        ConfigureButtonSound(backButton, SoundEventIds.UiBack);
+    }
+
+    private void ConfigureButtonSound(Button targetButton, string clickEventId)
+    {
+        if (targetButton == null)
+        {
+            return;
+        }
+
+        UISoundButton soundButton = targetButton.GetComponent<UISoundButton>();
+        if (soundButton == null)
+        {
+            soundButton = targetButton.gameObject.AddComponent<UISoundButton>();
+        }
+
+        soundButton.SetClickSoundEnabled(true);
+        soundButton.SetHoverSoundEnabled(true);
+        soundButton.SetDisabledClickSoundEnabled(true);
+        soundButton.SetClickSoundEventId(clickEventId);
+        soundButton.SetHoverSoundEventId(SoundEventIds.UiHover);
+        soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
     }
 
     public void QuitGame()

@@ -124,6 +124,58 @@ public class PlayerRuntimeBonusState : MonoBehaviour
         radarStealthDurationBonus += amount;
     }
 
+    public void RemoveHarvestYieldPercent(float percent)
+    {
+        harvestYieldMultiplier = DivideMultiplier(harvestYieldMultiplier, PercentToMultiplier(percent));
+    }
+
+    public void RemoveHealEfficiencyPercent(float percent)
+    {
+        healEfficiencyMultiplier = DivideMultiplier(healEfficiencyMultiplier, PercentToMultiplier(percent));
+    }
+
+    public void RemovePickupRangeBonus(float amount)
+    {
+        pickupRangeBonus = Mathf.Max(0f, pickupRangeBonus - amount);
+    }
+
+    public void RemoveCargoCapacityBonus(float amount)
+    {
+        cargoCapacityBonus -= Mathf.RoundToInt(amount);
+    }
+
+    public void RemoveEmergencyReturnCapacityRatioBonus(float percent)
+    {
+        emergencyReturnCapacityRatioBonus -= percent * 0.01f;
+    }
+
+    public void RemoveHarvestObjectDamagePercent(float percent)
+    {
+        harvestObjectDamageMultiplier = DivideMultiplier(harvestObjectDamageMultiplier, PercentToMultiplier(percent));
+    }
+
+    public void RemoveRadarScanRadiusBonus(float amount)
+    {
+        radarScanRadiusBonus -= amount;
+    }
+
+    public void RemoveActiveCooldownReductionPercent(float percent)
+    {
+        float reduction = Mathf.Clamp01(Mathf.Abs(percent) * 0.01f);
+        float factor = Mathf.Clamp(1f - reduction, 0.05f, 1f);
+        activeCooldownMultiplier = DivideMultiplier(activeCooldownMultiplier, factor);
+    }
+
+    public void RemoveRadarTauntDurationBonus(float amount)
+    {
+        radarTauntDurationBonus -= amount;
+    }
+
+    public void RemoveRadarStealthDurationBonus(float amount)
+    {
+        radarStealthDurationBonus -= amount;
+    }
+
     public int ApplyCurrencyGain(CurrencyType currencyType, int baseAmount)
     {
         if (baseAmount <= 0)
@@ -160,6 +212,16 @@ public class PlayerRuntimeBonusState : MonoBehaviour
         }
 
         return Mathf.Max(0f, baseRepairAmount * repairEfficiencyMultiplier);
+    }
+
+    private float DivideMultiplier(float current, float factor)
+    {
+        if (factor <= 0.0001f || float.IsNaN(factor) || float.IsInfinity(factor))
+        {
+            return current;
+        }
+
+        return Mathf.Max(0f, current / factor);
     }
 
     private float PercentToMultiplier(float percent)

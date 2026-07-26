@@ -317,6 +317,8 @@ public class Bullet : MonoBehaviour
             return;
         }
 
+        Vector2 hitPoint = ResolveHitPoint(other);
+
         if (owner == ProjectileOwner.Player)
         {
             EnemyHealth enemyHealth = other.GetComponentInParent<EnemyHealth>();
@@ -328,7 +330,10 @@ public class Bullet : MonoBehaviour
                     return;
                 }
 
-                bool damaged = TryApplyDamageToTarget(enemyHealth, enemyHealth.TakeDamage);
+                bool damaged = TryApplyDamageToTarget(
+                    enemyHealth,
+                    value => enemyHealth.TakeDamage(value, hitPoint, moveDirection)
+                );
 
                 if (damaged)
                 {
@@ -354,27 +359,91 @@ public class Bullet : MonoBehaviour
                     return;
                 }
 
-                TryApplyDamageToTarget(playerHealth, playerHealth.TakeDamage);
+                TryApplyDamageToTarget(
+                    playerHealth,
+                    value => playerHealth.TakeDamage(value, hitPoint, moveDirection)
+                );
                 return;
             }
         }
 
-        if (owner == ProjectileOwner.Player)
-        {
-            HarvestObjectHealth harvestObject = other.GetComponentInParent<HarvestObjectHealth>();
+        HarvestObjectHealth harvestObject = other.GetComponentInParent<HarvestObjectHealth>();
 
-            if (harvestObject != null)
+        if (harvestObject != null)
+        {
+            if (harvestObject.CanReceiveProjectileDamage(owner))
             {
-                TryApplyDamageToTarget(harvestObject, value => harvestObject.TakeDamage(value * harvestObjectDamageMultiplier));
-                return;
+                TryApplyDamageToTarget(
+                    harvestObject,
+                    value => harvestObject.TakeDamage(
+                        owner == ProjectileOwner.Player
+                            ? value * harvestObjectDamageMultiplier
+                            : value,
+                        hitPoint,
+                        moveDirection
+                    )
+                );
             }
+            else if (harvestObject.BlocksProjectileWhenDamageIgnored)
+            {
+                ReleaseSelf(true);
+            }
+
+            return;
         }
 
         MeteorObstacle meteorObstacle = other.GetComponentInParent<MeteorObstacle>();
 
         if (meteorObstacle != null)
         {
-            ApplyDamageToMeteor(meteorObstacle);
+            if (meteorObstacle.CanReceiveProjectileDamage(owner))
+            {
+                ApplyDamageToMeteor(meteorObstacle, hitPoint);
+            }
+            else if (meteorObstacle.BlocksProjectileWhenDamageIgnored)
+            {
+                ReleaseSelf(true);
+            }
+
+            return;
+        }
+
+        ShopStructure shopStructure = other.GetComponentInParent<ShopStructure>();
+
+        if (shopStructure != null)
+        {
+            // 상점 적대화는 플레이어의 선택으로만 발생해야 합니다.
+            if (owner == ProjectileOwner.Player)
+            {
+                TryApplyDamageToTarget(
+                    shopStructure,
+                    value => shopStructure.TakeDamage(value, hitPoint, moveDirection)
+                );
+            }
+            else
+            {
+                ReleaseSelf(true);
+            }
+
+            return;
+        }
+
+        ExpeditionEventDamageReceiver eventDamageReceiver = other.GetComponentInParent<ExpeditionEventDamageReceiver>();
+
+        if (eventDamageReceiver != null)
+        {
+            if (owner == ProjectileOwner.Player)
+            {
+                TryApplyDamageToTarget(
+                    eventDamageReceiver,
+                    value => eventDamageReceiver.TakeDamage(value, hitPoint, moveDirection)
+                );
+            }
+            else
+            {
+                ReleaseSelf(true);
+            }
+
             return;
         }
 
@@ -385,6 +454,25 @@ public class Bullet : MonoBehaviour
         {
             TryApplyDamageToTarget(damageableComponent, damageable.TakeDamage);
         }
+    }
+
+    private Vector2 ResolveHitPoint(Collider2D targetCollider)
+    {
+        if (targetCollider == null)
+        {
+            return transform.position;
+        }
+
+        Vector2 bulletPosition = transform.position;
+        Vector2 closestPoint = targetCollider.ClosestPoint(bulletPosition);
+
+        if (float.IsNaN(closestPoint.x) || float.IsInfinity(closestPoint.x) ||
+            float.IsNaN(closestPoint.y) || float.IsInfinity(closestPoint.y))
+        {
+            return bulletPosition;
+        }
+
+        return closestPoint;
     }
 
     private bool IsFriendlyCollider(Collider2D other)
@@ -402,7 +490,7 @@ public class Bullet : MonoBehaviour
         return other.GetComponentInParent<EnemyHealth>() != null;
     }
 
-    private void ApplyDamageToMeteor(MeteorObstacle meteorObstacle)
+    private void ApplyDamageToMeteor(MeteorObstacle meteorObstacle, Vector2 hitPoint)
     {
         if (meteorObstacle == null)
         {
@@ -417,7 +505,7 @@ public class Bullet : MonoBehaviour
         }
 
         damagedTargets.Add(targetId);
-        meteorObstacle.TakeDamage(Mathf.CeilToInt(damage));
+        meteorObstacle.TakeDamage(Mathf.CeilToInt(damage), hitPoint, moveDirection);
 
         if (remainingPierceCount > 0)
         {

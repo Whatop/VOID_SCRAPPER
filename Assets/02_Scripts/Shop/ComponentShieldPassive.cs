@@ -17,6 +17,12 @@ public class ComponentShieldPassive : MonoBehaviour
     [Header("VFX")]
     [SerializeField] private GameObject blockEffectPrefab;
     [SerializeField] private float blockEffectLifetime = 0.4f;
+    [SerializeField] private bool useProceduralHitEffectWhenPrefabMissing = true;
+    [SerializeField] private float blockEffectIntensity = 1.35f;
+
+    [Header("Camera Shake")]
+    [SerializeField] private float blockShakeAmplitude = 0.13f;
+    [SerializeField] private float blockShakeDuration = 0.12f;
 
     private float rechargeTimer;
     private bool charged;
@@ -72,6 +78,15 @@ public class ComponentShieldPassive : MonoBehaviour
         Vector2 center = transform.position;
 
         SpawnEffect(hitPoint);
+        CombatFeedbackManager.PlayHit(
+            hitPoint,
+            center - hitPoint,
+            CombatFeedbackKind.Shield,
+            blockEffectIntensity,
+            blockShakeAmplitude,
+            blockShakeDuration,
+            useProceduralHitEffectWhenPrefabMissing && blockEffectPrefab == null
+        );
         ClearProjectiles(center);
         PushNearbyObjects(center);
 

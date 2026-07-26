@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32048701275e98246b7aac59aadefd7b, type: 3}
+  m_Name: EventReward_BlackBox
+  m_EditorClassIdentifier: 
+  fixedRewards:
+  - currencyType: 4
+    amount: 1
+  - currencyType: 1
+    amount: 12
+  - currencyType: 2
+    amount: 2
+  randomRewards: []
+  healDropChance: 0
+  healAmount: 1
+  enableReinforcementDrop: 1
+  reinforcementDropChance: 0.12
+  minReinforcementDropCount: 1
+  maxReinforcementDropCount: 1
+  reinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}
+  includeCatalogReinforcements: 1
+  reinforcementDropPool: []
+  excludeEmergencyReturnEquipment: 1
+  preventDuplicateReinforcementDrops: 1
+  useReinforcementRarityWeight: 1
+  enableTraitDrop: 0
+  traitDropChance: 0
+  minTraitDropCount: 1
+  maxTraitDropCount: 1
+  traitCatalog: {fileID: 0}
+  includeCatalogTraits: 1
+  traitDropPool: []
+  preventDuplicateTraitDrops: 1

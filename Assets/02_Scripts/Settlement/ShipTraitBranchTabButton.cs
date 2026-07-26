@@ -53,6 +53,11 @@ public class ShipTraitBranchTabButton : MonoBehaviour
     [SerializeField] private Color selectedTextColor = Color.white;
     [SerializeField] private Color lockedTextColor = new Color(0.55f, 0.60f, 0.68f, 1f);
 
+    [Header("Sound")]
+    [SerializeField] private bool playClickSound = true;
+    [SerializeField] private string clickSoundEventId = SoundEventIds.UiClick;
+    [SerializeField] private string lockedClickSoundEventId = SoundEventIds.UiDisabled;
+
     [Header("Option")]
     [SerializeField] private bool allowClickWhenLocked = true;
     [Range(0f, 1f)]
@@ -428,12 +433,36 @@ public class ShipTraitBranchTabButton : MonoBehaviour
             return;
         }
 
-        if (!isAvailable && !allowClickWhenLocked)
+        if (!isAvailable)
+        {
+            PlayClickSound(lockedClickSoundEventId);
+
+            if (!allowClickWhenLocked)
+            {
+                return;
+            }
+        }
+        else
+        {
+            PlayClickSound(clickSoundEventId);
+        }
+
+        owner.SelectBranchTab(branchKind);
+    }
+
+    private void PlayClickSound(string eventId)
+    {
+        if (!playClickSound)
         {
             return;
         }
 
-        owner.SelectBranchTab(branchKind);
+        if (string.IsNullOrWhiteSpace(eventId))
+        {
+            return;
+        }
+
+        AudioManager.Play(eventId);
     }
 
     private void KillTweens(bool complete)

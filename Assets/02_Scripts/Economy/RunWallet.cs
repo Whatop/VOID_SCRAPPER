@@ -8,11 +8,13 @@ public class RunWallet
     [SerializeField] private int credits;
     [SerializeField] private int pendingScrapParts;
     [SerializeField] private int pendingCoreShards;
+    [SerializeField] private int tuningChips;
 
     public int Experience => experience;
     public int Credits => credits;
     public int PendingScrapParts => pendingScrapParts;
     public int PendingCoreShards => pendingCoreShards;
+    public int TuningChips => tuningChips;
 
     public event Action Changed;
 
@@ -22,6 +24,7 @@ public class RunWallet
         credits = 0;
         pendingScrapParts = 0;
         pendingCoreShards = 0;
+        tuningChips = 0;
         Changed?.Invoke();
     }
 
@@ -33,6 +36,7 @@ public class RunWallet
             CurrencyType.Credits => credits,
             CurrencyType.ScrapParts => pendingScrapParts,
             CurrencyType.CoreShards => pendingCoreShards,
+            CurrencyType.TuningChips => tuningChips,
             _ => 0
         };
     }
@@ -60,6 +64,10 @@ public class RunWallet
 
             case CurrencyType.CoreShards:
                 pendingCoreShards += amount;
+                break;
+
+            case CurrencyType.TuningChips:
+                tuningChips += amount;
                 break;
         }
 
@@ -109,6 +117,10 @@ public class RunWallet
 
             case CurrencyType.CoreShards:
                 pendingCoreShards -= amount;
+                break;
+
+            case CurrencyType.TuningChips:
+                tuningChips -= amount;
                 break;
         }
 

@@ -40,7 +40,9 @@ public enum ReinforcementEffectType
     TemporaryMoveSpeedPercent,
     TemporaryDashCooldownReductionPercent,
     SpawnPrefabAtPlayer,
-    EmergencyReturn
+    EmergencyReturn,
+    TemporaryEnemyRadarJamming,
+    RevealEnemyVisionAndState
 }
 
 [Serializable]
@@ -311,6 +313,8 @@ public static class ReinforcementEffectTextUtility
             ReinforcementEffectType.TemporaryDashCooldownReductionPercent => $"{effect.Duration:0.#}초 대쉬 쿨다운 -{Mathf.Abs(effect.Value):0.#}%",
             ReinforcementEffectType.SpawnPrefabAtPlayer => "플레이어 위치에 장비 효과 생성",
             ReinforcementEffectType.EmergencyReturn => "긴급복귀 준비를 시작한다",
+            ReinforcementEffectType.TemporaryEnemyRadarJamming => $"{effect.Duration:0.#}초 동안 적 레이더 탐지 차단",
+            ReinforcementEffectType.RevealEnemyVisionAndState => $"{effect.Duration:0.#}초 동안 적 시야와 경계 상태 표시",
             _ => $"{effect.EffectType} {effect.Value:0.##}"
         };
     }

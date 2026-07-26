@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "액티브 냉각기"
   description: "액티브 Reinforcement의 충전 대기시간을 줄인다."
   icon: {fileID: 21300000, guid: fd40911f4f3c1e4a768591b64efb42af, type: 3}
+  rarity: 1
   category: 0
   weaponTreeType: 2
   shopItemType: 0

@@ -18,6 +18,10 @@ public class PlayerWorldChargeGaugeUI : MonoBehaviour
 
     [Header("Option")]
     [SerializeField] private bool hideOnStart = true;
+    [SerializeField] private bool autoAddCanvasGroup = true;
+    [SerializeField] private bool autoConfigureFillImage = true;
+    [SerializeField] private Image.FillMethod fillMethod = Image.FillMethod.Horizontal;
+    [SerializeField] private int fillOrigin;
 
     private PlayerWeaponBase currentWeapon;
     private bool externalChargeActive;
@@ -48,6 +52,11 @@ public class PlayerWorldChargeGaugeUI : MonoBehaviour
         if (weaponController != null)
         {
             AttachWeapon(weaponController.CurrentWeapon);
+        }
+
+        if (!externalChargeActive && currentWeapon != null && currentWeapon.IsCharging)
+        {
+            Show(currentWeapon.ChargeRatio);
         }
     }
 
@@ -109,9 +118,39 @@ public class PlayerWorldChargeGaugeUI : MonoBehaviour
             canvasGroup = GetComponent<CanvasGroup>();
         }
 
+        if (canvasGroup == null && autoAddCanvasGroup)
+        {
+            canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        }
+
         if (fillImage == null)
         {
-            fillImage = GetComponentInChildren<Image>(true);
+            Image[] images = GetComponentsInChildren<Image>(true);
+
+            for (int i = 0; i < images.Length; i++)
+            {
+                Image candidate = images[i];
+
+                if (candidate != null &&
+                    candidate.name.IndexOf("fill", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    fillImage = candidate;
+                    break;
+                }
+            }
+
+            if (fillImage == null && images.Length > 0)
+            {
+                fillImage = images[0];
+            }
+        }
+
+        if (fillImage != null && autoConfigureFillImage)
+        {
+            fillImage.type = Image.Type.Filled;
+            fillImage.fillMethod = fillMethod;
+            fillImage.fillOrigin = Mathf.Clamp(fillOrigin, 0, 3);
+            fillImage.fillClockwise = true;
         }
 
         if (weaponController == null)
@@ -244,14 +283,28 @@ public class PlayerWorldChargeGaugeUI : MonoBehaviour
 
     private void SetVisible(bool visible)
     {
-        if (canvasGroup == null)
+        if (canvasGroup == null && autoAddCanvasGroup)
         {
-            gameObject.SetActive(visible);
-            return;
+            canvasGroup = GetComponent<CanvasGroup>();
+
+            if (canvasGroup == null)
+            {
+                canvasGroup = gameObject.AddComponent<CanvasGroup>();
+            }
         }
 
-        canvasGroup.alpha = visible ? 1f : 0f;
-        canvasGroup.interactable = false;
-        canvasGroup.blocksRaycasts = false;
+        // 자기 GameObject를 비활성화하면 차징 이벤트 구독도 끊기므로
+        // 항상 활성 상태를 유지하고 CanvasGroup 알파만 조절한다.
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
+
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = visible ? 1f : 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+        }
     }
 }

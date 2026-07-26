@@ -14,11 +14,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fixedRewards:
   - currencyType: 1
-    amount: 1111
-  - currencyType: 2
     amount: 1
-  - currencyType: 0
-    amount: 10
   randomRewards: []
   healDropChance: 0
   healAmount: 1
+  enableReinforcementDrop: 0
+  reinforcementDropChance: 0
+  minReinforcementDropCount: 1
+  maxReinforcementDropCount: 1
+  reinforcementCatalog: {fileID: 0}
+  includeCatalogReinforcements: 1
+  reinforcementDropPool: []
+  excludeEmergencyReturnEquipment: 1
+  preventDuplicateReinforcementDrops: 1
+  useReinforcementRarityWeight: 1
+  enableTraitDrop: 0
+  traitDropChance: 0
+  minTraitDropCount: 1
+  maxTraitDropCount: 1
+  traitCatalog: {fileID: 0}
+  includeCatalogTraits: 1
+  traitDropPool: []
+  preventDuplicateTraitDrops: 1

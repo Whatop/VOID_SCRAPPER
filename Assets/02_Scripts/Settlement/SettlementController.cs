@@ -408,7 +408,9 @@ public class SettlementController : MonoBehaviour
 
     public Sprite GetPreviewShipSprite()
     {
-        return PreviewShip != null ? PreviewShip.PreviewSprite : null;
+        return PreviewShip != null
+            ? PreviewShip.PreviewSprite
+            : null;
     }
 
     public string GetPreviewShipTitle()

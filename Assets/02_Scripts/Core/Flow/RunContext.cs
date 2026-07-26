@@ -17,6 +17,12 @@ public class RunContext
     [SerializeField] private bool shopHostileThisRun;
     [SerializeField] private List<string> selectedTraitIds = new List<string>();
 
+    [Header("Reward Progression")]
+    [SerializeField] private List<string> completedObjectiveIds = new List<string>();
+    [SerializeField] private int objectiveSignalCount;
+    [SerializeField] private bool coreSignalRevealed;
+    [SerializeField] private int specialContainerRareMissStreak;
+
     [Header("Runtime Reinforcement")]
     [SerializeField] private string equippedReinforcementId;
     [SerializeField] private int equippedReinforcementCharges;
@@ -40,6 +46,11 @@ public class RunContext
     public bool BossDefeated => bossDefeated;
     public bool ShopHostileThisRun => shopHostileThisRun;
     public IReadOnlyList<string> SelectedTraitIds => selectedTraitIds;
+
+    public IReadOnlyList<string> CompletedObjectiveIds => completedObjectiveIds;
+    public int ObjectiveSignalCount => Mathf.Max(0, objectiveSignalCount);
+    public bool CoreSignalRevealed => coreSignalRevealed;
+    public int SpecialContainerRareMissStreak => Mathf.Max(0, specialContainerRareMissStreak);
 
     public string EquippedReinforcementId => equippedReinforcementId;
     public int EquippedReinforcementCharges => Mathf.Max(0, equippedReinforcementCharges);
@@ -94,6 +105,8 @@ public class RunContext
         shopHostileThisRun = false;
 
         selectedTraitIds.Clear();
+        ResetExpeditionObjectiveProgress();
+        specialContainerRareMissStreak = 0;
         ClearEquippedReinforcement();
         ResetCargoRule();
         wallet.Clear();
@@ -147,6 +160,59 @@ public class RunContext
         }
 
         return selectedTraitIds.Remove(traitId);
+    }
+
+    public void ResetExpeditionObjectiveProgress()
+    {
+        objectiveSignalCount = 0;
+        coreSignalRevealed = false;
+
+        if (completedObjectiveIds == null)
+        {
+            completedObjectiveIds = new List<string>();
+        }
+        else
+        {
+            completedObjectiveIds.Clear();
+        }
+    }
+
+    public bool RegisterObjectiveSignal(string objectiveId, int amount = 1)
+    {
+        if (amount <= 0)
+        {
+            return false;
+        }
+
+        if (completedObjectiveIds == null)
+        {
+            completedObjectiveIds = new List<string>();
+        }
+
+        if (!string.IsNullOrWhiteSpace(objectiveId))
+        {
+            if (completedObjectiveIds.Contains(objectiveId))
+            {
+                return false;
+            }
+
+            completedObjectiveIds.Add(objectiveId);
+        }
+
+        objectiveSignalCount = Mathf.Max(0, objectiveSignalCount + amount);
+        return true;
+    }
+
+    public void SetCoreSignalRevealed(bool value)
+    {
+        coreSignalRevealed = value;
+    }
+
+    public void RecordSpecialContainerOffer(bool offeredRareOrBetter)
+    {
+        specialContainerRareMissStreak = offeredRareOrBetter
+            ? 0
+            : Mathf.Max(0, specialContainerRareMissStreak + 1);
     }
 
     public void SetEquippedReinforcement(string reinforcementId, int charges)
@@ -256,6 +322,8 @@ public class RunResultData
     public bool bossDefeated;
 
     public int runExperience;
+    public int unusedTuningChips;
+    public int objectiveSignalCount;
     public int remainingCredits;
 
     public int collectedScrapParts;

@@ -1,20 +1,64 @@
 using UnityEngine;
 
+public enum MeteorMotionMode
+{
+    // ê¸°ì¡´ í”„ë¦¬íŒ¹ í˜¸í™˜ìš©. Transform ì§ì ‘ ì´ë™ì´ë¯€ë¡œ ìƒˆ í”„ë¦¬íŒ¹ì—ëŠ” ê¶Œìž¥í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
+    LegacyTransformDrift = 0,
+
+    // ëŒ€í˜• ìš´ì„/ì§€í˜•ìš©. íŒì • RootëŠ” ì´ë™í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
+    StaticTerrain = 1,
+
+    // ì†Œí˜• ìš´ì„ìš©. Rigidbody2D + SpaceDriftBody2Dë¥¼ ì‚¬ìš©í•©ë‹ˆë‹¤.
+    RigidbodyDrift = 2
+}
+
+[DisallowMultipleComponent]
 [RequireComponent(typeof(Collider2D))]
 public class MeteorObstacle : MonoBehaviour
 {
     [Header("Meteor Settings")]
-    [SerializeField] private int maxHp = 3;                  // ¿î¼® ÃÖ´ë Ã¼·Â
-    [SerializeField] private float minDriftSpeed = 0.4f;     // ÃÖ¼Ò ÀÌµ¿ ¼Óµµ
-    [SerializeField] private float maxDriftSpeed = 1.2f;     // ÃÖ´ë ÀÌµ¿ ¼Óµµ
-    [SerializeField] private float minSpinSpeed = -50f;      // ÃÖ¼Ò È¸Àü ¼Óµµ
-    [SerializeField] private float maxSpinSpeed = 50f;       // ÃÖ´ë È¸Àü ¼Óµµ
-    [SerializeField] private float boundsPadding = 0.5f;     // ¸Ê °æ°è¿¡¼­ ¹Ý»çµÉ ¶§ »ç¿ëÇÏ´Â ¿©À¯°ª
+    [SerializeField] private int maxHp = 3;
+
+    [Header("Projectile Interaction")]
+    [SerializeField] private bool takeDamageFromPlayerProjectiles = true;
+    [SerializeField] private bool takeDamageFromEnemyProjectiles;
+    [SerializeField] private bool blockProjectileWhenDamageIgnored = true;
+
+    [Header("Motion Mode")]
+    [SerializeField] private MeteorMotionMode motionMode = MeteorMotionMode.LegacyTransformDrift;
+
+    [Tooltip("Rigidbody Drift ëª¨ë“œì—ì„œ ì‚¬ìš©í•˜ëŠ” ì»´í¬ë„ŒíŠ¸ìž…ë‹ˆë‹¤. ê°™ì€ ì˜¤ë¸Œì íŠ¸ì—ì„œ ìžë™ íƒìƒ‰í•©ë‹ˆë‹¤.")]
+    [SerializeField] private SpaceDriftBody2D driftBody;
+
+    [Tooltip("Static Terrain ëª¨ë“œì—ì„œëŠ” Root ëŒ€ì‹  ì´ ìžì‹ ë¹„ì£¼ì–¼ë§Œ íšŒì „ì‹œí‚µë‹ˆë‹¤.")]
+    [SerializeField] private Transform visualRoot;
+
+    [SerializeField] private bool allowRootVisualRotationWhenVisualRootMissing;
+
+    [Header("Legacy / Rigidbody Drift Values")]
+    [SerializeField] private float minDriftSpeed = 0.15f;
+    [SerializeField] private float maxDriftSpeed = 0.45f;
+    [SerializeField] private float minSpinSpeed = -25f;
+    [SerializeField] private float maxSpinSpeed = 25f;
+    [SerializeField] private float boundsPadding = 0.5f;
+    [SerializeField] private float hitImpulse = 0.35f;
+
+    [Header("Static Visual Rotation")]
+    [SerializeField] private Vector2 staticVisualSpinRange = new Vector2(-3f, 3f);
 
     [Header("Hit Effect")]
-    [SerializeField] private GameObject hitEffectPrefab;     // ÇÇ°Ý ÀÌÆåÆ® ÇÁ¸®ÆÕ
+    [SerializeField] private GameObject hitEffectPrefab;
     [SerializeField] private float hitEffectDuration = 0.12f;
+    [SerializeField] private bool useProceduralHitEffectWhenPrefabMissing = true;
+    [SerializeField] private float hitEffectIntensity = 0.75f;
 
+    [Header("Camera Shake")]
+    [SerializeField] private float hitShakeAmplitude = 0.018f;
+    [SerializeField] private float hitShakeDuration = 0.045f;
+    [SerializeField] private float breakShakeAmplitude = 0.065f;
+    [SerializeField] private float breakShakeDuration = 0.09f;
+
+    private Rigidbody2D body;
     private int currentHp;
     private Vector2 moveDirection;
     private float moveSpeed;
@@ -23,37 +67,111 @@ public class MeteorObstacle : MonoBehaviour
     private Bounds roamingBounds;
     private bool hasRoamingBounds;
 
+    public MeteorMotionMode MotionMode => motionMode;
+    public bool BlocksProjectileWhenDamageIgnored => blockProjectileWhenDamageIgnored;
+
+    private void Reset()
+    {
+        body = GetComponent<Rigidbody2D>();
+        driftBody = GetComponent<SpaceDriftBody2D>();
+
+        Transform childVisual = transform.Find("VisualRoot");
+        if (childVisual != null)
+        {
+            visualRoot = childVisual;
+        }
+    }
+
+    private void Awake()
+    {
+        body = GetComponent<Rigidbody2D>();
+
+        if (driftBody == null)
+        {
+            driftBody = GetComponent<SpaceDriftBody2D>();
+        }
+
+        ResolveVisualRoot();
+    }
+
     private void OnEnable()
     {
-        currentHp = maxHp;
-        RandomizeMovement();
+        currentHp = Mathf.Max(1, maxHp);
+        InitializeMotion();
     }
 
     private void Update()
     {
-        transform.position += (Vector3)(moveDirection * moveSpeed * Time.deltaTime);
-        transform.Rotate(0f, 0f, spinSpeed * Time.deltaTime);
-        HandleBoundsBounce();
+        switch (motionMode)
+        {
+            case MeteorMotionMode.LegacyTransformDrift:
+                UpdateLegacyTransformDrift();
+                break;
+
+            case MeteorMotionMode.StaticTerrain:
+                UpdateStaticVisualRotation();
+                break;
+        }
     }
 
-    /// <summary>
-    /// ½ºÆ÷³Ê°¡ Àü´ÞÇÑ ¸Ê °æ°è ¾È¿¡¼­ ¿î¼®ÀÌ ¶°µ¹¾Æ´Ù´Ïµµ·Ï ¹üÀ§¸¦ ÀúÀåÇÕ´Ï´Ù.
-    /// </summary>
     public void SetRoamingBounds(Bounds bounds)
     {
         roamingBounds = bounds;
         hasRoamingBounds = true;
+
+        if (driftBody != null)
+        {
+            driftBody.SetRoamingBounds(bounds);
+        }
     }
 
-    /// <summary>
-    /// ÃÑ¾ËÀÌ ¿î¼®¿¡ ¸Â¾ÒÀ» ¶§ È£ÃâµË´Ï´Ù.
-    /// ¿î¼®Àº ¸ðµç ÃÑ¾ËÀ» ¸·´Â Àå¾Ö¹° ¿ªÇÒÀ» ÇÕ´Ï´Ù.
-    /// </summary>
+    public bool CanReceiveProjectileDamage(ProjectileOwner projectileOwner)
+    {
+        return projectileOwner == ProjectileOwner.Player
+            ? takeDamageFromPlayerProjectiles
+            : takeDamageFromEnemyProjectiles;
+    }
+
     public void TakeDamage(int damage)
     {
+        TakeDamage(damage, transform.position, Vector2.zero);
+    }
+
+    public void TakeDamage(int damage, Vector2 hitPoint, Vector2 incomingDirection)
+    {
+        if (damage <= 0)
+        {
+            return;
+        }
+
         currentHp -= damage;
-        SpawnHitEffect();
-        AudioManager.PlayAt(SoundEventIds.ObjectMeteorHit, transform.position, 0.65f);
+
+        if (motionMode == MeteorMotionMode.RigidbodyDrift && incomingDirection.sqrMagnitude > 0.001f)
+        {
+            if (driftBody != null)
+            {
+                driftBody.ApplyImpulse(incomingDirection, hitImpulse);
+            }
+            else if (body != null && body.bodyType == RigidbodyType2D.Dynamic)
+            {
+                body.AddForce(incomingDirection.normalized * hitImpulse, ForceMode2D.Impulse);
+            }
+        }
+
+        bool customEffectSpawned = SpawnHitEffect(hitPoint);
+        float damageScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(1, damage)), 0.8f, 1.6f);
+
+        CombatFeedbackManager.PlayHit(
+            hitPoint,
+            incomingDirection,
+            CombatFeedbackKind.Meteor,
+            hitEffectIntensity * damageScale,
+            hitShakeAmplitude * damageScale,
+            hitShakeDuration,
+            useProceduralHitEffectWhenPrefabMissing && !customEffectSpawned
+        );
+
+        AudioManager.PlayAt(SoundEventIds.ObjectMeteorHit, hitPoint, 0.65f);
 
         if (currentHp <= 0)
         {
@@ -61,15 +179,129 @@ public class MeteorObstacle : MonoBehaviour
         }
     }
 
-    private void RandomizeMovement()
+    private void InitializeMotion()
+    {
+        ResolveVisualRoot();
+
+        switch (motionMode)
+        {
+            case MeteorMotionMode.LegacyTransformDrift:
+                RandomizeLegacyMovement();
+                ConfigureNonDynamicBody(RigidbodyType2D.Kinematic);
+                break;
+
+            case MeteorMotionMode.StaticTerrain:
+                spinSpeed = Random.Range(
+                    Mathf.Min(staticVisualSpinRange.x, staticVisualSpinRange.y),
+                    Mathf.Max(staticVisualSpinRange.x, staticVisualSpinRange.y)
+                );
+                ConfigureNonDynamicBody(RigidbodyType2D.Static);
+                break;
+
+            case MeteorMotionMode.RigidbodyDrift:
+                if (body == null)
+                {
+                    Debug.LogWarning($"[{name}] Rigidbody Drift ëª¨ë“œì¸ë° Rigidbody2Dê°€ ì—†ìŠµë‹ˆë‹¤. Static Terrainìœ¼ë¡œ ë™ìž‘í•©ë‹ˆë‹¤.", this);
+                    spinSpeed = 0f;
+                    return;
+                }
+
+                body.simulated = true;
+                body.bodyType = RigidbodyType2D.Dynamic;
+                body.gravityScale = 0f;
+
+                if (driftBody != null)
+                {
+                    if (hasRoamingBounds)
+                    {
+                        driftBody.SetRoamingBounds(roamingBounds);
+                    }
+                }
+                else
+                {
+                    RandomizeRigidbodyVelocity();
+                }
+                break;
+        }
+    }
+
+    private void ConfigureNonDynamicBody(RigidbodyType2D bodyType)
+    {
+        if (body == null)
+        {
+            return;
+        }
+
+        body.simulated = true;
+        body.linearVelocity = Vector2.zero;
+        body.angularVelocity = 0f;
+        body.gravityScale = 0f;
+        body.bodyType = bodyType;
+    }
+
+    private void RandomizeLegacyMovement()
     {
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         moveDirection = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)).normalized;
-        moveSpeed = Random.Range(minDriftSpeed, maxDriftSpeed);
-        spinSpeed = Random.Range(minSpinSpeed, maxSpinSpeed);
+        moveSpeed = Random.Range(
+            Mathf.Max(0f, Mathf.Min(minDriftSpeed, maxDriftSpeed)),
+            Mathf.Max(0f, Mathf.Max(minDriftSpeed, maxDriftSpeed))
+        );
+        spinSpeed = Random.Range(
+            Mathf.Min(minSpinSpeed, maxSpinSpeed),
+            Mathf.Max(minSpinSpeed, maxSpinSpeed)
+        );
     }
 
-    private void HandleBoundsBounce()
+    private void RandomizeRigidbodyVelocity()
+    {
+        Vector2 direction = Random.insideUnitCircle;
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Vector2.up;
+        }
+
+        float minSpeed = Mathf.Max(0f, Mathf.Min(minDriftSpeed, maxDriftSpeed));
+        float maxSpeed = Mathf.Max(minSpeed, Mathf.Max(minDriftSpeed, maxDriftSpeed));
+
+        body.linearVelocity = direction.normalized * Random.Range(minSpeed, maxSpeed);
+        body.angularVelocity = Random.Range(
+            Mathf.Min(minSpinSpeed, maxSpinSpeed),
+            Mathf.Max(minSpinSpeed, maxSpinSpeed)
+        );
+    }
+
+    private void UpdateLegacyTransformDrift()
+    {
+        transform.position += (Vector3)(moveDirection * moveSpeed * Time.deltaTime);
+        transform.Rotate(0f, 0f, spinSpeed * Time.deltaTime);
+        HandleLegacyBoundsBounce();
+    }
+
+    private void UpdateStaticVisualRotation()
+    {
+        if (Mathf.Abs(spinSpeed) <= 0.001f)
+        {
+            return;
+        }
+
+        Transform target = visualRoot;
+
+        if (target == null && allowRootVisualRotationWhenVisualRootMissing)
+        {
+            target = transform;
+        }
+
+        if (target == null)
+        {
+            return;
+        }
+
+        target.Rotate(0f, 0f, spinSpeed * Time.deltaTime, Space.Self);
+    }
+
+    private void HandleLegacyBoundsBounce()
     {
         if (!hasRoamingBounds)
         {
@@ -111,18 +343,51 @@ public class MeteorObstacle : MonoBehaviour
         }
     }
 
-    private void SpawnHitEffect()
+    private void ResolveVisualRoot()
     {
-        if (hitEffectPrefab == null || PoolManager.Instance == null)
+        if (visualRoot != null)
         {
             return;
         }
 
-        PoolManager.Instance.SpawnAutoRelease(hitEffectPrefab, transform.position, hitEffectDuration);
+        Transform child = transform.Find("VisualRoot");
+        if (child != null)
+        {
+            visualRoot = child;
+        }
+    }
+
+    private bool SpawnHitEffect(Vector2 position)
+    {
+        if (hitEffectPrefab == null)
+        {
+            return false;
+        }
+
+        if (PoolManager.Instance != null)
+        {
+            PoolManager.Instance.SpawnAutoRelease(hitEffectPrefab, position, hitEffectDuration);
+        }
+        else
+        {
+            GameObject effect = Instantiate(hitEffectPrefab, position, Quaternion.identity);
+            Destroy(effect, hitEffectDuration);
+        }
+
+        return true;
     }
 
     private void ReleaseSelf()
     {
+        CombatFeedbackManager.PlayBreak(
+            transform.position,
+            CombatFeedbackKind.Meteor,
+            1.05f,
+            breakShakeAmplitude,
+            breakShakeDuration,
+            true
+        );
+
         AudioManager.PlayAt(SoundEventIds.ObjectMeteorBreak, transform.position);
 
         if (PoolManager.Instance != null)

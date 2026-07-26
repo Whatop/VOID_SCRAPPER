@@ -88,6 +88,9 @@ public class EscSettingsMenuController : MonoBehaviour
 
         isOpen = true;
 
+        AudioManager.Play(SoundEventIds.UiPause);
+        GameAudioLoopController.PauseEnvironmentForMenu();
+
         StoreCursorState();
 
         if (menuRoot != null)
@@ -148,6 +151,8 @@ public class EscSettingsMenuController : MonoBehaviour
         }
 
         RestoreCursorState();
+        AudioManager.Play(SoundEventIds.UiBack);
+        GameAudioLoopController.ResumeForCurrentState();
     }
 
     public void Toggle()
@@ -223,6 +228,7 @@ public class EscSettingsMenuController : MonoBehaviour
     {
         if (closeButton != null)
         {
+            ConfigureCloseButtonSound(closeButton);
             closeButton.onClick.AddListener(Close);
         }
     }
@@ -233,6 +239,26 @@ public class EscSettingsMenuController : MonoBehaviour
         {
             closeButton.onClick.RemoveListener(Close);
         }
+    }
+
+    private void ConfigureCloseButtonSound(Button targetButton)
+    {
+        if (targetButton == null)
+        {
+            return;
+        }
+
+        UISoundButton soundButton = targetButton.GetComponent<UISoundButton>();
+        if (soundButton == null)
+        {
+            soundButton = targetButton.gameObject.AddComponent<UISoundButton>();
+        }
+
+        soundButton.SetClickSoundEnabled(false);
+        soundButton.SetHoverSoundEnabled(true);
+        soundButton.SetDisabledClickSoundEnabled(true);
+        soundButton.SetHoverSoundEventId(SoundEventIds.UiHover);
+        soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
     }
 
     private void StoreCursorState()

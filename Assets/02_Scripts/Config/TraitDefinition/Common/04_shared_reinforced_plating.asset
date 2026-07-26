@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "강화 장갑"
   description: "최대 체력을 증가시켜 탐사 안정성을 높인다."
   icon: {fileID: 21300000, guid: 4a0a01f292ff35c613e6cc6a7822a8e5, type: 3}
+  rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0

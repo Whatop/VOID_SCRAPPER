@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -55,6 +55,11 @@ public class ShipTraitNodeButton : MonoBehaviour
     [SerializeField] private Sprite activeStateSprite;
     [SerializeField] private Sprite inactiveStateSprite;
     [SerializeField] private bool hideStateImageWhenAvailable = true;
+
+    [Header("Sound")]
+    [SerializeField] private bool playClickSound = true;
+    [SerializeField] private string clickSoundEventId = SoundEventIds.UiClick;
+    [SerializeField] private string lockedClickSoundEventId = SoundEventIds.UiDisabled;
 
     [Header("Option")]
     [SerializeField] private bool allowClickWhenLocked = true;
@@ -340,12 +345,36 @@ public class ShipTraitNodeButton : MonoBehaviour
             return;
         }
 
-        if (!isAvailable && !allowClickWhenLocked)
+        if (!isAvailable)
+        {
+            PlayClickSound(lockedClickSoundEventId);
+
+            if (!allowClickWhenLocked)
+            {
+                return;
+            }
+        }
+        else
+        {
+            PlayClickSound(clickSoundEventId);
+        }
+
+        owner.SelectNode(branchKind, NodeId);
+    }
+
+    private void PlayClickSound(string eventId)
+    {
+        if (!playClickSound)
         {
             return;
         }
 
-        owner.SelectNode(branchKind, NodeId);
+        if (string.IsNullOrWhiteSpace(eventId))
+        {
+            return;
+        }
+
+        AudioManager.Play(eventId);
     }
 
     private T FindChildComponent<T>(params string[] candidateNames) where T : Component

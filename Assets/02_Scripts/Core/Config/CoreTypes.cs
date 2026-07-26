@@ -42,10 +42,12 @@ public enum WeaponTreeType
 
 public enum CurrencyType
 {
+    // Legacy value. 신규 보상에는 사용하지 않는다.
     Experience,
     Credits,
     ScrapParts,
-    CoreShards
+    CoreShards,
+    TuningChips
 }
 
 public enum BuildingType

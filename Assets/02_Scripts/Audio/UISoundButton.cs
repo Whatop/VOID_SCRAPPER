@@ -4,25 +4,26 @@ using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Button))]
-public class UISoundButton : MonoBehaviour, IPointerEnterHandler
+public class UISoundButton : MonoBehaviour, IPointerEnterHandler, IPointerClickHandler
 {
     [SerializeField] private string clickSoundEventId = SoundEventIds.UiClick;
     [SerializeField] private string hoverSoundEventId = SoundEventIds.UiHover;
+    [SerializeField] private string disabledClickSoundEventId = SoundEventIds.UiDisabled;
+
+    [SerializeField] private bool playClick = true;
     [SerializeField] private bool playHover = true;
+    [SerializeField] private bool playDisabledClick = true;
 
     private Button button;
 
     private void Awake()
     {
-        button = GetComponent<Button>();
+        CacheButton();
     }
 
     private void OnEnable()
     {
-        if (button == null)
-        {
-            button = GetComponent<Button>();
-        }
+        CacheButton();
 
         if (button != null)
         {
@@ -45,6 +46,8 @@ public class UISoundButton : MonoBehaviour, IPointerEnterHandler
             return;
         }
 
+        CacheButton();
+
         if (button != null && !button.interactable)
         {
             return;
@@ -53,8 +56,73 @@ public class UISoundButton : MonoBehaviour, IPointerEnterHandler
         AudioManager.Play(hoverSoundEventId);
     }
 
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        CacheButton();
+
+        if (!playDisabledClick)
+        {
+            return;
+        }
+
+        if (button != null && !button.interactable)
+        {
+            AudioManager.Play(disabledClickSoundEventId);
+        }
+    }
+
+    public void SetClickSoundEnabled(bool value)
+    {
+        playClick = value;
+    }
+
+    public void SetHoverSoundEnabled(bool value)
+    {
+        playHover = value;
+    }
+
+    public void SetDisabledClickSoundEnabled(bool value)
+    {
+        playDisabledClick = value;
+    }
+
+    public void SetClickSoundEventId(string eventId)
+    {
+        clickSoundEventId = eventId;
+    }
+
+    public void SetHoverSoundEventId(string eventId)
+    {
+        hoverSoundEventId = eventId;
+    }
+
+    public void SetDisabledClickSoundEventId(string eventId)
+    {
+        disabledClickSoundEventId = eventId;
+    }
+
     private void PlayClick()
     {
+        if (!playClick)
+        {
+            return;
+        }
+
+        CacheButton();
+
+        if (button != null && !button.interactable)
+        {
+            return;
+        }
+
         AudioManager.Play(clickSoundEventId);
+    }
+
+    private void CacheButton()
+    {
+        if (button == null)
+        {
+            button = GetComponent<Button>();
+        }
     }
 }

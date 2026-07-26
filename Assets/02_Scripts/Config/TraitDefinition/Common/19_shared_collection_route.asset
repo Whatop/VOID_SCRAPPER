@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "회수 항로 계산기"
   description: "이동속도와 자원 흡수 범위를 함께 강화한다."
   icon: {fileID: 21300000, guid: 083b7e8de637261d26d70cb2d6446e5e, type: 3}
+  rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0

@@ -8,7 +8,7 @@ public class CoreObject : MonoBehaviour, IInteractable
     public static event Action<CoreObject, float, bool> ActivationProgressChanged;
 
     [Header("Interaction")]
-    [SerializeField] private string interactionText = "�ھ� Ȱ��ȭ";
+    [SerializeField] private string interactionText = "코어 활성화";
     [SerializeField] private float activationTime = 2f;
     [SerializeField] private bool requirePlayerStayInRange = true;
     [SerializeField] private float interactionStayRadius = 3f;
@@ -17,6 +17,8 @@ public class CoreObject : MonoBehaviour, IInteractable
     [SerializeField] private GameObject bossPrefab;
     [SerializeField] private Transform bossSpawnPoint;
     [SerializeField] private Vector2 bossSpawnOffset = new Vector2(0f, 3f);
+    [SerializeField] private string bossDisplayName = "구획 관리자";
+    [SerializeField] private bool animateBossHealthBar = true;
 
     [Header("Boss Intro")]
     [SerializeField] private bool useBossIntroSequence = true;
@@ -37,10 +39,24 @@ public class CoreObject : MonoBehaviour, IInteractable
     [SerializeField] private float alertRadius = 18f;
     [SerializeField] private LayerMask enemyLayer;
 
+    [Header("Objective Gate")]
+    [Tooltip("고가치 목표 신호를 모으기 전에는 코어를 사용할 수 없습니다.")]
+    [SerializeField] private bool requireObjectiveSignals = true;
+    [SerializeField] private bool hideUntilCoreRevealed = true;
+    [SerializeField] private bool failOpenWithoutActiveRun = true;
+    [SerializeField] private string lockedInteractionText = "코어 추적 신호가 부족합니다";
+
     [Header("State")]
+    [Tooltip("활성화 후 방전된 코어 외형을 남깁니다. 켜져 있으면 기존 Destroy/Hide 옵션보다 우선합니다.")]
+    [SerializeField] private bool preserveSpentCoreVisualAfterActivation = true;
     [SerializeField] private bool destroyCoreAfterActivation;
     [SerializeField] private bool hideCoreInsteadOfDisable = true;
     [SerializeField] private RadarTarget radarTarget;
+    [SerializeField] private CoreActivationPresentation coreActivationPresentation;
+
+    [Header("Core Shard Reward Point")]
+    [Tooltip("보스 처치 후 코어 조각이 생성될 위치입니다. 비워두면 코어 루트 위치를 사용합니다.")]
+    [SerializeField] private Transform coreShardRewardPoint;
 
     private readonly Collider2D[] enemyBuffer = new Collider2D[128];
 
@@ -49,18 +65,29 @@ public class CoreObject : MonoBehaviour, IInteractable
     private bool activating;
     private GameObject spawnedBoss;
 
+    private ExpeditionObjectiveDirector objectiveDirector;
+    private Collider2D[] objectiveGateColliders;
+    private Renderer[] objectiveGateRenderers;
+    private bool[] objectiveGateColliderStates;
+    private bool[] objectiveGateRendererStates;
+
     public string InteractionText
     {
         get
         {
+            if (!IsObjectiveGateSatisfied())
+            {
+                return lockedInteractionText;
+            }
+
             if (activated)
             {
-                return "�̹� Ȱ��ȭ�� �ھ�";
+                return "이미 활성화된 코어";
             }
 
             if (activating)
             {
-                return "�ھ� Ȱ��ȭ ��";
+                return "코어 활성화 중";
             }
 
             return interactionText;
@@ -71,6 +98,7 @@ public class CoreObject : MonoBehaviour, IInteractable
     {
         radarTarget = GetComponent<RadarTarget>();
         bossIntroSequence = GetComponent<CoreBossIntroSequence>();
+        coreActivationPresentation = GetComponent<CoreActivationPresentation>();
     }
 
     private void Awake()
@@ -84,10 +112,31 @@ public class CoreObject : MonoBehaviour, IInteractable
         {
             bossIntroSequence = GetComponent<CoreBossIntroSequence>();
         }
+
+        if (coreActivationPresentation == null)
+        {
+            coreActivationPresentation = GetComponent<CoreActivationPresentation>();
+        }
+
+        CaptureObjectiveGateState();
+    }
+
+    private void OnEnable()
+    {
+        BindObjectiveDirector();
+        ApplyObjectiveGateState();
+    }
+
+    private void Start()
+    {
+        BindObjectiveDirector();
+        ApplyObjectiveGateState();
     }
 
     private void OnDisable()
     {
+        UnbindObjectiveDirector();
+
         if (activating)
         {
             RaiseActivationProgress(0f, false);
@@ -96,7 +145,10 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     public bool CanInteract(GameObject interactor)
     {
-        return interactor != null && !activated && !activating;
+        return interactor != null &&
+               IsObjectiveGateSatisfied() &&
+               !activated &&
+               !activating;
     }
 
     public void Interact(GameObject interactor)
@@ -179,7 +231,7 @@ public class CoreObject : MonoBehaviour, IInteractable
 
         if (bossPrefab == null)
         {
-            Debug.LogWarning("bossPrefab�� ���� ���� ��� ��ȯ ������ �ٷ� �����մϴ�.", this);
+            Debug.LogWarning("bossPrefab이 없어 보스 대신 귀환 비콘을 바로 생성합니다.", this);
             SpawnReturnBeaconDirectly();
             HandleCoreAfterActivation();
             yield break;
@@ -197,18 +249,21 @@ public class CoreObject : MonoBehaviour, IInteractable
                     ResolveBossSpawnPosition(),
                     transform.position,
                     HandleBossCreatedByIntro,
+                    HandleBossReveal,
                     HandleBossBattleStart
                 );
             }
             else
             {
                 SpawnBossImmediate(interactor);
+                HandleBossReveal();
                 HandleBossBattleStart();
             }
         }
         else
         {
             SpawnBossImmediate(interactor);
+            HandleBossReveal();
             HandleBossBattleStart();
         }
 
@@ -236,6 +291,11 @@ public class CoreObject : MonoBehaviour, IInteractable
         ConfigureSpawnedBoss(spawnedBoss, FindPlayerObject());
     }
 
+    private void HandleBossReveal()
+    {
+        ShowBossHealthBar();
+    }
+
     private void HandleBossBattleStart()
     {
         if (GameStateManager.Instance != null)
@@ -246,6 +306,30 @@ public class CoreObject : MonoBehaviour, IInteractable
         if (alertNearbyEnemiesOnBattleStart)
         {
             AlertNearbyEnemies();
+        }
+    }
+
+    private void ShowBossHealthBar()
+    {
+        if (spawnedBoss == null || BossHealthBarUI.Instance == null)
+        {
+            return;
+        }
+
+        EnemyHealth bossHealth = spawnedBoss.GetComponent<EnemyHealth>();
+
+        if (bossHealth == null)
+        {
+            return;
+        }
+
+        if (animateBossHealthBar)
+        {
+            BossHealthBarUI.Instance.ShowBossAnimated(bossHealth, bossDisplayName);
+        }
+        else
+        {
+            BossHealthBarUI.Instance.ShowBoss(bossHealth, bossDisplayName);
         }
     }
 
@@ -297,6 +381,11 @@ public class CoreObject : MonoBehaviour, IInteractable
     {
         spawnedBoss = Instantiate(bossPrefab, ResolveBossSpawnPosition(), Quaternion.identity);
         ConfigureSpawnedBoss(spawnedBoss, interactor);
+
+        if (spawnedBoss != null)
+        {
+            AudioManager.PlayAt(SoundEventIds.BossSpawn, spawnedBoss.transform.position);
+        }
     }
 
     private void ConfigureSpawnedBoss(GameObject bossObject, GameObject interactor)
@@ -306,15 +395,7 @@ public class CoreObject : MonoBehaviour, IInteractable
             return;
         }
 
-        AudioManager.PlayAt(SoundEventIds.BossSpawn, bossObject.transform.position);
-
-        EnemyHealth bossHealth = bossObject.GetComponent<EnemyHealth>();
-
-        if (bossHealth != null && BossHealthBarUI.Instance != null)
-        {
-            BossHealthBarUI.Instance.ShowBoss(bossHealth, "��ȹ ������");
-        }
-
+        // 체력바와 등장 사운드는 실제 보스 등장 연출이 끝난 시점에 표시한다.
         EnemyBaseAI bossAI = bossObject.GetComponent<EnemyBaseAI>();
 
         if (bossAI != null && interactor != null)
@@ -328,6 +409,8 @@ public class CoreObject : MonoBehaviour, IInteractable
         {
             bossController = bossObject.AddComponent<BossDummyController>();
         }
+
+        bossController.ConfigureCoreShardRewardPoint(ResolveCoreShardRewardPosition());
 
         if (wormholePortalPrefab != null)
         {
@@ -351,7 +434,7 @@ public class CoreObject : MonoBehaviour, IInteractable
     {
         if (returnBeaconPrefab == null)
         {
-            Debug.LogWarning("returnBeaconPrefab�� �����ϴ�.", this);
+            Debug.LogWarning("returnBeaconPrefab이 없습니다.", this);
             return;
         }
 
@@ -366,6 +449,13 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         return transform.position + (Vector3)bossSpawnOffset;
+    }
+
+    private Vector3 ResolveCoreShardRewardPosition()
+    {
+        return coreShardRewardPoint != null
+            ? coreShardRewardPoint.position
+            : transform.position;
     }
 
     private Vector3 ResolveReturnBeaconSpawnPosition()
@@ -388,8 +478,151 @@ public class CoreObject : MonoBehaviour, IInteractable
         return transform.position + (Vector3)wormholePortalSpawnOffset;
     }
 
+    private void CaptureObjectiveGateState()
+    {
+        objectiveGateColliders = GetComponentsInChildren<Collider2D>(true);
+        objectiveGateRenderers = GetComponentsInChildren<Renderer>(true);
+        objectiveGateColliderStates = new bool[objectiveGateColliders.Length];
+        objectiveGateRendererStates = new bool[objectiveGateRenderers.Length];
+
+        for (int i = 0; i < objectiveGateColliders.Length; i++)
+        {
+            objectiveGateColliderStates[i] = objectiveGateColliders[i] != null && objectiveGateColliders[i].enabled;
+        }
+
+        for (int i = 0; i < objectiveGateRenderers.Length; i++)
+        {
+            objectiveGateRendererStates[i] = objectiveGateRenderers[i] != null && objectiveGateRenderers[i].enabled;
+        }
+    }
+
+    private void BindObjectiveDirector()
+    {
+        if (!requireObjectiveSignals || !Application.isPlaying)
+        {
+            return;
+        }
+
+        ExpeditionObjectiveDirector resolved = ExpeditionObjectiveDirector.Instance;
+
+        if (objectiveDirector == resolved)
+        {
+            return;
+        }
+
+        UnbindObjectiveDirector();
+        objectiveDirector = resolved;
+
+        if (objectiveDirector != null)
+        {
+            objectiveDirector.ProgressChanged += HandleObjectiveProgressChanged;
+            objectiveDirector.CoreRevealedEvent += HandleCoreRevealed;
+        }
+    }
+
+    private void UnbindObjectiveDirector()
+    {
+        if (objectiveDirector == null)
+        {
+            return;
+        }
+
+        objectiveDirector.ProgressChanged -= HandleObjectiveProgressChanged;
+        objectiveDirector.CoreRevealedEvent -= HandleCoreRevealed;
+        objectiveDirector = null;
+    }
+
+    private void HandleObjectiveProgressChanged(int current, int required)
+    {
+        ApplyObjectiveGateState();
+    }
+
+    private void HandleCoreRevealed()
+    {
+        ApplyObjectiveGateState();
+    }
+
+    private bool IsObjectiveGateSatisfied()
+    {
+        if (!requireObjectiveSignals)
+        {
+            return true;
+        }
+
+        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
+        {
+            return failOpenWithoutActiveRun;
+        }
+
+        if (objectiveDirector == null)
+        {
+            objectiveDirector = ExpeditionObjectiveDirector.Instance;
+        }
+
+        return objectiveDirector != null && objectiveDirector.CoreRevealed;
+    }
+
+    private void ApplyObjectiveGateState()
+    {
+        if (activated)
+        {
+            return;
+        }
+
+        bool available = IsObjectiveGateSatisfied();
+
+        if (objectiveGateColliders == null || objectiveGateRendererStates == null)
+        {
+            CaptureObjectiveGateState();
+        }
+
+        if (objectiveGateColliders != null)
+        {
+            for (int i = 0; i < objectiveGateColliders.Length; i++)
+            {
+                Collider2D target = objectiveGateColliders[i];
+
+                if (target != null)
+                {
+                    bool original = objectiveGateColliderStates != null && i < objectiveGateColliderStates.Length
+                        ? objectiveGateColliderStates[i]
+                        : true;
+                    target.enabled = available && original;
+                }
+            }
+        }
+
+        if (hideUntilCoreRevealed && objectiveGateRenderers != null)
+        {
+            for (int i = 0; i < objectiveGateRenderers.Length; i++)
+            {
+                Renderer target = objectiveGateRenderers[i];
+
+                if (target != null)
+                {
+                    bool original = objectiveGateRendererStates != null && i < objectiveGateRendererStates.Length
+                        ? objectiveGateRendererStates[i]
+                        : true;
+                    target.enabled = available && original;
+                }
+            }
+        }
+
+        if (radarTarget != null)
+        {
+            radarTarget.SetVisible(available);
+        }
+    }
+
     private void HandleCoreAfterActivation()
     {
+        if (preserveSpentCoreVisualAfterActivation ||
+            (coreActivationPresentation != null && coreActivationPresentation.KeepsSpentVisual))
+        {
+            DisableCoreCollidersOnly();
+            return;
+        }
+
         if (!destroyCoreAfterActivation)
         {
             return;
@@ -402,6 +635,19 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         gameObject.SetActive(false);
+    }
+
+    private void DisableCoreCollidersOnly()
+    {
+        Collider2D[] colliders = GetComponentsInChildren<Collider2D>(true);
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            if (colliders[i] != null)
+            {
+                colliders[i].enabled = false;
+            }
+        }
     }
 
     private void HideCoreVisualsAndColliders()

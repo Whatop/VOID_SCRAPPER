@@ -5,6 +5,8 @@ using Unity.Cinemachine;
 [DisallowMultipleComponent]
 public class GungeonStyleCamera2D : MonoBehaviour
 {
+    public static GungeonStyleCamera2D Instance { get; private set; }
+
     [Header("References")]
     [SerializeField] private Transform player;
     [SerializeField] private Camera mainCamera;
@@ -32,12 +34,33 @@ public class GungeonStyleCamera2D : MonoBehaviour
     [SerializeField] private float moveBiasStrength = 0.08f;
     [SerializeField] private float maxMoveBias = 0.15f;
 
+    [Header("Camera Shake")]
+    [SerializeField] private bool enableCameraShake = true;
+    [SerializeField] private float maxShakeAmplitude = 0.42f;
+    [SerializeField] private float shakeFrequency = 30f;
+    [SerializeField, Range(0f, 1f)] private float repeatedHitStacking = 0.35f;
+    [SerializeField] private bool useUnscaledTimeForShake = true;
+
     [Header("Pixel Perfect Stabilization")]
     [SerializeField] private bool snapOffsetToPixelGrid = true;
     [SerializeField] private int assetsPixelsPerUnit = 32;
 
     private CinemachineFollow follow;
     private Vector3 currentOffset;
+    private float runtimeAimOffsetMultiplier = 1f;
+    private float runtimeMouseDistanceMultiplier = 1f;
+
+    [Header("Cinematic Focus")]
+    [SerializeField] private float cinematicFocusSmoothSpeed = 9f;
+
+    private bool cinematicFocusActive;
+    private Vector3 cinematicFocusWorldPosition;
+
+    private float shakeRemaining;
+    private float shakeDuration;
+    private float shakeAmplitude;
+    private float shakeNoiseTime;
+    private Vector2 shakeSeed;
 
     private void Reset()
     {
@@ -47,12 +70,33 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     private void Awake()
     {
+        Instance = this;
         ResolveReferences();
+        ResetShakeNoise();
     }
 
     private void OnEnable()
     {
+        Instance = this;
         ResolveReferences();
+    }
+
+    private void OnDisable()
+    {
+        cinematicFocusActive = false;
+
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
 
     private void Update()
@@ -74,17 +118,22 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
         Vector3 targetOffset = CalculateTargetOffset();
 
-        if (offsetSmoothSpeed <= 0f)
+        float activeSmoothSpeed = cinematicFocusActive
+            ? cinematicFocusSmoothSpeed
+            : offsetSmoothSpeed;
+
+        if (activeSmoothSpeed <= 0f)
         {
             currentOffset = targetOffset;
         }
         else
         {
-            float t = 1f - Mathf.Exp(-offsetSmoothSpeed * Time.deltaTime);
+            float t = 1f - Mathf.Exp(-activeSmoothSpeed * Time.unscaledDeltaTime);
             currentOffset = Vector3.Lerp(currentOffset, targetOffset, t);
         }
 
-        Vector3 outputOffset = currentOffset;
+        Vector2 shakeOffset = EvaluateShakeOffset();
+        Vector3 outputOffset = currentOffset + new Vector3(shakeOffset.x, shakeOffset.y, 0f);
 
         if (snapOffsetToPixelGrid)
         {
@@ -93,6 +142,60 @@ public class GungeonStyleCamera2D : MonoBehaviour
         }
 
         follow.FollowOffset = new Vector3(outputOffset.x, outputOffset.y, cameraDistanceZ);
+    }
+
+    public static void RequestShake(float amplitude, float duration)
+    {
+        if (amplitude <= 0f || duration <= 0f)
+        {
+            return;
+        }
+
+        if (Instance == null)
+        {
+            Instance = FindFirstObjectByType<GungeonStyleCamera2D>();
+        }
+
+        if (Instance != null)
+        {
+            Instance.AddShake(amplitude, duration);
+        }
+    }
+
+    public void AddShake(float amplitude, float duration)
+    {
+        if (!enableCameraShake || amplitude <= 0f || duration <= 0f)
+        {
+            return;
+        }
+
+        amplitude = Mathf.Clamp(amplitude, 0f, Mathf.Max(0.01f, maxShakeAmplitude));
+        duration = Mathf.Max(0.01f, duration);
+
+        if (shakeRemaining > 0f)
+        {
+            shakeAmplitude = Mathf.Min(
+                Mathf.Max(0.01f, maxShakeAmplitude),
+                Mathf.Max(shakeAmplitude, amplitude) + amplitude * repeatedHitStacking
+            );
+            shakeRemaining = Mathf.Max(shakeRemaining, duration);
+            shakeDuration = Mathf.Max(shakeDuration, duration);
+        }
+        else
+        {
+            shakeAmplitude = amplitude;
+            shakeRemaining = duration;
+            shakeDuration = duration;
+        }
+
+        ResetShakeNoise();
+    }
+
+    public void StopShake()
+    {
+        shakeRemaining = 0f;
+        shakeDuration = 0f;
+        shakeAmplitude = 0f;
     }
 
     private void ResolveReferences()
@@ -105,6 +208,16 @@ public class GungeonStyleCamera2D : MonoBehaviour
         if (mainCamera == null)
         {
             mainCamera = Camera.main;
+        }
+
+        if (player == null)
+        {
+            PlayerController2D playerController = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
+
+            if (playerController != null)
+            {
+                player = playerController.transform;
+            }
         }
 
         if (player != null && playerRb == null)
@@ -120,14 +233,21 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     private Vector3 CalculateTargetOffset()
     {
+        if (cinematicFocusActive && player != null)
+        {
+            Vector2 focusOffset = cinematicFocusWorldPosition - player.position;
+            return new Vector3(focusOffset.x, focusOffset.y, 0f);
+        }
+
         Vector2 aimOffset = GetMouseAimOffset();
         Vector2 moveOffset = GetMoveBiasOffset();
 
         Vector2 finalOffset = aimOffset + moveOffset;
+        float effectiveMaxAimOffset = Mathf.Max(0f, maxAimOffset * Mathf.Max(0.01f, runtimeAimOffsetMultiplier));
 
-        if (finalOffset.magnitude > maxAimOffset)
+        if (effectiveMaxAimOffset > 0f && finalOffset.magnitude > effectiveMaxAimOffset)
         {
-            finalOffset = finalOffset.normalized * maxAimOffset;
+            finalOffset = finalOffset.normalized * effectiveMaxAimOffset;
         }
 
         return new Vector3(finalOffset.x, finalOffset.y, 0f);
@@ -158,10 +278,16 @@ public class GungeonStyleCamera2D : MonoBehaviour
             return Vector2.zero;
         }
 
-        float normalized = Mathf.InverseLerp(deadZoneRadius, maxMouseDistanceForOffset, distance);
+        float effectiveMouseDistanceForOffset = Mathf.Max(
+            deadZoneRadius + 0.01f,
+            maxMouseDistanceForOffset * Mathf.Max(0.01f, runtimeMouseDistanceMultiplier)
+        );
+        float effectiveMaxAimOffset = Mathf.Max(0f, maxAimOffset * Mathf.Max(0.01f, runtimeAimOffsetMultiplier));
+
+        float normalized = Mathf.InverseLerp(deadZoneRadius, effectiveMouseDistanceForOffset, distance);
         float curved = offsetCurve != null ? offsetCurve.Evaluate(normalized) : normalized;
 
-        return toMouse.normalized * (maxAimOffset * curved);
+        return toMouse.normalized * (effectiveMaxAimOffset * curved);
     }
 
     private Vector2 GetMoveBiasOffset()
@@ -182,6 +308,50 @@ public class GungeonStyleCamera2D : MonoBehaviour
         return Vector2.ClampMagnitude(bias, maxMoveBias);
     }
 
+    private Vector2 EvaluateShakeOffset()
+    {
+        if (!enableCameraShake || shakeRemaining <= 0f || shakeAmplitude <= 0f)
+        {
+            return Vector2.zero;
+        }
+
+        float deltaTime = useUnscaledTimeForShake ? Time.unscaledDeltaTime : Time.deltaTime;
+        float safeDuration = Mathf.Max(0.01f, shakeDuration);
+        float envelope = Mathf.Clamp01(shakeRemaining / safeDuration);
+        envelope *= envelope;
+
+        shakeNoiseTime += deltaTime * Mathf.Max(1f, shakeFrequency);
+
+        float x = Mathf.PerlinNoise(shakeSeed.x, shakeNoiseTime) * 2f - 1f;
+        float y = Mathf.PerlinNoise(shakeSeed.y, shakeNoiseTime + 17.37f) * 2f - 1f;
+
+        Vector2 offset = new Vector2(x, y);
+
+        if (offset.sqrMagnitude > 1f)
+        {
+            offset.Normalize();
+        }
+
+        offset *= shakeAmplitude * envelope;
+
+        shakeRemaining -= deltaTime;
+
+        if (shakeRemaining <= 0f)
+        {
+            StopShake();
+        }
+
+        return offset;
+    }
+
+    private void ResetShakeNoise()
+    {
+        shakeSeed = new Vector2(
+            Random.Range(-1000f, 1000f),
+            Random.Range(-1000f, 1000f)
+        );
+    }
+
     private float SnapToPixelGrid(float value)
     {
         if (assetsPixelsPerUnit <= 0)
@@ -198,4 +368,56 @@ public class GungeonStyleCamera2D : MonoBehaviour
         player = target;
         playerRb = player != null ? player.GetComponent<Rigidbody2D>() : null;
     }
+
+    public void SetCinematicFocus(Vector3 worldPosition, bool immediate = false)
+    {
+        ResolveReferences();
+        cinematicFocusActive = true;
+        cinematicFocusWorldPosition = worldPosition;
+
+        if (immediate && player != null)
+        {
+            Vector2 offset = worldPosition - player.position;
+            currentOffset = new Vector3(offset.x, offset.y, 0f);
+
+            if (follow != null)
+            {
+                follow.FollowOffset = new Vector3(currentOffset.x, currentOffset.y, cameraDistanceZ);
+            }
+        }
+    }
+
+    public void UpdateCinematicFocus(Vector3 worldPosition)
+    {
+        cinematicFocusWorldPosition = worldPosition;
+    }
+
+    public void ClearCinematicFocus(bool immediate = false)
+    {
+        cinematicFocusActive = false;
+
+        if (immediate)
+        {
+            currentOffset = Vector3.zero;
+
+            if (follow != null)
+            {
+                follow.FollowOffset = new Vector3(0f, 0f, cameraDistanceZ);
+            }
+        }
+    }
+
+    public void SetAimOffsetAssist(float aimOffsetMultiplier, float mouseDistanceMultiplier)
+    {
+        runtimeAimOffsetMultiplier = Mathf.Max(0.01f, aimOffsetMultiplier);
+        runtimeMouseDistanceMultiplier = Mathf.Max(0.01f, mouseDistanceMultiplier);
+    }
+
+    public void ResetAimOffsetAssist()
+    {
+        runtimeAimOffsetMultiplier = 1f;
+        runtimeMouseDistanceMultiplier = 1f;
+    }
+
+    public bool IsCinematicFocusActive => cinematicFocusActive;
 }

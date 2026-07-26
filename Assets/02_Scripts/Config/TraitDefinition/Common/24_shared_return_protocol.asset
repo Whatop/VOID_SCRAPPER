@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "복귀 프로토콜"
   description: "긴급복귀 보존율과 대쉬 회전율을 개선한다."
   icon: {fileID: 21300000, guid: 1053b1b4ae9f9d5666f56de1c8fc81d4, type: 3}
+  rarity: 1
   category: 0
   weaponTreeType: 2
   shopItemType: 0

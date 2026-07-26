@@ -16,8 +16,6 @@ MonoBehaviour:
   - eventId: ui_click
     clips:
     - {fileID: 8300000, guid: f5c3cac00fb5206edddf56e229f7b453, type: 3}
-    - {fileID: 8300000, guid: 9088fab03a5efaebb00999c3fdcf9d1f, type: 3}
-    - {fileID: 8300000, guid: 7a75902f548576567dec930b09de4d48, type: 3}
     volume: 0.72
     pitchMin: 0.98
     pitchMax: 1.04
@@ -25,10 +23,7 @@ MonoBehaviour:
     loop: 0
     priority: 128
   - eventId: ui_hover
-    clips:
-    - {fileID: 8300000, guid: f14325490feb2dc377ea7c4e5bbf643f, type: 3}
-    - {fileID: 8300000, guid: 05fa866fb37afc66de7d570496d0930c, type: 3}
-    - {fileID: 8300000, guid: d89f2a6a6f7d5293c4107d5aef6e0574, type: 3}
+    clips: []
     volume: 0.38
     pitchMin: 0.98
     pitchMax: 1.05
@@ -37,8 +32,7 @@ MonoBehaviour:
     priority: 128
   - eventId: ui_back
     clips:
-    - {fileID: 8300000, guid: 4d8bd34cbb79ad2c1c3607126c426cac, type: 3}
-    - {fileID: 8300000, guid: 0fdcd9710b832bd9250a40c71e435620, type: 3}
+    - {fileID: 8300000, guid: 7a75902f548576567dec930b09de4d48, type: 3}
     volume: 0.62
     pitchMin: 0.97
     pitchMax: 1.03
@@ -48,8 +42,6 @@ MonoBehaviour:
   - eventId: ui_panel_open
     clips:
     - {fileID: 8300000, guid: 7bd67af3e313e995de00ba9a5cf9b51b, type: 3}
-    - {fileID: 8300000, guid: b2830e4f65792a6455471193c93bb2b1, type: 3}
-    - {fileID: 8300000, guid: bb191bae86970cd7a8734752830344bc, type: 3}
     volume: 0.72
     pitchMin: 0.98
     pitchMax: 1.02
@@ -59,8 +51,6 @@ MonoBehaviour:
   - eventId: ui_panel_close
     clips:
     - {fileID: 8300000, guid: ae756f74c2b191a347560cae4ffe1a44, type: 3}
-    - {fileID: 8300000, guid: e09ac32b0f988a42ceb7ad827e216456, type: 3}
-    - {fileID: 8300000, guid: 2a4fe553294c8ac8da06335921ddfb51, type: 3}
     volume: 0.68
     pitchMin: 0.98
     pitchMax: 1.02
@@ -83,7 +73,7 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 35680a92d266fbd16657a7af2232eb15, type: 3}
     - {fileID: 8300000, guid: 71a5f0163356dd3600cbd65b3746f01a, type: 3}
     - {fileID: 8300000, guid: 01256deb368f0f2367e9d0ef9d8f46cf, type: 3}
-    volume: 0.8
+    volume: 0.6
     pitchMin: 0.98
     pitchMax: 1.03
     spatialBlend: 0
@@ -101,14 +91,34 @@ MonoBehaviour:
     priority: 128
   - eventId: ui_launch
     clips:
-    - {fileID: 8300000, guid: 458d0eaaebbd9d9105bf84dffd731e69, type: 3}
-    - {fileID: 8300000, guid: 3b72e8fd0c5a6a4726c698d36203f92f, type: 3}
-    volume: 0.82
+    - {fileID: 8300000, guid: 0eb0d5e20e2241a59cf5fb56ec539b6f, type: 3}
+    - {fileID: 8300000, guid: ecb4f9eef6f94ae982daa59253ba31cf, type: 3}
+    volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
     spatialBlend: 0
     loop: 0
-    priority: 128
+    priority: 105
+  - eventId: ui_unlock
+    clips:
+    - {fileID: 8300000, guid: ada2a9fc4c4440fb95352a1cba645326, type: 3}
+    - {fileID: 8300000, guid: aa04bb1d56ff49ef9e634730d9bd2e91, type: 3}
+    volume: 0.74
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 120
+  - eventId: ui_disabled
+    clips:
+    - {fileID: 8300000, guid: 59ebe9de716c416f89e2f110002bc956, type: 3}
+    - {fileID: 8300000, guid: fae4893de8b7408f81495c477b4b8efc, type: 3}
+    volume: 0.58
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 118
   - eventId: trait_select
     clips:
     - {fileID: 8300000, guid: 876b809d18880688c0aca078b777e1b5, type: 3}
@@ -281,15 +291,15 @@ MonoBehaviour:
     priority: 128
   - eventId: reinforcement_use
     clips:
-    - {fileID: 8300000, guid: 772252150617c841f84827173a91dd8a, type: 3}
-    - {fileID: 8300000, guid: e741c74168ada604010ec564efd002c5, type: 3}
-    - {fileID: 8300000, guid: ec0dd9b624c34bbce07bb810f915cf10, type: 3}
-    volume: 0.82
+    - {fileID: 8300000, guid: 0fb7149babb74278ba250f55da96f685, type: 3}
+    - {fileID: 8300000, guid: 555adbd4f71d4a41a85fb7e288b3971a, type: 3}
+    - {fileID: 8300000, guid: 829f15e572bd49968e4b714f0bcb17d0, type: 3}
+    volume: 0.74
     pitchMin: 0.96
     pitchMax: 1.04
-    spatialBlend: 0.1
+    spatialBlend: 0.08
     loop: 0
-    priority: 128
+    priority: 126
   - eventId: radar_open
     clips:
     - {fileID: 8300000, guid: a0005a02d064161a52020803fd9c52f6, type: 3}
@@ -312,15 +322,14 @@ MonoBehaviour:
     priority: 128
   - eventId: radar_scan_pulse
     clips:
-    - {fileID: 8300000, guid: a3fb1b6e929f8fc3836b0fa293297c66, type: 3}
-    - {fileID: 8300000, guid: f34bb59a3b76e41afe167b5e172f11a4, type: 3}
-    - {fileID: 8300000, guid: 5488ff0b1c32ca186ee81c549727b072, type: 3}
-    volume: 0.76
+    - {fileID: 8300000, guid: 4447f44e0d0a4888aacc2cf33256a9c8, type: 3}
+    - {fileID: 8300000, guid: e742efb8859048418e3afc78690bbc06, type: 3}
+    volume: 0.7
     pitchMin: 0.96
     pitchMax: 1.04
-    spatialBlend: 0.12
+    spatialBlend: 0.1
     loop: 0
-    priority: 128
+    priority: 124
   - eventId: radar_fail
     clips:
     - {fileID: 8300000, guid: 90e548c93db5f364ccd7b7fa78c20fd7, type: 3}
@@ -446,23 +455,25 @@ MonoBehaviour:
     priority: 128
   - eventId: ship_dash_start
     clips:
-    - {fileID: 8300000, guid: 8d5027452c094fe7c81e80541e40b1c6, type: 3}
-    volume: 0.41
-    pitchMin: 0.96
-    pitchMax: 1.04
-    spatialBlend: 0.261
+    - {fileID: 8300000, guid: 4fd78fd7d3134e68b05cc116d9a1c2a9, type: 3}
+    - {fileID: 8300000, guid: 67c74bbf7c3144a7aa7653712cb24cb4, type: 3}
+    - {fileID: 8300000, guid: f60e61043f9d41f4aee6bbca82cd521c, type: 3}
+    volume: 0.56
+    pitchMin: 0.94
+    pitchMax: 1.06
+    spatialBlend: 0.22
     loop: 0
-    priority: 129
+    priority: 125
   - eventId: ship_dash_end
     clips:
-    - {fileID: 8300000, guid: ed6a68815d87c74e2a6b919a98b67982, type: 3}
-    - {fileID: 8300000, guid: 1cf36cb1cff6ccf5a152473cf51d9287, type: 3}
-    volume: 0.09
+    - {fileID: 8300000, guid: 95cc8f8abda646af941a3cf789532318, type: 3}
+    - {fileID: 8300000, guid: b14b58e5f6f84b618438765c0ea4794a, type: 3}
+    volume: 0.16
     pitchMin: 0.96
     pitchMax: 1.03
-    spatialBlend: 0.2
+    spatialBlend: 0.18
     loop: 0
-    priority: 128
+    priority: 140
   - eventId: ship_hit
     clips:
     - {fileID: 8300000, guid: 32174d60050f491d96f5b6d1219b2de2, type: 3}
@@ -511,26 +522,22 @@ MonoBehaviour:
     priority: 128
   - eventId: sniper_charge_start
     clips:
-    - {fileID: 8300000, guid: 412d06c95a057f5836dd1a7534ef7b80, type: 3}
-    - {fileID: 8300000, guid: 4f33ff5cdaa803ecf569fcd52faf914b, type: 3}
-    - {fileID: 8300000, guid: d27d750aa6a5a91ac6b15bfdb98cc659, type: 3}
-    volume: 0.7
-    pitchMin: 0.95
-    pitchMax: 1.04
-    spatialBlend: 0.25
+    - {fileID: 8300000, guid: e513b54b25364520857cdc47eddee653, type: 3}
+    volume: 0.66
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0.18
     loop: 0
-    priority: 128
+    priority: 126
   - eventId: sniper_charge_cancel
     clips:
-    - {fileID: 8300000, guid: 29d89afa26cd078b660eb7ce8a742532, type: 3}
-    - {fileID: 8300000, guid: cd511acb51398989278023e2fbc729de, type: 3}
-    - {fileID: 8300000, guid: 69246b1d4a1e342115837a338d4aaf7d, type: 3}
-    volume: 0.58
-    pitchMin: 0.95
-    pitchMax: 1.04
-    spatialBlend: 0.24
+    - {fileID: 8300000, guid: 8b9bdabfe69c4125b0514e39221bffad, type: 3}
+    volume: 0.55
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0.15
     loop: 0
-    priority: 128
+    priority: 126
   - eventId: sniper_fire
     clips:
     - {fileID: 8300000, guid: ed842490abf7426880f66083c7ddc2c2, type: 3}
@@ -897,3 +904,138 @@ MonoBehaviour:
     spatialBlend: 0.25
     loop: 0
     priority: 128
+  - eventId: radar_charge_start
+    clips:
+    - {fileID: 8300000, guid: 4533ecd52f824de1936ef93eb4543848, type: 3}
+    - {fileID: 8300000, guid: 8cc740ebb76a4fb490615d2a30826237, type: 3}
+    volume: 0.58
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0.1
+    loop: 0
+    priority: 126
+  - eventId: radar_charge_loop
+    clips:
+    - {fileID: 8300000, guid: 6b3a0172e2bb435cb9b250a1e728a8d6, type: 3}
+    volume: 0.28
+    pitchMin: 0.99
+    pitchMax: 1.01
+    spatialBlend: 0.08
+    loop: 1
+    priority: 135
+  - eventId: radar_charge_cancel
+    clips:
+    - {fileID: 8300000, guid: 82fd4fd2f9b74ed2a37668d14d1b54c7, type: 3}
+    - {fileID: 8300000, guid: eb4f8dce64a949e991df0a0740a1dd8b, type: 3}
+    volume: 0.48
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0.08
+    loop: 0
+    priority: 126
+  - eventId: sniper_charge_loop
+    clips:
+    - {fileID: 8300000, guid: 3ab1034a359347d89df35c9813d6857b, type: 3}
+    volume: 0.24
+    pitchMin: 0.99
+    pitchMax: 1.01
+    spatialBlend: 0.12
+    loop: 1
+    priority: 135
+  - eventId: amb_space_loop
+    clips:
+    - {fileID: 8300000, guid: 91c7dda1279941279b4ebd27ea57c3a2, type: 3}
+    - {fileID: 8300000, guid: c5e2ecb5be554cb79977a9c2d5e639c2, type: 3}
+    volume: 0.22
+    pitchMin: 1
+    pitchMax: 1
+    spatialBlend: 0
+    loop: 1
+    priority: 200
+  - eventId: amb_settlement_loop
+    clips:
+    - {fileID: 8300000, guid: a16334f3dc6f42f69b3999e3031ea114, type: 3}
+    volume: 0.18
+    pitchMin: 1
+    pitchMax: 1
+    spatialBlend: 0
+    loop: 1
+    priority: 200
+  - eventId: music_combat_loop
+    clips:
+    - {fileID: 8300000, guid: b0ab8dc54e2b410e8a4f18b41020d5a2, type: 3}
+    volume: 0.2
+    pitchMin: 1
+    pitchMax: 1
+    spatialBlend: 0
+    loop: 1
+    priority: 210
+  - eventId: music_boss_loop
+    clips:
+    - {fileID: 8300000, guid: 4dc861c88822420c8fe572dbe972b92b, type: 3}
+    volume: 0.24
+    pitchMin: 1
+    pitchMax: 1
+    spatialBlend: 0
+    loop: 1
+    priority: 210
+  - eventId: music_settlement_loop
+    clips:
+    - {fileID: 8300000, guid: 81424f74c77f420fab5108288f5a59bb, type: 3}
+    volume: 0.08
+    pitchMin: 1
+    pitchMax: 1
+    spatialBlend: 0
+    loop: 1
+    priority: 220
+  - eventId: ui_activate
+    clips:
+    - {fileID: 8300000, guid: 2185978fc14441188b863e8f4dcf98e5, type: 3}
+    - {fileID: 8300000, guid: e45e77debbdc49739679359b7e9ec308, type: 3}
+    volume: 0.72
+    pitchMin: 0.98
+    pitchMax: 1.04
+    spatialBlend: 0
+    loop: 0
+    priority: 120
+  - eventId: ui_deactivate
+    clips:
+    - {fileID: 8300000, guid: 455b34c7433546c3b615e6be1d3183f3, type: 3}
+    - {fileID: 8300000, guid: b347fd28db954ec594ff18c388ee85e8, type: 3}
+    volume: 0.64
+    pitchMin: 0.97
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 120
+  - eventId: ui_settings
+    clips:
+    - {fileID: 8300000, guid: ad0a9029cc484bd1b4ef808d42e5ffe3, type: 3}
+    - {fileID: 8300000, guid: 37579fd546414e3fa585bb771ea198ed, type: 3}
+    volume: 0.68
+    pitchMin: 0.98
+    pitchMax: 1.03
+    spatialBlend: 0
+    loop: 0
+    priority: 118
+  - eventId: ui_pause
+    clips:
+    - {fileID: 8300000, guid: 452f7f5b2eee4b25be63edb4474085b3, type: 3}
+    - {fileID: 8300000, guid: a4db7f90a6744afdaca31f636356d424, type: 3}
+    volume: 0.72
+    pitchMin: 0.98
+    pitchMax: 1.02
+    spatialBlend: 0
+    loop: 0
+    priority: 110
+  - eventId: ship_move_puff
+    clips:
+    - {fileID: 8300000, guid: 0512d518fd6a71b4ab0aaed0c79545db, type: 3}
+    - {fileID: 8300000, guid: 6c6d650f9daced54a9a285566e14a78d, type: 3}
+    - {fileID: 8300000, guid: de5b403f9710b1e4f812e0c9274ee53a, type: 3}
+    volume: 0.13
+    pitchMin: 0.97
+    pitchMax: 1.04
+    spatialBlend: 0.1
+    loop: 0
+    priority: 110

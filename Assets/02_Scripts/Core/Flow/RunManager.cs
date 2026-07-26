@@ -203,6 +203,7 @@ public class RunManager : MonoBehaviour
 
         currentRun.SetDepth(ExpeditionDepth.DeepZone1);
         currentRun.SetSeaRegion(nextRegion);
+        currentRun.ResetExpeditionObjectiveProgress();
 
         Debug.Log($"심부 해역으로 이동합니다. SeaRegion: {SeaRegionCatalog.GetDisplayName(nextRegion)}", this);
 
@@ -300,6 +301,8 @@ public class RunManager : MonoBehaviour
             bossDefeated = run.BossDefeated,
 
             runExperience = wallet.Experience,
+            unusedTuningChips = wallet.TuningChips,
+            objectiveSignalCount = run.ObjectiveSignalCount,
             remainingCredits = wallet.Credits,
 
             collectedScrapParts = collectedScrap,

@@ -111,6 +111,35 @@ public class RunTraitEffectApplier : MonoBehaviour
         }
     }
 
+    public void RemoveTraitLevel(TraitDefinition trait, int level)
+    {
+        CacheReferences();
+
+        if (trait == null || trait.LevelEffects == null)
+        {
+            return;
+        }
+
+        level = Mathf.Clamp(level, 1, trait.MaxLevel);
+
+        for (int i = 0; i < trait.LevelEffects.Count; i++)
+        {
+            TraitLevelEffect effect = trait.LevelEffects[i];
+
+            if (effect == null || effect.Level != level)
+            {
+                continue;
+            }
+
+            RemoveEffect(effect.EffectType, effect.Value);
+        }
+
+        if (logAppliedTraits)
+        {
+            Debug.Log($"특성 효과 제거: {trait.DisplayName} Lv{level}", this);
+        }
+    }
+
     private void ApplyEffect(TraitEffectType effectType, float value)
     {
         switch (effectType)
@@ -303,6 +332,157 @@ public class RunTraitEffectApplier : MonoBehaviour
         }
     }
 
+    private void RemoveEffect(TraitEffectType effectType, float value)
+    {
+        switch (effectType)
+        {
+            case TraitEffectType.DamagePercent:
+                if (weaponModifiers != null)
+                {
+                    weaponModifiers.MultiplyDamage(SafeInverse(PercentToMultiplier(value)));
+                }
+                break;
+
+            case TraitEffectType.ProjectileSpeedPercent:
+                if (weaponModifiers != null)
+                {
+                    weaponModifiers.MultiplyProjectileSpeed(SafeInverse(PercentToMultiplier(value)));
+                }
+                break;
+
+            case TraitEffectType.RangePercent:
+                if (weaponModifiers != null)
+                {
+                    weaponModifiers.MultiplyRange(SafeInverse(PercentToMultiplier(value)));
+                }
+                break;
+
+            case TraitEffectType.MoveSpeedPercent:
+                if (playerController != null)
+                {
+                    playerController.SetMoveSpeed(playerController.MoveSpeed * SafeInverse(PercentToMultiplier(value)));
+                }
+                break;
+
+            case TraitEffectType.DashCooldownReduction:
+                if (playerDash != null)
+                {
+                    playerDash.SetDashCooldown(playerDash.DashCooldown + Mathf.Abs(value));
+                }
+                break;
+
+            case TraitEffectType.DashDistanceBonus:
+                if (playerDash != null)
+                {
+                    playerDash.SetDashDistance(playerDash.DashDistance - value);
+                }
+                break;
+
+            case TraitEffectType.MaxHpBonus:
+                if (playerHealth != null)
+                {
+                    playerHealth.SetMaxHp(playerHealth.MaxHp - value, false);
+                }
+                break;
+
+            case TraitEffectType.HealEfficiencyPercent:
+                runtimeBonusState?.RemoveHealEfficiencyPercent(value);
+                break;
+
+            case TraitEffectType.PickupRangeBonus:
+                runtimeBonusState?.RemovePickupRangeBonus(value);
+                break;
+
+            case TraitEffectType.SpreadReductionPercent:
+                if (weaponModifiers != null)
+                {
+                    float reductionFactor = 1f - Mathf.Clamp01(Mathf.Abs(value) * 0.01f);
+                    weaponModifiers.MultiplySpread(SafeInverse(Mathf.Max(0.01f, reductionFactor)));
+                }
+                break;
+
+            case TraitEffectType.ProjectileCountBonus:
+                weaponModifiers?.AddProjectileCount(-Mathf.RoundToInt(value));
+                break;
+
+            case TraitEffectType.PierceCountBonus:
+                weaponModifiers?.AddPierceCount(-Mathf.RoundToInt(value));
+                break;
+
+            case TraitEffectType.ChargeTimeReductionPercent:
+                if (weaponModifiers != null)
+                {
+                    weaponModifiers.MultiplyChargeSpeed(SafeInverse(PercentToMultiplier(Mathf.Abs(value))));
+                }
+                break;
+
+            case TraitEffectType.ChargeDamagePercent:
+                if (weaponModifiers != null)
+                {
+                    weaponModifiers.MultiplyChargeDamage(SafeInverse(PercentToMultiplier(value)));
+                }
+                break;
+
+            case TraitEffectType.HomingAngleBonus:
+                weaponModifiers?.AddHomingAngle(-value);
+                break;
+
+            case TraitEffectType.HomingRangeBonus:
+                weaponModifiers?.AddHomingRange(-value);
+                break;
+
+            case TraitEffectType.FireRatePercent:
+                if (weaponModifiers != null)
+                {
+                    weaponModifiers.MultiplyFireRate(SafeInverse(PercentToMultiplier(value)));
+                }
+                break;
+
+            case TraitEffectType.CargoCapacityBonus:
+                runtimeBonusState?.RemoveCargoCapacityBonus(value);
+                ApplyCargoCapacityBonus(-value);
+                break;
+
+            case TraitEffectType.HarvestYieldPercent:
+                runtimeBonusState?.RemoveHarvestYieldPercent(value);
+                break;
+
+            case TraitEffectType.HarvestObjectDamagePercent:
+                runtimeBonusState?.RemoveHarvestObjectDamagePercent(value);
+                break;
+
+            case TraitEffectType.EmergencyReturnCapacityRatioBonus:
+                runtimeBonusState?.RemoveEmergencyReturnCapacityRatioBonus(value);
+                ApplyEmergencyReturnRatioBonus(-value);
+                break;
+
+            case TraitEffectType.RadarScanRadiusBonus:
+                runtimeBonusState?.RemoveRadarScanRadiusBonus(value);
+                break;
+
+            case TraitEffectType.ActiveCooldownReductionPercent:
+                runtimeBonusState?.RemoveActiveCooldownReductionPercent(value);
+                break;
+
+            case TraitEffectType.RadarTauntDurationBonus:
+                runtimeBonusState?.RemoveRadarTauntDurationBonus(value);
+                break;
+
+            case TraitEffectType.RadarStealthDurationBonus:
+                runtimeBonusState?.RemoveRadarStealthDurationBonus(value);
+                break;
+
+            case TraitEffectType.CloseRangeDamageReductionPercent:
+            case TraitEffectType.DashDamageReductionPercent:
+            case TraitEffectType.CloseRangeSuppressionPercent:
+            case TraitEffectType.ChargeSightBonusPercent:
+            case TraitEffectType.ChargedProjectileSizePercent:
+            case TraitEffectType.RemovePierceDamageFalloff:
+                Debug.LogWarning($"필드 드랍 역적용이 구현되지 않은 특성 효과입니다: {effectType}", this);
+                break;
+        }
+    }
+
     private void CacheReferences()
     {
         if (playerHealth == null)
@@ -440,6 +620,16 @@ public class RunTraitEffectApplier : MonoBehaviour
         }
 
         return null;
+    }
+
+    private float SafeInverse(float value)
+    {
+        if (value <= 0.0001f || float.IsNaN(value) || float.IsInfinity(value))
+        {
+            return 1f;
+        }
+
+        return 1f / value;
     }
 
     private float PercentToMultiplier(float percent)

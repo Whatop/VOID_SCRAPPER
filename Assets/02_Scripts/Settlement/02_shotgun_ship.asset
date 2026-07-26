@@ -15,7 +15,10 @@ MonoBehaviour:
   shipId: shotgun_ship
   displayName: "\uBE0C\uB9AC\uCC98"
   description: "\uADFC\uC811 \uC804\uD22C \uD2B9\uD654"
-  previewSprite: {fileID: 21300000, guid: a663ccbdfc208334bb98f74ef0b83c43, type: 3}
+  previewSprite: {fileID: 21300000, guid: 97cb4ac959284b745b7547d6ef9bb3be, type: 3}
+  machineGunSprite: {fileID: 0}
+  shotgunSprite: {fileID: 559467322, guid: d6e89a8e98ada984186b925f7de7f222, type: 3}
+  sniperSprite: {fileID: 0}
   defaultWeaponTree: 0
   unlockedByDefault: 0
   unlockFlag: 

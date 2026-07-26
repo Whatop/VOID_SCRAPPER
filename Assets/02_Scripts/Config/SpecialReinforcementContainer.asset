@@ -26,8 +26,8 @@ MonoBehaviour:
     maxAmount: 10
   healDropChance: 0.15
   healAmount: 1
-  enableReinforcementDrop: 1
-  reinforcementDropChance: 1
+  enableReinforcementDrop: 0
+  reinforcementDropChance: 0
   minReinforcementDropCount: 1
   maxReinforcementDropCount: 1
   reinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}

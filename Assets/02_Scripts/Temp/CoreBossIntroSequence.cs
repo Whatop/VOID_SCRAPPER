@@ -9,7 +9,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 {
     [Header("Warning")]
     [SerializeField] private WarningMessageUI warningMessageUI;
-    [SerializeField] private string activationWarningMessage = "�� ������ ���� ����!";
+    [SerializeField] private string activationWarningMessage = "고 에너지 방출 감지!";
     [SerializeField] private float warningDuration = 1.4f;
     [SerializeField] private float delayAfterWarning = 0.25f;
 
@@ -17,8 +17,8 @@ public class CoreBossIntroSequence : MonoBehaviour
     [SerializeField] private bool useMotionTitleForCoreActivation = true;
     [SerializeField] private EventTitleDirector coreActivationTitleDirector;
     [SerializeField] private EventTitleType coreActivationTitleType = EventTitleType.CoreReaction;
-    [SerializeField] private string coreActivationTitle = "�ھ� Ȱ��ȭ";
-    [SerializeField] private string coreActivationSubtitle = "��ȹ ������ ��ȣ ����";
+    [SerializeField] private string coreActivationTitle = "코어 활성화";
+    [SerializeField] private string coreActivationSubtitle = "구획 관리자 신호 감지";
     [SerializeField] private float coreActivationTitleWait = 1.2f;
     [SerializeField] private bool fallbackToWarningMessageIfTitleMissing = true;
 
@@ -32,14 +32,42 @@ public class CoreBossIntroSequence : MonoBehaviour
     [SerializeField] private ExpeditionHUD expeditionHUD;
     [SerializeField] private bool hideStatusAndResourceUIDuringIntro = true;
 
+    [Header("Core Focus / Activation")]
+    [SerializeField] private CoreActivationPresentation coreActivationPresentation;
+    [SerializeField] private GungeonStyleCamera2D gungeonCamera;
+    [SerializeField] private bool focusCameraOnCore = true;
+    [Range(0.35f, 1.25f)]
+    [SerializeField] private float coreFocusZoomMultiplier = 0.68f;
+    [Min(0.05f)]
+    [SerializeField] private float coreFocusZoomDuration = 0.55f;
+    [Min(0f)]
+    [SerializeField] private float coreFocusSettleDuration = 0.12f;
+    [SerializeField] private AnimationCurve coreFocusZoomCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [Min(0f)]
+    [SerializeField] private float delayAfterCorePulse = 0.12f;
+
     [Header("Camera")]
     [SerializeField] private CameraZoomController2D cameraZoomController;
     [SerializeField] private float wideZoomMultiplier = 3.5f;
-    [SerializeField] private float zoomOutWait = 0.8f;
-    [SerializeField] private float zoomInWait = 0.75f;
+
+    [Tooltip("일반 시야에서 보스 전체 시야로 부드럽게 넓어지는 시간입니다.")]
+    [Min(0.05f)]
+    [SerializeField] private float zoomOutDuration = 1.35f;
+
+    [Tooltip("보스 시야에서 기존 플레이 시야로 천천히 돌아오는 시간입니다.")]
+    [Min(0.05f)]
+    [SerializeField] private float zoomInDuration = 1.65f;
+
+    [SerializeField] private AnimationCurve zoomOutCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [SerializeField] private AnimationCurve zoomInCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
     [SerializeField] private bool resetCameraZoomOnBattleStart = true;
     [SerializeField] private bool returnCameraZoomAfterIntro = true;
     [SerializeField] private bool createCameraZoomControllerIfMissing = true;
+
+    [Header("Background Coverage")]
+    [SerializeField] private SpaceBackgroundGenerator2D spaceBackgroundGenerator;
+    [SerializeField] private bool prepareBackgroundBeforeWideZoom = true;
+    [SerializeField] private bool syncStarfieldScaleWithCameraZoom = true;
 
     [Header("Arena")]
     [SerializeField] private Vector2 arenaHalfExtents = new Vector2(14f, 14f);
@@ -47,10 +75,10 @@ public class CoreBossIntroSequence : MonoBehaviour
     [Range(0.2f, 1f)]
     [SerializeField] private float verticalSpaceScale = 0.7f;
 
-    [Tooltip("�ھ�� ������ ������ �߽����� ���� ���� ������")]
+    [Tooltip("코어보다 위쪽을 보스전 중심으로 쓰기 위한 오프셋")]
     [SerializeField] private Vector2 arenaCenterOffset = new Vector2(0f, 2.5f);
 
-    [Tooltip("Boss Spawn Point�� �ھ�� ��ĥ �� �߰��� ���� �ø��� ������")]
+    [Tooltip("Boss Spawn Point가 코어와 겹칠 때 추가로 위로 올리는 오프셋")]
     [SerializeField] private Vector2 bossBattlePositionOffset = new Vector2(0f, 2.5f);
 
     [Header("Laser Manager Ships")]
@@ -90,6 +118,28 @@ public class CoreBossIntroSequence : MonoBehaviour
     [SerializeField] private bool faceBossToPlayerWhenArrived = true;
     [SerializeField] private float bossRotationOffset = -90f;
 
+    [Header("Boss Reveal")]
+    [Range(0.45f, 2f)]
+    [SerializeField] private float bossRevealZoomMultiplier = 0.82f;
+    [Min(0.05f)]
+    [SerializeField] private float bossRevealZoomDuration = 0.5f;
+    [SerializeField] private AnimationCurve bossRevealZoomCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [Min(0f)]
+    [SerializeField] private float bossHealthBarLeadTime = 0.55f;
+    [SerializeField] private bool useBossAnimatorTriggers = true;
+    [SerializeField] private string bossIntroEnterTrigger = "BossIntroEnter";
+    [SerializeField] private string bossIntroRevealTrigger = "BossIntroReveal";
+    [SerializeField] private string bossIntroReadyTrigger = "BossIntroReady";
+    [SerializeField] private bool useFallbackBossRevealScale = true;
+    [Range(0.5f, 1f)]
+    [SerializeField] private float bossRevealStartScale = 0.82f;
+    [Range(1f, 1.35f)]
+    [SerializeField] private float bossRevealOvershootScale = 1.08f;
+    [Min(0.05f)]
+    [SerializeField] private float bossRevealScaleDuration = 0.36f;
+    [SerializeField] private float bossRevealShakeAmplitude = 0.18f;
+    [SerializeField] private float bossRevealShakeDuration = 0.22f;
+
     [Header("Debug")]
     [SerializeField] private bool logSequence;
 
@@ -101,6 +151,8 @@ public class CoreBossIntroSequence : MonoBehaviour
     private PlayerLockState playerLockState;
     private EnemyHealth trackedBossHealth;
     private GameObject spawnedBoss;
+    private Animator spawnedBossAnimator;
+    private Vector3 spawnedBossBaseScale = Vector3.one;
     private bool isPlaying;
 
     public GameObject SpawnedBoss => spawnedBoss;
@@ -141,8 +193,11 @@ public class CoreBossIntroSequence : MonoBehaviour
     private void Reset()
     {
         cameraZoomController = FindFirstObjectByType<CameraZoomController2D>();
+        gungeonCamera = FindFirstObjectByType<GungeonStyleCamera2D>();
         warningMessageUI = FindFirstObjectByType<WarningMessageUI>();
         expeditionHUD = FindFirstObjectByType<ExpeditionHUD>();
+        coreActivationPresentation = GetComponent<CoreActivationPresentation>();
+        coreActivationTitleDirector = EventTitleDirector.Instance;
     }
 
     private void OnDisable()
@@ -158,6 +213,11 @@ public class CoreBossIntroSequence : MonoBehaviour
             expeditionHUD.SetCinematicMode(false);
         }
 
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.ClearCinematicFocus(true);
+        }
+
         if (returnCameraZoomAfterIntro || resetCameraZoomOnBattleStart)
         {
             ResetCameraZoom();
@@ -165,6 +225,11 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (isPlaying)
         {
+            if (spawnedBoss != null)
+            {
+                spawnedBoss.transform.localScale = spawnedBossBaseScale;
+            }
+
             RestorePlayer();
             EnableBossForBattle();
             isPlaying = false;
@@ -177,6 +242,7 @@ public class CoreBossIntroSequence : MonoBehaviour
         Vector3 bossBattlePosition,
         Vector3 arenaCenter,
         Action<GameObject> bossCreatedCallback,
+        Action bossRevealCallback,
         Action battleStartCallback)
     {
         if (isPlaying)
@@ -186,6 +252,8 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         isPlaying = true;
         spawnedBoss = null;
+        spawnedBossAnimator = null;
+        spawnedBossBaseScale = Vector3.one;
 
         ResolveReferences();
 
@@ -194,7 +262,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (logSequence)
         {
-            Debug.Log("�ھ� ���� ��Ʈ�� ����", this);
+            Debug.Log("코어 보스 인트로 시작", this);
         }
 
         if (hideStatusAndResourceUIDuringIntro && expeditionHUD != null)
@@ -208,23 +276,74 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
 
         ApplyIntroInvincibility(interactor);
+
+        // 1. 카메라가 코어로 들어간 뒤 코어 활성화 애니메이션과 노란 펄스를 보여준다.
+        if (focusCameraOnCore && gungeonCamera != null)
+        {
+            Transform focusTarget = coreActivationPresentation != null
+                ? coreActivationPresentation.FocusTarget
+                : transform;
+            gungeonCamera.SetCinematicFocus(
+                focusTarget != null ? focusTarget.position : transform.position
+            );
+        }
+
+        yield return AnimateCameraZoomOnlyRoutine(
+            coreFocusZoomMultiplier,
+            coreFocusZoomDuration,
+            coreFocusZoomCurve
+        );
+
+        if (coreFocusSettleDuration > 0f)
+        {
+            yield return Wait(coreFocusSettleDuration);
+        }
+
+        if (coreActivationPresentation != null)
+        {
+            yield return coreActivationPresentation.PlayActivationRoutine();
+        }
+        else
+        {
+            GungeonStyleCamera2D.RequestShake(0.12f, 0.18f);
+        }
+
+        if (delayAfterCorePulse > 0f)
+        {
+            yield return Wait(delayAfterCorePulse);
+        }
+
         yield return PlayCoreActivationNoticeRoutine();
 
-        SetCameraWide();
-        yield return Wait(zoomOutWait);
+        // 2. 전장 전체가 보이도록 카메라를 넓히고 관리 기체가 봉쇄선을 만든다.
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.SetCinematicFocus(effectiveArenaCenter);
+        }
+
+        PrepareBackgroundForWideZoom();
+        yield return AnimateCameraAndBackgroundZoomRoutine(
+            wideZoomMultiplier,
+            zoomOutDuration,
+            zoomOutCurve,
+            true
+        );
 
         yield return SpawnAndMoveManagerShipsRoutine(effectiveArenaCenter);
 
+        // 3. 보스를 화면 밖에서 생성해 중앙으로 진입시킨다.
         spawnedBoss = SpawnBossForIntro(bossPrefab, effectiveBossBattlePosition);
         bossCreatedCallback?.Invoke(spawnedBoss);
 
         DisableBossForIntro(spawnedBoss);
+        CacheBossPresentation(spawnedBoss);
+        TriggerBossAnimator(bossIntroEnterTrigger);
 
         yield return MoveBossArrivalRoutine(spawnedBoss, effectiveBossBattlePosition, interactor);
 
         if (delayBeforeWallActivation > 0f)
         {
-            yield return new WaitForSeconds(delayBeforeWallActivation);
+            yield return Wait(delayBeforeWallActivation);
         }
 
         ActivateLaserWallsFromManagerShips();
@@ -232,17 +351,60 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (delayAfterWallActivation > 0f)
         {
-            yield return new WaitForSeconds(delayAfterWallActivation);
+            yield return Wait(delayAfterWallActivation);
+        }
+
+        // 4. 보스에게 다시 줌인하고 등장 애니메이션을 재생한다.
+        if (spawnedBoss != null && gungeonCamera != null)
+        {
+            gungeonCamera.SetCinematicFocus(spawnedBoss.transform.position);
+        }
+
+        TriggerBossAnimator(bossIntroRevealTrigger);
+        yield return PlayBossRevealScaleRoutine();
+
+        AudioManager.PlayAt(
+            SoundEventIds.BossSpawn,
+            spawnedBoss != null ? spawnedBoss.transform.position : effectiveBossBattlePosition
+        );
+
+        yield return AnimateCameraAndBackgroundZoomRoutine(
+            bossRevealZoomMultiplier,
+            bossRevealZoomDuration,
+            bossRevealZoomCurve,
+            false
+        );
+
+        // 코어 활성화 Motion을 이미 사용하므로 별도의 보스 Motion 타이틀은 재생하지 않습니다.
+        // 보스 줌/스케일 연출이 끝난 직후 체력바의 가로 펼침/HP 채움 연출을 시작합니다.
+        bossRevealCallback?.Invoke();
+
+        if (bossHealthBarLeadTime > 0f)
+        {
+            yield return Wait(bossHealthBarLeadTime);
+        }
+
+        TriggerBossAnimator(bossIntroReadyTrigger);
+
+        // 5. 플레이 카메라로 복귀한 뒤 실제 보스 AI와 플레이어 입력을 동시에 연다.
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.ClearCinematicFocus(false);
         }
 
         if (resetCameraZoomOnBattleStart || returnCameraZoomAfterIntro)
         {
-            ResetCameraZoom();
-            yield return Wait(zoomInWait);
+            yield return AnimateCameraAndBackgroundZoomRoutine(
+                1f,
+                zoomInDuration,
+                zoomInCurve,
+                false
+            );
         }
 
-        EnableBossForBattle();
+        // 실제 전투 상태와 주변 적 경계는 인트로 카메라가 복귀한 뒤 시작한다.
         battleStartCallback?.Invoke();
+        EnableBossForBattle();
 
         if (lockPlayerInput)
         {
@@ -261,7 +423,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (logSequence)
         {
-            Debug.Log("�ھ� ���� ��Ʈ�� ����. ������ ����.", this);
+            Debug.Log("코어 보스 인트로 종료. 보스전 시작.", this);
         }
 
         isPlaying = false;
@@ -304,10 +466,41 @@ public class CoreBossIntroSequence : MonoBehaviour
             }
         }
 
+        if (spaceBackgroundGenerator == null)
+        {
+            spaceBackgroundGenerator = FindFirstObjectByType<SpaceBackgroundGenerator2D>(FindObjectsInactive.Include);
+        }
+
         if (warningMessageUI == null)
         {
             warningMessageUI = FindFirstObjectByType<WarningMessageUI>(FindObjectsInactive.Include);
         }
+
+        if (gungeonCamera == null)
+        {
+            gungeonCamera = GungeonStyleCamera2D.Instance;
+
+            if (gungeonCamera == null)
+            {
+                gungeonCamera = FindFirstObjectByType<GungeonStyleCamera2D>(FindObjectsInactive.Include);
+            }
+        }
+
+        if (coreActivationPresentation == null)
+        {
+            coreActivationPresentation = GetComponent<CoreActivationPresentation>();
+
+            if (coreActivationPresentation == null)
+            {
+                coreActivationPresentation = gameObject.AddComponent<CoreActivationPresentation>();
+            }
+        }
+
+        if (coreActivationTitleDirector == null)
+        {
+            coreActivationTitleDirector = EventTitleDirector.Instance;
+        }
+
     }
 
     private Vector2 GetEffectiveHalfExtents()
@@ -840,23 +1033,231 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
     }
 
-    private void SetCameraWide()
+    private IEnumerator AnimateCameraZoomOnlyRoutine(
+        float targetMultiplier,
+        float duration,
+        AnimationCurve curve)
     {
         if (cameraZoomController == null)
         {
             ResolveReferences();
         }
 
-        if (cameraZoomController != null)
+        if (cameraZoomController == null)
         {
-            cameraZoomController.SetZoomMultiplier(wideZoomMultiplier, true);
+            yield break;
         }
-        else
+
+        yield return cameraZoomController.AnimateZoomMultiplier(
+            targetMultiplier,
+            Mathf.Max(0.05f, duration),
+            curve
+        );
+    }
+
+    private void CacheBossPresentation(GameObject bossObject)
+    {
+        spawnedBossAnimator = null;
+        spawnedBossBaseScale = Vector3.one;
+
+        if (bossObject == null)
+        {
+            return;
+        }
+
+        spawnedBossBaseScale = bossObject.transform.localScale;
+        spawnedBossAnimator = bossObject.GetComponentInChildren<Animator>(true);
+    }
+
+    private void TriggerBossAnimator(string triggerName)
+    {
+        if (!useBossAnimatorTriggers ||
+            spawnedBossAnimator == null ||
+            string.IsNullOrWhiteSpace(triggerName) ||
+            !HasAnimatorParameter(spawnedBossAnimator, triggerName, AnimatorControllerParameterType.Trigger))
+        {
+            return;
+        }
+
+        spawnedBossAnimator.ResetTrigger(triggerName);
+        spawnedBossAnimator.SetTrigger(triggerName);
+    }
+
+    private static bool HasAnimatorParameter(
+        Animator animator,
+        string parameterName,
+        AnimatorControllerParameterType parameterType)
+    {
+        if (animator == null || string.IsNullOrWhiteSpace(parameterName))
+        {
+            return false;
+        }
+
+        AnimatorControllerParameter[] parameters = animator.parameters;
+
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            AnimatorControllerParameter parameter = parameters[i];
+
+            if (parameter.type == parameterType && parameter.name == parameterName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private IEnumerator PlayBossRevealScaleRoutine()
+    {
+        if (spawnedBoss == null)
+        {
+            yield break;
+        }
+
+        Transform bossTransform = spawnedBoss.transform;
+        Vector3 baseScale = spawnedBossBaseScale;
+
+        if (!useFallbackBossRevealScale)
+        {
+            if (bossRevealShakeDuration > 0f && bossRevealShakeAmplitude > 0f)
+            {
+                GungeonStyleCamera2D.RequestShake(
+                    bossRevealShakeAmplitude,
+                    bossRevealShakeDuration
+                );
+            }
+
+            yield break;
+        }
+
+        float duration = Mathf.Max(0.05f, bossRevealScaleDuration);
+        float firstPhaseDuration = duration * 0.65f;
+        float secondPhaseDuration = Mathf.Max(0.01f, duration - firstPhaseDuration);
+        Vector3 startScale = baseScale * Mathf.Clamp(bossRevealStartScale, 0.05f, 1f);
+        Vector3 overshootScale = baseScale * Mathf.Max(1f, bossRevealOvershootScale);
+
+        bossTransform.localScale = startScale;
+
+        float elapsed = 0f;
+
+        while (elapsed < firstPhaseDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float normalized = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, firstPhaseDuration));
+            float eased = 1f - Mathf.Pow(1f - normalized, 3f);
+            bossTransform.localScale = Vector3.LerpUnclamped(startScale, overshootScale, eased);
+            yield return null;
+        }
+
+        elapsed = 0f;
+
+        while (elapsed < secondPhaseDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float normalized = Mathf.Clamp01(elapsed / secondPhaseDuration);
+            float eased = normalized * normalized * (3f - 2f * normalized);
+            bossTransform.localScale = Vector3.LerpUnclamped(overshootScale, baseScale, eased);
+            yield return null;
+        }
+
+        bossTransform.localScale = baseScale;
+
+        if (bossRevealShakeDuration > 0f && bossRevealShakeAmplitude > 0f)
+        {
+            GungeonStyleCamera2D.RequestShake(
+                bossRevealShakeAmplitude,
+                bossRevealShakeDuration
+            );
+        }
+    }
+
+    private void PrepareBackgroundForWideZoom()
+    {
+        if (!prepareBackgroundBeforeWideZoom && !syncStarfieldScaleWithCameraZoom)
+        {
+            return;
+        }
+
+        if (spaceBackgroundGenerator == null)
+        {
+            ResolveReferences();
+        }
+
+        if (spaceBackgroundGenerator != null)
+        {
+            spaceBackgroundGenerator.BeginCameraZoomTransition(wideZoomMultiplier);
+        }
+    }
+
+    private IEnumerator AnimateCameraAndBackgroundZoomRoutine(
+        float targetMultiplier,
+        float duration,
+        AnimationCurve curve,
+        bool zoomingOut)
+    {
+        if (cameraZoomController == null)
+        {
+            ResolveReferences();
+        }
+
+        if (cameraZoomController == null)
         {
             Debug.LogWarning(
-                "CameraZoomController2D�� ã�� ���߽��ϴ�. CinemachineCamera �Ǵ� Main Camera�� CameraZoomController2D�� ���̼���.",
+                "CameraZoomController2D를 찾지 못했습니다. CinemachineCamera 또는 Main Camera에 CameraZoomController2D를 붙이세요.",
                 this
             );
+
+            if (spaceBackgroundGenerator != null &&
+                spaceBackgroundGenerator.IsCameraZoomTransitionActive)
+            {
+                spaceBackgroundGenerator.SetCameraZoomTransitionProgress(zoomingOut ? 1f : 0f);
+
+                if (!zoomingOut)
+                {
+                    spaceBackgroundGenerator.EndCameraZoomTransition(true);
+                }
+            }
+
+            yield break;
+        }
+
+        Action<float, float> progressCallback = null;
+
+        if (syncStarfieldScaleWithCameraZoom &&
+            spaceBackgroundGenerator != null &&
+            spaceBackgroundGenerator.IsCameraZoomTransitionActive)
+        {
+            progressCallback = (normalized, currentMultiplier) =>
+            {
+                float backgroundProgress = zoomingOut
+                    ? normalized
+                    : 1f - normalized;
+
+                spaceBackgroundGenerator.SetCameraZoomTransitionProgress(backgroundProgress);
+            };
+        }
+
+        yield return cameraZoomController.AnimateZoomMultiplier(
+            targetMultiplier,
+            Mathf.Max(0.05f, duration),
+            curve,
+            progressCallback
+        );
+
+        if (spaceBackgroundGenerator != null &&
+            spaceBackgroundGenerator.IsCameraZoomTransitionActive)
+        {
+            if (zoomingOut)
+            {
+                spaceBackgroundGenerator.SetCameraZoomTransitionProgress(1f);
+            }
+            else
+            {
+                spaceBackgroundGenerator.SetCameraZoomTransitionProgress(0f);
+                spaceBackgroundGenerator.EndCameraZoomTransition(true);
+                spaceBackgroundGenerator.ForceSyncNow();
+            }
         }
     }
 
@@ -864,7 +1265,14 @@ public class CoreBossIntroSequence : MonoBehaviour
     {
         if (cameraZoomController != null)
         {
+            cameraZoomController.CancelCinematicTransition(true);
             cameraZoomController.ResetZoom(true);
+        }
+
+        if (spaceBackgroundGenerator != null)
+        {
+            spaceBackgroundGenerator.EndCameraZoomTransition(true);
+            spaceBackgroundGenerator.ForceSyncNow();
         }
     }
 
@@ -1046,13 +1454,19 @@ public class CoreBossIntroSequence : MonoBehaviour
         float duration =
             warningDuration +
             delayAfterWarning +
+            coreFocusZoomDuration +
+            coreFocusSettleDuration +
+            delayAfterCorePulse +
             coreActivationTitleWait +
-            zoomOutWait +
+            zoomOutDuration +
             managerShipMoveDuration +
             bossArrivalDuration +
             delayBeforeWallActivation +
             delayAfterWallActivation +
-            zoomInWait +
+            bossRevealScaleDuration +
+            bossRevealZoomDuration +
+            bossHealthBarLeadTime +
+            zoomInDuration +
             playerInvincibleExtraTime;
 
         playerHealth.AddInvincibleTime(duration);
@@ -1114,4 +1528,36 @@ public class CoreBossIntroSequence : MonoBehaviour
         Gizmos.DrawWireSphere(topRight, 0.35f);
         Gizmos.DrawWireSphere(bottomRight, 0.35f);
     }
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        wideZoomMultiplier = Mathf.Max(1f, wideZoomMultiplier);
+        zoomOutDuration = Mathf.Max(0.05f, zoomOutDuration);
+        zoomInDuration = Mathf.Max(0.05f, zoomInDuration);
+        coreFocusZoomDuration = Mathf.Max(0.05f, coreFocusZoomDuration);
+        bossRevealZoomDuration = Mathf.Max(0.05f, bossRevealZoomDuration);
+        bossRevealScaleDuration = Mathf.Max(0.05f, bossRevealScaleDuration);
+
+        if (zoomOutCurve == null || zoomOutCurve.length == 0)
+        {
+            zoomOutCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        }
+
+        if (zoomInCurve == null || zoomInCurve.length == 0)
+        {
+            zoomInCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        }
+
+        if (coreFocusZoomCurve == null || coreFocusZoomCurve.length == 0)
+        {
+            coreFocusZoomCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        }
+
+        if (bossRevealZoomCurve == null || bossRevealZoomCurve.length == 0)
+        {
+            bossRevealZoomCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        }
+    }
+#endif
+
 }

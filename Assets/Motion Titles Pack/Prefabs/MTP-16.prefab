@@ -750,7 +750,7 @@ MonoBehaviour:
     m_NumAlphaKeys: 2
   enableThickness: 0
   isHorizontal: 1
-  thickness: 0
+  thickness: 1
   isIdentical: 1
   updateSubTwins: 1
   twinObject: {fileID: 2205740147454724591}

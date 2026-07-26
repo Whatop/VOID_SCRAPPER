@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "스크랩 분류기"
   description: "수확 효율과 자원 흡수 범위를 같이 올린다."
   icon: {fileID: 21300000, guid: 0facd111d0e7e91f02697d0c493e9ed6, type: 3}
+  rarity: 1
   category: 0
   weaponTreeType: 2
   shopItemType: 0

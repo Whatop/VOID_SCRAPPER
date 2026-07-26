@@ -313,7 +313,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7a9d4db80c9addf47b820782cb9e6bff, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 0273a9d689c91844497913c2fb0524bd, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2664,6 +2664,7 @@ MonoBehaviour:
   dontDestroyGlobalInstance: 0
   titleRoot: {fileID: 354875326}
   defaultTitlePrefab: {fileID: 2666311671812663743, guid: 56b04e74ff8accb40aba1a6ae18ac0b7, type: 3}
+  titlePrefabOverrides: []
   forceTitleRect: 1
   titleSize: {x: 330, y: 110}
   titleAnchor: {x: 0.5, y: 0.5}
@@ -8728,6 +8729,9 @@ MonoBehaviour:
   availableTextColor: {r: 0.82, g: 0.9, b: 0.95, a: 1}
   selectedTextColor: {r: 1, g: 1, b: 1, a: 1}
   lockedTextColor: {r: 0.55, g: 0.6, b: 0.68, a: 1}
+  playClickSound: 1
+  clickSoundEventId: ui_click
+  lockedClickSoundEventId: ui_disabled
   allowClickWhenLocked: 1
   lockedAlpha: 0.45
   availableAlpha: 0.85
@@ -11961,7 +11965,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7a9d4db80c9addf47b820782cb9e6bff, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 0273a9d689c91844497913c2fb0524bd, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -13254,16 +13258,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c9acaf39f5af8e64982d4f15f441ca5b, type: 2}
   buildingDefinitions:
   - {fileID: 11400000, guid: d859ad95673c33a41a7f84e878be3c63, type: 2}
-  traitDefinitions:
-  - {fileID: 11400000, guid: 3a98a69a8df06514ca3e851554879235, type: 2}
-  - {fileID: 11400000, guid: c236d8fe3392f7d47bf9e5dbfbea38bb, type: 2}
-  - {fileID: 11400000, guid: 765c6099bb673fc4f96d6106cb7a548c, type: 2}
-  - {fileID: 11400000, guid: ea6fb07d560be4741801ade50e142078, type: 2}
-  - {fileID: 11400000, guid: 25765cc20aa1eab40afa5b773d7f0f96, type: 2}
-  - {fileID: 11400000, guid: 78e34d05a8959414c9a8f55d942c5083, type: 2}
-  - {fileID: 11400000, guid: 01f10a693f84ad54ebed19a460ba74c4, type: 2}
-  - {fileID: 11400000, guid: 7693598213a3cfd4685f8a2741f58bbf, type: 2}
-  - {fileID: 11400000, guid: 6b5e0dbd845b5cd409549df7007473eb, type: 2}
+  traitDefinitions: []
   fallbackBuildingMaxLevel: 3
   fallbackRepairScrapCost: 5
   fallbackUpgradeBaseScrapCost: 10
@@ -14187,6 +14182,9 @@ MonoBehaviour:
   availableTextColor: {r: 0.82, g: 0.9, b: 0.95, a: 1}
   selectedTextColor: {r: 1, g: 1, b: 1, a: 1}
   lockedTextColor: {r: 0.55, g: 0.6, b: 0.68, a: 1}
+  playClickSound: 1
+  clickSoundEventId: ui_click
+  lockedClickSoundEventId: ui_disabled
   allowClickWhenLocked: 1
   lockedAlpha: 0.45
   availableAlpha: 0.85
@@ -17223,6 +17221,9 @@ MonoBehaviour:
   availableTextColor: {r: 0.82, g: 0.9, b: 0.95, a: 1}
   selectedTextColor: {r: 1, g: 1, b: 1, a: 1}
   lockedTextColor: {r: 0.55, g: 0.6, b: 0.68, a: 1}
+  playClickSound: 1
+  clickSoundEventId: ui_click
+  lockedClickSoundEventId: ui_disabled
   allowClickWhenLocked: 1
   lockedAlpha: 0.45
   availableAlpha: 0.85
@@ -19068,16 +19069,18 @@ MonoBehaviour:
     prerequisiteNodeIds: []
     hideWhenLocked: 0
   - branchKind: 2
-    nodeId: sn_focus_lens
+    nodeId: sn_stealth_scan
     nodeButton: {fileID: 0}
-    traitDefinition: {fileID: 11400000, guid: 1bac2d3b0ea044259044aa21b4ae3425, type: 2}
+    traitDefinition: {fileID: 11400000, guid: 637b378591b04f13bcea402b19f646f1, type: 2}
     reinforcementDefinition: {fileID: 0}
     manualOverrideDefinitionFields: 0
     useReinforcementCostAsScrapCost: 0
-    displayName: "\uC9D1\uC911 \uB80C\uC988"
-    icon: {fileID: 21300000, guid: bdb2abc639bb6a6e4e18eba3d5d1c830, type: 3}
-    description: "\uB808\uC774\uB354 \uD0D0\uC0C9 \uBC94\uC704\uC640 \uCC28\uC9D5
-      \uD53C\uD574\uB97C \uD568\uAED8 \uC62C\uB9B0\uB2E4."
+    displayName: "\uCE68\uD22C \uD504\uB85C\uD1A0\uCF5C"
+    icon: {fileID: 21300000, guid: acb8911b0f289aad39da499bbc3f64dc, type: 3}
+    description: "Lv1: \uC801 \uADFC\uC811 \uB808\uC774\uB354 \uD0D0\uC9C0 \uCC28\uB2E8
+      \uBC0F Q \uC2A4\uCE94 \uC801\uC758 ?/! \uC0C1\uD0DC \uD45C\uC2DC\nLv2: Q \uC2A4\uCE94
+      \uC801\uC758 \uBD80\uCC44\uAF34 \uC2DC\uC57C \uD45C\uC2DC\nLv3: \uC801\uC758
+      \uC2DC\uAC01 \uD0D0\uC9C0 \uC644\uB8CC \uC2DC\uAC04 35% \uC99D\uAC00"
     scrapCost: 0
     coreShardCost: 0
     maxLevel: 3
@@ -19115,7 +19118,7 @@ MonoBehaviour:
   scrapCostIconImage: {fileID: 1213269566}
   coreShardCostIconImage: {fileID: 649363620}
   scrapCostIconSprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
-  coreShardCostIconSprite: {fileID: 21300000, guid: 7a9d4db80c9addf47b820782cb9e6bff, type: 3}
+  coreShardCostIconSprite: {fileID: 21300000, guid: 0273a9d689c91844497913c2fb0524bd, type: 3}
   hideCostIconsWhenFree: 1
   detailLockImage: {fileID: 325652082}
   lockedDetailSprite: {fileID: 21300000, guid: 2195e314e582f924e919ee41f06894bb, type: 3}
@@ -20054,6 +20057,9 @@ MonoBehaviour:
   availableTextColor: {r: 0.82, g: 0.9, b: 0.95, a: 1}
   selectedTextColor: {r: 1, g: 1, b: 1, a: 1}
   lockedTextColor: {r: 0.55, g: 0.6, b: 0.68, a: 1}
+  playClickSound: 1
+  clickSoundEventId: ui_click
+  lockedClickSoundEventId: ui_disabled
   allowClickWhenLocked: 1
   lockedAlpha: 0.45
   availableAlpha: 0.85

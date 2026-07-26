@@ -11,6 +11,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     [SerializeField] private PlayerWeaponModifiers weaponModifiers;
     [SerializeField] private PlayerRuntimeBonusState runtimeBonusState;
     [SerializeField] private PlayerCargoController cargoController;
+    [SerializeField] private PlayerShipVisualController shipVisualController;
 
     [Header("Base Stats")]
     [SerializeField] private float baseMaxHp = 20f;
@@ -92,6 +93,12 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         ResetRuntimeModifiers();
 
         ShipDefinition selectedShip = FindShipDefinition(shipDefinitions, selectedShipId);
+
+        if (shipVisualController != null)
+        {
+            shipVisualController.SetShipDefinition(selectedShip, false);
+        }
+
         ApplyShip(selectedShip);
 
         ApplyBuildings(progress, buildingDefinitions);
@@ -103,6 +110,11 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         if (weaponController != null)
         {
             weaponController.EquipWeapon(selectedWeaponTree);
+        }
+
+        if (shipVisualController != null)
+        {
+            shipVisualController.ApplyVisual(selectedWeaponTree);
         }
 
         if (logApplyResult)
@@ -162,6 +174,16 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         if (cargoController == null)
         {
             cargoController = gameObject.AddComponent<PlayerCargoController>();
+        }
+
+        if (shipVisualController == null)
+        {
+            shipVisualController = GetComponent<PlayerShipVisualController>();
+        }
+
+        if (shipVisualController == null)
+        {
+            shipVisualController = gameObject.AddComponent<PlayerShipVisualController>();
         }
     }
 

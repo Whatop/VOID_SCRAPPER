@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "장거리 안정기"
   description: "사거리와 탄속을 함께 보정한다."
   icon: {fileID: 21300000, guid: 9bc96ecfc71eb07152ca76e28053cd6a, type: 3}
+  rarity: 1
   category: 0
   weaponTreeType: 2
   shopItemType: 0

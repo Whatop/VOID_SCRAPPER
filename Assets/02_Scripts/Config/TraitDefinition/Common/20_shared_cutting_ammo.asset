@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "절단 탄약"
   description: "수확 오브젝트에 주는 피해와 기본 화력을 높인다."
   icon: {fileID: 21300000, guid: 04e2bb347222cd9f35a7b3fed7795dff, type: 3}
+  rarity: 1
   category: 0
   weaponTreeType: 2
   shopItemType: 0

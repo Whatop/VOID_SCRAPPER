@@ -56,8 +56,11 @@ public class TraitPickup : MonoBehaviour, IInteractable
                 return "특성 없음";
             }
 
-            bool alreadyOwned = ShopRunBridge.HasRunTrait(traitDefinition.TraitId);
-            string primaryAction = alreadyOwned ? acquireBlockedText : acquireText;
+            int currentLevel = RunRuntimeTraitStore.Instance.GetLevel(traitDefinition.TraitId);
+            bool maxed = currentLevel >= traitDefinition.MaxLevel;
+            string primaryAction = maxed
+                ? acquireBlockedText
+                : (currentLevel > 0 ? "강화" : acquireText);
             string title = traitDefinition.DisplayName;
             string actions = $"[{acquireKeyText}] {primaryAction}    {BuildDismantleActionText()}";
 
@@ -201,29 +204,46 @@ public class TraitPickup : MonoBehaviour, IInteractable
             return;
         }
 
-        if (ShopRunBridge.HasRunTrait(traitDefinition.TraitId))
+        RunRuntimeTraitStore store = RunRuntimeTraitStore.Instance;
+        int previousLevel = store.GetLevel(traitDefinition.TraitId);
+        int newLevel = store.AddOrUpgrade(traitDefinition);
+
+        if (newLevel <= previousLevel)
         {
-            ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+            ExpeditionHUD blockedHud = FindFirstObjectByType<ExpeditionHUD>();
             AudioManager.Play(SoundEventIds.ActionDenied);
-            if (hud != null)
+
+            if (blockedHud != null)
             {
-                hud.ShowWarning($"이미 보유한 특성입니다: {traitDefinition.DisplayName}");
+                blockedHud.ShowWarning($"최대 레벨 특성입니다: {traitDefinition.DisplayName}");
             }
+
             return;
         }
 
-        if (!ShopRunBridge.AddRunTrait(traitDefinition.TraitId))
+        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
         {
-            return;
+            RunManager.Instance.CurrentRun.AddTrait(traitDefinition.TraitId);
         }
 
-        ShopRuntimeEffectApplier.ApplyTraitImmediate(traitDefinition, playerObject);
+        RunTraitEffectApplier applier = FindFirstObjectByType<RunTraitEffectApplier>();
+
+        if (applier != null)
+        {
+            applier.ApplyTraitLevel(traitDefinition, newLevel);
+        }
+        else if (newLevel == 1)
+        {
+            ShopRuntimeEffectApplier.ApplyTraitImmediate(traitDefinition, playerObject);
+        }
+
         AudioManager.PlayAt(SoundEventIds.TraitSelect, transform.position);
 
         ExpeditionHUD acquireHud = FindFirstObjectByType<ExpeditionHUD>();
         if (acquireHud != null)
         {
-            acquireHud.ShowWarning($"특성 획득: {traitDefinition.DisplayName}");
+            string actionText = previousLevel > 0 ? "강화" : "획득";
+            acquireHud.ShowWarning($"특성 {actionText}: {traitDefinition.DisplayName} Lv{newLevel}");
         }
 
         traitDefinition = null;

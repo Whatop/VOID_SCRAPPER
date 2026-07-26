@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "회수 자석"
   description: "드랍된 자원 흡수 범위를 넓힌다."
   icon: {fileID: 21300000, guid: 418521fe25047bb2e0e90e34bda87cd1, type: 3}
+  rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0

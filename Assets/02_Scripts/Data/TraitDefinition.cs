@@ -8,6 +8,13 @@ public enum TraitCategory
     WeaponSpecific
 }
 
+public enum TraitRarity
+{
+    Common,
+    Rare,
+    Special
+}
+
 public enum TraitShopItemType
 {
     Trait = 0,
@@ -83,6 +90,9 @@ public class TraitDefinition : ScriptableObject
     [Header("Visual")]
     [SerializeField] private Sprite icon;
 
+    [Header("Grade")]
+    [SerializeField] private TraitRarity rarity = TraitRarity.Common;
+
     [Header("Category")]
     [SerializeField] private TraitCategory category = TraitCategory.Shared;
     [SerializeField] private WeaponTreeType weaponTreeType = WeaponTreeType.MachineGun;
@@ -100,6 +110,7 @@ public class TraitDefinition : ScriptableObject
     public string Description => string.IsNullOrWhiteSpace(description) ? "특성 설명이 없습니다." : description;
 
     public Sprite Icon => icon;
+    public TraitRarity Rarity => rarity;
 
     public TraitCategory Category => category;
     public WeaponTreeType WeaponTreeType => weaponTreeType;
@@ -115,6 +126,37 @@ public class TraitDefinition : ScriptableObject
     public bool IsLegacyReinforcementTrait =>
         shopItemType == TraitShopItemType.LegacyReinforcement ||
         shopItemType == TraitShopItemType.LegacyBoth;
+
+
+    public string GetRarityText()
+    {
+        return rarity switch
+        {
+            TraitRarity.Common => "일반",
+            TraitRarity.Rare => "희귀",
+            TraitRarity.Special => "특수",
+            _ => "일반"
+        };
+    }
+
+    public Color GetRarityColor()
+    {
+        return rarity switch
+        {
+            TraitRarity.Common => Color.white,
+            TraitRarity.Rare => new Color(0.25f, 0.85f, 1f, 1f),
+            TraitRarity.Special => new Color(1f, 0.55f, 0.12f, 1f),
+            _ => Color.white
+        };
+    }
+
+    public float EffectiveRandomDropWeight => rarity switch
+    {
+        TraitRarity.Common => 100f,
+        TraitRarity.Rare => 45f,
+        TraitRarity.Special => 8f,
+        _ => 100f
+    };
 
     public bool IsAvailableFor(WeaponTreeType selectedTree)
     {

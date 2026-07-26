@@ -4,12 +4,16 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class ShopActiveMaintenanceBay : MonoBehaviour
 {
-    [Header("Á¤ºñ¼Ò º¸°üÇÔ")]
+    [Header("ì •ë¹„ì†Œ ë³´ê´€í•¨")]
     [SerializeField] private int capacity = 6;
     [SerializeField] private bool preventDuplicateEquipment = true;
 
-    private readonly List<ReinforcementDefinition> storedItems = new List<ReinforcementDefinition>();
-    private readonly List<int> storedCharges = new List<int>();
+    private static readonly List<ReinforcementDefinition> storedItems = new List<ReinforcementDefinition>();
+    private static readonly List<int> storedCharges = new List<int>();
+
+    private static int sharedCapacity;
+    private static RunContext sharedRunContext;
+    private static RunManager subscribedRunManager;
 
     public int Capacity => Mathf.Max(1, capacity);
 
@@ -44,6 +48,13 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
 
     private void Awake()
     {
+        EnsureRunScope();
+        EnsureSlotCapacity();
+    }
+
+    private void OnEnable()
+    {
+        EnsureRunScope();
         EnsureSlotCapacity();
     }
 
@@ -196,7 +207,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
         ReinforcementDefinition targetStored = storedItems[index];
         int targetCharges = storedCharges[index];
 
-        // ºóÄ­¿¡ ÇöÀç ¾×Æ¼ºê ³Ö±â. ÇÃ·¹ÀÌ¾î ¾×Æ¼ºê´Â ºñ¿öÁø´Ù.
+        // ë¹ˆ ì¹¸ì— í˜„ì¬ ì•¡í‹°ë¸Œ ë„£ê¸°. í”Œë ˆì´ì–´ ì•¡í‹°ë¸ŒëŠ” ë¹„ì›Œì§„ë‹¤.
         if (targetStored == null)
         {
             if (preventDuplicateEquipment && ContainsExcept(currentDefinition.EquipmentId, index))
@@ -211,7 +222,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
             return true;
         }
 
-        // Âù Ä­¿¡ ÇöÀç ¾×Æ¼ºê µå¶ø = ÇöÀç ¾×Æ¼ºê¿Í ÇØ´ç º¸°ü ½½·Ô ±³Ã¼.
+        // ì°¬ ì¹¸ì— í˜„ì¬ ì•¡í‹°ë¸Œ ë“œë¡­ = í˜„ì¬ ì•¡í‹°ë¸Œì™€ í•´ë‹¹ ë³´ê´€ ìŠ¬ë¡¯ êµì²´.
         if (targetStored.EquipmentId == currentDefinition.EquipmentId)
         {
             return false;
@@ -254,7 +265,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
         ReinforcementDefinition currentEquipped = controller.EquippedDefinition;
         int currentCharges = controller.CurrentCharges;
 
-        // ÇöÀç ¾×Æ¼ºê°¡ ¾øÀ¸¸é º¸°ü ¾ÆÀÌÅÛÀ» ÀåÂøÇÏ°í ½½·ÔÀº ºóÄ­ Ã³¸®.
+        // í˜„ì¬ ì•¡í‹°ë¸Œê°€ ì—†ìœ¼ë©´ ë³´ê´€ ì•„ì´í…œì„ ì¥ì°©í•˜ê³  ìŠ¬ë¡¯ì€ ë¹ˆ ì¹¸ ì²˜ë¦¬.
         if (currentEquipped == null)
         {
             bool equippedOnly = controller.EquipWithoutDropping(selectedStored, selectedCharges, true);
@@ -365,18 +376,15 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
 
     private void EnsureSlotCapacity()
     {
-        int targetCapacity = Capacity;
+        EnsureRunScope();
+
+        int targetCapacity = Mathf.Max(Capacity, sharedCapacity);
+        sharedCapacity = targetCapacity;
 
         while (storedItems.Count < targetCapacity)
         {
             storedItems.Add(null);
             storedCharges.Add(-1);
-        }
-
-        while (storedItems.Count > targetCapacity)
-        {
-            int last = storedItems.Count - 1;
-            storedItems.RemoveAt(last);
         }
 
         while (storedCharges.Count < storedItems.Count)
@@ -447,5 +455,64 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
         }
 
         return false;
+    }
+
+    private static void EnsureRunScope()
+    {
+        EnsureRunManagerSubscription();
+
+        RunContext current = RunManager.Instance != null && RunManager.Instance.HasActiveRun
+            ? RunManager.Instance.CurrentRun
+            : null;
+
+        if (sharedRunContext == current)
+        {
+            return;
+        }
+
+        sharedRunContext = current;
+        ClearSharedStorage();
+    }
+
+    private static void EnsureRunManagerSubscription()
+    {
+        if (RunManager.Instance == null)
+        {
+            return;
+        }
+
+        if (subscribedRunManager == RunManager.Instance)
+        {
+            return;
+        }
+
+        if (subscribedRunManager != null)
+        {
+            subscribedRunManager.RunStarted -= HandleRunStarted;
+            subscribedRunManager.RunEnded -= HandleRunEnded;
+        }
+
+        subscribedRunManager = RunManager.Instance;
+        subscribedRunManager.RunStarted += HandleRunStarted;
+        subscribedRunManager.RunEnded += HandleRunEnded;
+    }
+
+    private static void HandleRunStarted(RunContext runContext)
+    {
+        sharedRunContext = runContext;
+        ClearSharedStorage();
+    }
+
+    private static void HandleRunEnded(RunResultData resultData)
+    {
+        sharedRunContext = null;
+        ClearSharedStorage();
+    }
+
+    private static void ClearSharedStorage()
+    {
+        storedItems.Clear();
+        storedCharges.Clear();
+        sharedCapacity = 0;
     }
 }

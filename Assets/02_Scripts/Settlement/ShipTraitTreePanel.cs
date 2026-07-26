@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
@@ -417,11 +417,13 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         if (unlockButton != null)
         {
+            ConfigureActionButtonSound(unlockButton);
             unlockButton.onClick.AddListener(HandleUnlockButtonClick);
         }
 
         if (traitActivationToggleButton != null)
         {
+            ConfigureActionButtonSound(traitActivationToggleButton);
             traitActivationToggleButton.onClick.AddListener(HandleActivationToggleButtonClick);
         }
     }
@@ -2705,12 +2707,89 @@ public class ShipTraitTreePanel : MonoBehaviour
 
     private void HandleUnlockButtonClick()
     {
-        TryUnlockSelectedTrait();
+        int levelBefore = GetSelectedNodeLevel();
+        bool success = TryUnlockSelectedTrait();
+
+        if (!success)
+        {
+            AudioManager.Play(SoundEventIds.UiDisabled);
+            return;
+        }
+
+        AudioManager.Play(levelBefore <= 0
+            ? SoundEventIds.UiUnlock
+            : SoundEventIds.UiUpgradeSuccess);
     }
 
     private void HandleActivationToggleButtonClick()
     {
-        TryToggleSelectedTraitActive();
+        bool wasActive = IsSelectedNodeActive();
+        bool success = TryToggleSelectedTraitActive();
+
+        if (!success)
+        {
+            AudioManager.Play(SoundEventIds.UiDisabled);
+            return;
+        }
+
+        AudioManager.Play(wasActive
+            ? SoundEventIds.UiDeactivate
+            : SoundEventIds.UiActivate);
+    }
+
+    private void ConfigureActionButtonSound(Button targetButton)
+    {
+        if (targetButton == null)
+        {
+            return;
+        }
+
+        UISoundButton soundButton = targetButton.GetComponent<UISoundButton>();
+        if (soundButton == null)
+        {
+            soundButton = targetButton.gameObject.AddComponent<UISoundButton>();
+        }
+
+        soundButton.SetClickSoundEnabled(false);
+        soundButton.SetHoverSoundEnabled(false);
+        soundButton.SetDisabledClickSoundEnabled(true);
+        soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
+    }
+
+    private int GetSelectedNodeLevel()
+    {
+        if (PermanentProgress.Instance == null)
+        {
+            return 0;
+        }
+
+        ShipTraitBranchNodeEntry entry = FindEntry(selectedBranch, selectedNodeId);
+        if (entry == null)
+        {
+            return 0;
+        }
+
+        string nodeId = GetEntryNodeId(entry);
+        return string.IsNullOrWhiteSpace(nodeId)
+            ? 0
+            : PermanentProgress.Instance.GetTraitLevel(nodeId);
+    }
+
+    private bool IsSelectedNodeActive()
+    {
+        if (PermanentProgress.Instance == null)
+        {
+            return false;
+        }
+
+        ShipTraitBranchNodeEntry entry = FindEntry(selectedBranch, selectedNodeId);
+        if (entry == null)
+        {
+            return false;
+        }
+
+        string nodeId = GetEntryNodeId(entry);
+        return !string.IsNullOrWhiteSpace(nodeId) && PermanentProgress.Instance.IsTraitActive(nodeId);
     }
 
     private void HandleExternalChanged()

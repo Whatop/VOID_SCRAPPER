@@ -83,6 +83,31 @@ public class RunRuntimeTraitStore : MonoBehaviour
         return currentLevel < trait.MaxLevel;
     }
 
+    public bool TryRemoveLevel(string traitId, out int previousLevel, out int remainingLevel)
+    {
+        previousLevel = 0;
+        remainingLevel = 0;
+
+        TraitLevelState state = FindState(traitId);
+
+        if (state == null || state.level <= 0)
+        {
+            return false;
+        }
+
+        previousLevel = state.level;
+        state.level = Mathf.Max(0, state.level - 1);
+        remainingLevel = state.level;
+
+        if (state.level <= 0)
+        {
+            traitLevels.Remove(state);
+        }
+
+        Changed?.Invoke();
+        return true;
+    }
+
     public int AddOrUpgrade(TraitDefinition trait)
     {
         if (trait == null)

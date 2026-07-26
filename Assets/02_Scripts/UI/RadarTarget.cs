@@ -19,6 +19,9 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     [SerializeField] private bool alertOnMachineGunScan;
     [SerializeField] private bool alertOnSniperScan;
 
+    [Header("Runtime Scan State")]
+    [SerializeField] private float lastScannedTime = -999f;
+
     public RadarMarkerType MarkerType => markerType;
     public Transform RadarTransform => markerTransform != null ? markerTransform : transform;
     public bool IsRadarVisible => visible && isActiveAndEnabled && gameObject.activeInHierarchy;
@@ -31,6 +34,7 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     public bool AllowShotgunTaunt => allowShotgunTaunt;
     public bool AlertOnMachineGunScan => alertOnMachineGunScan;
     public bool AlertOnSniperScan => alertOnSniperScan;
+    public float LastScannedTime => lastScannedTime;
 
     private void Reset()
     {
@@ -38,6 +42,11 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
         markerScale = 1f;
         markerColor = Color.white;
         enemyAI = GetComponentInParent<EnemyBaseAI>();
+    }
+
+    private void OnEnable()
+    {
+        lastScannedTime = -999f;
     }
 
     private void Awake()
@@ -77,8 +86,14 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
             return RadarScanResult.Ignored;
         }
 
+        lastScannedTime = Time.time;
         HandleEnemyScanReaction(context);
         return RadarScanResult.Detected;
+    }
+
+    public bool WasScannedRecently(float duration)
+    {
+        return duration > 0f && Time.time - lastScannedTime <= duration;
     }
 
     private void HandleEnemyScanReaction(RadarScanContext context)

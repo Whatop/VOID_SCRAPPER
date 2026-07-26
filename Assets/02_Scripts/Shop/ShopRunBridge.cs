@@ -77,6 +77,11 @@ public static class ShopRunBridge
         return AddCurrency(CurrencyType.CoreShards, amount);
     }
 
+    public static bool AddTuningChips(int amount)
+    {
+        return AddCurrency(CurrencyType.TuningChips, amount);
+    }
+
     public static bool AddCurrency(CurrencyType currencyType, int amount)
     {
         if (amount <= 0)

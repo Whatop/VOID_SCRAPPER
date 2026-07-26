@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "대쉬 캐패시터"
   description: "대쉬 재사용 대기시간을 줄인다."
   icon: {fileID: 21300000, guid: f4e5de073beffa042dc99fca26e4fd50, type: 3}
+  rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0

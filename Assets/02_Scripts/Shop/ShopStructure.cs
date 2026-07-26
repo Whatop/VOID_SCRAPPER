@@ -36,6 +36,17 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     [SerializeField] private float maxShield = 24f;
     [SerializeField] private float maxBodyHp = 42f;
 
+    [Header("Hit Feedback")]
+    [SerializeField] private bool useProceduralHitEffect = true;
+    [SerializeField] private float shieldHitEffectIntensity = 1.05f;
+    [SerializeField] private float bodyHitEffectIntensity = 1f;
+    [SerializeField] private float hitShakeAmplitude = 0.035f;
+    [SerializeField] private float hitShakeDuration = 0.06f;
+    [SerializeField] private float shieldBreakShakeAmplitude = 0.2f;
+    [SerializeField] private float shieldBreakShakeDuration = 0.2f;
+    [SerializeField] private float deathShakeAmplitude = 0.28f;
+    [SerializeField] private float deathShakeDuration = 0.3f;
+
     [Header("Warning")]
     [SerializeField] private float warningDuration = 3f;
     [SerializeField] private float shieldRecoverDuration = 3f;
@@ -50,6 +61,12 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     [SerializeField] private float shieldBreakKnockbackDistance = 3f;
     [SerializeField] private GameObject shieldBreakEffectPrefab;
     [SerializeField] private float shieldBreakEffectLifetime = 0.6f;
+
+    [Header("Physics Safety")]
+    [Tooltip("상점은 거래/전투 중심점이므로 기본적으로 외부 넉백을 받지 않습니다.")]
+    [SerializeField] private bool allowExternalKnockback;
+    [Tooltip("Rigidbody2D가 실수로 붙어 있어도 움직이지 않도록 Kinematic으로 고정합니다.")]
+    [SerializeField] private bool enforceImmovableRigidbody = true;
 
     [Header("Trade - Repair")]
     [SerializeField] private int repairCost = 25;
@@ -95,6 +112,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     [SerializeField] private bool releaseOnDeath = false;
     [SerializeField] private float releaseDelay = 0.1f;
 
+    private Rigidbody2D structureBody;
     private float currentShield;
     private float currentBodyHp;
     private int spentCredits;
@@ -134,6 +152,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
     private void Reset()
     {
+        structureBody = GetComponent<Rigidbody2D>();
         radarTarget = GetComponent<RadarTarget>();
         rewardDropper = GetComponent<RewardDropper>();
         activeMaintenanceBay = GetComponentInChildren<ShopActiveMaintenanceBay>(true);
@@ -148,6 +167,9 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
     private void Awake()
     {
+        structureBody = GetComponent<Rigidbody2D>();
+        EnforceImmovableBody();
+
         if (radarTarget == null)
         {
             radarTarget = GetComponent<RadarTarget>();
@@ -178,6 +200,8 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
     private void OnEnable()
     {
+        EnforceImmovableBody();
+
         if (!ActiveShops.Contains(this))
         {
             ActiveShops.Add(this);
@@ -378,6 +402,11 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
     public void TakeDamage(float damage)
     {
+        TakeDamage(damage, transform.position, Vector2.zero);
+    }
+
+    public void TakeDamage(float damage, Vector2 hitPoint, Vector2 incomingDirection)
+    {
         if (damage <= 0f || CurrentState == ShopStructureState.Dead)
         {
             return;
@@ -385,17 +414,28 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         if (!globalHostile)
         {
-            DamageShield(damage);
+            DamageShield(damage, hitPoint, incomingDirection);
             return;
         }
 
-        DamageBody(damage);
+        DamageBody(damage, hitPoint, incomingDirection);
     }
 
-    private void DamageShield(float damage)
+    private void DamageShield(float damage, Vector2 hitPoint, Vector2 incomingDirection)
     {
         currentShield = Mathf.Max(0f, currentShield - damage);
-        AudioManager.PlayAt(SoundEventIds.ShopShieldHit, transform.position, 0.7f);
+
+        CombatFeedbackManager.PlayHit(
+            hitPoint,
+            incomingDirection,
+            CombatFeedbackKind.Shield,
+            shieldHitEffectIntensity,
+            hitShakeAmplitude,
+            hitShakeDuration,
+            useProceduralHitEffect
+        );
+
+        AudioManager.PlayAt(SoundEventIds.ShopShieldHit, hitPoint, 0.7f);
         ShieldChanged?.Invoke(this, currentShield, maxShield);
 
         if (currentShield <= 0f)
@@ -407,9 +447,20 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         EnterWarningState();
     }
 
-    private void DamageBody(float damage)
+    private void DamageBody(float damage, Vector2 hitPoint, Vector2 incomingDirection)
     {
         currentBodyHp = Mathf.Max(0f, currentBodyHp - damage);
+
+        CombatFeedbackManager.PlayHit(
+            hitPoint,
+            incomingDirection,
+            CombatFeedbackKind.Structure,
+            bodyHitEffectIntensity,
+            hitShakeAmplitude,
+            hitShakeDuration,
+            useProceduralHitEffect
+        );
+
         BodyHpChanged?.Invoke(this, currentBodyHp, maxBodyHp);
 
         if (currentBodyHp <= 0f)
@@ -778,14 +829,17 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
     public void ApplyKnockback(Vector2 origin, float distance)
     {
-        if (CurrentState == ShopStructureState.Dead)
+        if (CurrentState == ShopStructureState.Dead || !allowExternalKnockback || distance <= 0f)
         {
             return;
         }
 
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (structureBody == null)
+        {
+            structureBody = GetComponent<Rigidbody2D>();
+        }
 
-        if (rb == null || distance <= 0f)
+        if (structureBody == null || structureBody.bodyType != RigidbodyType2D.Dynamic)
         {
             return;
         }
@@ -802,7 +856,32 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
             direction = Vector2.up;
         }
 
-        rb.position += direction.normalized * distance;
+        structureBody.AddForce(direction.normalized * distance, ForceMode2D.Impulse);
+    }
+
+    private void EnforceImmovableBody()
+    {
+        if (!enforceImmovableRigidbody || allowExternalKnockback)
+        {
+            return;
+        }
+
+        if (structureBody == null)
+        {
+            structureBody = GetComponent<Rigidbody2D>();
+        }
+
+        if (structureBody == null)
+        {
+            return;
+        }
+
+        structureBody.simulated = true;
+        structureBody.linearVelocity = Vector2.zero;
+        structureBody.angularVelocity = 0f;
+        structureBody.gravityScale = 0f;
+        structureBody.bodyType = RigidbodyType2D.Kinematic;
+        structureBody.constraints = RigidbodyConstraints2D.FreezeAll;
     }
 
     private PlayerHealth ResolvePlayerHealth(GameObject playerObject)
@@ -824,6 +903,14 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         Vector2 center = transform.position;
 
         SpawnEffect(shieldBreakEffectPrefab, center, shieldBreakEffectLifetime);
+        CombatFeedbackManager.PlayBreak(
+            center,
+            CombatFeedbackKind.Shield,
+            1.45f,
+            shieldBreakShakeAmplitude,
+            shieldBreakShakeDuration,
+            shieldBreakEffectPrefab == null
+        );
         ClearProjectiles(center, shieldBreakProjectileClearRadius);
         PushNearbyObjects(center, shieldBreakKnockbackRadius, shieldBreakKnockbackDistance);
     }
@@ -903,6 +990,12 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
                 continue;
             }
 
+            ShopStructure otherShop = hit.GetComponentInParent<ShopStructure>();
+            if (otherShop != null)
+            {
+                continue;
+            }
+
             IKnockbackReceiver receiver = hit.GetComponentInParent<IKnockbackReceiver>();
 
             if (receiver != null)
@@ -957,6 +1050,14 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         }
 
         SpawnEffect(deathEffectPrefab, transform.position, deathEffectLifetime);
+        CombatFeedbackManager.PlayBreak(
+            transform.position,
+            CombatFeedbackKind.Structure,
+            1.8f,
+            deathShakeAmplitude,
+            deathShakeDuration,
+            deathEffectPrefab == null
+        );
 
         if (rewardDropper != null)
         {
@@ -979,16 +1080,20 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         int refundCredits = Mathf.FloorToInt(spentCredits * 0.5f);
 
         GameObject playerObject = FindPlayerObject();
-        PlayerRuntimeBonusState bonusState = playerObject != null ? playerObject.GetComponent<PlayerRuntimeBonusState>() : null;
+        PlayerRuntimeBonusState bonusState = playerObject != null
+            ? playerObject.GetComponent<PlayerRuntimeBonusState>()
+            : null;
 
-        if (bonusState != null)
-        {
-            rewardCredits = bonusState.ApplyCurrencyGain(CurrencyType.Credits, rewardCredits);
-            rewardScrap = bonusState.ApplyCurrencyGain(CurrencyType.ScrapParts, rewardScrap);
-        }
-
-        ShopRunBridge.AddCredits(rewardCredits + refundCredits);
-        ShopRunBridge.AddScrapParts(rewardScrap);
+        DropWorldCurrencyOrGrantDirect(
+            CurrencyType.Credits,
+            rewardCredits + refundCredits,
+            bonusState
+        );
+        DropWorldCurrencyOrGrantDirect(
+            CurrencyType.ScrapParts,
+            rewardScrap,
+            bonusState
+        );
 
         if (UnityEngine.Random.value <= componentShieldDropChance)
         {
@@ -996,11 +1101,46 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         }
     }
 
+    private void DropWorldCurrencyOrGrantDirect(
+        CurrencyType currencyType,
+        int baseAmount,
+        PlayerRuntimeBonusState bonusState)
+    {
+        baseAmount = Mathf.Max(0, baseAmount);
+
+        if (baseAmount <= 0)
+        {
+            return;
+        }
+
+        if (rewardDropper == null)
+        {
+            rewardDropper = GetComponent<RewardDropper>();
+        }
+
+        if (rewardDropper != null &&
+            rewardDropper.TryDropCurrencyRewardAt(transform.position, currencyType, baseAmount))
+        {
+            // 획득 시 RewardPickup이 수확량 보너스를 적용합니다.
+            return;
+        }
+
+        int finalAmount = bonusState != null
+            ? bonusState.ApplyCurrencyGain(currencyType, baseAmount)
+            : baseAmount;
+
+        ShopRunBridge.AddCurrency(currencyType, finalAmount);
+    }
+
     private void GiveComponentShieldReward(GameObject playerObject)
     {
         if (playerObject == null)
         {
-            ShopRunBridge.AddScrapParts(duplicateComponentShieldScrap);
+            DropWorldCurrencyOrGrantDirect(
+                CurrencyType.ScrapParts,
+                duplicateComponentShieldScrap,
+                null
+            );
             return;
         }
 
@@ -1008,7 +1148,12 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         if (existingShield != null && existingShield.enabled)
         {
-            ShopRunBridge.AddScrapParts(duplicateComponentShieldScrap);
+            PlayerRuntimeBonusState bonusState = playerObject.GetComponent<PlayerRuntimeBonusState>();
+            DropWorldCurrencyOrGrantDirect(
+                CurrencyType.ScrapParts,
+                duplicateComponentShieldScrap,
+                bonusState
+            );
             return;
         }
 

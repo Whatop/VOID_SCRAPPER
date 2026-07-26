@@ -31,8 +31,8 @@ MonoBehaviour:
   excludeEmergencyReturnEquipment: 1
   preventDuplicateReinforcementDrops: 1
   useReinforcementRarityWeight: 1
-  enableTraitDrop: 1
-  traitDropChance: 1
+  enableTraitDrop: 0
+  traitDropChance: 0
   minTraitDropCount: 1
   maxTraitDropCount: 2
   traitCatalog: {fileID: 11400000, guid: 3e5fea5df49917b46b18c1d3712065a1, type: 2}

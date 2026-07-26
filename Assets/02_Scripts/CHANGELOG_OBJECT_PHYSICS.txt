@@ -1,0 +1,34 @@
+VOID SCRAPPER - Object Physics Patch
+
+Modified:
+- Core/MeteorObstacle.cs
+  - Legacy / Static Terrain / Rigidbody Drift 모드 분리
+  - 플레이어/적 투사체 피해 허용 설정 분리
+  - Rigidbody 물리 이동 및 Bounds 전달 지원
+
+- HarvestObjectHealth.cs
+  - 플레이어/적 투사체 피해 설정 분리
+  - 적 탄환 차단 + 피해 무시 지원
+  - 고정 오브젝트 Transform 순간이동 넉백 제거
+  - Dynamic Rigidbody에만 Impulse 넉백 적용 가능
+
+- Player/Bullet.cs
+  - 적 탄환이 수확 오브젝트/운석/상점/이벤트를 부당하게 공격하지 않도록 수정
+  - 적 탄환은 해당 구조물에 막히되 기본적으로 피해를 주지 않음
+
+- Shop/ShopStructure.cs
+  - 외부 넉백 기본 차단
+  - Rigidbody2D가 붙어 있어도 Kinematic + FreezeAll로 고정 가능
+  - 보호막 폭발이 다른 상점을 밀지 않도록 제외
+
+- RunRuntime/ExpeditionEventObject.cs
+  - Root Transform 부유 방지
+  - VisualRoot 자동 탐색 및 AnimatedRoot 안전 처리
+
+Added:
+- Core/SpaceDriftBody2D.cs
+  - 소형 운석/잔해용 Rigidbody2D 무중력 이동
+  - 속도 제한, 맵 Bounds 반사, 충격량 적용
+
+- VFX/WorldObjectVisualMotion2D.cs
+  - 고정 Root를 유지하면서 VisualRoot만 부유/회전/맥동

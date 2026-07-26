@@ -378,7 +378,7 @@ public class PlayerReinforcementController : MonoBehaviour
         rechargeTimer = 0f;
 
         Used?.Invoke(equippedDefinition);
-        AudioManager.Play(SoundEventIds.ReinforcementEquip);
+        AudioManager.Play(SoundEventIds.ReinforcementUse);
 
         if (logUseResult && equippedDefinition != null)
         {
@@ -424,6 +424,11 @@ public class PlayerReinforcementController : MonoBehaviour
         if (emergencyReturnController == null)
         {
             emergencyReturnController = GetComponent<EmergencyReturnController>();
+        }
+
+        if (GetComponent<PlayerStealthController>() == null)
+        {
+            gameObject.AddComponent<PlayerStealthController>();
         }
     }
 
@@ -582,6 +587,11 @@ public class PlayerReinforcementController : MonoBehaviour
                 break;
 
             case ReinforcementEffectType.EmergencyReturn:
+                break;
+
+            // PlayerStealthController가 Used 이벤트를 받아 지속시간 효과를 처리한다.
+            case ReinforcementEffectType.TemporaryEnemyRadarJamming:
+            case ReinforcementEffectType.RevealEnemyVisionAndState:
                 break;
         }
     }

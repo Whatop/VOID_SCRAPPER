@@ -12,6 +12,13 @@ public class ExpeditionHUD : MonoBehaviour
 
     [Header("Systems")]
     [SerializeField] private RunLevelSystem runLevelSystem;
+    [SerializeField] private ExpeditionObjectiveDirector objectiveDirector;
+
+    [Header("Progress Gauge Mode")]
+    [Tooltip("기본 ON. 기존 EXP 게이지를 코어 추적 신호 게이지로 사용합니다.")]
+    [SerializeField] private bool useObjectiveSignalGauge = true;
+    [SerializeField] private string objectiveLockedText = "CORE SIGNAL {0}/{1}";
+    [SerializeField] private string objectiveReadyText = "CORE SIGNAL {0}/{1}  READY";
 
     [Header("HUD Roots")]
     [SerializeField] private GameObject statusRoot;
@@ -21,6 +28,7 @@ public class ExpeditionHUD : MonoBehaviour
     [Header("Gauges")]
     [SerializeField] private GaugeBarUI hpGauge;
     [SerializeField] private GaugeBarUI armorGauge;
+    [Tooltip("신규 구조에서는 코어 추적 신호 게이지로 사용합니다.")]
     [SerializeField] private GaugeBarUI expGauge;
     [SerializeField] private GaugeBarUI dashGauge;
     [SerializeField] private GaugeBarUI cargoGauge;
@@ -29,6 +37,7 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private ResourceCounterUI creditsCounter;
     [SerializeField] private ResourceCounterUI scrapCounter;
     [SerializeField] private ResourceCounterUI coreShardCounter;
+    [SerializeField] private ResourceCounterUI tuningChipCounter;
 
     [Header("Reinforcement")]
     [Tooltip("좌측 하단 Reinforcement 전용 슬롯 UI")]
@@ -42,7 +51,7 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private string dashReadyText = "READY";
     [SerializeField] private string dashCooldownText = "{0:0.0}s";
 
-    [Header("Fallback EXP")]
+    [Header("Fallback EXP - Legacy Only")]
     [SerializeField] private int fallbackExpToNextLevel = 100;
 
     private bool cinematicMode;
@@ -54,6 +63,7 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void OnEnable()
     {
+        ResolveReferences();
         Subscribe();
         RefreshAll();
         ApplyCinematicVisibility();
@@ -88,8 +98,16 @@ public class ExpeditionHUD : MonoBehaviour
         ApplyCinematicVisibility();
     }
 
+    public void SetObjectiveSignalGaugeEnabled(bool enabled)
+    {
+        useObjectiveSignalGauge = enabled;
+        RefreshProgressGauge();
+    }
+
     public void RefreshAll()
     {
+        ResolveReferences();
+
         if (playerHealth != null)
         {
             RefreshHealth(playerHealth.CurrentHp, playerHealth.MaxHp);
@@ -104,18 +122,7 @@ public class ExpeditionHUD : MonoBehaviour
             armorGauge.SetValue(0f, 1f);
         }
 
-        if (runLevelSystem != null)
-        {
-            RefreshExp(
-                runLevelSystem.CurrentLevel,
-                runLevelSystem.CurrentExpInLevel,
-                runLevelSystem.CurrentRequiredExp
-            );
-        }
-        else
-        {
-            RefreshExpFallback();
-        }
+        RefreshProgressGauge();
 
         if (RunManager.Instance != null && RunManager.Instance.CurrentRun != null)
         {
@@ -180,6 +187,11 @@ public class ExpeditionHUD : MonoBehaviour
         {
             runLevelSystem = FindFirstObjectByType<RunLevelSystem>();
         }
+
+        if (objectiveDirector == null && Application.isPlaying)
+        {
+            objectiveDirector = ExpeditionObjectiveDirector.Instance;
+        }
     }
 
     private void Subscribe()
@@ -213,9 +225,15 @@ public class ExpeditionHUD : MonoBehaviour
             cargoController.CargoChanged += HandleCargoChanged;
         }
 
-        if (runLevelSystem != null)
+        if (!useObjectiveSignalGauge && runLevelSystem != null)
         {
             runLevelSystem.LevelStateChanged += HandleLevelStateChanged;
+        }
+
+        if (objectiveDirector != null)
+        {
+            objectiveDirector.ProgressChanged += HandleObjectiveProgressChanged;
+            objectiveDirector.CoreRevealedEvent += HandleCoreRevealed;
         }
 
         if (RunManager.Instance != null)
@@ -261,6 +279,12 @@ public class ExpeditionHUD : MonoBehaviour
             runLevelSystem.LevelStateChanged -= HandleLevelStateChanged;
         }
 
+        if (objectiveDirector != null)
+        {
+            objectiveDirector.ProgressChanged -= HandleObjectiveProgressChanged;
+            objectiveDirector.CoreRevealedEvent -= HandleCoreRevealed;
+        }
+
         if (RunManager.Instance != null)
         {
             RunManager.Instance.WalletChanged -= HandleWalletChanged;
@@ -294,6 +318,7 @@ public class ExpeditionHUD : MonoBehaviour
             SetCounterVisible(creditsCounter, visible);
             SetCounterVisible(scrapCounter, visible);
             SetCounterVisible(coreShardCounter, visible);
+            SetCounterVisible(tuningChipCounter, visible);
         }
 
         if (additionalObjectsToHideDuringCinematic != null)
@@ -305,7 +330,7 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
-    private void SetGameObjectVisible(GameObject target, bool visible)
+    private static void SetGameObjectVisible(GameObject target, bool visible)
     {
         if (target != null)
         {
@@ -313,24 +338,20 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
-    private void SetGaugeVisible(GaugeBarUI gauge, bool visible)
+    private static void SetGaugeVisible(GaugeBarUI gauge, bool visible)
     {
-        if (gauge == null)
+        if (gauge != null)
         {
-            return;
+            gauge.SetVisible(visible);
         }
-
-        gauge.SetVisible(visible);
     }
 
-    private void SetCounterVisible(ResourceCounterUI counter, bool visible)
+    private static void SetCounterVisible(ResourceCounterUI counter, bool visible)
     {
-        if (counter == null)
+        if (counter != null)
         {
-            return;
+            counter.gameObject.SetActive(visible);
         }
-
-        counter.gameObject.SetActive(visible);
     }
 
     private void HandleRunStarted(RunContext runContext)
@@ -342,7 +363,7 @@ public class ExpeditionHUD : MonoBehaviour
     {
         RefreshWallet(wallet);
 
-        if (runLevelSystem == null)
+        if (!useObjectiveSignalGauge && runLevelSystem == null)
         {
             RefreshExpFallback();
         }
@@ -360,7 +381,20 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void HandleLevelStateChanged(int level, int expInLevel, int requiredExp)
     {
-        RefreshExp(level, expInLevel, requiredExp);
+        if (!useObjectiveSignalGauge)
+        {
+            RefreshExp(level, expInLevel, requiredExp);
+        }
+    }
+
+    private void HandleObjectiveProgressChanged(int current, int required)
+    {
+        RefreshObjectiveProgress(current, required);
+    }
+
+    private void HandleCoreRevealed()
+    {
+        RefreshProgressGauge();
     }
 
     private void HandleDashStarted(Vector2 direction)
@@ -409,6 +443,54 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
+    private void RefreshProgressGauge()
+    {
+        if (useObjectiveSignalGauge)
+        {
+            if (objectiveDirector == null && Application.isPlaying)
+            {
+                objectiveDirector = ExpeditionObjectiveDirector.Instance;
+            }
+
+            int current = objectiveDirector != null ? objectiveDirector.SignalCount : 0;
+            int required = objectiveDirector != null ? objectiveDirector.SignalsRequiredToRevealCore : 2;
+            RefreshObjectiveProgress(current, required);
+            return;
+        }
+
+        if (runLevelSystem != null && runLevelSystem.LegacyExperienceLevelingEnabled)
+        {
+            RefreshExp(
+                runLevelSystem.CurrentLevel,
+                runLevelSystem.CurrentExpInLevel,
+                runLevelSystem.CurrentRequiredExp
+            );
+        }
+        else
+        {
+            RefreshExpFallback();
+        }
+    }
+
+    private void RefreshObjectiveProgress(int current, int required)
+    {
+        if (expGauge == null)
+        {
+            return;
+        }
+
+        required = Mathf.Max(1, required);
+        int clamped = Mathf.Clamp(current, 0, required);
+        bool ready = current >= required;
+
+        expGauge.SetValue(clamped, required);
+        expGauge.SetText(string.Format(
+            ready ? objectiveReadyText : objectiveLockedText,
+            current,
+            required
+        ));
+    }
+
     private void RefreshExp(int level, int expInLevel, int requiredExp)
     {
         if (expGauge == null)
@@ -441,21 +523,12 @@ public class ExpeditionHUD : MonoBehaviour
         int credits = wallet != null ? wallet.Credits : 0;
         int scrap = wallet != null ? wallet.PendingScrapParts : 0;
         int core = wallet != null ? wallet.PendingCoreShards : 0;
+        int tuningChips = wallet != null ? wallet.TuningChips : 0;
 
-        if (creditsCounter != null)
-        {
-            creditsCounter.SetAmount(credits);
-        }
-
-        if (scrapCounter != null)
-        {
-            scrapCounter.SetAmount(scrap);
-        }
-
-        if (coreShardCounter != null)
-        {
-            coreShardCounter.SetAmount(core);
-        }
+        creditsCounter?.SetAmount(credits);
+        scrapCounter?.SetAmount(scrap);
+        coreShardCounter?.SetAmount(core);
+        tuningChipCounter?.SetAmount(tuningChips);
 
         UpdateCargoGauge();
     }

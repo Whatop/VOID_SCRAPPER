@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "복귀 보관함"
   description: "긴급복귀 시 보존 가능한 적재량 비율을 높인다."
   icon: {fileID: 21300000, guid: 635265f150c3b9da431c7692a2531875, type: 3}
+  rarity: 1
   category: 0
   weaponTreeType: 2
   shopItemType: 0
