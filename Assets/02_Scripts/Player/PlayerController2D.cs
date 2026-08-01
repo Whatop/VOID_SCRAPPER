@@ -17,6 +17,10 @@ public class PlayerController2D : MonoBehaviour
     [Header("Rotation Settings")]
     [SerializeField] private float rotationOffset = -90f;
 
+    [Header("External Push")]
+    [Min(0.02f)]
+    [SerializeField] private float defaultExternalPushDuration = 0.22f;
+
     private Rigidbody2D rb;
     private Camera mainCamera;
     private InputAction moveAction;
@@ -26,6 +30,10 @@ public class PlayerController2D : MonoBehaviour
 
     private bool controlEnabled = true;
     private bool movementLocked;
+
+    private Vector2 externalPushVelocity;
+    private float externalPushTimer;
+    private float externalPushDuration;
 
     public Vector2 MoveInput => moveInput;
     public Vector2 AimDirection => aimDirection;
@@ -52,6 +60,9 @@ public class PlayerController2D : MonoBehaviour
             moveAction.Disable();
         }
 
+        externalPushVelocity = Vector2.zero;
+        externalPushTimer = 0f;
+
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
@@ -73,7 +84,7 @@ public class PlayerController2D : MonoBehaviour
     {
         if (inputActions == null)
         {
-            Debug.LogError("InputActionAsset°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.", this);
+            Debug.LogError("InputActionAssetì´ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.", this);
             enabled = false;
             return;
         }
@@ -81,7 +92,7 @@ public class PlayerController2D : MonoBehaviour
         InputActionMap actionMap = inputActions.FindActionMap(actionMapName, false);
         if (actionMap == null)
         {
-            Debug.LogError($"Action MapÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù: {actionMapName}", this);
+            Debug.LogError($"Action Mapì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤: {actionMapName}", this);
             enabled = false;
             return;
         }
@@ -89,7 +100,7 @@ public class PlayerController2D : MonoBehaviour
         moveAction = actionMap.FindAction(moveActionName, false);
         if (moveAction == null)
         {
-            Debug.LogError($"Move ActionÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù: {moveActionName}", this);
+            Debug.LogError($"Move Actionì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤: {moveActionName}", this);
             enabled = false;
             return;
         }
@@ -104,6 +115,7 @@ public class PlayerController2D : MonoBehaviour
             moveInput = Vector2.zero;
             return;
         }
+
         if (!controlEnabled || moveAction == null)
         {
             moveInput = Vector2.zero;
@@ -120,21 +132,32 @@ public class PlayerController2D : MonoBehaviour
             return;
         }
 
-        if (!controlEnabled || movementLocked)
+        Vector2 inputVelocity = (!controlEnabled || movementLocked)
+            ? Vector2.zero
+            : moveInput * moveSpeed;
+
+        Vector2 pushVelocity = Vector2.zero;
+
+        if (externalPushTimer > 0f)
         {
-            return;
+            externalPushTimer = Mathf.Max(0f, externalPushTimer - Time.fixedDeltaTime);
+            float ratio = externalPushDuration > 0f
+                ? Mathf.Clamp01(externalPushTimer / externalPushDuration)
+                : 0f;
+            pushVelocity = externalPushVelocity * ratio;
+
+            if (externalPushTimer <= 0f)
+            {
+                externalPushVelocity = Vector2.zero;
+            }
         }
 
-        rb.linearVelocity = moveInput * moveSpeed;
+        rb.linearVelocity = inputVelocity + pushVelocity;
     }
 
     private void RotateToMouse()
     {
-        if (GameplayPauseManager.IsPaused)
-        {
-            return;
-        }
-        if (!controlEnabled)
+        if (GameplayPauseManager.IsPaused || !controlEnabled)
         {
             return;
         }
@@ -192,6 +215,35 @@ public class PlayerController2D : MonoBehaviour
         {
             rb.linearVelocity = Vector2.zero;
         }
+    }
+
+    public void ApplyExternalPush(
+        Vector2 direction,
+        float distance,
+        float duration = -1f)
+    {
+        if (rb == null || distance <= 0f)
+        {
+            return;
+        }
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Random.insideUnitCircle;
+        }
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Vector2.up;
+        }
+
+        float finalDuration = duration > 0f
+            ? duration
+            : Mathf.Max(0.02f, defaultExternalPushDuration);
+
+        externalPushDuration = Mathf.Max(0.02f, finalDuration);
+        externalPushTimer = externalPushDuration;
+        externalPushVelocity = direction.normalized * (distance / externalPushDuration);
     }
 
     public void SetMoveSpeed(float newMoveSpeed)

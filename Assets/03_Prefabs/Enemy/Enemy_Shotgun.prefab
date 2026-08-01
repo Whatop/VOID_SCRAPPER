@@ -25,12 +25,80 @@ Transform:
   m_GameObject: {fileID: 1461995287578829267}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.704, z: 0}
+  m_LocalPosition: {x: 0, y: 0.38, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 807216512557240236}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4609936467553909696
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 249676052446766887}
+  - component: {fileID: 1030444248565272807}
+  m_Layer: 6
+  m_Name: WorldCollider2D
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &249676052446766887
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4609936467553909696}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.143, z: 0}
+  m_LocalScale: {x: 0.74999994, y: 0.85714275, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 807216512557240236}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!58 &1030444248565272807
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4609936467553909696}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.0064148507, y: 0}
+  m_Radius: 0.548111
 --- !u!1 &6983035740697639387
 GameObject:
   m_ObjectHideFlags: 0
@@ -48,6 +116,11 @@ GameObject:
   - component: {fileID: 7656713806787065888}
   - component: {fileID: 7757727176635614241}
   - component: {fileID: 2963155244060544709}
+  - component: {fileID: 5923040909006273438}
+  - component: {fileID: -7360932403356386410}
+  - component: {fileID: -5688340456001244168}
+  - component: {fileID: -5257572785407897286}
+  - component: {fileID: 7087918810732794096}
   m_Layer: 6
   m_Name: Enemy_Shotgun
   m_TagString: Untagged
@@ -65,11 +138,13 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 3.778, y: 2.608, z: 0}
-  m_LocalScale: {x: 0.7, y: 0.7, z: 1}
+  m_LocalScale: {x: 0.8, y: 0.7, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 249676052446766887}
   - {fileID: 274234201926276759}
   - {fileID: 3077860321395333832}
+  - {fileID: 5444223402512394239}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &743191785346090253
@@ -291,6 +366,8 @@ MonoBehaviour:
   ambusherMoveSpeedMultiplier: 1.15
   interceptorMoveSpeedMultiplier: 1.35
   sentinelStrafeSpeedMultiplier: 0.75
+  navigationAgent: {fileID: 0}
+  useNavigationAgent: 1
   visionRange: 9
   loseSightTime: 2
   alertDuration: 3
@@ -324,6 +401,10 @@ MonoBehaviour:
   secondaryProjectileDefinition: {fileID: 0}
   secondaryProjectileCount: 1
   secondarySpreadAngle: 0
+  predictiveShotChance: 0
+  predictiveMinimumTargetSpeed: 0.5
+  predictiveMaxLeadTime: 0.65
+  predictiveVelocityMultiplier: 1
   showAimLineDuringCharge: 1
   lockAimDirectionOnChargeStart: 1
   aimLineRenderer: {fileID: 0}
@@ -350,7 +431,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rewardDefinition: {fileID: 11400000, guid: d2c045ea2f82ffe4a8784c62046d6e08, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
-  healPickupPrefab: {fileID: 3676966635386126382, guid: a7f1f0c9c5ee96c4ea79449c8394d7a9, type: 3}
+  legacyHealPickupPrefab: {fileID: 3676966635386126382, guid: a7f1f0c9c5ee96c4ea79449c8394d7a9, type: 3}
   fallbackReinforcementCatalog: {fileID: 0}
   reinforcementPickupPrefab: {fileID: 0}
   reinforcementMinScatterRadius: 0.35
@@ -377,7 +458,221 @@ MonoBehaviour:
   minScatterSpeed: 1.2
   maxScatterSpeed: 3.2
   angleJitter: 15
+  runtimeCurrencyMultiplier: 1
   logMissingPrefab: 1
+--- !u!114 &5923040909006273438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6983035740697639387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 649cc422f66b41cfb26a467eddbacc26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 72704
+  bodyRadius: 0.28
+  forwardProbeDistance: 1.4
+  sideProbeDistance: 1.8
+  avoidanceAngle: 68
+  ignoreTriggerColliders: 1
+  targetDirectionWeight: 0.35
+  angledDirectionWeight: 0.75
+  wallFollowWeight: 1.15
+  sideHoldDuration: 0.65
+  sideSwitchAdvantage: 0.25
+  stuckCheckInterval: 0.45
+  stuckMoveDistance: 0.05
+  stuckSideLockDuration: 0.9
+  drawDebugGizmos: 0
+--- !u!114 &-7360932403356386410
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6983035740697639387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bcee1bf31d3f034e630baca0db5bac5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  roleType: 0
+  currentPhase: 0
+  simulationGate: {fileID: 0}
+  protectedTarget: {fileID: 0}
+  defenderPatrolRadius: 2.5
+  defenderWarningRadius: 8
+  defenderAggroRadius: 6
+  defenderLeashRadius: 11
+  defenderDisengageRadius: 13
+  harvestSearchRadius: 35
+  harvestRange: 1.2
+  harvestWarmupDuration: 1.5
+  harvestTickInterval: 0.75
+  harvestDamagePerTick: 0.75
+  maxHarvestObjectsBeforeEscape: 1
+  harvesterMoveSpeedMultiplier: 1.05
+  collectLootDuration: 4
+  collectedLootSearchRadius: 7
+  rivalPlayerEngageRange: 7
+  rivalFleeHealthRatio: 0.3
+  rivalEscapeCargoRatio: 0.75
+  rivalCargoCapacity: 14
+  scavengerSearchRadius: 20
+  scavengerCollectRange: 0.45
+  pickupCollectChannelDuration: 0.5
+  scavengerMoveSpeedMultiplier: 1.25
+  scavengerPanicRange: 5
+  scavengerPanicDuration: 2.5
+  scavengerIdleBeforeEscape: 3
+  scavengerEscapeCargoRatio: 0.65
+  scavengerCargoCapacity: 12
+  targetSearchInterval: 0.35
+  idlePatrolRadius: 3
+  idleArriveDistance: 0.2
+  escapePreparationDuration: 3
+  escapeSpeedMultiplier: 1.7
+  escapeArrivalDistance: 0.6
+  escapeOutsidePadding: 1.5
+  homeBase: {fileID: 0}
+  returnCargoToBase: 1
+  autoFindNearestBaseWhenMissing: 1
+  useBaseCargoRoutes: 1
+  cargoDepositDuration: 0.8
+  cargoReturnWarning: "\uC801 \uD654\uBB3C\uC120\uC774 \uAE30\uC9C0\uB85C \uBCF5\uADC0\uD569\uB2C8\uB2E4"
+  cargoDepositWarning: "\uC801 \uAE30\uC9C0 \uC790\uC6D0 \uBCF4\uAD00\uB7C9\uC774
+    \uC99D\uAC00\uD588\uC2B5\uB2C8\uB2E4"
+  applyRoleRadarVisual: 1
+  roleMarkerSprite: {fileID: 0}
+  defenderMarkerColor: {r: 1, g: 0.35, b: 0.12, a: 1}
+  rivalMarkerColor: {r: 1, g: 0.75, b: 0.12, a: 1}
+  scavengerMarkerColor: {r: 0.95, g: 0.2, b: 0.85, a: 1}
+  roleMarkerScale: 1.15
+  harvestBeam: {fileID: 0}
+  roleNotificationDistance: 22
+  roleNotificationCooldown: 2
+  logRoleFlow: 0
+--- !u!114 &-5688340456001244168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6983035740697639387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a786057ac899a9084f0033a6d5b0c007, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  capacity: 24
+  experienceWeight: 1
+  creditsWeight: 1
+  scrapWeight: 1
+  coreShardWeight: 12
+  allowExperience: 0
+  allowCredits: 1
+  allowScrap: 1
+  allowCoreShards: 1
+  dropCargoOnDeath: 1
+  rewardDropper: {fileID: 2963155244060544709}
+  experience: 0
+  credits: 0
+  scrapParts: 0
+  coreShards: 0
+--- !u!114 &-5257572785407897286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6983035740697639387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ecb1eecbaad4e73a386089ef3ecf24d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  roleType: 0
+  currentLevel: 0
+  playerTag: Player
+  startGraceSeconds: 12
+  startMovementUnlockDistance: 8
+  previewDistance: 26
+  activeDistance: 18
+  activeHoldSeconds: 8
+  radarPreviewDuration: 10
+  maxConcurrentRivalActions: 1
+  maxConcurrentScavengerActions: 1
+  radarTarget: {fileID: 7006271743018026112}
+  logTransitions: 0
+--- !u!114 &7087918810732794096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6983035740697639387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b257f1a28c9747f7b7e4729b7ee3e982, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enemyAI: {fileID: 7656713806787065888}
+  enemyHealth: {fileID: 1306671448937924775}
+  body: {fileID: 8656573508738637437}
+  movementReference: {fileID: 807216512557240236}
+  exhaustPoints:
+  - {fileID: 3077860321395333832}
+  - {fileID: 5444223402512394239}
+  moveExhaustPrefab: {fileID: 100002, guid: 51204a85372c92a4385d2605a8204d7d, type: 3}
+  moveSpawnInterval: 0.09
+  effectLifeTime: 0.25
+  minimumMoveSpeed: 0.05
+  useRigidbodyVelocity: 1
+  useAiDesiredVelocity: 1
+  useMeasuredTransformMovement: 1
+  teleportIgnoreDistance: 1.5
+  spawnAllExhaustPoints: 1
+  useExhaustPointRotation: 1
+  rotateAgainstMoveDirection: 0
+  rotationOffset: -90
+  positionJitter: 0.015
+  drawExhaustPointGizmos: 1
+--- !u!1 &7405799783221313778
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5444223402512394239}
+  m_Layer: 6
+  m_Name: effetpoint (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5444223402512394239
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7405799783221313778}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.243, y: -0.454, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 807216512557240236}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8898435797988744819
 GameObject:
   m_ObjectHideFlags: 0
@@ -403,7 +698,7 @@ Transform:
   m_GameObject: {fileID: 8898435797988744819}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -0.255, y: -0.462, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

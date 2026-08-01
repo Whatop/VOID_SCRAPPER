@@ -111,6 +111,7 @@ public class ShopTradeUI : MonoBehaviour
     private ShopOption selectedOption;
     private bool isOpen;
     private bool pauseRequested;
+    private bool shopAudioModeRequested;
 
     public bool IsOpen => isOpen;
 
@@ -122,6 +123,8 @@ public class ShopTradeUI : MonoBehaviour
         }
 
         BindButtons();
+        ConfigureExplicitResultButtonSound(buyButton);
+        ConfigureExplicitResultButtonSound(exitButton);
 
         if (root != null)
         {
@@ -131,18 +134,28 @@ public class ShopTradeUI : MonoBehaviour
 
     private void OnDisable()
     {
+        isOpen = false;
+        ReleaseShopAudioMode();
         ReleasePause();
     }
 
     private void OnDestroy()
     {
+        ReleaseShopAudioMode();
         ReleasePause();
         UnbindButtons();
     }
 
     public void Open(ShopStructure shop, GameObject playerObject)
     {
-        AudioManager.Play(SoundEventIds.ShopOpen);
+        bool wasOpen = isOpen;
+
+        if (!wasOpen)
+        {
+            AudioManager.Play(SoundEventIds.ShopOpen);
+            RequestShopAudioMode();
+        }
+
         currentShop = shop;
         currentPlayer = playerObject;
 
@@ -170,8 +183,14 @@ public class ShopTradeUI : MonoBehaviour
 
     public void Close()
     {
+        if (!isOpen)
+        {
+            return;
+        }
+
         AudioManager.Play(SoundEventIds.UiPanelClose);
         isOpen = false;
+        ReleaseShopAudioMode();
 
         if (maintenanceBayUI != null)
         {
@@ -777,6 +796,60 @@ public class ShopTradeUI : MonoBehaviour
                 traitChoices.RemoveAt(i);
             }
         }
+    }
+
+    private void ConfigureExplicitResultButtonSound(Button targetButton)
+    {
+        if (targetButton == null)
+        {
+            return;
+        }
+
+        UISoundButton[] soundButtons = targetButton.GetComponents<UISoundButton>();
+
+        if (soundButtons == null || soundButtons.Length == 0)
+        {
+            soundButtons = new[] { targetButton.gameObject.AddComponent<UISoundButton>() };
+        }
+
+        for (int i = 0; i < soundButtons.Length; i++)
+        {
+            UISoundButton soundButton = soundButtons[i];
+
+            if (soundButton == null)
+            {
+                continue;
+            }
+
+            // 구매 성공/실패와 닫기 사운드는 ShopTradeUI가 직접 한 번만 재생한다.
+            soundButton.SetClickSoundEnabled(false);
+            soundButton.SetHoverSoundEnabled(true);
+            soundButton.SetHoverSoundEventId(SoundEventIds.UiHover);
+            soundButton.SetDisabledClickSoundEnabled(true);
+            soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
+        }
+    }
+
+    private void RequestShopAudioMode()
+    {
+        if (shopAudioModeRequested)
+        {
+            return;
+        }
+
+        shopAudioModeRequested = true;
+        GameAudioLoopController.EnterShopMode();
+    }
+
+    private void ReleaseShopAudioMode()
+    {
+        if (!shopAudioModeRequested)
+        {
+            return;
+        }
+
+        shopAudioModeRequested = false;
+        GameAudioLoopController.ExitShopMode();
     }
 
     private void RequestPause()

@@ -91,6 +91,8 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
     public float HpRatio => maxHp <= 0f ? 0f : currentHp / maxHp;
     public bool IsDead => isDead;
     public bool BlocksProjectileWhenDamageIgnored => blockProjectileWhenDamageIgnored;
+    public bool TakesDamageFromPlayerProjectiles => takeDamageFromPlayerProjectiles;
+    public bool TakesDamageFromEnemyProjectiles => takeDamageFromEnemyProjectiles;
 
     public event Action<HarvestObjectHealth, float, float> HealthChanged;
     public event Action<HarvestObjectHealth> Damaged;
@@ -237,6 +239,26 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
         return projectileOwner == ProjectileOwner.Player
             ? takeDamageFromPlayerProjectiles
             : takeDamageFromEnemyProjectiles;
+    }
+
+    public void SetPlayerProjectileDamageEnabled(bool enabled, bool blockProjectileWhenDisabled = true)
+    {
+        takeDamageFromPlayerProjectiles = enabled;
+
+        if (!enabled)
+        {
+            blockProjectileWhenDamageIgnored = blockProjectileWhenDisabled;
+        }
+    }
+
+    public void SetEnemyProjectileDamageEnabled(bool enabled, bool blockProjectileWhenDisabled = true)
+    {
+        takeDamageFromEnemyProjectiles = enabled;
+
+        if (!enabled)
+        {
+            blockProjectileWhenDamageIgnored = blockProjectileWhenDisabled;
+        }
     }
 
     public void TakeDamage(float damage)

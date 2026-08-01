@@ -4,7 +4,7 @@ using System.Collections.Generic;
 [Serializable]
 public class SaveData
 {
-    public int version = 2;
+    public int version = 3;
 
     public int scrapParts;
     public int coreShards;
@@ -26,6 +26,14 @@ public class SaveData
     public List<TraitLevelSaveData> traitLevels = new List<TraitLevelSaveData>();
     public List<string> disabledPermanentTraitIds = new List<string>();
     public List<string> unlockFlags = new List<string>();
+
+    // Campaign progression v3.
+    public List<CampaignBossId> defeatedCampaignBosses = new List<CampaignBossId>();
+    public List<BossStoryPart> acquiredBossStoryParts = new List<BossStoryPart>();
+    public ExpeditionDepth highestUnlockedDepth = ExpeditionDepth.Normal;
+    public RouteCoreState routeCoreState = RouteCoreState.MissingParts;
+    public bool settlementDefenseCleared;
+    public bool finalBossDefeated;
 }
 
 [Serializable]

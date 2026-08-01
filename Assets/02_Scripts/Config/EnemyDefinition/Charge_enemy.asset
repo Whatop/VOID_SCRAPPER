@@ -29,5 +29,9 @@ MonoBehaviour:
   secondaryProjectileDefinition: {fileID: 0}
   secondaryProjectileCount: 1
   secondarySpreadAngle: 0
+  predictiveShotChance: 0.0
+  predictiveMinimumTargetSpeed: 0.5
+  predictiveMaxLeadTime: 0.65
+  predictiveVelocityMultiplier: 1.0
   rewardDefinition: {fileID: 11400000, guid: 3fff668f24e64460b81fc68b6ef0f21b, type: 2}
   radarMarkerType: 0

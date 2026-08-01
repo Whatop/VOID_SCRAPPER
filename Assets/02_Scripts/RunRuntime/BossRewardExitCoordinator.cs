@@ -54,7 +54,9 @@ public class BossRewardExitCoordinator : MonoBehaviour
         rewardCapsulePosition = capsulePosition;
 
         spawnReturnBeacon = returnBeaconPrefab != null;
-        spawnWormhole = wormholePortalPrefab != null;
+        spawnWormhole = wormholePortalPrefab != null &&
+                        RunManager.Instance != null &&
+                        RunManager.Instance.CanAdvanceToNextRegion(out _, out _);
 
         if (!useSelectableReward)
         {

@@ -81,12 +81,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 6b47d778f0a9ba146b0b941a829689e0, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 687aa196c28c63e4d856e4092678eb9e, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 0.8125, y: 0.6875}
+  m_Size: {x: 0.64, y: 0.64}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -160,7 +160,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rewardDefinition: {fileID: 11400000, guid: c25376f45066b7e45a54d9f281a696bf, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
-  healPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
+  legacyHealPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
   fallbackReinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}
   reinforcementPickupPrefab: {fileID: 5731060007047836178, guid: 68a782fdd93f485418b72f76aa265798, type: 3}
   reinforcementMinScatterRadius: 0.35

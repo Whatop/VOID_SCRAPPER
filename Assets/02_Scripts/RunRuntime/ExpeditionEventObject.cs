@@ -744,14 +744,10 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
         }
 
         Vector2 arrivalPosition = GetSpawnPosition(aroundPlayer);
-        Vector2 entryPosition = useArrivalSpawn
-            ? GetEnemyEntryPosition(arrivalPosition, aroundPlayer)
-            : arrivalPosition;
+        GameObject enemyObject = Instantiate(prefab, arrivalPosition, Quaternion.identity);
 
-        GameObject enemyObject = Instantiate(prefab, entryPosition, Quaternion.identity);
-
-        EnemyBaseAI ai = enemyObject.GetComponent<EnemyBaseAI>();
-        EnemyHealth health = enemyObject.GetComponent<EnemyHealth>();
+        EnemyBaseAI ai = enemyObject.GetComponentInChildren<EnemyBaseAI>(true);
+        EnemyHealth health = enemyObject.GetComponentInChildren<EnemyHealth>(true);
 
         if (ai != null)
         {
@@ -780,12 +776,17 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
             TrackEnemy(health);
         }
 
-        if (useArrivalSpawn)
-        {
-            ShowArrivalMarker(arrivalPosition, entryPosition);
-            StartEnemyArrival(enemyObject, entryPosition, arrivalPosition);
-        }
-        else if (ai != null && player != null && alertSpawnedEnemies)
+        EnemyArrivalSpawnSettings arrivalSettings = BuildArrivalSettings();
+        bool arrivalStarted = EnemyArrivalSpawnUtility.BeginArrival(
+            enemyObject,
+            arrivalPosition,
+            player,
+            alertSpawnedEnemies,
+            GetSpawnCenter(aroundPlayer),
+            arrivalSettings
+        );
+
+        if (!arrivalStarted && ai != null && player != null && alertSpawnedEnemies)
         {
             ai.AlertTo(player.position);
         }
@@ -848,144 +849,29 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
         max = Mathf.Max(max, defaultMax, min + 0.1f);
     }
 
-    private Vector2 GetEnemyEntryPosition(Vector2 arrivalPosition, bool aroundPlayer)
+    private EnemyArrivalSpawnSettings BuildArrivalSettings()
     {
-        float distance = Mathf.Max(1f, offscreenEntryDistance);
-
-        if (preferOffscreenEntry && Camera.main != null)
+        return new EnemyArrivalSpawnSettings
         {
-            for (int i = 0; i < 24; i++)
-            {
-                Vector2 direction = Random.insideUnitCircle;
-
-                if (direction.sqrMagnitude <= 0.001f)
-                {
-                    continue;
-                }
-
-                direction.Normalize();
-                Vector2 candidate = arrivalPosition + direction * distance;
-
-                if (!IsInsideCameraView(candidate, 0.08f))
-                {
-                    return candidate;
-                }
-            }
-
-            Vector2 fromCamera = arrivalPosition - (Vector2)Camera.main.transform.position;
-
-            if (fromCamera.sqrMagnitude > 0.001f)
-            {
-                return arrivalPosition + fromCamera.normalized * distance;
-            }
-        }
-
-        Vector2 center = GetSpawnCenter(aroundPlayer);
-        Vector2 fallbackDirection = arrivalPosition - center;
-
-        if (fallbackDirection.sqrMagnitude <= 0.001f)
-        {
-            fallbackDirection = Random.insideUnitCircle;
-        }
-
-        if (fallbackDirection.sqrMagnitude <= 0.001f)
-        {
-            fallbackDirection = Vector2.up;
-        }
-
-        return arrivalPosition + fallbackDirection.normalized * distance;
-    }
-
-    private bool IsInsideCameraView(Vector2 worldPosition, float viewportPadding)
-    {
-        Camera camera = Camera.main;
-
-        if (camera == null)
-        {
-            return false;
-        }
-
-        Vector3 viewport = camera.WorldToViewportPoint(worldPosition);
-
-        if (viewport.z < 0f)
-        {
-            return false;
-        }
-
-        return viewport.x >= -viewportPadding &&
-               viewport.x <= 1f + viewportPadding &&
-               viewport.y >= -viewportPadding &&
-               viewport.y <= 1f + viewportPadding;
-    }
-
-    private void ShowArrivalMarker(Vector2 arrivalPosition, Vector2 entryPosition)
-    {
-        float markerDuration = Mathf.Max(0.05f, arrivalWarningTime + arrivalTravelTime);
-        Vector2 approachDirection = arrivalPosition - entryPosition;
-
-        if (approachDirection.sqrMagnitude > 0.001f)
-        {
-            approachDirection.Normalize();
-        }
-
-        if (arrivalMarkerPrefab != null)
-        {
-            GameObject markerObject = Instantiate(arrivalMarkerPrefab, arrivalPosition, Quaternion.identity);
-            EventEnemyArrivalMarker marker = markerObject.GetComponent<EventEnemyArrivalMarker>();
-
-            if (marker != null)
-            {
-                marker.Arm(arrivalMarkerColor, arrivalMarkerRadius, markerDuration, approachDirection, false);
-            }
-            else
-            {
-                Destroy(markerObject, markerDuration + 0.15f);
-            }
-
-            return;
-        }
-
-        if (createFallbackArrivalMarker)
-        {
-            EventEnemyArrivalMarker.Spawn(arrivalPosition, arrivalMarkerColor, arrivalMarkerRadius, markerDuration, approachDirection);
-        }
-    }
-
-    private void StartEnemyArrival(GameObject enemyObject, Vector2 entryPosition, Vector2 arrivalPosition)
-    {
-        if (enemyObject == null)
-        {
-            return;
-        }
-
-        EventEnemyArrivalMover arrivalMover = enemyObject.GetComponent<EventEnemyArrivalMover>();
-
-        if (arrivalMover == null)
-        {
-            arrivalMover = enemyObject.AddComponent<EventEnemyArrivalMover>();
-        }
-
-        ResolvePlayer();
-
-        arrivalMover.Begin(
-            entryPosition,
-            arrivalPosition,
-            player,
-            alertSpawnedEnemies,
-            arrivalWarningTime,
-            arrivalTravelTime,
-            arrivalReadyDelay,
-            arrivalImpactPrefab,
-            createFallbackLandingBurst,
-            arrivalMarkerColor,
-            Mathf.Max(0.1f, arrivalMarkerRadius * 0.75f),
-            useEnemyArrivalAfterimages,
-            enemyAfterimageInterval,
-            enemyAfterimageLifetime,
-            enemyAfterimageColor,
-            enemyAfterimageSortingOrderOffset,
-            disableEnemyCollidersDuringArrival
-        );
+            Enabled = useArrivalSpawn,
+            MarkerPrefab = arrivalMarkerPrefab,
+            ImpactPrefab = arrivalImpactPrefab,
+            CreateFallbackMarker = createFallbackArrivalMarker,
+            CreateFallbackLandingBurst = createFallbackLandingBurst,
+            WarningTime = arrivalWarningTime,
+            TravelTime = arrivalTravelTime,
+            ReadyDelay = arrivalReadyDelay,
+            OffscreenEntryDistance = offscreenEntryDistance,
+            PreferOffscreenEntry = preferOffscreenEntry,
+            MarkerRadius = arrivalMarkerRadius,
+            MarkerColor = arrivalMarkerColor,
+            UseAfterimages = useEnemyArrivalAfterimages,
+            AfterimageInterval = enemyAfterimageInterval,
+            AfterimageLifetime = enemyAfterimageLifetime,
+            AfterimageColor = enemyAfterimageColor,
+            AfterimageSortingOrderOffset = enemyAfterimageSortingOrderOffset,
+            DisableCollidersDuringArrival = disableEnemyCollidersDuringArrival
+        };
     }
 
     private Vector2 GetSpawnCenter(bool aroundPlayer)
@@ -1068,12 +954,17 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
             return;
         }
 
-        if (RunManager.Instance.CurrentRun.ExpeditionDepth != ExpeditionDepth.DeepZone1)
+        ExpeditionDepth depth = RunManager.Instance.CurrentRun.ExpeditionDepth;
+        float multiplier = depth == ExpeditionDepth.DeepZone1
+            ? Mathf.Max(0.01f, deepZoneEnemyHpMultiplier)
+            : CampaignProgressionCatalog.GetEnemyHpMultiplier(depth);
+
+        if (Mathf.Approximately(multiplier, 1f))
         {
             return;
         }
 
-        health.SetMaxHp(health.MaxHp * Mathf.Max(0.01f, deepZoneEnemyHpMultiplier), true);
+        health.SetMaxHp(health.MaxHp * multiplier, true);
     }
 
     private void SuppressNormalReward(GameObject enemyObject)

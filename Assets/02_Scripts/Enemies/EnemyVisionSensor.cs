@@ -228,6 +228,21 @@ public class EnemyVisionSensor : MonoBehaviour
                 radarDetectionRange = 8f;
                 break;
 
+            case EnemyType.EliteMachineGun:
+                visionAngle = 125f;
+                radarDetectionRange = 8f;
+                break;
+
+            case EnemyType.EliteShotgun:
+                visionAngle = 145f;
+                radarDetectionRange = 7.5f;
+                break;
+
+            case EnemyType.EliteCharging:
+                visionAngle = 90f;
+                radarDetectionRange = 9f;
+                break;
+
             case EnemyType.Boss:
                 visionAngle = 360f;
                 radarDetectionRange = Mathf.Max(visionRange, 18f);
@@ -236,6 +251,12 @@ public class EnemyVisionSensor : MonoBehaviour
             case EnemyType.ShopDrone:
                 visionAngle = 180f;
                 radarDetectionRange = Mathf.Max(visionRange, 12f);
+                break;
+
+            case EnemyType.MeleeCharger:
+                visionAngle = 150f;
+                radarDetectionRange = Mathf.Max(visionRange, 8f);
+                closeAwarenessRadius = Mathf.Max(closeAwarenessRadius, 1.8f);
                 break;
 
             default:

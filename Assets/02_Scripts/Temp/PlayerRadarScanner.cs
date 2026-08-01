@@ -49,6 +49,13 @@ public class PlayerRadarScanner : MonoBehaviour
 
     public bool IsHolding => isHolding;
     public bool IsRadarOpen => isRadarOpen;
+
+    // 실제 RadarPanelAnimator 상태를 우선 사용하고, UI 참조가 없을 때만 내부 상태로 대체합니다.
+    public bool IsRadarPanelOpen =>
+        radarPanelAnimator != null
+            ? radarPanelAnimator.IsOpen
+            : isRadarOpen;
+
     public float HoldRatio => holdTime <= 0f ? 1f : Mathf.Clamp01(holdTimer / holdTime);
     public float ScanRadius => scanRadius;
     public float LastScanTime => lastScanTime;

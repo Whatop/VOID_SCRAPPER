@@ -7,6 +7,9 @@ public class EventEnemyArrivalMover : MonoBehaviour
     private Rigidbody2D rb;
     private EnemyBaseAI enemyAI;
     private EnemyAttackController attackController;
+    private EnemyRoleController roleController;
+    private EnemyRoleSimulationGate roleSimulationGate;
+    private EnemyVisionSensor visionSensor;
     private Collider2D[] colliders;
     private bool[] colliderEnabledStates;
     private SpriteRenderer[] sourceRenderers;
@@ -31,6 +34,10 @@ public class EventEnemyArrivalMover : MonoBehaviour
     private bool disableCollidersDuringArrival;
     private bool aiWasEnabled;
     private bool attackWasEnabled;
+    private bool roleWasEnabled;
+    private bool roleSimulationWasEnabled;
+    private bool visionWasEnabled;
+    private bool arrivalControlSuppressed;
     private float afterimageTimer;
 
     [Header("Arrival Facing")]
@@ -96,12 +103,27 @@ public class EventEnemyArrivalMover : MonoBehaviour
 
         if (enemyAI == null)
         {
-            enemyAI = GetComponent<EnemyBaseAI>();
+            enemyAI = GetComponentInChildren<EnemyBaseAI>(true);
         }
 
         if (attackController == null)
         {
-            attackController = GetComponent<EnemyAttackController>();
+            attackController = GetComponentInChildren<EnemyAttackController>(true);
+        }
+
+        if (roleController == null)
+        {
+            roleController = GetComponentInChildren<EnemyRoleController>(true);
+        }
+
+        if (roleSimulationGate == null)
+        {
+            roleSimulationGate = GetComponentInChildren<EnemyRoleSimulationGate>(true);
+        }
+
+        if (visionSensor == null)
+        {
+            visionSensor = GetComponentInChildren<EnemyVisionSensor>(true);
         }
 
         if (colliders == null || colliders.Length == 0)
@@ -182,6 +204,8 @@ public class EventEnemyArrivalMover : MonoBehaviour
 
     private void DisableControlForArrival()
     {
+        arrivalControlSuppressed = true;
+
         if (enemyAI != null)
         {
             aiWasEnabled = enemyAI.enabled;
@@ -194,6 +218,24 @@ public class EventEnemyArrivalMover : MonoBehaviour
             attackController.enabled = false;
         }
 
+        if (roleController != null)
+        {
+            roleWasEnabled = roleController.enabled;
+            roleController.enabled = false;
+        }
+
+        if (roleSimulationGate != null)
+        {
+            roleSimulationWasEnabled = roleSimulationGate.enabled;
+            roleSimulationGate.enabled = false;
+        }
+
+        if (visionSensor != null)
+        {
+            visionWasEnabled = visionSensor.enabled;
+            visionSensor.enabled = false;
+        }
+
         if (disableCollidersDuringArrival)
         {
             SetCollidersEnabled(false);
@@ -202,6 +244,21 @@ public class EventEnemyArrivalMover : MonoBehaviour
 
     private void EnableControlAfterArrival()
     {
+        if (visionSensor != null)
+        {
+            visionSensor.enabled = visionWasEnabled;
+        }
+
+        if (roleSimulationGate != null)
+        {
+            roleSimulationGate.enabled = roleSimulationWasEnabled;
+        }
+
+        if (roleController != null)
+        {
+            roleController.enabled = roleWasEnabled;
+        }
+
         if (attackController != null)
         {
             attackController.enabled = attackWasEnabled;
@@ -211,6 +268,8 @@ public class EventEnemyArrivalMover : MonoBehaviour
         {
             enemyAI.enabled = aiWasEnabled;
         }
+
+        arrivalControlSuppressed = false;
     }
 
     private void RestoreCollidersAfterArrival()
@@ -386,6 +445,24 @@ public class EventEnemyArrivalMover : MonoBehaviour
 
         SpriteAfterimageGhost ghostController = root.AddComponent<SpriteAfterimageGhost>();
         ghostController.Initialize(afterimageLifetime);
+    }
+
+
+    private void OnDisable()
+    {
+        if (arrivalRoutine != null)
+        {
+            StopCoroutine(arrivalRoutine);
+            arrivalRoutine = null;
+        }
+
+        if (!arrivalControlSuppressed)
+        {
+            return;
+        }
+
+        RestoreCollidersAfterArrival();
+        EnableControlAfterArrival();
     }
 
     private float EaseOutCubic(float t)

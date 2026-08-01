@@ -4,7 +4,11 @@ using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Button))]
-public class UISoundButton : MonoBehaviour, IPointerEnterHandler, IPointerClickHandler
+public class UISoundButton :
+    MonoBehaviour,
+    IPointerEnterHandler,
+    IPointerDownHandler,
+    IPointerClickHandler
 {
     [SerializeField] private string clickSoundEventId = SoundEventIds.UiClick;
     [SerializeField] private string hoverSoundEventId = SoundEventIds.UiHover;
@@ -15,33 +19,51 @@ public class UISoundButton : MonoBehaviour, IPointerEnterHandler, IPointerClickH
     [SerializeField] private bool playDisabledClick = true;
 
     private Button button;
+    private bool listenerBound;
+    private bool isPrimaryInstance = true;
+
+    private bool pointerDownStateCaptured;
+    private bool wasInteractableOnPointerDown = true;
 
     private void Awake()
     {
+        ResolvePrimaryInstance();
         CacheButton();
     }
 
     private void OnEnable()
     {
+        ResolvePrimaryInstance();
+
+        if (!isPrimaryInstance)
+        {
+            return;
+        }
+
         CacheButton();
 
-        if (button != null)
+        if (button != null && !listenerBound)
         {
             button.onClick.AddListener(PlayClick);
+            listenerBound = true;
         }
     }
 
     private void OnDisable()
     {
-        if (button != null)
+        if (button != null && listenerBound)
         {
             button.onClick.RemoveListener(PlayClick);
+            listenerBound = false;
         }
+
+        pointerDownStateCaptured = false;
+        wasInteractableOnPointerDown = true;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (!playHover)
+        if (!isPrimaryInstance || !playHover)
         {
             return;
         }
@@ -56,16 +78,37 @@ public class UISoundButton : MonoBehaviour, IPointerEnterHandler, IPointerClickH
         AudioManager.Play(hoverSoundEventId);
     }
 
-    public void OnPointerClick(PointerEventData eventData)
+    public void OnPointerDown(PointerEventData eventData)
     {
-        CacheButton();
-
-        if (!playDisabledClick)
+        if (!isPrimaryInstance)
         {
             return;
         }
 
-        if (button != null && !button.interactable)
+        CacheButton();
+
+        pointerDownStateCaptured = true;
+        wasInteractableOnPointerDown =
+            button == null || button.interactable;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (!isPrimaryInstance || !playDisabledClick)
+        {
+            pointerDownStateCaptured = false;
+            return;
+        }
+
+        CacheButton();
+
+        bool wasInteractable = pointerDownStateCaptured
+            ? wasInteractableOnPointerDown
+            : button == null || button.interactable;
+
+        pointerDownStateCaptured = false;
+
+        if (!wasInteractable)
         {
             AudioManager.Play(disabledClickSoundEventId);
         }
@@ -88,22 +131,22 @@ public class UISoundButton : MonoBehaviour, IPointerEnterHandler, IPointerClickH
 
     public void SetClickSoundEventId(string eventId)
     {
-        clickSoundEventId = eventId;
+        clickSoundEventId = SoundEventIds.ToNumbered(eventId);
     }
 
     public void SetHoverSoundEventId(string eventId)
     {
-        hoverSoundEventId = eventId;
+        hoverSoundEventId = SoundEventIds.ToNumbered(eventId);
     }
 
     public void SetDisabledClickSoundEventId(string eventId)
     {
-        disabledClickSoundEventId = eventId;
+        disabledClickSoundEventId = SoundEventIds.ToNumbered(eventId);
     }
 
     private void PlayClick()
     {
-        if (!playClick)
+        if (!isPrimaryInstance || !playClick)
         {
             return;
         }
@@ -123,6 +166,22 @@ public class UISoundButton : MonoBehaviour, IPointerEnterHandler, IPointerClickH
         if (button == null)
         {
             button = GetComponent<Button>();
+        }
+    }
+
+    private void ResolvePrimaryInstance()
+    {
+        UISoundButton[] components = GetComponents<UISoundButton>();
+
+        isPrimaryInstance =
+            components == null ||
+            components.Length == 0 ||
+            components[0] == this;
+
+        if (!isPrimaryInstance && listenerBound && button != null)
+        {
+            button.onClick.RemoveListener(PlayClick);
+            listenerBound = false;
         }
     }
 }

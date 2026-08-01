@@ -53,5 +53,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1bac2d3b0ea044259044aa21b4ae3425, type: 2}
   - {fileID: 11400000, guid: 5ef1246184464e2598a0d0ddaa509498, type: 2}
   - {fileID: 11400000, guid: 637b378591b04f13bcea402b19f646f1, type: 2}
+  - {fileID: 11400000, guid: 80a0b306777f4d5dbdf22410ee776ae9, type: 2}
+  - {fileID: 11400000, guid: 40cb441cdce840269674f4c1e05bd059, type: 2}
+  - {fileID: 11400000, guid: f89b358378054ceea4df47e352eec0b4, type: 2}
   includeResourcesTraits: 0
   resourcesPath: TraitDefinition

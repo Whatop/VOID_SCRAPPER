@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum RewardDropperDropPreset
 {
@@ -21,9 +22,12 @@ public class RewardDropper : MonoBehaviour
     [Header("Reward")]
     [SerializeField] private RewardDefinition rewardDefinition;
 
-    [Header("Pickup Prefab")]
+    [Header("Unified Reward Pickup Prefab")]
+    [Tooltip("재화와 Heal이 모두 사용하는 공용 RewardPickup 프리팹입니다.")]
     [SerializeField] private GameObject rewardPickupPrefab;
-    [SerializeField] private GameObject healPickupPrefab;
+
+    [FormerlySerializedAs("healPickupPrefab")]
+    [SerializeField, HideInInspector] private GameObject legacyHealPickupPrefab;
 
     [Header("Reinforcement Item Drop")]
     [Tooltip("RewardDefinition에 Catalog가 비어 있으면 이 Catalog에서 랜덤 장비를 뽑습니다.")]
@@ -84,15 +88,51 @@ public class RewardDropper : MonoBehaviour
     [SerializeField] private float maxScatterSpeed = 2.6f;
     [SerializeField] private float angleJitter = 15f;
 
+    [Header("Runtime Currency Multiplier")]
+    [Min(0f)]
+    [SerializeField] private float runtimeCurrencyMultiplier = 1f;
+
     [Header("Debug")]
     [SerializeField] private bool logMissingPrefab = true;
 
     public RewardDefinition RewardDefinition => rewardDefinition;
+    public float RuntimeCurrencyMultiplier => Mathf.Max(0f, runtimeCurrencyMultiplier);
     public bool CanSpawnCurrencyPickup => rewardPickupPrefab != null;
+    public bool CanSpawnHealPickup => rewardPickupPrefab != null;
+
+    private void Awake()
+    {
+        MigrateLegacyPickupPrefab();
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        MigrateLegacyPickupPrefab();
+    }
+#endif
+
+    private void MigrateLegacyPickupPrefab()
+    {
+        if (rewardPickupPrefab == null && legacyHealPickupPrefab != null)
+        {
+            rewardPickupPrefab = legacyHealPickupPrefab;
+        }
+    }
 
     public void SetRewardDefinition(RewardDefinition definition)
     {
         rewardDefinition = definition;
+    }
+
+    public void SetRuntimeCurrencyMultiplier(float multiplier)
+    {
+        runtimeCurrencyMultiplier = Mathf.Max(0f, multiplier);
+    }
+
+    public void ResetRuntimeCurrencyMultiplier()
+    {
+        runtimeCurrencyMultiplier = 1f;
     }
 
     public void ApplyPreset(RewardDropperDropPreset preset)
@@ -195,7 +235,12 @@ public class RewardDropper : MonoBehaviour
                 continue;
             }
 
-            DropCurrency(origin, reward.CurrencyType, reward.Amount);
+            int multipliedAmount = Mathf.Max(
+                0,
+                Mathf.RoundToInt(reward.Amount * RuntimeCurrencyMultiplier)
+            );
+
+            DropCurrency(origin, reward.CurrencyType, multipliedAmount);
         }
 
         if (rewardDefinition.RollHealDrop())
@@ -342,13 +387,13 @@ public class RewardDropper : MonoBehaviour
             return;
         }
 
-        GameObject prefab = healPickupPrefab != null ? healPickupPrefab : rewardPickupPrefab;
+        GameObject prefab = rewardPickupPrefab;
 
         if (prefab == null)
         {
             if (logMissingPrefab)
             {
-                Debug.LogWarning("HealPickup 프리팹이 없어 회복 조각을 드랍할 수 없습니다.", this);
+                Debug.LogWarning("공용 RewardPickup 프리팹이 없어 회복 조각을 드랍할 수 없습니다.", this);
             }
 
             return;
@@ -375,7 +420,7 @@ public class RewardDropper : MonoBehaviour
 
         if (pickup == null)
         {
-            Debug.LogWarning("HealPickup 프리팹에 RewardPickup 컴포넌트가 없습니다.", pickupObject);
+            Debug.LogWarning("공용 RewardPickup 프리팹에 RewardPickup 컴포넌트가 없습니다.", pickupObject);
             ReleaseOrDestroy(pickupObject);
             return;
         }

@@ -8099,7 +8099,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -44.700012, y: 9.100003}
-  m_SizeDelta: {x: 20, y: 20}
+  m_SizeDelta: {x: 15, y: 15}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &850758691
 MonoBehaviour:
@@ -12156,7 +12156,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1227692419
 RectTransform:
   m_ObjectHideFlags: 0
@@ -19078,9 +19078,11 @@ MonoBehaviour:
     displayName: "\uCE68\uD22C \uD504\uB85C\uD1A0\uCF5C"
     icon: {fileID: 21300000, guid: acb8911b0f289aad39da499bbc3f64dc, type: 3}
     description: "Lv1: \uC801 \uADFC\uC811 \uB808\uC774\uB354 \uD0D0\uC9C0 \uCC28\uB2E8
-      \uBC0F Q \uC2A4\uCE94 \uC801\uC758 ?/! \uC0C1\uD0DC \uD45C\uC2DC\nLv2: Q \uC2A4\uCE94
-      \uC801\uC758 \uBD80\uCC44\uAF34 \uC2DC\uC57C \uD45C\uC2DC\nLv3: \uC801\uC758
-      \uC2DC\uAC01 \uD0D0\uC9C0 \uC644\uB8CC \uC2DC\uAC04 35% \uC99D\uAC00"
+      \uBC0F \uB808\uC774\uB354 \uD328\uB110 \uD65C\uC131\uD654 \uC911 \uBAA8\uB4E0
+      \uC801\uC758 ?/! \uC0C1\uD0DC \uD45C\uC2DC\nLv2: \uB808\uC774\uB354 \uD328\uB110
+      \uD65C\uC131\uD654 \uC911 \uBAA8\uB4E0 \uC801\uC758 \uBD80\uCC44\uAF34 \uC2DC\uC57C
+      \uD45C\uC2DC\nLv3: \uC801\uC758 \uC2DC\uAC01 \uD0D0\uC9C0 \uC644\uB8CC \uC2DC\uAC04
+      35% \uC99D\uAC00"
     scrapCost: 0
     coreShardCost: 0
     maxLevel: 3
@@ -19279,6 +19281,7 @@ GameObject:
   - component: {fileID: 2018370913}
   - component: {fileID: 2018370912}
   - component: {fileID: 2018370911}
+  - component: {fileID: 2018370915}
   m_Layer: 5
   m_Name: ship_choiceButton
   m_TagString: Untagged
@@ -19404,6 +19407,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2018370909}
   m_CullTransparentMesh: 1
+--- !u!114 &2018370915
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2018370909}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8a27e0f917447899562c3eeb3ff1d86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  clickSoundEventId: 01_ui_click
+  hoverSoundEventId: 02_ui_hover
+  disabledClickSoundEventId: 12_ui_disabled
+  playClick: 0
+  playHover: 0
+  playDisabledClick: 1
 --- !u!1 &2053214043
 GameObject:
   m_ObjectHideFlags: 0

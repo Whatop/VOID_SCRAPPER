@@ -19,7 +19,7 @@ MonoBehaviour:
   maxHp: 18
   moveSpeed: 2.5
   visionRange: 10
-  attackRange: 7
+  attackRange: 8.5
   projectileDefinition: {fileID: 11400000, guid: 8da274e3f4231314fbca42c3fd4db9a1, type: 2}
   attackInterval: 1.8
   projectileCount: 5
@@ -29,5 +29,9 @@ MonoBehaviour:
   secondaryProjectileDefinition: {fileID: 0}
   secondaryProjectileCount: 1
   secondarySpreadAngle: 0
+  predictiveShotChance: 0.02
+  predictiveMinimumTargetSpeed: 0.6
+  predictiveMaxLeadTime: 0.45
+  predictiveVelocityMultiplier: 1.0
   rewardDefinition: {fileID: 11400000, guid: 84c2c23e922140229a2c9e9e44d024e8, type: 2}
   radarMarkerType: 0

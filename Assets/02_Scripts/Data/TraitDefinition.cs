@@ -62,7 +62,12 @@ public enum TraitEffectType
     RadarScanRadiusBonus,
     ActiveCooldownReductionPercent,
     RadarTauntDurationBonus,
-    RadarStealthDurationBonus
+    RadarStealthDurationBonus,
+
+    // Campaign boss-exclusive passives. Appended to preserve serialized values.
+    SectorBarrierProtocol,
+    MatterReconstructorProtocol,
+    PhaseAfterimageProtocol
 }
 
 [Serializable]

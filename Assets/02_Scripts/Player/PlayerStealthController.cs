@@ -43,7 +43,7 @@ public class PlayerStealthController : MonoBehaviour
 
     [Header("Messages")]
     [SerializeField] private bool showActivationMessage = true;
-    [SerializeField] private string activationMessage = "저피탐 침투 모듈 활성화 · 적 레이더 차단 / 시야 분석";
+    [SerializeField] private string activationMessage = "저피탐 침투 모듈 활성화 · 적 레이더 차단 / 레이더 패널 전술 분석";
 
     [Header("Debug")]
     [SerializeField] private int currentInfiltrationTraitLevel;
@@ -70,6 +70,11 @@ public class PlayerStealthController : MonoBehaviour
 
     // Reinforcement로 직접 켜는 전역 전술 정보 효과입니다.
     public bool IsTacticalIntelActive => Time.time < tacticalIntelUntil;
+
+    // PlayerRadarScanner가 실제로 레이더 패널을 열어 둔 동안만 침투 프로토콜의 전술 오버레이를 허용합니다.
+    public bool IsRadarPanelActive =>
+        radarScanner != null &&
+        radarScanner.IsRadarPanelOpen;
 
     public float RadarJammingRemaining => Mathf.Max(0f, radarJammingUntil - Time.time);
     public float TacticalIntelRemaining => Mathf.Max(0f, tacticalIntelUntil - Time.time);
@@ -180,14 +185,10 @@ public class PlayerStealthController : MonoBehaviour
             return true;
         }
 
-        if (!IsSniperInfiltrationActive ||
-            currentInfiltrationTraitLevel < awarenessReadoutUnlockLevel ||
-            radarTarget == null)
-        {
-            return false;
-        }
-
-        return radarTarget.WasScannedRecently(EnemyIntelRevealDuration);
+        // 최근 스캔 대상 여부와 무관하게, 레이더 패널이 열려 있는 동안 모든 적 상태를 표시합니다.
+        return IsRadarPanelActive &&
+               IsSniperInfiltrationActive &&
+               currentInfiltrationTraitLevel >= awarenessReadoutUnlockLevel;
     }
 
     public bool CanRevealEnemyVision(RadarTarget radarTarget)
@@ -197,14 +198,10 @@ public class PlayerStealthController : MonoBehaviour
             return true;
         }
 
-        if (!IsSniperInfiltrationActive ||
-            currentInfiltrationTraitLevel < visionConeUnlockLevel ||
-            radarTarget == null)
-        {
-            return false;
-        }
-
-        return radarTarget.WasScannedRecently(EnemyIntelRevealDuration);
+        // Lv2 부채꼴 시야도 레이더 패널이 열려 있는 동안 모든 적에게 표시합니다.
+        return IsRadarPanelActive &&
+               IsSniperInfiltrationActive &&
+               currentInfiltrationTraitLevel >= visionConeUnlockLevel;
     }
 
     public void ActivateRadarJamming(float duration)

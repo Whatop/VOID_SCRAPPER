@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -27,6 +28,11 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
     [SerializeField] private FieldNpcState state = FieldNpcState.WaitingForRescue;
     [SerializeField] private bool requiresRescue = true;
     [SerializeField] private bool oneUseService;
+
+    [Header("Base Rescue Flow")]
+    [SerializeField] private bool useBaseRescueFlow;
+    [SerializeField] private string baseRescueBlockedText = "보안시설을 먼저 비활성화해라.";
+    [SerializeField] private string baseReleasedWarning = "NPC를 구조했다. 대화하거나 기지 제어기를 사용해 포탈을 열 수 있다.";
 
     [Header("Interaction Text")]
     [SerializeField] private string rescueText = "구조 신호 확인";
@@ -78,6 +84,16 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
     public FieldNpcServiceType ServiceType => serviceType;
     public FieldNpcState State => state;
+    public bool ShouldHoldMovement =>
+        IsCaptiveInBase ||
+        state == FieldNpcState.RescueCombat ||
+        state == FieldNpcState.RewardPending;
+
+    public bool UseBaseRescueFlow => useBaseRescueFlow;
+    public bool IsCaptiveInBase => useBaseRescueFlow && state == FieldNpcState.WaitingForRescue;
+
+    public event Action<FieldNpcObjective> CaptivityReleased;
+    public event Action<FieldNpcObjective> ServiceUnlocked;
 
     public void Configure(
         FieldNpcServiceType configuredServiceType,
@@ -132,7 +148,7 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
             if (state == FieldNpcState.WaitingForRescue)
             {
-                return rescueText;
+                return useBaseRescueFlow ? baseRescueBlockedText : rescueText;
             }
 
             if (state == FieldNpcState.RewardPending)
@@ -209,6 +225,13 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
         if (state == FieldNpcState.WaitingForRescue)
         {
+            if (useBaseRescueFlow)
+            {
+                ShowWarning(baseRescueBlockedText);
+                AudioManager.Play(SoundEventIds.ActionDenied);
+                return;
+            }
+
             BeginRescue(interactor);
             return;
         }
@@ -257,7 +280,7 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
         for (int i = 0; i < Mathf.Max(0, count); i++)
         {
-            Vector2 direction = Random.insideUnitCircle;
+            Vector2 direction = UnityEngine.Random.insideUnitCircle;
 
             if (direction.sqrMagnitude <= 0.001f)
             {
@@ -267,11 +290,11 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
             direction.Normalize();
             float minRadius = Mathf.Max(0.5f, Mathf.Min(rescueSpawnRadiusMin, rescueSpawnRadiusMax));
             float maxRadius = Mathf.Max(minRadius, Mathf.Max(rescueSpawnRadiusMin, rescueSpawnRadiusMax));
-            Vector2 position = (Vector2)transform.position + direction * Random.Range(minRadius, maxRadius);
+            Vector2 position = (Vector2)transform.position + direction * UnityEngine.Random.Range(minRadius, maxRadius);
 
             GameObject spawned = Instantiate(prefab, position, Quaternion.identity);
-            EnemyBaseAI ai = spawned.GetComponent<EnemyBaseAI>();
-            EnemyHealth health = spawned.GetComponent<EnemyHealth>();
+            EnemyBaseAI ai = spawned.GetComponentInChildren<EnemyBaseAI>(true);
+            EnemyHealth health = spawned.GetComponentInChildren<EnemyHealth>(true);
 
             if (ai != null)
             {
@@ -283,7 +306,6 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
                 if (interactor != null)
                 {
                     ai.SetTarget(interactor.transform);
-                    ai.AlertTo(interactor.transform.position);
                 }
             }
             else if (health != null && definition != null)
@@ -295,6 +317,20 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
             {
                 trackedEnemies.Add(health);
                 health.Died += HandleRescueEnemyDied;
+            }
+
+            Transform target = interactor != null ? interactor.transform : null;
+            bool arrivalStarted = EnemyArrivalSpawnUtility.BeginArrival(
+                spawned,
+                position,
+                target,
+                true,
+                transform.position
+            );
+
+            if (!arrivalStarted && ai != null && target != null)
+            {
+                ai.AlertTo(target.position);
             }
         }
     }
@@ -388,6 +424,7 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
         activeRewardCapsule = null;
         state = FieldNpcState.Available;
         ShowWarning("보상 회수 완료 · NPC 서비스를 이용할 수 있습니다.");
+        ServiceUnlocked?.Invoke(this);
     }
 
     private void GrantRescueRewardDirectly()
@@ -405,6 +442,56 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
         );
 
         ShowWarning($"NPC 구조 완료 · 튜닝 칩 +{Mathf.Max(0, rescueTuningChipReward)}");
+        ServiceUnlocked?.Invoke(this);
+    }
+
+    public void SetBaseCaptiveState(bool captive)
+    {
+        useBaseRescueFlow = captive;
+
+        if (captive)
+        {
+            requiresRescue = true;
+            state = FieldNpcState.WaitingForRescue;
+            return;
+        }
+
+        if (state == FieldNpcState.WaitingForRescue ||
+            state == FieldNpcState.RescueCombat ||
+            state == FieldNpcState.RewardPending)
+        {
+            state = FieldNpcState.Available;
+        }
+    }
+
+    public bool ReleaseFromCaptivity(bool showMessage = true)
+    {
+        if (!useBaseRescueFlow)
+        {
+            return false;
+        }
+
+        if (state != FieldNpcState.WaitingForRescue)
+        {
+            return false;
+        }
+
+        requiresRescue = false;
+        state = FieldNpcState.Available;
+
+        if (showMessage)
+        {
+            ShowWarning(baseReleasedWarning);
+        }
+
+        ExpeditionObjectiveDirector.Instance?.RegisterObjective(
+            ResolveObjectiveId(),
+            HighValueObjectiveSource.NpcRescue
+        );
+
+        CaptivityReleased?.Invoke(this);
+        ServiceUnlocked?.Invoke(this);
+        return true;
     }
 
     private void ExecuteService(GameObject interactor)

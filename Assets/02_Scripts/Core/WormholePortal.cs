@@ -4,9 +4,12 @@ using UnityEngine;
 public class WormholePortal : MonoBehaviour, IInteractable
 {
     [Header("Interaction")]
-    [SerializeField] private string interactionText = "¿úÈ¦ ÁøÀÔ";
+    [SerializeField] private string interactionText = "ìœ„ìƒ ë¶„ê¸° í•­ë¡œ ì§„ì…";
     [SerializeField] private bool requireBossDefeated = true;
-    [SerializeField] private bool normalZoneOnly = true;
+
+    [Header("Legacy")]
+    [Tooltip("ê¸°ì¡´ í”„ë¦¬íŒ¹ ì§ë ¬í™” í˜¸í™˜ìš©ì…ë‹ˆë‹¤. ìƒˆ ì§„í–‰ì€ RunManagerê°€ íŒë‹¨í•©ë‹ˆë‹¤.")]
+    [SerializeField, HideInInspector] private bool normalZoneOnly = true;
 
     [Header("UI")]
     [SerializeField] private WormholeChoiceUI wormholeChoiceUI;
@@ -17,7 +20,19 @@ public class WormholePortal : MonoBehaviour, IInteractable
     [Header("Optional")]
     [SerializeField] private RadarTarget radarTarget;
 
-    public string InteractionText => interactionText;
+    public string InteractionText
+    {
+        get
+        {
+            if (RunManager.Instance != null &&
+                RunManager.Instance.CanAdvanceToNextRegion(out ExpeditionDepth nextDepth, out _))
+            {
+                return $"{CampaignProgressionCatalog.GetRegionShortName(nextDepth)} ì§„ì…";
+            }
+
+            return interactionText;
+        }
+    }
 
     private void Reset()
     {
@@ -41,32 +56,25 @@ public class WormholePortal : MonoBehaviour, IInteractable
     {
         if (interactor == null)
         {
-            LogBlock("interactor°¡ nullÀÔ´Ï´Ù.");
+            LogBlock("ìƒí˜¸ì‘ìš© ëŒ€ìƒì´ ì—†ìŠµë‹ˆë‹¤.");
             return false;
         }
 
-        if (RunManager.Instance == null)
+        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
         {
-            LogBlock("RunManager.Instance°¡ ¾ø½À´Ï´Ù.");
-            return false;
-        }
-
-        if (!RunManager.Instance.HasActiveRun)
-        {
-            LogBlock("È°¼º RunÀÌ ¾ø½À´Ï´Ù.");
+            LogBlock("í™œì„±í™”ëœ íƒì‚¬ê°€ ì—†ìŠµë‹ˆë‹¤.");
             return false;
         }
 
         if (requireBossDefeated && !RunManager.Instance.CurrentRun.BossDefeated)
         {
-            LogBlock("º¸½º°¡ ¾ÆÁ÷ Ã³Ä¡µÇÁö ¾Ê¾Ò½À´Ï´Ù. Å×½ºÆ® ÁßÀÌ¸é Require Boss Defeated¸¦ ²ô¼¼¿ä.");
+            LogBlock("í˜„ì¬ í•´ì—­ ë³´ìŠ¤ë¥¼ ë¨¼ì € ì²˜ì¹˜í•´ì•¼ í•©ë‹ˆë‹¤.");
             return false;
         }
 
-        if (normalZoneOnly &&
-            RunManager.Instance.CurrentRun.ExpeditionDepth != ExpeditionDepth.Normal)
+        if (!RunManager.Instance.CanAdvanceToNextRegion(out _, out string blockReason))
         {
-            LogBlock("ÇöÀç Áö¿ªÀÌ NormalÀÌ ¾Æ´Õ´Ï´Ù. ½ÉºÎ ÇØ¿ª¿¡¼­´Â ¿úÈ¦ ÁøÀÔÀ» ¸·°í ÀÖ½À´Ï´Ù.");
+            LogBlock(blockReason);
             return false;
         }
 
@@ -96,28 +104,20 @@ public class WormholePortal : MonoBehaviour, IInteractable
 
     public void ConfirmEnterNextArea()
     {
-        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
-        {
-            return;
-        }
-
-        if (normalZoneOnly &&
-            RunManager.Instance.CurrentRun.ExpeditionDepth != ExpeditionDepth.Normal)
+        if (!CanInteract(gameObject))
         {
             return;
         }
 
         AudioManager.PlayAt(SoundEventIds.WormholeEnter, transform.position);
-        RunManager.Instance.EnterDeepZone1();
+        RunManager.Instance.AdvanceToNextRegion();
     }
 
     private void LogBlock(string reason)
     {
-        if (!logBlockReason)
+        if (logBlockReason)
         {
-            return;
+            Debug.Log($"[WormholePortal] ìƒí˜¸ì‘ìš© ë¶ˆê°€: {reason}", this);
         }
-
-        Debug.Log($"[WormholePortal] »óÈ£ÀÛ¿ë ºÒ°¡: {reason}", this);
     }
 }

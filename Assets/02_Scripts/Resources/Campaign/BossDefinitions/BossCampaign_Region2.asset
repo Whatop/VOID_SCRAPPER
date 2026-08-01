@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86b0f51731a14f0893df184bc0ffbdff, type: 3}
+  m_Name: BossCampaign_Region2
+  m_EditorClassIdentifier: 
+  bossId: 2
+  expeditionDepth: 1
+  displayName: "회수 포식자"
+  subtitle: SALVAGE DEVOURER
+  storyPart: 2
+  grantStoryPartOnFirstDefeat: 1
+  guaranteedPassive: {fileID: 11400000, guid: 40cb441cdce840269674f4c1e05bd059, type: 2}
+  grantGuaranteedPassiveEachDefeat: 1
+  coreShardReward: 2

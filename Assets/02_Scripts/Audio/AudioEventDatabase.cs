@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public enum AudioSpatialMode
 {
@@ -66,6 +69,33 @@ public class AudioEventDefinition
     public bool Loop => loop;
     public int Priority => priority;
 
+#if UNITY_EDITOR
+    internal void SetEventIdForEditor(string value)
+    {
+        eventId = value;
+    }
+
+    internal void ConfigureMusicForEditor(AudioClip clip, float configuredVolume, int configuredPriority)
+    {
+        if (clip != null)
+        {
+            clips = new[] { clip };
+        }
+
+        volume = Mathf.Clamp(configuredVolume, 0f, 2f);
+        pitchMin = 1f;
+        pitchMax = 1f;
+        loop = true;
+        priority = Mathf.Clamp(configuredPriority, 0, 256);
+        spatialMode = AudioSpatialMode.Force2D;
+        spatialBlend = 0f;
+        dopplerLevel = 0f;
+        useOcclusion = false;
+        maxSimultaneousVoices = 1;
+        minimumRetriggerInterval = -1f;
+    }
+#endif
+
     public AudioClip GetRandomClip()
     {
         if (clips == null || clips.Length == 0)
@@ -92,7 +122,28 @@ public class AudioEventDatabase : ScriptableObject
     public bool TryGet(string eventId, out AudioEventDefinition definition)
     {
         EnsureLookup();
-        return lookup.TryGetValue(eventId, out definition);
+
+        if (string.IsNullOrWhiteSpace(eventId))
+        {
+            definition = null;
+            return false;
+        }
+
+        if (lookup.TryGetValue(eventId, out definition))
+        {
+            return true;
+        }
+
+        string numbered = SoundEventIds.ToNumbered(eventId);
+        if (!string.Equals(numbered, eventId, StringComparison.Ordinal) &&
+            lookup.TryGetValue(numbered, out definition))
+        {
+            return true;
+        }
+
+        string legacy = SoundEventIds.ToLegacy(eventId);
+        return !string.Equals(legacy, eventId, StringComparison.Ordinal) &&
+               lookup.TryGetValue(legacy, out definition);
     }
 
     private void OnEnable()
@@ -128,7 +179,155 @@ public class AudioEventDatabase : ScriptableObject
                 continue;
             }
 
-            lookup[entry.EventId] = entry;
+            RegisterLookupAlias(entry.EventId, entry);
+            RegisterLookupAlias(SoundEventIds.ToNumbered(entry.EventId), entry);
+            RegisterLookupAlias(SoundEventIds.ToLegacy(entry.EventId), entry);
         }
     }
+
+    private void RegisterLookupAlias(string eventId, AudioEventDefinition entry)
+    {
+        if (string.IsNullOrWhiteSpace(eventId) || entry == null)
+        {
+            return;
+        }
+
+        lookup[eventId] = entry;
+    }
+
+#if UNITY_EDITOR
+    [ContextMenu("번호 적용 + 정렬 + 상점 음악 항목 추가")]
+    public void EditorApplyNumberingAndEnsureShopMusic()
+    {
+        Undo.RecordObject(this, "Number Sound Event Library");
+        EnsureShopMusicEntryForEditor();
+
+        if (entries != null)
+        {
+            for (int i = 0; i < entries.Length; i++)
+            {
+                AudioEventDefinition entry = entries[i];
+
+                if (entry == null || string.IsNullOrWhiteSpace(entry.EventId))
+                {
+                    continue;
+                }
+
+                entry.SetEventIdForEditor(SoundEventIds.ToNumbered(entry.EventId));
+            }
+
+            Array.Sort(entries, CompareEntriesForEditor);
+        }
+
+        lookup = null;
+        EditorUtility.SetDirty(this);
+        AssetDatabase.SaveAssets();
+    }
+
+    [ContextMenu("상점 음악 항목만 추가")]
+    public void EditorEnsureShopMusicEntry()
+    {
+        Undo.RecordObject(this, "Add Shop Music Event");
+        EnsureShopMusicEntryForEditor();
+        lookup = null;
+        EditorUtility.SetDirty(this);
+        AssetDatabase.SaveAssets();
+    }
+
+    private void EnsureShopMusicEntryForEditor()
+    {
+        AudioEventDefinition shopEntry = null;
+
+        if (entries != null)
+        {
+            for (int i = 0; i < entries.Length; i++)
+            {
+                AudioEventDefinition entry = entries[i];
+
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                if (string.Equals(
+                        SoundEventIds.ToNumbered(entry.EventId),
+                        SoundEventIds.MusicShopLoop,
+                        StringComparison.Ordinal))
+                {
+                    shopEntry = entry;
+                    break;
+                }
+            }
+        }
+
+        if (shopEntry == null)
+        {
+            int oldLength = entries != null ? entries.Length : 0;
+            Array.Resize(ref entries, oldLength + 1);
+            shopEntry = new AudioEventDefinition();
+            entries[oldLength] = shopEntry;
+        }
+
+        shopEntry.SetEventIdForEditor(SoundEventIds.MusicShopLoop);
+        shopEntry.ConfigureMusicForEditor(FindShopMusicClipForEditor(), 0.14f, 210);
+    }
+
+    private static AudioClip FindShopMusicClipForEditor()
+    {
+        string[] clipGuids = AssetDatabase.FindAssets("shop t:AudioClip");
+        AudioClip fallback = null;
+
+        for (int i = 0; i < clipGuids.Length; i++)
+        {
+            string assetPath = AssetDatabase.GUIDToAssetPath(clipGuids[i]);
+            AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(assetPath);
+
+            if (clip == null)
+            {
+                continue;
+            }
+
+            fallback ??= clip;
+
+            string normalizedPath = assetPath.Replace('\\', '/');
+            if (normalizedPath.EndsWith("/BGM/shop.wav", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.EndsWith("/BGM/shop.ogg", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.EndsWith("/BGM/shop.mp3", StringComparison.OrdinalIgnoreCase))
+            {
+                return clip;
+            }
+        }
+
+        return fallback;
+    }
+
+    private static int CompareEntriesForEditor(AudioEventDefinition left, AudioEventDefinition right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return 0;
+        }
+
+        if (left == null)
+        {
+            return 1;
+        }
+
+        if (right == null)
+        {
+            return -1;
+        }
+
+        int leftOrder = SoundEventIds.GetOrder(left.EventId);
+        int rightOrder = SoundEventIds.GetOrder(right.EventId);
+        int orderCompare = leftOrder.CompareTo(rightOrder);
+
+        if (orderCompare != 0)
+        {
+            return orderCompare;
+        }
+
+        return string.Compare(left.EventId, right.EventId, StringComparison.Ordinal);
+    }
+#endif
 }

@@ -17,6 +17,8 @@ public class RunManager : MonoBehaviour
     public event Action<RunContext> RunStarted;
     public event Action<RunWallet> WalletChanged;
     public event Action<RunResultData> RunEnded;
+    public event Action<CampaignBossId, bool> CampaignBossDefeated;
+    public event Action<ExpeditionDepth, ExpeditionDepth> RegionChanged;
 
     private void Awake()
     {
@@ -32,10 +34,7 @@ public class RunManager : MonoBehaviour
 
     private void OnDisable()
     {
-        if (currentRun != null && currentRun.Wallet != null)
-        {
-            currentRun.Wallet.Changed -= HandleWalletChanged;
-        }
+        UnsubscribeWallet();
     }
 
     public void SetBalanceConfig(GameBalanceConfig config)
@@ -69,11 +68,15 @@ public class RunManager : MonoBehaviour
         string selectedShipId,
         SeaRegionType seaRegionType)
     {
-        if (currentRun != null && currentRun.Wallet != null)
+        if (depth != ExpeditionDepth.Normal &&
+            PermanentProgress.Instance != null &&
+            !PermanentProgress.Instance.IsDepthUnlocked(depth))
         {
-            currentRun.Wallet.Changed -= HandleWalletChanged;
+            Debug.LogWarning($"아직 해금되지 않은 해역입니다: {CampaignProgressionCatalog.GetRegionDisplayName(depth)}", this);
+            return;
         }
 
+        UnsubscribeWallet();
         selectedShipId = ResolveSelectedShipId(selectedShipId);
 
         currentRun = new RunContext(selectedWeaponTree, depth, selectedShipId, seaRegionType);
@@ -95,7 +98,9 @@ public class RunManager : MonoBehaviour
 
         Debug.Log(
             $"새 탐사를 시작합니다. WeaponTree: {selectedWeaponTree}, Ship: {selectedShipId}, " +
-            $"Depth: {depth}, SeaRegion: {SeaRegionCatalog.GetDisplayName(seaRegionType)}"
+            $"Region: {CampaignProgressionCatalog.GetRegionDisplayName(depth)}, " +
+            $"SeaRegion: {SeaRegionCatalog.GetDisplayName(seaRegionType)}",
+            this
         );
     }
 
@@ -107,11 +112,35 @@ public class RunManager : MonoBehaviour
     public void StartNewRunAndLoadExpedition(WeaponTreeType selectedWeaponTree, string selectedShipId)
     {
         StartNewRun(selectedWeaponTree, ExpeditionDepth.Normal, selectedShipId);
+        LoadExpeditionScene();
+    }
 
-        if (SceneFlowManager.Instance != null)
+    public bool StartFinalExpeditionAndLoad()
+    {
+        WeaponTreeType selectedWeapon = PermanentProgress.Instance != null
+            ? PermanentProgress.Instance.LastSelectedWeaponTree
+            : WeaponTreeType.MachineGun;
+
+        return StartFinalExpeditionAndLoad(selectedWeapon, ResolveSelectedShipId(null));
+    }
+
+    public bool StartFinalExpeditionAndLoad(WeaponTreeType selectedWeaponTree, string selectedShipId)
+    {
+        if (PermanentProgress.Instance == null || !PermanentProgress.Instance.CanLaunchFinalExpedition)
         {
-            SceneFlowManager.Instance.LoadExpeditionWithMotionTitle();
+            Debug.LogWarning("완전 코어 활성화와 정착지 방어를 완료해야 중앙 물류망으로 출격할 수 있습니다.", this);
+            return false;
         }
+
+        StartNewRun(selectedWeaponTree, ExpeditionDepth.FinalNetwork, selectedShipId);
+
+        if (!HasActiveRun || currentRun.ExpeditionDepth != ExpeditionDepth.FinalNetwork)
+        {
+            return false;
+        }
+
+        LoadExpeditionScene();
+        return true;
     }
 
     public void AddCurrency(CurrencyType currencyType, int amount)
@@ -152,65 +181,130 @@ public class RunManager : MonoBehaviour
 
     public bool CanAddCargoCurrency(CurrencyType currencyType, int amount = 1)
     {
-        if (!HasActiveRun)
-        {
-            return false;
-        }
-
-        return currentRun.GetAcceptedAmountByCargo(currencyType, amount) > 0;
+        return HasActiveRun && currentRun.GetAcceptedAmountByCargo(currencyType, amount) > 0;
     }
 
     public bool TrySpendCredits(int amount)
     {
+        return HasActiveRun && currentRun.Wallet.TrySpend(CurrencyType.Credits, amount);
+    }
+
+    public void MarkBossDefeated()
+    {
+        MarkBossDefeated(
+            HasActiveRun ? currentRun.CurrentBossId : CampaignBossId.None,
+            true
+        );
+    }
+
+    public bool MarkBossDefeated(CampaignBossId bossId, bool grantStoryPart)
+    {
         if (!HasActiveRun)
         {
             return false;
         }
 
-        return currentRun.Wallet.TrySpend(CurrencyType.Credits, amount);
-    }
-
-    public void MarkBossDefeated()
-    {
-        if (!HasActiveRun)
+        if (bossId == CampaignBossId.None)
         {
-            return;
+            bossId = CampaignProgressionCatalog.GetBossId(currentRun.ExpeditionDepth);
         }
 
-        currentRun.MarkBossDefeated();
+        bool firstRunDefeat = !currentRun.HasDefeatedBossThisRun(bossId);
+        currentRun.MarkBossDefeated(bossId);
+
+        bool firstPermanentDefeat = false;
+
+        if (PermanentProgress.Instance != null)
+        {
+            firstPermanentDefeat = PermanentProgress.Instance.RegisterCampaignBossDefeat(
+                bossId,
+                grantStoryPart
+            );
+
+            if (SaveManager.Instance != null)
+            {
+                SaveManager.Instance.Save(PermanentProgress.Instance);
+            }
+        }
+
+        if (firstRunDefeat)
+        {
+            CampaignBossDefeated?.Invoke(bossId, firstPermanentDefeat);
+        }
+
+        return firstPermanentDefeat;
     }
 
     public void SetShopHostileThisRun(bool hostile)
     {
-        if (!HasActiveRun)
+        if (HasActiveRun)
         {
-            return;
+            currentRun.SetShopHostile(hostile);
         }
-
-        currentRun.SetShopHostile(hostile);
     }
 
-    public void EnterDeepZone1()
+    public bool CanAdvanceToNextRegion(out ExpeditionDepth nextDepth, out string blockReason)
     {
+        nextDepth = HasActiveRun ? currentRun.ExpeditionDepth : ExpeditionDepth.Normal;
+        blockReason = string.Empty;
+
         if (!HasActiveRun)
         {
-            Debug.LogWarning("활성화된 탐사가 없어 심부 해역으로 이동할 수 없습니다.", this);
-            return;
+            blockReason = "활성화된 탐사가 없습니다.";
+            return false;
         }
 
-        SeaRegionType previousRegion = currentRun.SeaRegionType;
-        SeaRegionType nextRegion = SeaRegionCatalog.GetRandom(previousRegion);
-
-        currentRun.SetDepth(ExpeditionDepth.DeepZone1);
-        currentRun.SetSeaRegion(nextRegion);
-        currentRun.ResetExpeditionObjectiveProgress();
-
-        Debug.Log($"심부 해역으로 이동합니다. SeaRegion: {SeaRegionCatalog.GetDisplayName(nextRegion)}", this);
-
-        if (SceneFlowManager.Instance != null)
+        if (!currentRun.BossDefeated)
         {
-            SceneFlowManager.Instance.LoadExpeditionWithMotionTitle();
+            blockReason = "현재 해역 보스를 먼저 처치해야 합니다.";
+            return false;
         }
+
+        if (!CampaignProgressionCatalog.TryGetNextExplorationDepth(currentRun.ExpeditionDepth, out nextDepth))
+        {
+            blockReason = currentRun.ExpeditionDepth == ExpeditionDepth.DeepZone2
+                ? "3해역 이후 중앙 물류망은 정착지의 완전 코어에서 출격해야 합니다."
+                : "더 깊은 일반 해역이 없습니다.";
+            return false;
+        }
+
+        if (PermanentProgress.Instance != null && !PermanentProgress.Instance.IsDepthUnlocked(nextDepth))
+        {
+            blockReason = $"{CampaignProgressionCatalog.GetRegionShortName(nextDepth)}이 아직 해금되지 않았습니다.";
+            return false;
+        }
+
+        return true;
+    }
+
+    public bool AdvanceToNextRegion()
+    {
+        if (!CanAdvanceToNextRegion(out ExpeditionDepth nextDepth, out string blockReason))
+        {
+            Debug.LogWarning(blockReason, this);
+            return false;
+        }
+
+        ExpeditionDepth previousDepth = currentRun.ExpeditionDepth;
+        SeaRegionType nextSeaRegion = SeaRegionCatalog.GetRandom(currentRun.SeaRegionType);
+
+        currentRun.PrepareNextRegion(nextDepth, nextSeaRegion);
+        RegionChanged?.Invoke(previousDepth, nextDepth);
+
+        Debug.Log(
+            $"위상 분기 항로 진입: {CampaignProgressionCatalog.GetRegionDisplayName(previousDepth)} → " +
+            $"{CampaignProgressionCatalog.GetRegionDisplayName(nextDepth)}",
+            this
+        );
+
+        LoadExpeditionScene();
+        return true;
+    }
+
+    // 기존 호출부 호환용.
+    public void EnterDeepZone1()
+    {
+        AdvanceToNextRegion();
     }
 
     public RunResultData CompleteRun(RunEndReason reason)
@@ -242,7 +336,11 @@ public class RunManager : MonoBehaviour
 
         RunEnded?.Invoke(resultData);
 
-        Debug.Log($"탐사 종료: {reason}, Scrap Commit: {resultData.committedScrapParts}, Core Commit: {resultData.committedCoreShards}");
+        Debug.Log(
+            $"탐사 종료: {reason}, Scrap Commit: {resultData.committedScrapParts}, " +
+            $"Core Commit: {resultData.committedCoreShards}",
+            this
+        );
 
         return resultData;
     }
@@ -268,21 +366,36 @@ public class RunManager : MonoBehaviour
         switch (reason)
         {
             case RunEndReason.SafeReturn:
+            case RunEndReason.FinalVictory:
                 committedScrap = collectedScrap;
                 committedCore = collectedCore;
                 break;
 
             case RunEndReason.EmergencyReturn:
-                CalculateEmergencyReturnCommit(run, collectedScrap, collectedCore, out committedScrap, out committedCore, out lostScrap, out lostCore, out emergencyCargoLimit);
+                CalculateEmergencyReturnCommit(
+                    run,
+                    collectedScrap,
+                    collectedCore,
+                    out committedScrap,
+                    out committedCore,
+                    out lostScrap,
+                    out lostCore,
+                    out emergencyCargoLimit
+                );
                 break;
 
             case RunEndReason.Death:
-                CalculateDeathCommit(collectedScrap, collectedCore, out committedScrap, out committedCore, out lostScrap, out lostCore);
+                CalculateDeathCommit(
+                    collectedScrap,
+                    collectedCore,
+                    out committedScrap,
+                    out committedCore,
+                    out lostScrap,
+                    out lostCore
+                );
                 break;
 
             case RunEndReason.DebugAbort:
-                committedScrap = 0;
-                committedCore = 0;
                 lostScrap = collectedScrap;
                 lostCore = collectedCore;
                 break;
@@ -298,7 +411,12 @@ public class RunManager : MonoBehaviour
             selectedShipId = run.SelectedShipId,
             finalDepth = run.ExpeditionDepth,
             finalSeaRegionType = run.SeaRegionType,
+            finalBossId = run.CurrentBossId,
+            bossesDefeatedThisRun = run.BossesDefeatedThisRun != null
+                ? run.BossesDefeatedThisRun.Count
+                : 0,
             bossDefeated = run.BossDefeated,
+            finalVictory = reason == RunEndReason.FinalVictory,
 
             runExperience = wallet.Experience,
             unusedTuningChips = wallet.TuningChips,
@@ -307,10 +425,8 @@ public class RunManager : MonoBehaviour
 
             collectedScrapParts = collectedScrap,
             collectedCoreShards = collectedCore,
-
             committedScrapParts = committedScrap,
             committedCoreShards = committedCore,
-
             lostScrapParts = lostScrap,
             lostCoreShards = lostCore,
 
@@ -385,7 +501,6 @@ public class RunManager : MonoBehaviour
 
         committedScrap = Mathf.FloorToInt(collectedScrap * keepRate);
         committedCore = 0;
-
         lostScrap = Mathf.Max(0, collectedScrap - committedScrap);
         lostCore = collectedCore;
     }
@@ -403,6 +518,22 @@ public class RunManager : MonoBehaviour
         }
 
         return "basic_ship";
+    }
+
+    private void LoadExpeditionScene()
+    {
+        if (SceneFlowManager.Instance != null)
+        {
+            SceneFlowManager.Instance.LoadExpeditionWithMotionTitle();
+        }
+    }
+
+    private void UnsubscribeWallet()
+    {
+        if (currentRun != null && currentRun.Wallet != null)
+        {
+            currentRun.Wallet.Changed -= HandleWalletChanged;
+        }
     }
 
     private void HandleWalletChanged()

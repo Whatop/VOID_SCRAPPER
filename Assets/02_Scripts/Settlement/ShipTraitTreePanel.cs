@@ -2744,16 +2744,28 @@ public class ShipTraitTreePanel : MonoBehaviour
             return;
         }
 
-        UISoundButton soundButton = targetButton.GetComponent<UISoundButton>();
-        if (soundButton == null)
+        UISoundButton[] soundButtons = targetButton.GetComponents<UISoundButton>();
+
+        if (soundButtons == null || soundButtons.Length == 0)
         {
-            soundButton = targetButton.gameObject.AddComponent<UISoundButton>();
+            soundButtons = new[] { targetButton.gameObject.AddComponent<UISoundButton>() };
         }
 
-        soundButton.SetClickSoundEnabled(false);
-        soundButton.SetHoverSoundEnabled(false);
-        soundButton.SetDisabledClickSoundEnabled(true);
-        soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
+        for (int i = 0; i < soundButtons.Length; i++)
+        {
+            UISoundButton soundButton = soundButtons[i];
+
+            if (soundButton == null)
+            {
+                continue;
+            }
+
+            // 활성/비활성 결과음은 HandleActivationToggleButtonClick 한 곳에서만 재생한다.
+            soundButton.SetClickSoundEnabled(false);
+            soundButton.SetHoverSoundEnabled(false);
+            soundButton.SetDisabledClickSoundEnabled(true);
+            soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
+        }
     }
 
     private int GetSelectedNodeLevel()

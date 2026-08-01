@@ -17,7 +17,7 @@ MonoBehaviour:
   projectilePrefab: {fileID: 4939712952834317954, guid: 2751e60f478d342489e8ed8a121ec0a4, type: 3}
   damage: 1.5
   speed: 5
-  range: 7
+  range: 9
   lifeTime: 2
   pierceCount: 0
   useHoming: 0

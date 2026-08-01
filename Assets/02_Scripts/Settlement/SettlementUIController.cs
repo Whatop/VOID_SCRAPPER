@@ -630,47 +630,68 @@ public class SettlementUIController : MonoBehaviour
 
     private void ConfigureButtonSound(Button targetButton, string clickEventId, bool playClick, bool playHover, bool playDisabledClick)
     {
-        if (targetButton == null)
+        UISoundButton[] soundButtons = GetOrCreateSoundButtons(targetButton);
+
+        for (int i = 0; i < soundButtons.Length; i++)
         {
-            return;
+            UISoundButton soundButton = soundButtons[i];
+
+            if (soundButton == null)
+            {
+                continue;
+            }
+
+            soundButton.SetClickSoundEnabled(playClick);
+            soundButton.SetHoverSoundEnabled(playHover);
+            soundButton.SetDisabledClickSoundEnabled(playDisabledClick);
+
+            if (!string.IsNullOrWhiteSpace(clickEventId))
+            {
+                soundButton.SetClickSoundEventId(clickEventId);
+            }
+
+            soundButton.SetHoverSoundEventId(SoundEventIds.UiHover);
+            soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
         }
-
-        UISoundButton soundButton = targetButton.GetComponent<UISoundButton>();
-        if (soundButton == null)
-        {
-            soundButton = targetButton.gameObject.AddComponent<UISoundButton>();
-        }
-
-        soundButton.SetClickSoundEnabled(playClick);
-        soundButton.SetHoverSoundEnabled(playHover);
-        soundButton.SetDisabledClickSoundEnabled(playDisabledClick);
-
-        if (!string.IsNullOrWhiteSpace(clickEventId))
-        {
-            soundButton.SetClickSoundEventId(clickEventId);
-        }
-
-        soundButton.SetHoverSoundEventId(SoundEventIds.UiHover);
-        soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
     }
 
     private void ConfigureActionButtonSound(Button targetButton)
     {
+        UISoundButton[] soundButtons = GetOrCreateSoundButtons(targetButton);
+
+        for (int i = 0; i < soundButtons.Length; i++)
+        {
+            UISoundButton soundButton = soundButtons[i];
+
+            if (soundButton == null)
+            {
+                continue;
+            }
+
+            // 결과음은 PlayShipActionResultSound / PlayProgressActionResultSound 한 곳에서만 재생한다.
+            soundButton.SetClickSoundEnabled(false);
+            soundButton.SetHoverSoundEnabled(false);
+            soundButton.SetDisabledClickSoundEnabled(true);
+            soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
+        }
+    }
+
+    private UISoundButton[] GetOrCreateSoundButtons(Button targetButton)
+    {
         if (targetButton == null)
         {
-            return;
+            return System.Array.Empty<UISoundButton>();
         }
 
-        UISoundButton soundButton = targetButton.GetComponent<UISoundButton>();
-        if (soundButton == null)
+        UISoundButton[] soundButtons = targetButton.GetComponents<UISoundButton>();
+
+        if (soundButtons == null || soundButtons.Length == 0)
         {
-            soundButton = targetButton.gameObject.AddComponent<UISoundButton>();
+            UISoundButton created = targetButton.gameObject.AddComponent<UISoundButton>();
+            return new[] { created };
         }
 
-        soundButton.SetClickSoundEnabled(false);
-        soundButton.SetHoverSoundEnabled(false);
-        soundButton.SetDisabledClickSoundEnabled(true);
-        soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
+        return soundButtons;
     }
 
     private void PlayShipActionResultSound(bool success, bool wasUnlocked, bool wasSelected)

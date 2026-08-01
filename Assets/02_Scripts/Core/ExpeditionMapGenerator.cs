@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class ExpeditionMapGenerator : MonoBehaviour
 {
@@ -10,6 +11,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
         SupplyContainer,
         DestroyedHull,
         Meteor,
+        LargeMeteor,
         SpecialActiveContainer,
         SpecialPassiveContainer
     }
@@ -87,8 +89,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [Tooltip("파괴된 선체 프리팹 후보. 여러 개를 넣으면 매 스폰마다 랜덤 선택합니다.")]
     [SerializeField] private GameObject[] destroyedHullPrefabs;
 
-    [Tooltip("운석 프리팹 후보. 여러 개를 넣으면 매 스폰마다 랜덤 선택합니다.")]
+    [Tooltip("소형 운석 프리팹 후보. 이동 가능한 작은 운석만 넣으세요.")]
     [SerializeField] private GameObject[] meteorPrefabs;
+
+    [Tooltip("대형 운석 프리팹 후보. 벽과 LOS를 막는 고정 지형 운석만 넣으세요.")]
+    [SerializeField] private GameObject[] largeMeteorPrefabs;
 
     [Header("Legacy Single Prefab Fallback")]
     [Tooltip("위 배열이 비어 있을 때만 사용하는 기존 단일 프리팹 호환용입니다.")]
@@ -100,14 +105,21 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [Tooltip("위 배열이 비어 있을 때만 사용하는 기존 단일 프리팹 호환용입니다.")]
     [SerializeField] private GameObject destroyedHullPrefab;
 
-    [Tooltip("위 배열이 비어 있을 때만 사용하는 기존 단일 프리팹 호환용입니다.")]
+    [Tooltip("소형 운석 배열이 비어 있을 때 사용하는 단일 프리팹입니다.")]
     [SerializeField] private GameObject meteorPrefab;
+
+    [Tooltip("대형 운석 배열이 비어 있을 때 사용하는 단일 프리팹입니다.")]
+    [SerializeField] private GameObject largeMeteorPrefab;
 
     [Header("Enemy Definitions")]
     [SerializeField] private EnemyDefinition basicEnemyDefinition;
     [SerializeField] private EnemyDefinition shotgunEnemyDefinition;
     [SerializeField] private EnemyDefinition chargingEnemyDefinition;
-    [SerializeField] private EnemyDefinition eliteEnemyDefinition;
+    [SerializeField] private EnemyDefinition meleeChargerDefinition;
+    [SerializeField] private EnemyDefinition eliteMachineGunDefinition;
+    [FormerlySerializedAs("eliteEnemyDefinition")]
+    [SerializeField] private EnemyDefinition eliteShotgunDefinition;
+    [SerializeField] private EnemyDefinition eliteChargingDefinition;
 
     [Header("Enemy Role Placement")]
     [SerializeField] private bool useEnemyRoles = true;
@@ -157,7 +169,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [SerializeField] private Vector2 highValueWreckScaleRange = new Vector2(0.9f, 1.15f);
     [SerializeField] private Vector2 supplyContainerScaleRange = new Vector2(0.85f, 1.15f);
     [SerializeField] private Vector2 destroyedHullScaleRange = new Vector2(0.85f, 1.25f);
-    [SerializeField] private Vector2 meteorScaleRange = new Vector2(0.75f, 1.35f);
+    [Tooltip("소형 운석의 추가 랜덤 스케일입니다.")]
+    [SerializeField] private Vector2 meteorScaleRange = new Vector2(0.7f, 1.05f);
+    [Tooltip("대형 운석의 추가 랜덤 스케일입니다.")]
+    [SerializeField] private Vector2 largeMeteorScaleRange = new Vector2(0.95f, 1.2f);
 
     [Header("Physics Block Check Optional")]
     [SerializeField] private bool useBlockedLayerCheck;
@@ -283,14 +298,20 @@ public class ExpeditionMapGenerator : MonoBehaviour
     {
         currentSeaRegion = ResolveCurrentSeaRegion();
 
+        ExpeditionDepth depth = ResolveCurrentDepth();
+
         if (config != null)
         {
-            mapSize = config.MapSize;
+            mapSize = config.GetMapSize(depth);
+        }
+        else
+        {
+            mapSize = CampaignProgressionCatalog.GetDefaultMapSize(depth);
         }
 
         if (mapSize.x <= 0f || mapSize.y <= 0f)
         {
-            mapSize = new Vector2(80f, 80f);
+            mapSize = CampaignProgressionCatalog.GetDefaultMapSize(depth);
         }
 
         MapBounds = new Bounds(
@@ -608,14 +629,16 @@ public class ExpeditionMapGenerator : MonoBehaviour
         int highValueWreckCount = config != null ? config.HighValueWreckCount : 3;
         int supplyContainerCount = config != null ? config.SupplyContainerCount : 16;
         int destroyedHullCount = config != null ? config.DestroyedHullCount : 8;
-        int meteorCount = config != null ? config.MeteorCount : 24;
+        int smallMeteorCount = config != null ? config.SmallMeteorCount : 30;
+        int largeMeteorCount = config != null ? config.LargeMeteorCount : 3;
 
         if (applySeaRegionObjectCountModifiers && currentSeaRegion != null)
         {
             highValueWreckCount = ApplyCountModifier(highValueWreckCount, currentSeaRegion.ExtraHighValueWreckCount);
             supplyContainerCount = ApplyCountModifier(supplyContainerCount, currentSeaRegion.ExtraSupplyContainerCount);
             destroyedHullCount = ApplyCountModifier(destroyedHullCount, currentSeaRegion.ExtraDestroyedHullCount);
-            meteorCount = ApplyCountModifier(meteorCount, currentSeaRegion.ExtraMeteorCount);
+            // 해역의 추가 운석 수는 탐색 밀도를 만드는 소형 운석에만 적용한다.
+            smallMeteorCount = ApplyCountModifier(smallMeteorCount, currentSeaRegion.ExtraMeteorCount);
         }
 
         PlaceHarvestPrefabBatch(
@@ -666,10 +689,19 @@ public class ExpeditionMapGenerator : MonoBehaviour
         PlaceHarvestPrefabBatch(
             meteorPrefabs,
             meteorPrefab,
-            meteorCount,
+            smallMeteorCount,
             generalMinDistance,
-            "Meteor",
+            "SmallMeteor",
             MapSpawnCategory.Meteor
+        );
+
+        PlaceHarvestPrefabBatch(
+            largeMeteorPrefabs,
+            largeMeteorPrefab,
+            largeMeteorCount,
+            Mathf.Max(generalMinDistance, 3f),
+            "LargeMeteor",
+            MapSpawnCategory.LargeMeteor
         );
     }
 
@@ -678,14 +710,34 @@ public class ExpeditionMapGenerator : MonoBehaviour
         int basicCount = config != null ? config.BasicEnemyCount : 20;
         int shotgunCount = config != null ? config.ShotgunEnemyCount : 5;
         int chargingCount = config != null ? config.ChargingEnemyCount : 4;
-        int eliteCount = config != null ? config.EliteEnemyCount : 2;
+        int meleeChargerCount = config != null ? config.MeleeChargerCount : 2;
+        int eliteMachineGunCount = config != null ? config.EliteMachineGunCount : 1;
+        int eliteShotgunCount = config != null ? config.EliteShotgunCount : 1;
+        int eliteChargingCount = config != null ? config.EliteChargingCount : 0;
+
+        ApplyCampaignEnemyCountModifiers(
+            ResolveCurrentDepth(),
+            ref basicCount,
+            ref shotgunCount,
+            ref chargingCount,
+            ref meleeChargerCount,
+            ref eliteMachineGunCount,
+            ref eliteShotgunCount,
+            ref eliteChargingCount
+        );
 
         if (applySeaRegionEnemyCountModifiers && currentSeaRegion != null)
         {
             basicCount = ApplyCountModifier(basicCount, currentSeaRegion.ExtraBasicEnemyCount);
             shotgunCount = ApplyCountModifier(shotgunCount, currentSeaRegion.ExtraShotgunEnemyCount);
             chargingCount = ApplyCountModifier(chargingCount, currentSeaRegion.ExtraChargingEnemyCount);
-            eliteCount = ApplyCountModifier(eliteCount, currentSeaRegion.ExtraEliteEnemyCount);
+
+            DistributeEliteBonus(
+                currentSeaRegion.ExtraEliteEnemyCount,
+                ref eliteMachineGunCount,
+                ref eliteShotgunCount,
+                ref eliteChargingCount
+            );
         }
 
         bool roleEnabled = useEnemyRoles && (config == null || config.EnableEnemyRoles);
@@ -761,10 +813,31 @@ public class ExpeditionMapGenerator : MonoBehaviour
         );
 
         PlaceEnemyBatch(
-            eliteEnemyDefinition,
-            eliteCount,
+            meleeChargerDefinition,
+            meleeChargerCount,
             true,
-            "EliteEnemy"
+            "MeleeCharger"
+        );
+
+        PlaceEnemyBatch(
+            eliteMachineGunDefinition,
+            eliteMachineGunCount,
+            true,
+            "EliteMachineGun"
+        );
+
+        PlaceEnemyBatch(
+            eliteShotgunDefinition,
+            eliteShotgunCount,
+            true,
+            "EliteShotgun"
+        );
+
+        PlaceEnemyBatch(
+            eliteChargingDefinition,
+            eliteChargingCount,
+            true,
+            "EliteCharging"
         );
     }
 
@@ -1058,15 +1131,19 @@ public class ExpeditionMapGenerator : MonoBehaviour
             Vector2 position;
             bool insideStartSafeRadius;
 
-            bool found = category == MapSpawnCategory.None
-                ? TryFindPosition(
-                    avoidStartSafeRadius,
-                    importantPoint,
+            bool useHarvestPlacement =
+                category != MapSpawnCategory.None &&
+                category != MapSpawnCategory.LargeMeteor;
+
+            bool found = useHarvestPlacement
+                ? TryFindHarvestPosition(
                     minDistance,
                     out position,
                     out insideStartSafeRadius
                 )
-                : TryFindHarvestPosition(
+                : TryFindPosition(
+                    avoidStartSafeRadius || category == MapSpawnCategory.LargeMeteor,
+                    importantPoint,
                     minDistance,
                     out position,
                     out insideStartSafeRadius
@@ -1096,7 +1173,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 importantPositions.Add(position);
             }
 
-            if (category != MapSpawnCategory.None)
+            if (category != MapSpawnCategory.None &&
+                category != MapSpawnCategory.LargeMeteor)
             {
                 harvestClusterAnchors.Add(position);
             }
@@ -1152,6 +1230,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 continue;
             }
 
+            if (definition.EnemyType == EnemyType.MeleeCharger &&
+                spawned.GetComponent<EnemyMeleeChargeController2D>() == null)
+            {
+                spawned.AddComponent<EnemyMeleeChargeController2D>();
+            }
+
             EnemyBaseAI enemyAI = spawned.GetComponent<EnemyBaseAI>();
 
             if (enemyAI != null)
@@ -1165,6 +1249,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             }
 
             ApplyEnemyHpModifiers(spawned);
+            BeginEnemyArrival(spawned, position);
             occupiedPositions.Add(position);
             placed++;
         }
@@ -1234,6 +1319,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 role.SetRoleMarkerSprite(defenderRoleMarkerSprite);
             }
 
+            BeginEnemyArrival(spawned, position);
             occupiedPositions.Add(position);
             placed++;
         }
@@ -1306,6 +1392,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 }
             }
 
+            BeginEnemyArrival(spawned, position);
             occupiedPositions.Add(position);
             placed++;
         }
@@ -1381,6 +1468,26 @@ public class ExpeditionMapGenerator : MonoBehaviour
         return false;
     }
 
+    private void BeginEnemyArrival(GameObject enemyObject, Vector2 arrivalPosition)
+    {
+        if (enemyObject == null)
+        {
+            return;
+        }
+
+        Vector2 fallbackCenter = player != null
+            ? (Vector2)player.position
+            : startPosition;
+
+        EnemyArrivalSpawnUtility.BeginArrival(
+            enemyObject,
+            arrivalPosition,
+            player,
+            false,
+            fallbackCenter
+        );
+    }
+
     private GameObject SpawnConfiguredEnemy(
         EnemyDefinition definition,
         Vector2 position,
@@ -1450,6 +1557,82 @@ public class ExpeditionMapGenerator : MonoBehaviour
         return role;
     }
 
+    private ExpeditionDepth ResolveCurrentDepth()
+    {
+        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        {
+            return RunManager.Instance.CurrentRun.ExpeditionDepth;
+        }
+
+        return ExpeditionDepth.Normal;
+    }
+
+    private void ApplyCampaignEnemyCountModifiers(
+        ExpeditionDepth depth,
+        ref int basicCount,
+        ref int shotgunCount,
+        ref int chargingCount,
+        ref int meleeChargerCount,
+        ref int eliteMachineGunCount,
+        ref int eliteShotgunCount,
+        ref int eliteChargingCount)
+    {
+        switch (depth)
+        {
+            case ExpeditionDepth.DeepZone1:
+                chargingCount += 1;
+                meleeChargerCount += 1;
+                eliteChargingCount += 1;
+                break;
+
+            case ExpeditionDepth.DeepZone2:
+                basicCount = Mathf.Max(0, basicCount - 2);
+                shotgunCount += 1;
+                chargingCount += 2;
+                meleeChargerCount += 1;
+                eliteMachineGunCount += 1;
+                eliteShotgunCount += 1;
+                break;
+
+            case ExpeditionDepth.FinalNetwork:
+                basicCount = Mathf.Max(0, basicCount - 4);
+                shotgunCount += 2;
+                chargingCount += 2;
+                meleeChargerCount += 2;
+                eliteMachineGunCount += 1;
+                eliteShotgunCount += 1;
+                eliteChargingCount += 1;
+                break;
+        }
+    }
+
+    private static void DistributeEliteBonus(
+        int bonus,
+        ref int eliteMachineGunCount,
+        ref int eliteShotgunCount,
+        ref int eliteChargingCount)
+    {
+        bonus = Mathf.Max(0, bonus);
+
+        for (int i = 0; i < bonus; i++)
+        {
+            switch (i % 3)
+            {
+                case 0:
+                    eliteMachineGunCount += 1;
+                    break;
+
+                case 1:
+                    eliteShotgunCount += 1;
+                    break;
+
+                default:
+                    eliteChargingCount += 1;
+                    break;
+            }
+        }
+    }
+
     private void ApplyEnemyHpModifiers(GameObject enemyObject)
     {
         if (enemyObject == null)
@@ -1466,15 +1649,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         float hpMultiplier = 1f;
 
-        if (applyDeepZoneEnemyHpMultiplier &&
-            config != null &&
-            RunManager.Instance != null &&
-            RunManager.Instance.HasActiveRun)
+        if (applyDeepZoneEnemyHpMultiplier)
         {
-            if (RunManager.Instance.CurrentRun.ExpeditionDepth == ExpeditionDepth.DeepZone1)
-            {
-                hpMultiplier *= Mathf.Max(0.01f, config.DeepZoneEnemyHpMultiplier);
-            }
+            ExpeditionDepth depth = ResolveCurrentDepth();
+            hpMultiplier *= config != null
+                ? config.GetEnemyHpMultiplier(depth)
+                : CampaignProgressionCatalog.GetEnemyHpMultiplier(depth);
         }
 
         if (applySeaRegionEnemyHpMultiplier && currentSeaRegion != null)
@@ -1761,6 +1941,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             MapSpawnCategory.SupplyContainer => supplyContainerScaleRange,
             MapSpawnCategory.DestroyedHull => destroyedHullScaleRange,
             MapSpawnCategory.Meteor => meteorScaleRange,
+            MapSpawnCategory.LargeMeteor => largeMeteorScaleRange,
             MapSpawnCategory.SpecialActiveContainer => supplyContainerScaleRange,
             MapSpawnCategory.SpecialPassiveContainer => supplyContainerScaleRange,
             _ => Vector2.one
@@ -1813,7 +1994,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             );
         }
 
-        if (category == MapSpawnCategory.Meteor)
+        if (category == MapSpawnCategory.Meteor || category == MapSpawnCategory.LargeMeteor)
         {
             MeteorObstacle meteor = spawned.GetComponent<MeteorObstacle>();
 
@@ -1852,7 +2033,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
             return;
         }
 
-        Vector2 size = config != null ? config.MapSize : mapSize;
+        ExpeditionDepth depth = ResolveCurrentDepth();
+        Vector2 size = config != null
+            ? config.GetMapSize(depth)
+            : CampaignProgressionCatalog.GetDefaultMapSize(depth);
 
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireCube(

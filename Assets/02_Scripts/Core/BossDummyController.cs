@@ -8,6 +8,10 @@ public class BossDummyController : MonoBehaviour
     [SerializeField] private EnemyHealth enemyHealth;
     [SerializeField] private RewardDropper rewardDropper;
 
+    [Header("Campaign")]
+    [SerializeField] private BossCampaignDefinition campaignDefinition;
+    [SerializeField] private bool completeFinalBossAsVictory = true;
+
     [Header("Exit Object Prefabs")]
     [SerializeField] private GameObject returnBeaconPrefab;
     [SerializeField] private GameObject wormholePortalPrefab;
@@ -94,6 +98,11 @@ public class BossDummyController : MonoBehaviour
         }
     }
 
+    public void ConfigureCampaignDefinition(BossCampaignDefinition definition)
+    {
+        campaignDefinition = definition;
+    }
+
     public void ConfigureCoreShardRewardPoint(Vector3 worldPosition)
     {
         configuredCoreShardRewardPosition = worldPosition;
@@ -135,10 +144,27 @@ public class BossDummyController : MonoBehaviour
 
         deathHandled = true;
 
+        BossCampaignDefinition resolvedDefinition = ResolveCampaignDefinition();
+        CampaignBossId bossId = ResolveCampaignBossId(resolvedDefinition);
+
         if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
         {
-            RunManager.Instance.MarkBossDefeated();
-            DropOrGrantCoreShards();
+            bool grantStoryPart = resolvedDefinition == null ||
+                                  resolvedDefinition.GrantStoryPartOnFirstDefeat;
+
+            RunManager.Instance.MarkBossDefeated(bossId, grantStoryPart);
+            CampaignBossRewardService.GrantGuaranteedPassive(
+                resolvedDefinition,
+                transform.position
+            );
+
+            if (bossId == CampaignBossId.NullDispatcher && completeFinalBossAsVictory)
+            {
+                RunManager.Instance.CompleteRun(RunEndReason.FinalVictory);
+                return;
+            }
+
+            DropOrGrantCoreShards(resolvedDefinition);
         }
 
         CreateRewardExitCoordinator();
@@ -151,18 +177,27 @@ public class BossDummyController : MonoBehaviour
         }
     }
 
-    private void DropOrGrantCoreShards()
+    private void DropOrGrantCoreShards(BossCampaignDefinition resolvedDefinition)
     {
         if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
         {
             return;
         }
 
-        int amount = Mathf.Max(0, normalCoreShards);
+        ExpeditionDepth depth = RunManager.Instance.CurrentRun.ExpeditionDepth;
+        int amount = resolvedDefinition != null
+            ? resolvedDefinition.CoreShardReward
+            : CampaignProgressionCatalog.GetCoreShardReward(depth);
 
-        if (RunManager.Instance.CurrentRun.ExpeditionDepth == ExpeditionDepth.DeepZone1)
+        // 캠페인 정의가 없을 때만 기존 인스펙터 값을 호환용으로 사용합니다.
+        if (resolvedDefinition == null && amount <= 0)
         {
-            amount += Mathf.Max(0, deepZoneAdditionalCoreShards);
+            amount = Mathf.Max(0, normalCoreShards);
+
+            if (depth != ExpeditionDepth.Normal)
+            {
+                amount += Mathf.Max(0, deepZoneAdditionalCoreShards);
+            }
         }
 
         if (amount <= 0)
@@ -205,6 +240,24 @@ public class BossDummyController : MonoBehaviour
         return hasConfiguredCoreShardRewardPosition
             ? configuredCoreShardRewardPosition
             : transform.position;
+    }
+
+    private BossCampaignDefinition ResolveCampaignDefinition()
+    {
+        ExpeditionDepth depth = RunManager.Instance != null && RunManager.Instance.HasActiveRun
+            ? RunManager.Instance.CurrentRun.ExpeditionDepth
+            : ExpeditionDepth.Normal;
+
+        return CampaignBossRewardService.ResolveDefinition(campaignDefinition, depth);
+    }
+
+    private CampaignBossId ResolveCampaignBossId(BossCampaignDefinition definition)
+    {
+        ExpeditionDepth depth = RunManager.Instance != null && RunManager.Instance.HasActiveRun
+            ? RunManager.Instance.CurrentRun.ExpeditionDepth
+            : ExpeditionDepth.Normal;
+
+        return CampaignBossRewardService.ResolveBossId(definition, depth);
     }
 
     private void CreateRewardExitCoordinator()

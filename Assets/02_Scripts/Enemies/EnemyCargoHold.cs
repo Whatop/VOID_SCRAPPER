@@ -183,6 +183,53 @@ public class EnemyCargoHold : MonoBehaviour
         };
     }
 
+    /// <summary>
+    /// 화물에서 실제로 제거된 수량을 반환한다.
+    /// 기지 보관함으로 이전할 때 사용한다.
+    /// </summary>
+    public int Remove(CurrencyType type, int amount)
+    {
+        if (amount <= 0)
+        {
+            return 0;
+        }
+
+        int removed;
+
+        switch (type)
+        {
+            case CurrencyType.Experience:
+                removed = Mathf.Min(amount, experience);
+                experience -= removed;
+                break;
+
+            case CurrencyType.Credits:
+                removed = Mathf.Min(amount, credits);
+                credits -= removed;
+                break;
+
+            case CurrencyType.ScrapParts:
+                removed = Mathf.Min(amount, scrapParts);
+                scrapParts -= removed;
+                break;
+
+            case CurrencyType.CoreShards:
+                removed = Mathf.Min(amount, coreShards);
+                coreShards -= removed;
+                break;
+
+            default:
+                return 0;
+        }
+
+        if (removed > 0)
+        {
+            CargoChanged?.Invoke(this);
+        }
+
+        return removed;
+    }
+
     public void DropAll()
     {
         ResolveReferences();

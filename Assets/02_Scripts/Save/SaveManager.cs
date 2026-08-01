@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using UnityEngine;
 
 public class SaveManager : MonoBehaviour
@@ -107,7 +107,7 @@ public class SaveManager : MonoBehaviour
     {
         SaveData saveData = new SaveData
         {
-            version = 2,
+            version = 3,
             selectedShipId = defaultShipId
         };
 
@@ -141,11 +141,21 @@ public class SaveManager : MonoBehaviour
             saveData.unlockFlags = new System.Collections.Generic.List<string>();
         }
 
+        if (saveData.defeatedCampaignBosses == null)
+        {
+            saveData.defeatedCampaignBosses = new System.Collections.Generic.List<CampaignBossId>();
+        }
+
+        if (saveData.acquiredBossStoryParts == null)
+        {
+            saveData.acquiredBossStoryParts = new System.Collections.Generic.List<BossStoryPart>();
+        }
+
         if (string.IsNullOrWhiteSpace(saveData.selectedShipId))
         {
             saveData.selectedShipId = defaultShipId;
         }
 
-        saveData.version = Mathf.Max(saveData.version, 2);
+        saveData.version = Mathf.Max(saveData.version, 3);
     }
 }

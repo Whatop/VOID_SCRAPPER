@@ -37,9 +37,18 @@ public class EnemyBaseAI : MonoBehaviour
     [SerializeField] private float interceptorMoveSpeedMultiplier = 1.35f;
     [SerializeField] private float sentinelStrafeSpeedMultiplier = 0.75f;
 
+    [Header("Navigation Optional")]
+    [Tooltip("붙어 있으면 직선 이동 대신 장애물 회피 방향을 사용합니다. 기지 벽이 있는 적에게 연결하세요.")]
+    [SerializeField] private EnemyNavigationAgent2D navigationAgent;
+    [SerializeField] private bool useNavigationAgent = true;
+
     [Header("Detection")]
     [SerializeField] private float visionRange = 9f;
     [SerializeField] private float loseSightTime = 2f;
+    [Tooltip("기본 OFF. 켜면 벽 뒤에서도 근거리 레이더 접촉으로 플레이어의 정확한 위치를 추적합니다.")]
+    [SerializeField] private bool radarCanTrackExactPlayerPosition;
+    [Tooltip("직접 시야를 잃는 순간 진행 중인 차징/점사/돌진 공격을 취소합니다.")]
+    [SerializeField] private bool cancelAttackImmediatelyOnSightLoss = true;
 
     [Header("Alert")]
     [SerializeField] private float alertDuration = 3f;
@@ -65,6 +74,10 @@ public class EnemyBaseAI : MonoBehaviour
     private EnemyRoleController roleController;
     private EnemyVisionSensor visionSensor;
     private EnemyAwarenessIndicator awarenessIndicator;
+    private EnemyMeleeChargeController2D meleeChargeController;
+
+    private ShopNeutralZone2D activeShopNeutralZone;
+    private float shopSecurityThreatTimer;
 
     private Vector2 spawnPosition;
     private Vector2 patrolTarget;
@@ -93,6 +106,13 @@ public class EnemyBaseAI : MonoBehaviour
     public Vector2 DesiredVelocity => desiredVelocity;
     public Vector2 FacingDirection => facingDirection;
     public bool IsMoving => desiredVelocity.sqrMagnitude > 0.01f;
+    public bool IsShopSecurityUnit =>
+        enemyDefinition != null && enemyDefinition.EnemyType == EnemyType.ShopDrone;
+    public bool IsInsideActiveShopNeutralZone =>
+        activeShopNeutralZone != null && activeShopNeutralZone.IsActiveSafeZone;
+    public bool IsShopSecurityThreat =>
+        !IsShopSecurityUnit &&
+        (shopSecurityThreatTimer > 0f || IsThreateningPlayer());
 
     public bool IsAware =>
         currentState == EnemyState.Alert ||
@@ -116,6 +136,8 @@ public class EnemyBaseAI : MonoBehaviour
         roleController = GetComponent<EnemyRoleController>();
         visionSensor = GetComponent<EnemyVisionSensor>();
         awarenessIndicator = GetComponent<EnemyAwarenessIndicator>();
+        navigationAgent = GetComponent<EnemyNavigationAgent2D>();
+        meleeChargeController = GetComponent<EnemyMeleeChargeController2D>();
         visualRoot = transform;
     }
 
@@ -128,6 +150,8 @@ public class EnemyBaseAI : MonoBehaviour
         roleController = GetComponent<EnemyRoleController>();
         visionSensor = GetComponent<EnemyVisionSensor>();
         awarenessIndicator = GetComponent<EnemyAwarenessIndicator>();
+        navigationAgent = GetComponent<EnemyNavigationAgent2D>();
+        meleeChargeController = GetComponent<EnemyMeleeChargeController2D>();
 
         if (visionSensor == null)
         {
@@ -154,9 +178,12 @@ public class EnemyBaseAI : MonoBehaviour
 
         spawnPosition = transform.position;
         desiredVelocity = Vector2.zero;
+        navigationAgent?.ResetNavigationState();
         lostSightTimer = 0f;
         stateTimer = 0f;
         strafeTimer = 0f;
+        shopSecurityThreatTimer = 0f;
+        activeShopNeutralZone = null;
         initialized = true;
 
         ResolvePlayer();
@@ -181,6 +208,9 @@ public class EnemyBaseAI : MonoBehaviour
             health.Died -= HandleDied;
         }
 
+        meleeChargeController?.CancelAttack();
+        activeShopNeutralZone = null;
+        shopSecurityThreatTimer = 0f;
         StopMoving();
         initialized = false;
     }
@@ -199,6 +229,23 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         ResolvePlayer();
+
+        if (shopSecurityThreatTimer > 0f)
+        {
+            shopSecurityThreatTimer = Mathf.Max(0f, shopSecurityThreatTimer - Time.deltaTime);
+        }
+
+        if (activeShopNeutralZone != null && !activeShopNeutralZone.IsActiveSafeZone)
+        {
+            activeShopNeutralZone = null;
+        }
+
+        if (activeShopNeutralZone != null && !IsShopSecurityUnit)
+        {
+            UpdateShopNeutralZoneRetreat();
+            ApplyFacingRotation(Time.deltaTime);
+            return;
+        }
 
         if (roleController != null && roleController.TryHandlePriority(this, Time.deltaTime))
         {
@@ -269,6 +316,18 @@ public class EnemyBaseAI : MonoBehaviour
         visionRange = enemyDefinition.VisionRange;
         purpose = ResolvePurpose(enemyDefinition.EnemyType);
 
+        if ((enemyDefinition.EnemyType == EnemyType.MeleeCharger ||
+             enemyDefinition.EnemyType == EnemyType.ShopDrone) &&
+            meleeChargeController == null)
+        {
+            meleeChargeController = GetComponent<EnemyMeleeChargeController2D>();
+
+            if (meleeChargeController == null)
+            {
+                meleeChargeController = gameObject.AddComponent<EnemyMeleeChargeController2D>();
+            }
+        }
+
         if (health != null)
         {
             health.ApplyDefinition(enemyDefinition);
@@ -326,9 +385,16 @@ public class EnemyBaseAI : MonoBehaviour
         }
     }
 
-    public void CommandMoveTo(Vector2 targetPosition, float speedMultiplier = 1f)
+    public void CommandMoveTo(
+        Vector2 targetPosition,
+        float speedMultiplier = 1f,
+        Transform ignoredNavigationTarget = null)
     {
-        MoveTo(targetPosition, moveSpeed * Mathf.Max(0f, speedMultiplier));
+        MoveTo(
+            targetPosition,
+            moveSpeed * Mathf.Max(0f, speedMultiplier),
+            ignoredNavigationTarget
+        );
     }
 
     public void CommandStopMoving()
@@ -351,6 +417,61 @@ public class EnemyBaseAI : MonoBehaviour
         if (attackController != null)
         {
             attackController.CancelCharge();
+        }
+
+        meleeChargeController?.CancelAttack();
+    }
+
+    public void CommandSetVelocity(Vector2 velocity, bool updateFacing = true)
+    {
+        desiredVelocity = velocity;
+
+        if (updateFacing && velocity.sqrMagnitude > 0.001f)
+        {
+            SetFacing(velocity.normalized);
+        }
+    }
+
+    public void CommandSetFacingDirection(Vector2 direction)
+    {
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            return;
+        }
+
+        facingDirection = direction.normalized;
+    }
+
+    public void EnterShopNeutralZone(ShopNeutralZone2D zone)
+    {
+        if (zone == null || IsShopSecurityUnit || currentState == EnemyState.Dead)
+        {
+            return;
+        }
+
+        if (IsThreateningPlayer())
+        {
+            shopSecurityThreatTimer = Mathf.Max(shopSecurityThreatTimer, zone.TurretThreatMemoryDuration);
+        }
+
+        activeShopNeutralZone = zone;
+        CancelCurrentAttack();
+        SetState(EnemyState.Return, true);
+    }
+
+    public void ExitShopNeutralZone(ShopNeutralZone2D zone)
+    {
+        if (zone == null || activeShopNeutralZone != zone)
+        {
+            return;
+        }
+
+        activeShopNeutralZone = null;
+        CancelCurrentAttack();
+
+        if (currentState != EnemyState.Dead)
+        {
+            SetState(EnemyState.Return, true);
         }
     }
 
@@ -384,7 +505,7 @@ public class EnemyBaseAI : MonoBehaviour
 
     public bool CanSeePlayerForRole()
     {
-        return CanSeePlayer() || CanDetectPlayerByRadar();
+        return CanSeePlayer() || CanTrackPlayerByRadar();
     }
 
     public bool CanDirectlySeePlayerForRole()
@@ -394,7 +515,7 @@ public class EnemyBaseAI : MonoBehaviour
 
     public bool CanDetectPlayerByRadarForRole()
     {
-        return CanDetectPlayerByRadar();
+        return CanTrackPlayerByRadar();
     }
 
     public bool CanSuspectPlayerForRole()
@@ -411,6 +532,16 @@ public class EnemyBaseAI : MonoBehaviour
     {
         if (currentState == EnemyState.Dead)
         {
+            return;
+        }
+
+        if (activeShopNeutralZone != null && activeShopNeutralZone.IsActiveSafeZone && !IsShopSecurityUnit)
+        {
+            shopSecurityThreatTimer = Mathf.Max(
+                shopSecurityThreatTimer,
+                activeShopNeutralZone.TurretThreatMemoryDuration
+            );
+            CancelCurrentAttack();
             return;
         }
 
@@ -500,7 +631,7 @@ public class EnemyBaseAI : MonoBehaviour
             return;
         }
 
-        if (CanDetectPlayerByRadar())
+        if (CanTrackPlayerByRadar())
         {
             AlertTo(player.position);
             return;
@@ -533,7 +664,7 @@ public class EnemyBaseAI : MonoBehaviour
             stateTimer = Mathf.Max(stateTimer, 0.35f);
         }
 
-        if (CanDetectPlayerByRadar() && player != null)
+        if (CanTrackPlayerByRadar() && player != null)
         {
             alertTarget = player.position;
             stateTimer = Mathf.Max(stateTimer, alertDuration * 0.5f);
@@ -564,22 +695,46 @@ public class EnemyBaseAI : MonoBehaviour
             return;
         }
 
-        FaceTo(player.position);
+        bool hasDirectSight = CanSeePlayer();
+        bool hasExactRadarTracking = !hasDirectSight && CanTrackPlayerByRadar();
 
-        if (CanSeePlayer() || CanDetectPlayerByRadar())
+        if (hasDirectSight || hasExactRadarTracking)
         {
             lostSightTimer = 0f;
             lastSeenPlayerPosition = player.position;
+            FaceTo(player.position);
         }
         else
         {
-            lostSightTimer += Time.deltaTime;
+            if (cancelAttackImmediatelyOnSightLoss)
+            {
+                CancelCurrentAttack();
+            }
 
-            if (lostSightTimer >= loseSightTime)
+            lostSightTimer += Time.deltaTime;
+            FaceTo(lastSeenPlayerPosition);
+
+            if (Vector2.Distance(transform.position, lastSeenPlayerPosition) > arriveDistance)
+            {
+                MoveTo(lastSeenPlayerPosition, moveSpeed);
+            }
+            else
+            {
+                StopMoving();
+            }
+
+            if (lostSightTimer >= Mathf.Max(0.05f, loseSightTime))
             {
                 SetState(EnemyState.Search);
-                return;
             }
+
+            return;
+        }
+
+        if (meleeChargeController != null)
+        {
+            meleeChargeController.TryHandleCombat(this, player, Time.deltaTime);
+            return;
         }
 
         switch (purpose)
@@ -693,9 +848,29 @@ public class EnemyBaseAI : MonoBehaviour
             moveDirection = new Vector2(-toPlayer.y, toPlayer.x).normalized * strafeDirection;
         }
 
+        if (useNavigationAgent && navigationAgent != null && moveDirection.sqrMagnitude > 0.001f)
+        {
+            Vector2 steeringTarget = (Vector2)transform.position + moveDirection.normalized * Mathf.Max(1f, moveSpeed);
+            Vector2 steeringDirection = navigationAgent.GetSteeringDirection(steeringTarget);
+
+            if (steeringDirection.sqrMagnitude > 0.0001f)
+            {
+                moveDirection = steeringDirection.normalized;
+            }
+        }
+
         desiredVelocity = moveDirection * moveSpeed * sentinelStrafeSpeedMultiplier;
 
-        if (moveDirection.sqrMagnitude > 0.001f)
+        bool trackPlayerWhileBursting =
+            attackController != null &&
+            attackController.RangedAttackPattern == EnemyRangedAttackPattern.MachineGunBurst &&
+            attackController.IsAttacking;
+
+        if (trackPlayerWhileBursting)
+        {
+            FaceTo(player.position);
+        }
+        else if (moveDirection.sqrMagnitude > 0.001f)
         {
             SetFacing(moveDirection);
         }
@@ -725,7 +900,7 @@ public class EnemyBaseAI : MonoBehaviour
             return;
         }
 
-        if (CanDetectPlayerByRadar() && player != null)
+        if (CanTrackPlayerByRadar() && player != null)
         {
             AlertTo(player.position);
             return;
@@ -769,7 +944,7 @@ public class EnemyBaseAI : MonoBehaviour
             return;
         }
 
-        if (CanDetectPlayerByRadar() && player != null)
+        if (CanTrackPlayerByRadar() && player != null)
         {
             AlertTo(player.position);
             return;
@@ -915,7 +1090,10 @@ public class EnemyBaseAI : MonoBehaviour
         FaceTo(patrolTarget);
     }
 
-    private void MoveTo(Vector2 targetPosition, float speed)
+    private void MoveTo(
+        Vector2 targetPosition,
+        float speed,
+        Transform ignoredNavigationTarget = null)
     {
         Vector2 currentPosition = transform.position;
         Vector2 direction = targetPosition - currentPosition;
@@ -927,6 +1105,20 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         direction.Normalize();
+
+        if (useNavigationAgent && navigationAgent != null)
+        {
+            Vector2 steeringDirection = navigationAgent.GetSteeringDirection(
+                targetPosition,
+                ignoredNavigationTarget
+            );
+
+            if (steeringDirection.sqrMagnitude > 0.0001f)
+            {
+                direction = steeringDirection.normalized;
+            }
+        }
+
         desiredVelocity = direction * Mathf.Max(0f, speed);
         SetFacing(direction);
     }
@@ -934,6 +1126,7 @@ public class EnemyBaseAI : MonoBehaviour
     private void StopMoving()
     {
         desiredVelocity = Vector2.zero;
+        navigationAgent?.NotifyMovementStopped();
 
         if (rb != null)
         {
@@ -968,7 +1161,8 @@ public class EnemyBaseAI : MonoBehaviour
     }
     private bool IsFacingLockedByAttack()
     {
-        return attackController != null && attackController.IsCharging;
+        return (attackController != null && attackController.IsCharging) ||
+               (meleeChargeController != null && meleeChargeController.LocksFacing);
     }
     private void ApplyFacingRotation(float deltaTime)
     {
@@ -1028,11 +1222,16 @@ public class EnemyBaseAI : MonoBehaviour
                visionSensor.HasVisualSuspicion;
     }
 
-    private bool CanDetectPlayerByRadar()
+    private bool HasRadarContact()
     {
         return player != null &&
                visionSensor != null &&
                visionSensor.HasRadarContact(player);
+    }
+
+    private bool CanTrackPlayerByRadar()
+    {
+        return radarCanTrackExactPlayerPosition && HasRadarContact();
     }
 
     private float GetDistanceToPlayer()
@@ -1082,15 +1281,34 @@ public class EnemyBaseAI : MonoBehaviour
             EnemyType.Shotgun => EnemyPurpose.Ambusher,
             EnemyType.Charging => EnemyPurpose.Interceptor,
             EnemyType.Elite => EnemyPurpose.Sentinel,
+            EnemyType.EliteMachineGun => EnemyPurpose.Sentinel,
+            EnemyType.EliteShotgun => EnemyPurpose.Ambusher,
+            EnemyType.EliteCharging => EnemyPurpose.Interceptor,
             EnemyType.Boss => EnemyPurpose.Boss,
             EnemyType.ShopDrone => EnemyPurpose.ShopGuard,
+            EnemyType.MeleeCharger => EnemyPurpose.Ambusher,
             _ => EnemyPurpose.Scout
         };
     }
 
     private void HandleDied(EnemyHealth enemyHealth)
     {
+        meleeChargeController?.CancelAttack();
+        activeShopNeutralZone = null;
         SetState(EnemyState.Dead);
+    }
+
+    private void UpdateShopNeutralZoneRetreat()
+    {
+        if (activeShopNeutralZone == null)
+        {
+            return;
+        }
+
+        CancelCurrentAttack();
+        Vector2 retreatPoint = activeShopNeutralZone.GetRetreatPoint(transform.position);
+        FaceTo(retreatPoint);
+        MoveTo(retreatPoint, moveSpeed * activeShopNeutralZone.RetreatSpeedMultiplier);
     }
 
     private void OnDrawGizmosSelected()

@@ -10,33 +10,81 @@ public class EnemyAttackController : MonoBehaviour
     [Header("Fire Point")]
     [SerializeField] private Transform firePoint;
 
+    [Header("Projectile Allegiance")]
+    [SerializeField] private ProjectileOwner projectileOwner = ProjectileOwner.Enemy;
+    [Tooltip("Ï§ëÎ¶Ω ÏÉÅÏ†ê Ìè¨ÌÉëÏ≤òÎüº Ï†ÅÏùÑ Í≥µÍ≤©ÌïòÏßÄÎßå ÏÉÅÏ†ê Î≥¥Ïïà ÎìúÎ°†/Ìè¨ÌÉëÏóêÎäî ÌîºÌï¥Î•º Ï£ºÏßÄ ÏïäÏïÑÏïº Ìï† Îïå ÏÇ¨Ïö©Ìï©ÎãàÎã§.")]
+    [SerializeField] private bool ignoreShopSecurityTargets;
+
     [Header("Fallback Primary Attack")]
     [SerializeField] private ProjectileDefinition projectileDefinition;
     [SerializeField] private float attackRange = 6f;
     [SerializeField] private float attackInterval = 1.2f;
     [SerializeField] private int projectileCount = 1;
-    [SerializeField] private float spreadAngle = 0f;
-    [SerializeField] private float chargeTime = 0f;
+    [SerializeField] private float spreadAngle;
+    [SerializeField] private float chargeTime;
 
     [Header("Fallback Secondary Attack")]
     [SerializeField] private bool useSecondaryProjectile;
     [SerializeField] private ProjectileDefinition secondaryProjectileDefinition;
     [SerializeField] private int secondaryProjectileCount = 1;
-    [SerializeField] private float secondarySpreadAngle = 0f;
+    [SerializeField] private float secondarySpreadAngle;
+
+    [Header("Fallback Special Pattern")]
+    [SerializeField] private EnemyRangedAttackPattern rangedAttackPattern = EnemyRangedAttackPattern.Standard;
+
+    [Header("Fallback Machine Gun Burst")]
+    [Min(1)]
+    [SerializeField] private int burstShotCount = 10;
+    [Min(0.01f)]
+    [SerializeField] private float burstShotInterval = 0.1f;
+    [Range(0f, 45f)]
+    [SerializeField] private float burstHalfAngle = 10f;
+    [SerializeField] private bool burstTrackTargetEachShot;
+
+    [Header("Fallback Shaking Shotgun")]
+    [Min(0f)]
+    [SerializeField] private float shakeLateralSpeed = 1.35f;
+    [Min(0f)]
+    [SerializeField] private float shakeFrequency = 4.5f;
+
+    [Header("Fallback Staggered Shotgun")]
+    [Min(1)]
+    [SerializeField] private int staggeredVolleyCount = 2;
+    [Min(0.01f)]
+    [SerializeField] private float staggeredVolleyInterval = 0.25f;
+    [Range(0f, 45f)]
+    [SerializeField] private float staggeredVolleyAngleOffset = 9f;
+    [SerializeField] private bool staggeredTrackTargetEachVolley = true;
+
+    [Header("Fallback Charging Split")]
+    [SerializeField] private ProjectileDefinition splitProjectileDefinition;
+    [Min(1)]
+    [SerializeField] private int splitProjectileCount = 6;
+    [Min(0.05f)]
+    [SerializeField] private float splitDelay = 0.95f;
+    [SerializeField] private float splitAngleOffset;
+    [SerializeField] private bool removeParentProjectileOnSplit = true;
+
+    [Header("Fallback Predictive Aim")]
+    [Range(0f, 1f)]
+    [SerializeField] private float predictiveShotChance;
+    [Min(0f)]
+    [SerializeField] private float predictiveMinimumTargetSpeed = 0.5f;
+    [Min(0f)]
+    [SerializeField] private float predictiveMaxLeadTime = 0.65f;
+    [Min(0f)]
+    [SerializeField] private float predictiveVelocityMultiplier = 1f;
 
     [Header("Charge Aim Line")]
     [SerializeField] private bool showAimLineDuringCharge = true;
-
-    [Tooltip("ƒ—∏È ¬˜¬° Ω√¿€ º¯∞£¿« πÊ«‚¿∏∑Œ ¡∂¡ÿº±∞˙ πﬂªÁ πÊ«‚¿Ã ∞Ì¡§µÀ¥œ¥Ÿ.")]
+    [Tooltip("ÏºúÎ©¥ Ï∞®Ïßï ÏãúÏûë ÏàúÍ∞ÑÏùò Î∞©Ìñ•ÏúºÎ°ú Ï°∞Ï§ÄÏÑ†Í≥º Î∞úÏÇ¨ Î∞©Ìñ•Ïù¥ Í≥†Ï†ïÎê©ÎãàÎã§.")]
     [SerializeField] private bool lockAimDirectionOnChargeStart = true;
-
     [SerializeField] private LineRenderer aimLineRenderer;
     [SerializeField] private bool autoCreateAimLineRenderer = true;
     [SerializeField] private Color aimLineColor = new Color(1f, 0.05f, 0.05f, 0.85f);
     [SerializeField] private float aimLineWidth = 0.045f;
     [SerializeField] private float aimLineLength = 12f;
-
-    [Tooltip("∫Æ, øÓºÆ ∞∞¿∫ ¿Âæ÷π∞ ∑π¿ÃæÓ∏∏ ≥÷¿∏ººø‰. Enemy ∑π¿ÃæÓ∏¶ ≥÷¿∏∏È ¿⁄±‚ ƒ›∂Û¿Ã¥ıø° ∏∑»˙ ºˆ ¿÷Ω¿¥œ¥Ÿ.")]
+    [Tooltip("Î≤Ω, Ïö¥ÏÑù Í∞ôÏùÄ Ïû•Ïï†Î¨º Î†àÏù¥Ïñ¥Îßå ÎÑ£ÏúºÏÑ∏Ïöî. Enemy Î†àÏù¥Ïñ¥Î•º ÎÑ£ÏúºÎ©¥ ÏûêÍ∏∞ ÏΩúÎùºÏù¥ÎçîÏóê ÎßâÌûê Ïàò ÏûàÏäµÎãàÎã§.")]
     [SerializeField] private LayerMask aimLineBlockLayer;
 
     [Header("Runtime")]
@@ -44,18 +92,21 @@ public class EnemyAttackController : MonoBehaviour
     [SerializeField] private bool isCharging;
 
     private float attackTimer;
-    private Coroutine chargeRoutine;
+    private Coroutine attackRoutine;
 
     private Vector2 lockedChargeDirection = Vector2.up;
     private Vector2 currentChargeDirection = Vector2.up;
+    private bool usePredictiveAimForCurrentAttack;
+    private Rigidbody2D currentTargetBody;
 
     public float AttackRange => attackRange;
     public bool IsAttacking => isAttacking;
     public bool IsCharging => isCharging;
     public bool CanAttack => !isAttacking && !isCharging && attackTimer <= 0f;
-
     public bool IsAimDirectionLocked => isCharging && lockAimDirectionOnChargeStart;
     public Vector2 LockedChargeDirection => lockedChargeDirection;
+    public Transform FirePoint => firePoint != null ? firePoint : transform;
+    public EnemyRangedAttackPattern RangedAttackPattern => rangedAttackPattern;
 
     public event Action<EnemyAttackController> AttackStarted;
     public event Action<EnemyAttackController> ProjectileFired;
@@ -86,11 +137,9 @@ public class EnemyAttackController : MonoBehaviour
     private void OnDisable()
     {
         CancelCharge();
-
         isAttacking = false;
         isCharging = false;
         attackTimer = 0f;
-
         HideAimLine();
     }
 
@@ -115,72 +164,122 @@ public class EnemyAttackController : MonoBehaviour
         secondaryProjectileCount = Mathf.Max(1, enemyDefinition.SecondaryProjectileCount);
         secondarySpreadAngle = Mathf.Max(0f, enemyDefinition.SecondarySpreadAngle);
 
+        rangedAttackPattern = enemyDefinition.RangedAttackPattern;
+        burstShotCount = enemyDefinition.BurstShotCount;
+        burstShotInterval = enemyDefinition.BurstShotInterval;
+        burstHalfAngle = enemyDefinition.BurstHalfAngle;
+        burstTrackTargetEachShot = enemyDefinition.BurstTrackTargetEachShot;
+
+        shakeLateralSpeed = enemyDefinition.ShakeLateralSpeed;
+        shakeFrequency = enemyDefinition.ShakeFrequency;
+
+        staggeredVolleyCount = enemyDefinition.StaggeredVolleyCount;
+        staggeredVolleyInterval = enemyDefinition.StaggeredVolleyInterval;
+        staggeredVolleyAngleOffset = enemyDefinition.StaggeredVolleyAngleOffset;
+        staggeredTrackTargetEachVolley = enemyDefinition.StaggeredTrackTargetEachVolley;
+
+        splitProjectileDefinition = enemyDefinition.SplitProjectileDefinition;
+        splitProjectileCount = enemyDefinition.SplitProjectileCount;
+        splitDelay = enemyDefinition.SplitDelay;
+        splitAngleOffset = enemyDefinition.SplitAngleOffset;
+        removeParentProjectileOnSplit = enemyDefinition.RemoveParentProjectileOnSplit;
+
+        predictiveShotChance = enemyDefinition.PredictiveShotChance;
+        predictiveMinimumTargetSpeed = enemyDefinition.PredictiveMinimumTargetSpeed;
+        predictiveMaxLeadTime = enemyDefinition.PredictiveMaxLeadTime;
+        predictiveVelocityMultiplier = enemyDefinition.PredictiveVelocityMultiplier;
+
         if (aimLineLength <= 0f)
         {
             aimLineLength = Mathf.Max(attackRange, 1f);
         }
     }
 
+    public void SetProjectileOwner(
+        ProjectileOwner owner,
+        bool ignoreShopSecurity = false)
+    {
+        projectileOwner = owner;
+        ignoreShopSecurityTargets = ignoreShopSecurity;
+    }
+
     public bool TryAttack(Transform target)
     {
-        if (target == null)
-        {
-            return false;
-        }
-
-        if (!CanAttack)
+        if (target == null || !CanAttack)
         {
             return false;
         }
 
         Vector2 origin = GetFireOrigin();
-        Vector2 startDirection = GetDirectionToTarget(origin, target.position);
+        currentTargetBody = target.GetComponentInParent<Rigidbody2D>();
+        usePredictiveAimForCurrentAttack = ShouldUsePredictiveAim(currentTargetBody);
+        Vector2 startDirection = GetAimDirection(origin, target, usePredictiveAimForCurrentAttack);
 
         isAttacking = true;
         AttackStarted?.Invoke(this);
 
-        if (chargeTime > 0f)
+        if (rangedAttackPattern == EnemyRangedAttackPattern.MachineGunBurst)
+        {
+            attackRoutine = StartCoroutine(BurstFireRoutine(target, startDirection));
+            return true;
+        }
+
+        if (rangedAttackPattern == EnemyRangedAttackPattern.StaggeredShotgun)
+        {
+            attackRoutine = StartCoroutine(StaggeredShotgunRoutine(target, startDirection));
+            return true;
+        }
+
+        if (chargeTime > 0f || rangedAttackPattern == EnemyRangedAttackPattern.ChargingSplit)
         {
             isCharging = true;
-
             lockedChargeDirection = startDirection;
             currentChargeDirection = startDirection;
 
             UpdateAimLine(origin, currentChargeDirection);
-
             ChargeStarted?.Invoke(this);
             AudioManager.PlayAt(SoundEventIds.EnemyChargerAimLoop, transform.position, 0.75f);
-            chargeRoutine = StartCoroutine(ChargeAndFireRoutine(target));
+
+            attackRoutine = StartCoroutine(ChargeAndFireRoutine(target));
             return true;
         }
 
-        FireAttack(origin, startDirection);
+        if (rangedAttackPattern == EnemyRangedAttackPattern.ShakingShotgun)
+        {
+            FireShakingShotgun(origin, startDirection);
+        }
+        else
+        {
+            FireStandardAttack(origin, startDirection);
+        }
 
-        attackTimer = attackInterval;
-        isAttacking = false;
-
-        AttackFinished?.Invoke(this);
+        FinishAttackWithCooldown();
         return true;
     }
 
+    /// <summary>
+    /// Í∏∞Ï°¥ Ìò∏Ï∂úÎ∂Ä Ìò∏ÌôòÏö© Ïù¥Î¶ÑÏûÖÎãàÎã§. Ï∞®ÏßïÎøê ÏïÑÎãàÎùº Ï†êÏÇ¨ ÏΩîÎ£®Ìã¥ÎèÑ Ìï®Íªò Ï∑®ÏÜåÌï©ÎãàÎã§.
+    /// </summary>
     public void CancelCharge()
     {
-        bool hadChargeRoutine = chargeRoutine != null;
+        bool hadRoutine = attackRoutine != null;
         bool wasCharging = isCharging;
         bool wasAttacking = isAttacking;
 
-        if (chargeRoutine != null)
+        if (attackRoutine != null)
         {
-            StopCoroutine(chargeRoutine);
-            chargeRoutine = null;
+            StopCoroutine(attackRoutine);
+            attackRoutine = null;
         }
 
         isCharging = false;
         isAttacking = false;
+        usePredictiveAimForCurrentAttack = false;
+        currentTargetBody = null;
 
         HideAimLine();
 
-        if (wasCharging || hadChargeRoutine)
+        if (wasCharging || (hadRoutine && wasCharging))
         {
             ChargeCanceled?.Invoke(this);
         }
@@ -191,11 +290,111 @@ public class EnemyAttackController : MonoBehaviour
         }
     }
 
+    private IEnumerator BurstFireRoutine(Transform target, Vector2 initialDirection)
+    {
+        int shotCount = Mathf.Max(1, burstShotCount);
+        float shotInterval = Mathf.Max(0.01f, burstShotInterval);
+        Vector2 lockedDirection = initialDirection.sqrMagnitude > 0.001f
+            ? initialDirection.normalized
+            : Vector2.up;
+
+        for (int i = 0; i < shotCount; i++)
+        {
+            if (target == null)
+            {
+                break;
+            }
+
+            Vector2 origin = GetFireOrigin();
+            Vector2 aimDirection = lockedDirection;
+
+            if (burstTrackTargetEachShot)
+            {
+                aimDirection = GetAimDirection(
+                    origin,
+                    target,
+                    usePredictiveAimForCurrentAttack
+                );
+            }
+
+            float angle = UnityEngine.Random.Range(-burstHalfAngle, burstHalfAngle);
+            Vector2 shotDirection = RotateVector(aimDirection, angle);
+            Bullet bullet = SpawnProjectile(projectileDefinition, origin, shotDirection);
+
+            if (bullet != null)
+            {
+                AudioManager.PlayAt(SoundEventIds.EnemyBasicFire, transform.position, 0.75f);
+                ProjectileFired?.Invoke(this);
+            }
+
+            if (i < shotCount - 1)
+            {
+                yield return new WaitForSeconds(shotInterval);
+            }
+        }
+
+        FinishAttackWithCooldown();
+        attackRoutine = null;
+    }
+
+    private IEnumerator StaggeredShotgunRoutine(Transform target, Vector2 initialDirection)
+    {
+        int volleyCount = Mathf.Max(1, staggeredVolleyCount);
+        float volleyInterval = Mathf.Max(0.01f, staggeredVolleyInterval);
+        Vector2 lockedDirection = initialDirection.sqrMagnitude > 0.001f
+            ? initialDirection.normalized
+            : Vector2.up;
+
+        for (int volleyIndex = 0; volleyIndex < volleyCount; volleyIndex++)
+        {
+            if (target == null)
+            {
+                break;
+            }
+
+            Vector2 origin = GetFireOrigin();
+            Vector2 aimDirection = lockedDirection;
+
+            if (staggeredTrackTargetEachVolley)
+            {
+                aimDirection = GetAimDirection(
+                    origin,
+                    target,
+                    usePredictiveAimForCurrentAttack
+                );
+            }
+
+            float signedOffset = volleyCount <= 1
+                ? 0f
+                : (volleyIndex % 2 == 0 ? -staggeredVolleyAngleOffset : staggeredVolleyAngleOffset);
+
+            bool firedAny = FireProjectilePattern(
+                projectileDefinition,
+                origin,
+                aimDirection,
+                projectileCount,
+                spreadAngle,
+                signedOffset
+            );
+
+            NotifyAttackFired(firedAny, SoundEventIds.EnemyShotgunFire);
+
+            if (volleyIndex < volleyCount - 1)
+            {
+                yield return new WaitForSeconds(volleyInterval);
+            }
+        }
+
+        FinishAttackWithCooldown();
+        attackRoutine = null;
+    }
+
     private IEnumerator ChargeAndFireRoutine(Transform target)
     {
+        float duration = Mathf.Max(0.05f, chargeTime);
         float timer = 0f;
 
-        while (timer < chargeTime)
+        while (timer < duration)
         {
             if (target == null)
             {
@@ -205,14 +404,9 @@ public class EnemyAttackController : MonoBehaviour
 
             Vector2 origin = GetFireOrigin();
 
-            if (lockAimDirectionOnChargeStart)
-            {
-                currentChargeDirection = lockedChargeDirection;
-            }
-            else
-            {
-                currentChargeDirection = GetDirectionToTarget(origin, target.position);
-            }
+            currentChargeDirection = lockAimDirectionOnChargeStart
+                ? lockedChargeDirection
+                : GetAimDirection(origin, target, usePredictiveAimForCurrentAttack);
 
             UpdateAimLine(origin, currentChargeDirection);
 
@@ -221,17 +415,20 @@ public class EnemyAttackController : MonoBehaviour
         }
 
         HideAimLine();
-
         isCharging = false;
         ChargeReleased?.Invoke(this);
 
-        FireAttack(GetFireOrigin(), currentChargeDirection);
+        if (rangedAttackPattern == EnemyRangedAttackPattern.ChargingSplit)
+        {
+            FireChargingSplit(GetFireOrigin(), currentChargeDirection);
+        }
+        else
+        {
+            FireStandardAttack(GetFireOrigin(), currentChargeDirection);
+        }
 
-        attackTimer = attackInterval;
-        isAttacking = false;
-        chargeRoutine = null;
-
-        AttackFinished?.Invoke(this);
+        FinishAttackWithCooldown();
+        attackRoutine = null;
     }
 
     private void FinishChargeCanceledFromRoutine()
@@ -241,7 +438,9 @@ public class EnemyAttackController : MonoBehaviour
 
         isCharging = false;
         isAttacking = false;
-        chargeRoutine = null;
+        attackRoutine = null;
+        usePredictiveAimForCurrentAttack = false;
+        currentTargetBody = null;
 
         HideAimLine();
 
@@ -256,11 +455,19 @@ public class EnemyAttackController : MonoBehaviour
         }
     }
 
-    private void FireAttack(Vector2 origin, Vector2 direction)
+    private void FinishAttackWithCooldown()
     {
-        bool firedAnyProjectile = false;
+        attackTimer = Mathf.Max(0.01f, attackInterval);
+        isAttacking = false;
+        isCharging = false;
+        usePredictiveAimForCurrentAttack = false;
+        currentTargetBody = null;
+        AttackFinished?.Invoke(this);
+    }
 
-        firedAnyProjectile |= FireProjectilePattern(
+    private void FireStandardAttack(Vector2 origin, Vector2 direction)
+    {
+        bool firedAnyProjectile = FireProjectilePattern(
             projectileDefinition,
             origin,
             direction,
@@ -279,11 +486,114 @@ public class EnemyAttackController : MonoBehaviour
             );
         }
 
-        if (firedAnyProjectile)
+        NotifyAttackFired(firedAnyProjectile, ResolveFireSoundEventId());
+    }
+
+    private void FireShakingShotgun(Vector2 origin, Vector2 direction)
+    {
+        if (projectileDefinition == null || projectileDefinition.ProjectilePrefab == null)
         {
-            AudioManager.PlayAt(ResolveFireSoundEventId(), transform.position);
-            ProjectileFired?.Invoke(this);
+            return;
         }
+
+        int count = Mathf.Max(1, projectileCount);
+        float totalSpread = Mathf.Max(0f, spreadAngle);
+        float step = count <= 1 ? 0f : totalSpread / (count - 1);
+        float startAngle = -totalSpread * 0.5f;
+        bool firedAny = false;
+
+        for (int i = 0; i < count; i++)
+        {
+            float angle = count <= 1 ? 0f : startAngle + step * i;
+            Vector2 shotDirection = RotateVector(direction, angle);
+            Bullet bullet = SpawnProjectile(projectileDefinition, origin, shotDirection);
+
+            if (bullet == null)
+            {
+                continue;
+            }
+
+            float phase = count <= 1
+                ? UnityEngine.Random.Range(0f, Mathf.PI * 2f)
+                : (i / (float)count) * Mathf.PI * 2f;
+
+            bullet.ConfigureSineWave(
+                Mathf.Max(0f, shakeLateralSpeed),
+                Mathf.Max(0f, shakeFrequency),
+                phase
+            );
+
+            firedAny = true;
+        }
+
+        NotifyAttackFired(firedAny, SoundEventIds.EnemyShotgunFire);
+    }
+
+    private void FireChargingSplit(Vector2 origin, Vector2 direction)
+    {
+        Bullet bullet = SpawnProjectile(projectileDefinition, origin, direction);
+
+        if (bullet == null)
+        {
+            return;
+        }
+
+        ProjectileDefinition splitDefinition = splitProjectileDefinition != null
+            ? splitProjectileDefinition
+            : secondaryProjectileDefinition;
+
+        if (splitDefinition == null || splitDefinition.ProjectilePrefab == null)
+        {
+            Debug.LogWarning(
+                $"[{name}] Ï∞®Ïßï ÏóòÎ¶¨Ìä∏ Î∂ÑÌï¥ÌÉÑ Definition ÎòêÎäî Projectile PrefabÏù¥ ÎπÑÏñ¥ ÏûàÏäµÎãàÎã§.",
+                this
+            );
+        }
+        else if (!bullet.ConfigureRadialSplit(
+                     ResolveSafeSplitDelay(projectileDefinition),
+                     splitDefinition,
+                     Mathf.Max(1, splitProjectileCount),
+                     splitAngleOffset,
+                     removeParentProjectileOnSplit))
+        {
+            Debug.LogWarning($"[{name}] Ï∞®ÏßïÌÉÑ Î∂ÑÌï¥ ÏÑ§Ï†ïÏóê Ïã§Ìå®ÌñàÏäµÎãàÎã§.", this);
+        }
+
+        NotifyAttackFired(true, SoundEventIds.EnemyChargerFire);
+    }
+
+    private float ResolveSafeSplitDelay(ProjectileDefinition carrierDefinition)
+    {
+        float requestedDelay = Mathf.Max(0.05f, splitDelay);
+
+        if (carrierDefinition == null)
+        {
+            return requestedDelay;
+        }
+
+        float availableTime = Mathf.Max(0.05f, carrierDefinition.LifeTime);
+
+        if (carrierDefinition.Speed > 0.01f && carrierDefinition.Range > 0f)
+        {
+            availableTime = Mathf.Min(
+                availableTime,
+                carrierDefinition.Range / carrierDefinition.Speed
+            );
+        }
+
+        float latestSafeTime = Mathf.Max(0.05f, availableTime - 0.08f);
+        return Mathf.Min(requestedDelay, latestSafeTime);
+    }
+
+    private void NotifyAttackFired(bool firedAnyProjectile, string soundEventId)
+    {
+        if (!firedAnyProjectile)
+        {
+            return;
+        }
+
+        AudioManager.PlayAt(soundEventId, transform.position);
+        ProjectileFired?.Invoke(this);
     }
 
     private string ResolveFireSoundEventId()
@@ -311,7 +621,8 @@ public class EnemyAttackController : MonoBehaviour
         Vector2 origin,
         Vector2 baseDirection,
         int count,
-        float totalSpread)
+        float totalSpread,
+        float centerAngleOffset = 0f)
     {
         if (definition == null || definition.ProjectilePrefab == null)
         {
@@ -324,58 +635,54 @@ public class EnemyAttackController : MonoBehaviour
         }
 
         baseDirection.Normalize();
-
         count = Mathf.Max(1, count);
         totalSpread = Mathf.Max(0f, totalSpread);
 
         if (count == 1)
         {
-            SpawnProjectile(definition, origin, baseDirection);
-            return true;
+            Vector2 singleDirection = RotateVector(baseDirection, centerAngleOffset);
+            return SpawnProjectile(definition, origin, singleDirection) != null;
         }
 
         float step = totalSpread / (count - 1);
-        float startAngle = -totalSpread * 0.5f;
+        float startAngle = centerAngleOffset - totalSpread * 0.5f;
+        bool spawnedAny = false;
 
         for (int i = 0; i < count; i++)
         {
             float angle = startAngle + step * i;
             Vector2 direction = RotateVector(baseDirection, angle);
-            SpawnProjectile(definition, origin, direction);
+            spawnedAny |= SpawnProjectile(definition, origin, direction) != null;
         }
 
-        return true;
+        return spawnedAny;
     }
 
-    private void SpawnProjectile(ProjectileDefinition definition, Vector2 origin, Vector2 direction)
+    private Bullet SpawnProjectile(
+        ProjectileDefinition definition,
+        Vector2 origin,
+        Vector2 direction)
     {
         if (definition == null || definition.ProjectilePrefab == null)
         {
-            return;
+            return null;
         }
 
         GameObject prefab = definition.ProjectilePrefab;
-        GameObject projectileObject;
-
-        if (PoolManager.Instance != null)
-        {
-            projectileObject = PoolManager.Instance.Get(prefab, origin, Quaternion.identity);
-        }
-        else
-        {
-            projectileObject = Instantiate(prefab, origin, Quaternion.identity);
-        }
+        GameObject projectileObject = PoolManager.Instance != null
+            ? PoolManager.Instance.Get(prefab, origin, Quaternion.identity)
+            : Instantiate(prefab, origin, Quaternion.identity);
 
         if (projectileObject == null)
         {
-            return;
+            return null;
         }
 
         Bullet bullet = projectileObject.GetComponent<Bullet>();
 
         if (bullet == null)
         {
-            Debug.LogWarning("¿˚ ≈∫»Ø «¡∏Æ∆’ø° Bullet ƒƒ∆˜≥Õ∆Æ∞° æ¯Ω¿¥œ¥Ÿ.", projectileObject);
+            Debug.LogWarning("Ï†Å ÌÉÑÌôò ÌîÑÎ¶¨ÌåπÏóê Bullet Ïª¥Ìè¨ÎÑåÌä∏Í∞Ä ÏóÜÏäµÎãàÎã§.", projectileObject);
 
             if (PoolManager.Instance != null)
             {
@@ -386,14 +693,24 @@ public class EnemyAttackController : MonoBehaviour
                 Destroy(projectileObject);
             }
 
-            return;
+            return null;
         }
 
         bullet.Initialize(
             direction,
-            ProjectileOwner.Enemy,
-            definition
+            projectileOwner,
+            definition,
+            -1f,
+            -1f,
+            -1f,
+            -1,
+            0f,
+            0f,
+            1f,
+            ignoreShopSecurityTargets
         );
+
+        return bullet;
     }
 
     private Vector2 GetFireOrigin()
@@ -401,6 +718,131 @@ public class EnemyAttackController : MonoBehaviour
         return firePoint != null
             ? (Vector2)firePoint.position
             : (Vector2)transform.position;
+    }
+
+    private bool ShouldUsePredictiveAim(Rigidbody2D targetBody)
+    {
+        if (targetBody == null || predictiveShotChance <= 0f)
+        {
+            return false;
+        }
+
+        float minimumSpeed = Mathf.Max(0f, predictiveMinimumTargetSpeed);
+        if (targetBody.linearVelocity.sqrMagnitude < minimumSpeed * minimumSpeed)
+        {
+            return false;
+        }
+
+        ProjectileDefinition aimProjectile = projectileDefinition != null
+            ? projectileDefinition
+            : secondaryProjectileDefinition;
+
+        if (aimProjectile == null || aimProjectile.Speed <= 0.01f)
+        {
+            return false;
+        }
+
+        return UnityEngine.Random.value < Mathf.Clamp01(predictiveShotChance);
+    }
+
+    private Vector2 GetAimDirection(
+        Vector2 origin,
+        Transform target,
+        bool usePrediction)
+    {
+        if (target == null)
+        {
+            return firePoint != null ? (Vector2)firePoint.up : Vector2.up;
+        }
+
+        if (!usePrediction)
+        {
+            return GetDirectionToTarget(origin, target.position);
+        }
+
+        Rigidbody2D targetBody = currentTargetBody != null
+            ? currentTargetBody
+            : target.GetComponentInParent<Rigidbody2D>();
+
+        if (targetBody == null)
+        {
+            return GetDirectionToTarget(origin, target.position);
+        }
+
+        ProjectileDefinition aimProjectile = projectileDefinition != null
+            ? projectileDefinition
+            : secondaryProjectileDefinition;
+
+        float projectileSpeed = aimProjectile != null ? aimProjectile.Speed : 0f;
+        if (projectileSpeed <= 0.01f)
+        {
+            return GetDirectionToTarget(origin, target.position);
+        }
+
+        Vector2 targetPosition = target.position;
+        Vector2 targetVelocity = targetBody.linearVelocity * Mathf.Max(0f, predictiveVelocityMultiplier);
+        Vector2 relativePosition = targetPosition - origin;
+
+        float leadTime = SolveInterceptTime(relativePosition, targetVelocity, projectileSpeed);
+
+        if (leadTime <= 0f)
+        {
+            leadTime = relativePosition.magnitude / projectileSpeed;
+        }
+
+        leadTime = Mathf.Clamp(leadTime, 0f, Mathf.Max(0f, predictiveMaxLeadTime));
+        Vector2 predictedPosition = targetPosition + targetVelocity * leadTime;
+        return GetDirectionToTarget(origin, predictedPosition);
+    }
+
+    private static float SolveInterceptTime(
+        Vector2 relativePosition,
+        Vector2 targetVelocity,
+        float projectileSpeed)
+    {
+        float speedSquared = projectileSpeed * projectileSpeed;
+        float a = Vector2.Dot(targetVelocity, targetVelocity) - speedSquared;
+        float b = 2f * Vector2.Dot(relativePosition, targetVelocity);
+        float c = Vector2.Dot(relativePosition, relativePosition);
+
+        const float epsilon = 0.0001f;
+
+        if (Mathf.Abs(a) < epsilon)
+        {
+            if (Mathf.Abs(b) < epsilon)
+            {
+                return 0f;
+            }
+
+            float linearTime = -c / b;
+            return linearTime > 0f ? linearTime : 0f;
+        }
+
+        float discriminant = (b * b) - (4f * a * c);
+        if (discriminant < 0f)
+        {
+            return 0f;
+        }
+
+        float sqrt = Mathf.Sqrt(discriminant);
+        float denominator = 2f * a;
+        float timeA = (-b - sqrt) / denominator;
+        float timeB = (-b + sqrt) / denominator;
+
+        bool validA = timeA > 0f;
+        bool validB = timeB > 0f;
+
+        if (validA && validB)
+        {
+            return Mathf.Min(timeA, timeB);
+        }
+
+        if (validA)
+        {
+            return timeA;
+        }
+
+        return validB ? timeB : 0f;
     }
 
     private Vector2 GetDirectionToTarget(Vector2 origin, Vector2 targetPosition)
@@ -427,7 +869,6 @@ public class EnemyAttackController : MonoBehaviour
         {
             GameObject lineObject = new GameObject("ChargeAimLine");
             lineObject.transform.SetParent(transform, false);
-
             aimLineRenderer = lineObject.AddComponent<LineRenderer>();
             aimLineRenderer.useWorldSpace = true;
             aimLineRenderer.positionCount = 2;
@@ -450,13 +891,13 @@ public class EnemyAttackController : MonoBehaviour
         aimLineRenderer.startColor = aimLineColor;
         aimLineRenderer.endColor = aimLineColor;
 
-        if (aimLineRenderer.material == null)
+        if (aimLineRenderer.sharedMaterial == null && Application.isPlaying)
         {
             Shader shader = Shader.Find("Sprites/Default");
 
             if (shader != null)
             {
-                aimLineRenderer.material = new Material(shader);
+                aimLineRenderer.sharedMaterial = new Material(shader);
             }
         }
 
@@ -517,7 +958,7 @@ public class EnemyAttackController : MonoBehaviour
         }
     }
 
-    private Vector2 RotateVector(Vector2 vector, float angle)
+    private static Vector2 RotateVector(Vector2 vector, float angle)
     {
         float radian = angle * Mathf.Deg2Rad;
         float cos = Mathf.Cos(radian);

@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &244329306056801591
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4876131843293970320}
+  m_Layer: 8
+  m_Name: Exhaust_R
+  m_TagString: Untagged
+  m_Icon: {fileID: 7866945982896999795, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4876131843293970320
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244329306056801591}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.235, y: -0.693, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5140489843873294161}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2026352323991138347
 GameObject:
   m_ObjectHideFlags: 0
@@ -58,7 +89,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3, y: 3, z: 1}
+  m_LocalScale: {x: 0.7, y: 0.7, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4198910423938890870}
@@ -180,6 +211,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 4700009398335361949}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4714336895633157632
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4439752329988615029}
+  m_Layer: 8
+  m_Name: Exhaust_L
+  m_TagString: Untagged
+  m_Icon: {fileID: 7866945982896999795, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4439752329988615029
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4714336895633157632}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.258, y: -0.678, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5140489843873294161}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7681748662450583813
 GameObject:
   m_ObjectHideFlags: 0
@@ -192,6 +254,9 @@ GameObject:
   - component: {fileID: 6197670062092496129}
   - component: {fileID: 4135200039866423308}
   - component: {fileID: 2975475624602813405}
+  - component: {fileID: 7188798512787658229}
+  - component: {fileID: 6571939736034089630}
+  - component: {fileID: 1858697566424058770}
   m_Layer: 8
   m_Name: NPC_RescueContact
   m_TagString: Untagged
@@ -212,6 +277,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 5140489843873294161}
   - {fileID: 4198910423938890870}
   - {fileID: 5247037067106033987}
   - {fileID: 5312813018005402759}
@@ -271,6 +337,11 @@ MonoBehaviour:
   state: 0
   requiresRescue: 1
   oneUseService: 0
+  useBaseRescueFlow: 0
+  baseRescueBlockedText: "\uBCF4\uC548\uC2DC\uC124\uC744 \uBA3C\uC800 \uBE44\uD65C\uC131\uD654\uD574\uB77C."
+  baseReleasedWarning: "NPC\uB97C \uAD6C\uC870\uD588\uB2E4. \uB300\uD654\uD558\uAC70\uB098
+    \uAE30\uC9C0 \uC81C\uC5B4\uAE30\uB97C \uC0AC\uC6A9\uD574 \uD3EC\uD0C8\uC744 \uC5F4
+    \uC218 \uC788\uB2E4."
   rescueText: "\uAD6C\uC870 \uC2E0\uD638 \uD655\uC778"
   busyText: "\uAD6C\uC870 \uC791\uC804 \uC9C4\uD589 \uC911"
   exhaustedText: "\uC11C\uBE44\uC2A4 \uC885\uB8CC"
@@ -320,6 +391,135 @@ MonoBehaviour:
   alertOnMachineGunScan: 0
   alertOnSniperScan: 0
   lastScannedTime: -999
+--- !u!50 &7188798512787658229
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7681748662450583813}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
+--- !u!114 &6571939736034089630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7681748662450583813}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00b9c002271f4349b08d6503169179a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  body: {fileID: 7188798512787658229}
+  objective: {fileID: 4135200039866423308}
+  anchorOverride: {fileID: 0}
+  wanderRadius: 1.8
+  destinationReachDistance: 0.2
+  destinationPauseRange: {x: 0.45, y: 1.1}
+  maxSpeed: 0.75
+  acceleration: 0.85
+  deceleration: 0.55
+  arrivalSlowRadius: 0.65
+  returnSpeedMultiplier: 1.25
+  stopNearPlayer: 1
+  playerStopRadius: 1.6
+  playerSearchInterval: 0.5
+  holdDuringRescueCombat: 1
+  holdWhileRewardPending: 1
+  rotateToMovement: 1
+  rotationRoot: {fileID: 0}
+  rotationOffset: -90
+  rotationSpeed: 360
+  minimumRotationSpeed: 0.03
+  useDesiredDirectionWhenNearlyStopped: 0
+  teleportIgnoreDistance: 1.5
+  configureRigidbodyOnAwake: 1
+  freezeRotation: 1
+  drawGizmos: 1
+--- !u!114 &1858697566424058770
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7681748662450583813}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5177a56557c441358644ff5de82db7a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mover: {fileID: 6571939736034089630}
+  body: {fileID: 7188798512787658229}
+  movementReference: {fileID: 4700009398335361949}
+  exhaustPoints:
+  - {fileID: 4439752329988615029}
+  - {fileID: 4876131843293970320}
+  moveExhaustPrefab: {fileID: 100002, guid: 51204a85372c92a4385d2605a8204d7d, type: 3}
+  moveSpawnInterval: 0.08
+  effectLifeTime: 0.25
+  minimumMoveSpeed: 0.04
+  useRigidbodyVelocity: 1
+  useMeasuredTransformMovement: 1
+  teleportIgnoreDistance: 1.5
+  spawnAllExhaustPoints: 1
+  useExhaustPointRotation: 1
+  rotateAgainstMoveDirection: 0
+  rotationOffset: -90
+  positionJitter: 0.02
+  drawExhaustPointGizmos: 1
+--- !u!1 &8117529887967279055
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5140489843873294161}
+  m_Layer: 8
+  m_Name: ExhaustPoints
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5140489843873294161
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8117529887967279055}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4439752329988615029}
+  - {fileID: 4876131843293970320}
+  m_Father: {fileID: 4700009398335361949}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8374863361134373724
 GameObject:
   m_ObjectHideFlags: 0
@@ -360,6 +560,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4198910423938890870}
+  - component: {fileID: 2744665725701199347}
   m_Layer: 8
   m_Name: VisualRoot
   m_TagString: Untagged
@@ -383,3 +584,32 @@ Transform:
   - {fileID: 6158246064815294143}
   m_Father: {fileID: 4700009398335361949}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2744665725701199347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8863032444579040615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5177a56557c441358644ff5de82db7a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mover: {fileID: 6571939736034089630}
+  body: {fileID: 7188798512787658229}
+  movementReference: {fileID: 0}
+  exhaustPoints: []
+  moveExhaustPrefab: {fileID: 0}
+  moveSpawnInterval: 0.08
+  effectLifeTime: 0.25
+  minimumMoveSpeed: 0.04
+  useRigidbodyVelocity: 1
+  useMeasuredTransformMovement: 1
+  teleportIgnoreDistance: 1.5
+  spawnAllExhaustPoints: 1
+  useExhaustPointRotation: 1
+  rotateAgainstMoveDirection: 0
+  rotationOffset: -90
+  positionJitter: 0.02
+  drawExhaustPointGizmos: 1

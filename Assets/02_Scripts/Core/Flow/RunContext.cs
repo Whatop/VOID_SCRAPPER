@@ -14,6 +14,8 @@ public class RunContext
 
     [SerializeField] private int currentLevel = 1;
     [SerializeField] private bool bossDefeated;
+    [SerializeField] private CampaignBossId currentBossId;
+    [SerializeField] private List<CampaignBossId> bossesDefeatedThisRun = new List<CampaignBossId>();
     [SerializeField] private bool shopHostileThisRun;
     [SerializeField] private List<string> selectedTraitIds = new List<string>();
 
@@ -34,16 +36,26 @@ public class RunContext
     [SerializeField] private int scrapCargoWeight = 1;
     [SerializeField] private int coreShardCargoWeight = 12;
 
+    [Header("Campaign Boss Passive Runtime")]
+    [SerializeField] private int matterReconstructorCargoProgress;
+    [SerializeField] private int matterReconstructorArmorStacks;
+
     public bool IsActive => isActive;
     public WeaponTreeType SelectedWeaponTree => selectedWeaponTree;
     public string SelectedShipId => string.IsNullOrWhiteSpace(selectedShipId) ? "basic_ship" : selectedShipId;
     public ExpeditionDepth ExpeditionDepth => expeditionDepth;
+    public int RegionIndex => CampaignProgressionCatalog.GetRegionIndex(expeditionDepth);
+    public bool IsFinalNetwork => CampaignProgressionCatalog.IsFinalNetwork(expeditionDepth);
     public SeaRegionType SeaRegionType => seaRegionType;
     public string SeaRegionDisplayName => SeaRegionCatalog.GetDisplayName(seaRegionType);
     public RunWallet Wallet => wallet;
 
     public int CurrentLevel => currentLevel;
     public bool BossDefeated => bossDefeated;
+    public CampaignBossId CurrentBossId => currentBossId == CampaignBossId.None
+        ? CampaignProgressionCatalog.GetBossId(expeditionDepth)
+        : currentBossId;
+    public IReadOnlyList<CampaignBossId> BossesDefeatedThisRun => bossesDefeatedThisRun;
     public bool ShopHostileThisRun => shopHostileThisRun;
     public IReadOnlyList<string> SelectedTraitIds => selectedTraitIds;
 
@@ -60,8 +72,15 @@ public class RunContext
     public float EmergencyReturnCapacityRatio => Mathf.Clamp01(emergencyReturnCapacityRatio);
     public int ScrapCargoWeight => Mathf.Max(1, scrapCargoWeight);
     public int CoreShardCargoWeight => Mathf.Max(1, coreShardCargoWeight);
-    public int CurrentCargoLoad => CalculateCargoLoad(wallet != null ? wallet.PendingScrapParts : 0, wallet != null ? wallet.PendingCoreShards : 0);
-    public float CargoRatio => MaxCargoCapacity <= 0 ? 0f : Mathf.Clamp01(CurrentCargoLoad / (float)MaxCargoCapacity);
+    public int CurrentCargoLoad => CalculateCargoLoad(
+        wallet != null ? wallet.PendingScrapParts : 0,
+        wallet != null ? wallet.PendingCoreShards : 0
+    );
+    public float CargoRatio => MaxCargoCapacity <= 0
+        ? 0f
+        : Mathf.Clamp01(CurrentCargoLoad / (float)MaxCargoCapacity);
+    public int MatterReconstructorCargoProgress => Mathf.Max(0, matterReconstructorCargoProgress);
+    public int MatterReconstructorArmorStacks => Mathf.Max(0, matterReconstructorArmorStacks);
 
     public RunContext()
     {
@@ -77,7 +96,11 @@ public class RunContext
         Begin(weaponTreeType, depth, shipId, SeaRegionCatalog.GetRandom());
     }
 
-    public RunContext(WeaponTreeType weaponTreeType, ExpeditionDepth depth, string shipId, SeaRegionType selectedSeaRegionType)
+    public RunContext(
+        WeaponTreeType weaponTreeType,
+        ExpeditionDepth depth,
+        string shipId,
+        SeaRegionType selectedSeaRegionType)
     {
         Begin(weaponTreeType, depth, shipId, selectedSeaRegionType);
     }
@@ -92,29 +115,48 @@ public class RunContext
         Begin(weaponTreeType, depth, shipId, SeaRegionCatalog.GetRandom());
     }
 
-    public void Begin(WeaponTreeType weaponTreeType, ExpeditionDepth depth, string shipId, SeaRegionType selectedSeaRegionType)
+    public void Begin(
+        WeaponTreeType weaponTreeType,
+        ExpeditionDepth depth,
+        string shipId,
+        SeaRegionType selectedSeaRegionType)
     {
         isActive = true;
         selectedWeaponTree = weaponTreeType;
         selectedShipId = string.IsNullOrWhiteSpace(shipId) ? "basic_ship" : shipId;
         expeditionDepth = depth;
+        currentBossId = CampaignProgressionCatalog.GetBossId(depth);
         seaRegionType = selectedSeaRegionType;
 
         currentLevel = 1;
         bossDefeated = false;
         shopHostileThisRun = false;
 
+        bossesDefeatedThisRun.Clear();
         selectedTraitIds.Clear();
         ResetExpeditionObjectiveProgress();
         specialContainerRareMissStreak = 0;
         ClearEquippedReinforcement();
         ResetCargoRule();
+        matterReconstructorCargoProgress = 0;
+        matterReconstructorArmorStacks = 0;
         wallet.Clear();
+    }
+
+    public void PrepareNextRegion(ExpeditionDepth depth, SeaRegionType selectedSeaRegionType)
+    {
+        expeditionDepth = depth;
+        currentBossId = CampaignProgressionCatalog.GetBossId(depth);
+        seaRegionType = selectedSeaRegionType;
+        bossDefeated = false;
+        ResetExpeditionObjectiveProgress();
     }
 
     public void SetDepth(ExpeditionDepth depth)
     {
         expeditionDepth = depth;
+        currentBossId = CampaignProgressionCatalog.GetBossId(depth);
+        bossDefeated = false;
     }
 
     public void SetSeaRegion(SeaRegionType selectedSeaRegionType)
@@ -129,7 +171,29 @@ public class RunContext
 
     public void MarkBossDefeated()
     {
+        MarkBossDefeated(CurrentBossId);
+    }
+
+    public void MarkBossDefeated(CampaignBossId bossId)
+    {
         bossDefeated = true;
+
+        if (bossId == CampaignBossId.None)
+        {
+            bossId = CampaignProgressionCatalog.GetBossId(expeditionDepth);
+        }
+
+        currentBossId = bossId;
+
+        if (bossId != CampaignBossId.None && !bossesDefeatedThisRun.Contains(bossId))
+        {
+            bossesDefeatedThisRun.Add(bossId);
+        }
+    }
+
+    public bool HasDefeatedBossThisRun(CampaignBossId bossId)
+    {
+        return bossId != CampaignBossId.None && bossesDefeatedThisRun.Contains(bossId);
     }
 
     public void SetShopHostile(bool hostile)
@@ -139,12 +203,7 @@ public class RunContext
 
     public void AddTrait(string traitId)
     {
-        if (string.IsNullOrWhiteSpace(traitId))
-        {
-            return;
-        }
-
-        if (selectedTraitIds.Contains(traitId))
+        if (string.IsNullOrWhiteSpace(traitId) || selectedTraitIds.Contains(traitId))
         {
             return;
         }
@@ -154,12 +213,7 @@ public class RunContext
 
     public bool RemoveTrait(string traitId)
     {
-        if (string.IsNullOrWhiteSpace(traitId))
-        {
-            return false;
-        }
-
-        return selectedTraitIds.Remove(traitId);
+        return !string.IsNullOrWhiteSpace(traitId) && selectedTraitIds.Remove(traitId);
     }
 
     public void ResetExpeditionObjectiveProgress()
@@ -262,7 +316,8 @@ public class RunContext
 
     public int CalculateCargoLoad(int scrapParts, int coreShards)
     {
-        return Mathf.Max(0, scrapParts) * ScrapCargoWeight + Mathf.Max(0, coreShards) * CoreShardCargoWeight;
+        return Mathf.Max(0, scrapParts) * ScrapCargoWeight +
+               Mathf.Max(0, coreShards) * CoreShardCargoWeight;
     }
 
     public int GetCargoWeight(CurrencyType currencyType)
@@ -305,6 +360,57 @@ public class RunContext
         return Mathf.Clamp(freeCapacity / weight, 0, requestedAmount);
     }
 
+    public int AddMatterReconstructorCargoProgress(
+        int cargoDelta,
+        int cargoThreshold,
+        int maximumArmorStacks)
+    {
+        cargoDelta = Mathf.Max(0, cargoDelta);
+        cargoThreshold = Mathf.Max(1, cargoThreshold);
+        maximumArmorStacks = Mathf.Max(0, maximumArmorStacks);
+
+        if (cargoDelta <= 0 || matterReconstructorArmorStacks >= maximumArmorStacks)
+        {
+            return 0;
+        }
+
+        matterReconstructorCargoProgress += cargoDelta;
+        int grantedStacks = 0;
+
+        while (matterReconstructorCargoProgress >= cargoThreshold &&
+               matterReconstructorArmorStacks < maximumArmorStacks)
+        {
+            matterReconstructorCargoProgress -= cargoThreshold;
+            matterReconstructorArmorStacks++;
+            grantedStacks++;
+        }
+
+        if (matterReconstructorArmorStacks >= maximumArmorStacks)
+        {
+            matterReconstructorCargoProgress = Mathf.Min(
+                matterReconstructorCargoProgress,
+                cargoThreshold - 1
+            );
+        }
+
+        return grantedStacks;
+    }
+
+    public void ClampMatterReconstructorState(int maximumArmorStacks)
+    {
+        maximumArmorStacks = Mathf.Max(0, maximumArmorStacks);
+        matterReconstructorArmorStacks = Mathf.Clamp(
+            matterReconstructorArmorStacks,
+            0,
+            maximumArmorStacks
+        );
+
+        if (maximumArmorStacks <= 0)
+        {
+            matterReconstructorCargoProgress = 0;
+        }
+    }
+
     public void End()
     {
         isActive = false;
@@ -319,7 +425,10 @@ public class RunResultData
     public string selectedShipId;
     public ExpeditionDepth finalDepth;
     public SeaRegionType finalSeaRegionType;
+    public CampaignBossId finalBossId;
+    public int bossesDefeatedThisRun;
     public bool bossDefeated;
+    public bool finalVictory;
 
     public int runExperience;
     public int unusedTuningChips;

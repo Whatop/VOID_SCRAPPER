@@ -379,8 +379,6 @@ public class EventTitleDirector : MonoBehaviour
 
     private string GetAreaName(ExpeditionDepth depth)
     {
-        return depth == ExpeditionDepth.DeepZone1
-            ? DefaultDeepAreaName
-            : DefaultNormalAreaName;
+        return CampaignProgressionCatalog.GetRegionDisplayName(depth);
     }
 }

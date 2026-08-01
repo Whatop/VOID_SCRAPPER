@@ -122,7 +122,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.00635235, y: 0.0015880764}
+  m_Offset: {x: -0.0014060736, y: 0.02952911}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -132,7 +132,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.80943024, y: 0.69826454}
+  m_Size: {x: 1.3234141, y: 0.8228253}
   m_EdgeRadius: 0
 --- !u!114 &4388858946567227081
 MonoBehaviour:
@@ -148,7 +148,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rewardDefinition: {fileID: 11400000, guid: a27fe598cad87ce4d95cbb9e21b44e91, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
-  healPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
+  legacyHealPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
   fallbackReinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}
   reinforcementPickupPrefab: {fileID: 5731060007047836178, guid: 68a782fdd93f485418b72f76aa265798, type: 3}
   reinforcementMinScatterRadius: 0.35
@@ -276,12 +276,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 4491774643789244757, guid: d5429eb211763cb44bdd3f6e5238823b, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 1990fc04cb42b94459f4e79d33922f67, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 0.8125, y: 0.6875}
+  m_Size: {x: 0.64, y: 0.32}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1

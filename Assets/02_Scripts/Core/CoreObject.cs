@@ -13,10 +13,15 @@ public class CoreObject : MonoBehaviour, IInteractable
     [SerializeField] private bool requirePlayerStayInRange = true;
     [SerializeField] private float interactionStayRadius = 3f;
 
-    [Header("Boss")]
+    [Header("Boss - Region Prefabs")]
+    [Tooltip("기존 보스 프리팹이자 1해역 구획 관리자입니다.")]
     [SerializeField] private GameObject bossPrefab;
+    [SerializeField] private GameObject region2BossPrefab;
+    [SerializeField] private GameObject region3BossPrefab;
+    [SerializeField] private GameObject finalBossPrefab;
     [SerializeField] private Transform bossSpawnPoint;
     [SerializeField] private Vector2 bossSpawnOffset = new Vector2(0f, 3f);
+    [Tooltip("기존 1해역 표시명 호환용입니다.")]
     [SerializeField] private string bossDisplayName = "구획 관리자";
     [SerializeField] private bool animateBossHealthBar = true;
 
@@ -229,9 +234,35 @@ public class CoreObject : MonoBehaviour, IInteractable
             radarTarget.SetVisible(false);
         }
 
-        if (bossPrefab == null)
+        GameObject resolvedBossPrefab = ResolveBossPrefab();
+
+        if (resolvedBossPrefab == null)
         {
-            Debug.LogWarning("bossPrefab이 없어 보스 대신 귀환 비콘을 바로 생성합니다.", this);
+            ExpeditionDepth currentDepth = ResolveCurrentDepth();
+
+            if (currentDepth == ExpeditionDepth.FinalNetwork)
+            {
+                activated = false;
+
+                if (radarTarget != null)
+                {
+                    radarTarget.SetVisible(true);
+                }
+
+                ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+                if (hud != null)
+                {
+                    hud.ShowWarning("최종보스 프리팹이 연결되지 않았습니다.");
+                }
+
+                Debug.LogError("Final Boss Prefab이 없어 중앙 물류망 보스전을 시작할 수 없습니다.", this);
+                yield break;
+            }
+
+            Debug.LogWarning(
+                $"{CampaignProgressionCatalog.GetRegionShortName(currentDepth)} 보스 프리팹이 없어 귀환 비콘만 생성합니다.",
+                this
+            );
             SpawnReturnBeaconDirectly();
             HandleCoreAfterActivation();
             yield break;
@@ -245,7 +276,7 @@ public class CoreObject : MonoBehaviour, IInteractable
             {
                 yield return bossIntroSequence.PlayIntroRoutine(
                     interactor,
-                    bossPrefab,
+                    resolvedBossPrefab,
                     ResolveBossSpawnPosition(),
                     transform.position,
                     HandleBossCreatedByIntro,
@@ -300,7 +331,11 @@ public class CoreObject : MonoBehaviour, IInteractable
     {
         if (GameStateManager.Instance != null)
         {
-            GameStateManager.Instance.ChangeState(GameState.BossBattle);
+            GameStateManager.Instance.ChangeState(
+                ResolveCurrentDepth() == ExpeditionDepth.FinalNetwork
+                    ? GameState.FinalBossBattle
+                    : GameState.BossBattle
+            );
         }
 
         if (alertNearbyEnemiesOnBattleStart)
@@ -325,11 +360,11 @@ public class CoreObject : MonoBehaviour, IInteractable
 
         if (animateBossHealthBar)
         {
-            BossHealthBarUI.Instance.ShowBossAnimated(bossHealth, bossDisplayName);
+            BossHealthBarUI.Instance.ShowBossAnimated(bossHealth, ResolveBossDisplayName());
         }
         else
         {
-            BossHealthBarUI.Instance.ShowBoss(bossHealth, bossDisplayName);
+            BossHealthBarUI.Instance.ShowBoss(bossHealth, ResolveBossDisplayName());
         }
     }
 
@@ -379,7 +414,15 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     private void SpawnBossImmediate(GameObject interactor)
     {
-        spawnedBoss = Instantiate(bossPrefab, ResolveBossSpawnPosition(), Quaternion.identity);
+        GameObject resolvedBossPrefab = ResolveBossPrefab();
+
+        if (resolvedBossPrefab == null)
+        {
+            Debug.LogWarning("현재 해역 보스 프리팹이 연결되지 않았습니다.", this);
+            return;
+        }
+
+        spawnedBoss = Instantiate(resolvedBossPrefab, ResolveBossSpawnPosition(), Quaternion.identity);
         ConfigureSpawnedBoss(spawnedBoss, interactor);
 
         if (spawnedBoss != null)
@@ -410,7 +453,19 @@ public class CoreObject : MonoBehaviour, IInteractable
             bossController = bossObject.AddComponent<BossDummyController>();
         }
 
+        bossController.ConfigureCampaignDefinition(ResolveBossCampaignDefinition());
         bossController.ConfigureCoreShardRewardPoint(ResolveCoreShardRewardPosition());
+
+        if (ResolveCurrentDepth() == ExpeditionDepth.FinalNetwork)
+        {
+            FinalBossSettlementSupportPhase supportPhase =
+                bossObject.GetComponent<FinalBossSettlementSupportPhase>();
+
+            if (supportPhase == null)
+            {
+                bossObject.AddComponent<FinalBossSettlementSupportPhase>();
+            }
+        }
 
         if (wormholePortalPrefab != null)
         {
@@ -439,6 +494,51 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         Instantiate(returnBeaconPrefab, ResolveReturnBeaconSpawnPosition(), Quaternion.identity);
+    }
+
+    private ExpeditionDepth ResolveCurrentDepth()
+    {
+        return RunManager.Instance != null && RunManager.Instance.HasActiveRun
+            ? RunManager.Instance.CurrentRun.ExpeditionDepth
+            : ExpeditionDepth.Normal;
+    }
+
+    private GameObject ResolveBossPrefab()
+    {
+        return ResolveCurrentDepth() switch
+        {
+            ExpeditionDepth.Normal => bossPrefab,
+            ExpeditionDepth.DeepZone1 => region2BossPrefab != null ? region2BossPrefab : bossPrefab,
+            ExpeditionDepth.DeepZone2 => region3BossPrefab != null ? region3BossPrefab : bossPrefab,
+            ExpeditionDepth.FinalNetwork => finalBossPrefab,
+            _ => bossPrefab
+        };
+    }
+
+    private BossCampaignDefinition ResolveBossCampaignDefinition()
+    {
+        return CampaignProgressionCatalog.GetBossDefinition(ResolveCurrentDepth());
+    }
+
+    private string ResolveBossDisplayName()
+    {
+        BossCampaignDefinition definition = ResolveBossCampaignDefinition();
+
+        if (definition != null)
+        {
+            return definition.DisplayName;
+        }
+
+        ExpeditionDepth depth = ResolveCurrentDepth();
+
+        if (depth == ExpeditionDepth.Normal && !string.IsNullOrWhiteSpace(bossDisplayName))
+        {
+            return bossDisplayName;
+        }
+
+        return CampaignProgressionCatalog.GetBossDisplayName(
+            CampaignProgressionCatalog.GetBossId(depth)
+        );
     }
 
     private Vector3 ResolveBossSpawnPosition()

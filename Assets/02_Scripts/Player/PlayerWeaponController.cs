@@ -45,12 +45,23 @@ public class PlayerWeaponController : MonoBehaviour
     private InputAction fireAction;
     private PlayerWeaponBase currentWeapon;
     private WeaponTreeType currentWeaponTree;
+    private bool externalInputLocked;
 
     public Transform FirePoint => firePoint;
     public PlayerWeaponBase CurrentWeapon => currentWeapon;
     public WeaponTreeType CurrentWeaponTree => currentWeaponTree;
 
     public event Action<WeaponTreeType, PlayerWeaponBase> WeaponEquipped;
+
+    public void SetExternalInputLocked(bool locked)
+    {
+        externalInputLocked = locked;
+
+        if (locked && currentWeapon != null)
+        {
+            currentWeapon.ForceCancel();
+        }
+    }
 
     private void Awake()
     {
@@ -204,6 +215,11 @@ public class PlayerWeaponController : MonoBehaviour
 
     private bool CanUseWeapon()
     {
+        if (externalInputLocked)
+        {
+            return false;
+        }
+
         if (GameplayPauseManager.IsPaused)
         {
             return false;

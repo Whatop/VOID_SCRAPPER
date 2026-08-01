@@ -364,6 +364,10 @@ public class RunResultPanelUI : MonoBehaviour
             case RunEndReason.DebugAbort:
                 builder.AppendLine("• 디버그 중단 결과는 영구 성장에 반영하지 않았습니다.");
                 break;
+
+            case RunEndReason.FinalVictory:
+                builder.AppendLine("• 중앙 배차자를 무력화하고 모든 적재 자원을 확정했습니다.");
+                break;
         }
 
         return builder.ToString();
@@ -377,6 +381,7 @@ public class RunResultPanelUI : MonoBehaviour
             RunEndReason.EmergencyReturn => "긴급 복귀",
             RunEndReason.Death => "기체 파괴",
             RunEndReason.DebugAbort => "디버그 중단",
+            RunEndReason.FinalVictory => "중앙 물류망 해방",
             _ => "탐사 종료"
         };
     }
@@ -394,12 +399,7 @@ public class RunResultPanelUI : MonoBehaviour
 
     private string GetDepthText(ExpeditionDepth depth)
     {
-        return depth switch
-        {
-            ExpeditionDepth.Normal => "일반 해역",
-            ExpeditionDepth.DeepZone1 => "심부 해역 1단계",
-            _ => depth.ToString()
-        };
+        return CampaignProgressionCatalog.GetRegionDisplayName(depth);
     }
 
     private void SetCounter(ResourceCounterUI counter, int amount)

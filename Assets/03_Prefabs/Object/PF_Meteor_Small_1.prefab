@@ -76,12 +76,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 0f3a720ed8c07f14ea6b92d6fefc8c0c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 6920a6485377d5946a6f2d163625caa0, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 2.375, y: 1.96875}
+  m_Size: {x: 0.32, y: 0.32}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -118,7 +118,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 11.88, y: 3.09, z: 0}
-  m_LocalScale: {x: 0.3, y: 0.3, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1400643041236353376}
@@ -170,19 +170,16 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: 1.1875, y: 0.106574535}
-      - {x: 1.1072502, y: 0.52012515}
-      - {x: 0.8305006, y: 0.7844753}
-      - {x: 0.48760033, y: 0.94157505}
-      - {x: -0.1511507, y: 0.9576254}
-      - {x: -1.0455999, y: 0.21662521}
-      - {x: -1.1928501, y: -0.09927416}
-      - {x: -1.1232996, y: -0.70762515}
-      - {x: -0.7617998, y: -0.984375}
-      - {x: 0.058849335, y: -0.8720257}
-      - {x: 0.17594433, y: -0.3834107}
-      - {x: 0.5, y: -0.234375}
-      - {x: 0.89920044, y: -0.19352579}
+    - - {x: 0.12273407, y: 0.14252567}
+      - {x: 0.045269012, y: 0.16103315}
+      - {x: -0.09428787, y: 0.07593131}
+      - {x: -0.16272163, y: -0.017248154}
+      - {x: -0.13992119, y: -0.110551834}
+      - {x: -0.09107119, y: -0.14978978}
+      - {x: 0.0017924905, y: -0.14851296}
+      - {x: 0.07515049, y: -0.113610506}
+      - {x: 0.08243239, y: -0.09753394}
+      - {x: 0.15534878, y: 0.08737129}
   m_UseDelaunayMesh: 0
 --- !u!114 &855974415847308221
 MonoBehaviour:
@@ -196,7 +193,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a33fb127376052d43ad31f317b14a9a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHp: 3
+  maxHp: 1
   takeDamageFromPlayerProjectiles: 1
   takeDamageFromEnemyProjectiles: 0
   blockProjectileWhenDamageIgnored: 1

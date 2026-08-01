@@ -2060,10 +2060,13 @@ public class BossPatternController : MonoBehaviour
 
         if (applyDeepZoneScaling &&
             RunManager.Instance != null &&
-            RunManager.Instance.HasActiveRun &&
-            RunManager.Instance.CurrentRun.ExpeditionDepth == ExpeditionDepth.DeepZone1)
+            RunManager.Instance.HasActiveRun)
         {
-            value *= Mathf.Max(0.01f, deepZoneHealthMultiplier);
+            ExpeditionDepth depth = RunManager.Instance.CurrentRun.ExpeditionDepth;
+            float multiplier = depth == ExpeditionDepth.DeepZone1
+                ? Mathf.Max(0.01f, deepZoneHealthMultiplier)
+                : CampaignProgressionCatalog.GetEnemyHpMultiplier(depth);
+            value *= multiplier;
         }
 
         return value;
@@ -2073,10 +2076,12 @@ public class BossPatternController : MonoBehaviour
     {
         if (applyDeepZoneScaling &&
             RunManager.Instance != null &&
-            RunManager.Instance.HasActiveRun &&
-            RunManager.Instance.CurrentRun.ExpeditionDepth == ExpeditionDepth.DeepZone1)
+            RunManager.Instance.HasActiveRun)
         {
-            return Mathf.Max(0.01f, deepZoneDamageMultiplier);
+            ExpeditionDepth depth = RunManager.Instance.CurrentRun.ExpeditionDepth;
+            return depth == ExpeditionDepth.DeepZone1
+                ? Mathf.Max(0.01f, deepZoneDamageMultiplier)
+                : CampaignProgressionCatalog.GetEnemyDamageMultiplier(depth);
         }
 
         return 1f;

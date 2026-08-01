@@ -182,11 +182,9 @@ public class ShopStockController : MonoBehaviour
             return 1f;
         }
 
-        return RunManager.Instance.CurrentRun.ExpeditionDepth switch
-        {
-            ExpeditionDepth.DeepZone1 => 1.25f,
-            _ => 1f
-        };
+        return CampaignProgressionCatalog.GetShopPriceMultiplier(
+            RunManager.Instance.CurrentRun.ExpeditionDepth
+        );
     }
 
     public bool CanBuyReinforcement(ReinforcementDefinition reinforcement)

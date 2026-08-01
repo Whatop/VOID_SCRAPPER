@@ -54,6 +54,21 @@ public class ComponentShieldPassive : MonoBehaviour
         }
     }
 
+    public void ConfigureRuntime(float rechargeSeconds, float clearRadius, bool rechargeImmediately)
+    {
+        rechargeInterval = Mathf.Max(0.1f, rechargeSeconds);
+        projectileClearRadius = Mathf.Max(0f, clearRadius);
+
+        if (rechargeImmediately)
+        {
+            RechargeNow();
+        }
+        else
+        {
+            rechargeTimer = Mathf.Clamp(rechargeTimer, 0f, rechargeInterval);
+        }
+    }
+
     public void RechargeNow()
     {
         charged = true;
@@ -95,16 +110,20 @@ public class ComponentShieldPassive : MonoBehaviour
 
     private void ClearProjectiles(Vector2 center)
     {
-        if (projectileClearLayer.value == 0 || projectileClearRadius <= 0f)
+        if (projectileClearRadius <= 0f)
         {
             return;
         }
+
+        int layerMask = projectileClearLayer.value == 0
+            ? Physics2D.AllLayers
+            : projectileClearLayer.value;
 
         int count = Physics2D.OverlapCircleNonAlloc(
             center,
             projectileClearRadius,
             projectileBuffer,
-            projectileClearLayer
+            layerMask
         );
 
         for (int i = 0; i < count; i++)

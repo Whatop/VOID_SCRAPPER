@@ -77,16 +77,24 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private float sameEventMinimumInterval = 0.02f;
 
     [Header("Debug")]
+    [SerializeField] private bool logPlayedEvents = true;
     [SerializeField] private bool logMissingEvents;
     [SerializeField] private bool logDistanceCulling;
 
     private readonly List<PooledVoice> voices = new List<PooledVoice>();
-    private readonly Dictionary<string, AudioSource> loopSources = new Dictionary<string, AudioSource>();
-    private readonly Dictionary<string, AudioLowPassFilter> loopFilters = new Dictionary<string, AudioLowPassFilter>();
-    private readonly Dictionary<string, string> loopEventIds = new Dictionary<string, string>();
-    private readonly Dictionary<string, float> loopBaseVolumes = new Dictionary<string, float>();
-    private readonly Dictionary<string, float> loopBasePitches = new Dictionary<string, float>();
-    private readonly Dictionary<string, float> lastOneShotTimes = new Dictionary<string, float>();
+    private readonly Dictionary<string, AudioSource> loopSources =
+        new Dictionary<string, AudioSource>();
+    private readonly Dictionary<string, AudioLowPassFilter> loopFilters =
+        new Dictionary<string, AudioLowPassFilter>();
+    private readonly Dictionary<string, string> loopEventIds =
+        new Dictionary<string, string>();
+    private readonly Dictionary<string, float> loopBaseVolumes =
+        new Dictionary<string, float>();
+    private readonly Dictionary<string, float> loopBasePitches =
+        new Dictionary<string, float>();
+    private readonly Dictionary<string, float> lastOneShotTimes =
+        new Dictionary<string, float>();
+
     private readonly RaycastHit2D[] occlusionHits = new RaycastHit2D[12];
     private readonly HashSet<int> occlusionColliderIds = new HashSet<int>();
 
@@ -103,6 +111,7 @@ public class AudioManager : MonoBehaviour
         }
 
         AudioManager existing = FindFirstObjectByType<AudioManager>();
+
         if (existing != null)
         {
             Instance = existing;
@@ -111,6 +120,7 @@ public class AudioManager : MonoBehaviour
 
         GameObject root = new GameObject("AudioManager");
         Instance = root.AddComponent<AudioManager>();
+
         return Instance;
     }
 
@@ -119,14 +129,28 @@ public class AudioManager : MonoBehaviour
         return EnsureExists().PlayEvent(eventId, null, volumeScale);
     }
 
-    public static bool PlayAt(string eventId, Vector3 position, float volumeScale = 1f)
+    public static bool PlayAt(
+        string eventId,
+        Vector3 position,
+        float volumeScale = 1f)
     {
-        return EnsureExists().PlayEvent(eventId, position, volumeScale);
+        return EnsureExists().PlayEvent(
+            eventId,
+            position,
+            volumeScale
+        );
     }
 
-    public static bool PlayLoop(string eventId, string channelName, float volumeScale = 1f)
+    public static bool PlayLoop(
+        string eventId,
+        string channelName,
+        float volumeScale = 1f)
     {
-        return EnsureExists().PlayLoopEvent(eventId, channelName, volumeScale);
+        return EnsureExists().PlayLoopEvent(
+            eventId,
+            channelName,
+            volumeScale
+        );
     }
 
     public static void StopLoop(string channelName)
@@ -160,7 +184,9 @@ public class AudioManager : MonoBehaviour
         }
 
         Instance = this;
+
         DontDestroyOnLoad(gameObject);
+
         LoadDatabaseIfNeeded();
         BuildSourcePool();
         ResolveListener(true);
@@ -192,7 +218,8 @@ public class AudioManager : MonoBehaviour
 
         if (!string.IsNullOrWhiteSpace(resourcesDatabasePath))
         {
-            database = Resources.Load<AudioEventDatabase>(resourcesDatabasePath);
+            database =
+                Resources.Load<AudioEventDatabase>(resourcesDatabasePath);
         }
 
         if (database != null)
@@ -212,7 +239,8 @@ public class AudioManager : MonoBehaviour
         {
             string path = fallbackPaths[i];
 
-            if (string.IsNullOrWhiteSpace(path) || path == resourcesDatabasePath)
+            if (string.IsNullOrWhiteSpace(path) ||
+                path == resourcesDatabasePath)
             {
                 continue;
             }
@@ -238,17 +266,23 @@ public class AudioManager : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            GameObject sourceObject = new GameObject($"AudioSource_{i:00}");
+            GameObject sourceObject =
+                new GameObject($"AudioSource_{i:00}");
+
             sourceObject.transform.SetParent(transform, false);
 
-            AudioSource source = sourceObject.AddComponent<AudioSource>();
+            AudioSource source =
+                sourceObject.AddComponent<AudioSource>();
+
             source.playOnAwake = false;
             source.loop = false;
             source.spatialBlend = 0f;
             source.priority = 128;
             source.dopplerLevel = 0f;
 
-            AudioLowPassFilter lowPass = sourceObject.AddComponent<AudioLowPassFilter>();
+            AudioLowPassFilter lowPass =
+                sourceObject.AddComponent<AudioLowPassFilter>();
+
             lowPass.cutoffFrequency = 22000f;
             lowPass.enabled = false;
 
@@ -260,47 +294,80 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    private bool PlayEvent(string eventId, Vector3? position, float volumeScale)
+    private bool PlayEvent(
+        string eventId,
+        Vector3? position,
+        float volumeScale)
     {
         if (string.IsNullOrWhiteSpace(eventId))
         {
             return false;
         }
 
+        eventId = SoundEventIds.ToNumbered(eventId);
+
         LoadDatabaseIfNeeded();
         BuildSourcePool();
 
-        if (database == null || !database.TryGet(eventId, out AudioEventDefinition definition) || definition == null)
+        if (database == null ||
+            !database.TryGet(
+                eventId,
+                out AudioEventDefinition definition) ||
+            definition == null)
         {
             if (logMissingEvents)
             {
-                Debug.LogWarning($"AudioEvent not found: {eventId}", this);
+                Debug.LogWarning(
+                    $"AudioEvent not found: {eventId}",
+                    this
+                );
             }
 
             return false;
         }
 
-        PlaybackProfile profile = ResolvePlaybackProfile(eventId, definition, position.HasValue);
-        Vector2 worldPosition = position.HasValue ? (Vector2)position.Value : Vector2.zero;
+        PlaybackProfile profile =
+            ResolvePlaybackProfile(
+                eventId,
+                definition,
+                position.HasValue
+            );
+
+        Vector2 worldPosition = position.HasValue
+            ? (Vector2)position.Value
+            : Vector2.zero;
+
         Transform listener = ResolveListener(false);
         float distanceToListener = 0f;
 
         if (profile.isWorld && listener != null)
         {
-            distanceToListener = Vector2.Distance(worldPosition, listener.position);
+            distanceToListener =
+                Vector2.Distance(
+                    worldPosition,
+                    listener.position
+                );
 
-            if (profile.hardCull && distanceToListener > profile.maxDistance)
+            if (profile.hardCull &&
+                distanceToListener > profile.maxDistance)
             {
                 if (logDistanceCulling)
                 {
-                    Debug.Log($"Audio culled by distance: {eventId}, {distanceToListener:0.0}/{profile.maxDistance:0.0}", this);
+                    Debug.Log(
+                        $"Audio culled by distance: {eventId}, " +
+                        $"{distanceToListener:0.0}/" +
+                        $"{profile.maxDistance:0.0}",
+                        this
+                    );
                 }
 
                 return false;
             }
         }
 
-        if (IsBlockedByDuplicateGuard(eventId, profile.retriggerInterval))
+        if (IsBlockedByDuplicateGuard(
+                eventId,
+                profile.retriggerInterval))
         {
             return false;
         }
@@ -311,13 +378,22 @@ public class AudioManager : MonoBehaviour
         {
             if (logMissingEvents)
             {
-                Debug.LogWarning($"AudioEvent has no clip: {eventId}", this);
+                Debug.LogWarning(
+                    $"AudioEvent has no clip: {eventId}",
+                    this
+                );
             }
 
             return false;
         }
 
-        PooledVoice voice = GetAvailableVoice(eventId, profile, worldPosition, listener);
+        PooledVoice voice =
+            GetAvailableVoice(
+                eventId,
+                profile,
+                worldPosition,
+                listener
+            );
 
         if (voice == null || voice.source == null)
         {
@@ -326,17 +402,48 @@ public class AudioManager : MonoBehaviour
 
         int occluderCount = 0;
 
-        if (profile.isWorld && profile.useOcclusion && listener != null)
+        if (profile.isWorld &&
+            profile.useOcclusion &&
+            listener != null)
         {
-            occluderCount = CountOccluders(worldPosition, listener.position);
+            occluderCount =
+                CountOccluders(
+                    worldPosition,
+                    listener.position
+                );
         }
 
-        float occlusionVolume = ResolveOcclusionVolume(profile, occluderCount);
-        float finalVolume = definition.Volume * masterVolume * sfxVolume * Mathf.Max(0f, volumeScale) * occlusionVolume;
+        float occlusionVolume =
+            ResolveOcclusionVolume(
+                profile,
+                occluderCount
+            );
+
+        float finalVolume =
+            definition.Volume *
+            masterVolume *
+            sfxVolume *
+            Mathf.Max(0f, volumeScale) *
+            occlusionVolume;
 
         PrepareVoiceForReuse(voice);
-        SetSourcePosition(voice.source, profile.isWorld, position, listener);
-        ApplyDefinitionToSource(voice.source, voice.lowPass, definition, clip, finalVolume, profile, occluderCount);
+
+        SetSourcePosition(
+            voice.source,
+            profile.isWorld,
+            position,
+            listener
+        );
+
+        ApplyDefinitionToSource(
+            voice.source,
+            voice.lowPass,
+            definition,
+            clip,
+            finalVolume,
+            profile,
+            occluderCount
+        );
 
         voice.eventId = eventId;
         voice.priority = profile.priority;
@@ -347,23 +454,45 @@ public class AudioManager : MonoBehaviour
 
         voice.source.loop = false;
         voice.source.Play();
+
+        LogPlayback(
+            eventId,
+            clip,
+            profile.isWorld,
+            position,
+            null
+        );
+
         return true;
     }
 
-    private bool PlayLoopEvent(string eventId, string channelName, float volumeScale)
+    private bool PlayLoopEvent(
+        string eventId,
+        string channelName,
+        float volumeScale)
     {
-        if (string.IsNullOrWhiteSpace(eventId) || string.IsNullOrWhiteSpace(channelName))
+        if (string.IsNullOrWhiteSpace(eventId) ||
+            string.IsNullOrWhiteSpace(channelName))
         {
             return false;
         }
 
+        eventId = SoundEventIds.ToNumbered(eventId);
+
         LoadDatabaseIfNeeded();
 
-        if (database == null || !database.TryGet(eventId, out AudioEventDefinition definition) || definition == null)
+        if (database == null ||
+            !database.TryGet(
+                eventId,
+                out AudioEventDefinition definition) ||
+            definition == null)
         {
             if (logMissingEvents)
             {
-                Debug.LogWarning($"AudioEvent not found: {eventId}", this);
+                Debug.LogWarning(
+                    $"AudioEvent not found: {eventId}",
+                    this
+                );
             }
 
             return false;
@@ -375,7 +504,10 @@ public class AudioManager : MonoBehaviour
         {
             if (logMissingEvents)
             {
-                Debug.LogWarning($"AudioEvent has no clip: {eventId}", this);
+                Debug.LogWarning(
+                    $"AudioEvent has no clip: {eventId}",
+                    this
+                );
             }
 
             return false;
@@ -388,7 +520,9 @@ public class AudioManager : MonoBehaviour
             return false;
         }
 
-        if (loopEventIds.TryGetValue(channelName, out string currentEventId) &&
+        if (loopEventIds.TryGetValue(
+                channelName,
+                out string currentEventId) &&
             currentEventId == eventId &&
             source.isPlaying)
         {
@@ -396,11 +530,21 @@ public class AudioManager : MonoBehaviour
         }
 
         source.Stop();
-        AudioLowPassFilter lowPass = loopFilters.TryGetValue(channelName, out AudioLowPassFilter filter)
-            ? filter
-            : null;
 
-        PlaybackProfile profile = ResolvePlaybackProfile(eventId, definition, false);
+        AudioLowPassFilter lowPass =
+            loopFilters.TryGetValue(
+                channelName,
+                out AudioLowPassFilter filter)
+                ? filter
+                : null;
+
+        PlaybackProfile profile =
+            ResolvePlaybackProfile(
+                eventId,
+                definition,
+                false
+            );
+
         profile.isWorld = false;
         profile.spatialBlend = 0f;
 
@@ -409,7 +553,10 @@ public class AudioManager : MonoBehaviour
             lowPass,
             definition,
             clip,
-            definition.Volume * masterVolume * loopVolume * Mathf.Max(0f, volumeScale),
+            definition.Volume *
+            masterVolume *
+            loopVolume *
+            Mathf.Max(0f, volumeScale),
             profile,
             0
         );
@@ -417,9 +564,19 @@ public class AudioManager : MonoBehaviour
         source.transform.localPosition = Vector3.zero;
         source.loop = true;
         source.Play();
+
+        LogPlayback(
+            eventId,
+            clip,
+            false,
+            null,
+            channelName
+        );
+
         loopEventIds[channelName] = eventId;
         loopBaseVolumes[channelName] = source.volume;
         loopBasePitches[channelName] = source.pitch;
+
         return true;
     }
 
@@ -429,22 +586,41 @@ public class AudioManager : MonoBehaviour
         float volumeMultiplier)
     {
         if (string.IsNullOrWhiteSpace(channelName) ||
-            !loopSources.TryGetValue(channelName, out AudioSource source) ||
+            !loopSources.TryGetValue(
+                channelName,
+                out AudioSource source) ||
             source == null ||
             !source.isPlaying)
         {
             return false;
         }
 
-        float basePitch = loopBasePitches.TryGetValue(channelName, out float storedPitch)
-            ? storedPitch
-            : source.pitch;
-        float baseVolume = loopBaseVolumes.TryGetValue(channelName, out float storedVolume)
-            ? storedVolume
-            : source.volume;
+        float basePitch =
+            loopBasePitches.TryGetValue(
+                channelName,
+                out float storedPitch)
+                ? storedPitch
+                : source.pitch;
 
-        source.pitch = Mathf.Clamp(basePitch * Mathf.Max(0.01f, pitchMultiplier), -3f, 3f);
-        source.volume = Mathf.Clamp01(baseVolume * Mathf.Max(0f, volumeMultiplier));
+        float baseVolume =
+            loopBaseVolumes.TryGetValue(
+                channelName,
+                out float storedVolume)
+                ? storedVolume
+                : source.volume;
+
+        source.pitch = Mathf.Clamp(
+            basePitch *
+            Mathf.Max(0.01f, pitchMultiplier),
+            -3f,
+            3f
+        );
+
+        source.volume = Mathf.Clamp01(
+            baseVolume *
+            Mathf.Max(0f, volumeMultiplier)
+        );
+
         return true;
     }
 
@@ -455,7 +631,10 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        if (loopSources.TryGetValue(channelName, out AudioSource source) && source != null)
+        if (loopSources.TryGetValue(
+                channelName,
+                out AudioSource source) &&
+            source != null)
         {
             source.Stop();
             source.clip = null;
@@ -468,7 +647,9 @@ public class AudioManager : MonoBehaviour
 
     private void StopEveryLoop()
     {
-        foreach (KeyValuePair<string, AudioSource> pair in loopSources)
+        foreach (
+            KeyValuePair<string, AudioSource> pair
+            in loopSources)
         {
             if (pair.Value != null)
             {
@@ -482,6 +663,47 @@ public class AudioManager : MonoBehaviour
         loopBasePitches.Clear();
     }
 
+    private void LogPlayback(
+        string eventId,
+        AudioClip clip,
+        bool isWorld,
+        Vector3? position,
+        string channelName)
+    {
+        if (!logPlayedEvents)
+        {
+            return;
+        }
+
+        string clipName =
+            clip != null
+                ? clip.name
+                : "None";
+
+        string mode =
+            string.IsNullOrWhiteSpace(channelName)
+                ? isWorld
+                    ? "World"
+                    : "2D"
+                : $"Loop:{channelName}";
+
+        string positionText =
+            isWorld && position.HasValue
+                ? $" | Position=" +
+                  $"{position.Value.x:0.00}," +
+                  $"{position.Value.y:0.00}"
+                : string.Empty;
+
+        Debug.Log(
+            $"[Audio] EventId={eventId} | " +
+            $"Clip={clipName} | " +
+            $"Mode={mode} | " +
+            $"Frame={Time.frameCount}" +
+            positionText,
+            this
+        );
+    }
+
     private void ApplyDefinitionToSource(
         AudioSource source,
         AudioLowPassFilter lowPass,
@@ -491,34 +713,79 @@ public class AudioManager : MonoBehaviour
         PlaybackProfile profile,
         int occluderCount)
     {
-        float pitchMin = Mathf.Min(definition.PitchMin, definition.PitchMax);
-        float pitchMax = Mathf.Max(definition.PitchMin, definition.PitchMax);
+        float pitchMin =
+            Mathf.Min(
+                definition.PitchMin,
+                definition.PitchMax
+            );
+
+        float pitchMax =
+            Mathf.Max(
+                definition.PitchMin,
+                definition.PitchMax
+            );
 
         source.clip = clip;
         source.volume = Mathf.Clamp01(volume);
-        source.pitch = Mathf.Approximately(pitchMin, pitchMax)
-            ? pitchMin
-            : UnityEngine.Random.Range(pitchMin, pitchMax);
-        source.spatialBlend = profile.isWorld ? profile.spatialBlend : 0f;
+
+        source.pitch =
+            Mathf.Approximately(
+                pitchMin,
+                pitchMax)
+                ? pitchMin
+                : UnityEngine.Random.Range(
+                    pitchMin,
+                    pitchMax
+                );
+
+        source.spatialBlend =
+            profile.isWorld
+                ? profile.spatialBlend
+                : 0f;
+
         source.priority = profile.priority;
         source.rolloffMode = profile.rolloffMode;
-        source.minDistance = Mathf.Max(0.01f, profile.minDistance);
-        source.maxDistance = Mathf.Max(source.minDistance + 0.01f, profile.maxDistance);
-        source.dopplerLevel = profile.isWorld ? profile.dopplerLevel : 0f;
+
+        source.minDistance =
+            Mathf.Max(
+                0.01f,
+                profile.minDistance
+            );
+
+        source.maxDistance =
+            Mathf.Max(
+                source.minDistance + 0.01f,
+                profile.maxDistance
+            );
+
+        source.dopplerLevel =
+            profile.isWorld
+                ? profile.dopplerLevel
+                : 0f;
+
         source.panStereo = 0f;
         source.spread = 0f;
 
-        ApplyLowPass(lowPass, profile, occluderCount);
+        ApplyLowPass(
+            lowPass,
+            profile,
+            occluderCount
+        );
     }
 
-    private void ApplyLowPass(AudioLowPassFilter lowPass, PlaybackProfile profile, int occluderCount)
+    private void ApplyLowPass(
+        AudioLowPassFilter lowPass,
+        PlaybackProfile profile,
+        int occluderCount)
     {
         if (lowPass == null)
         {
             return;
         }
 
-        if (!profile.isWorld || !profile.useOcclusion || occluderCount <= 0)
+        if (!profile.isWorld ||
+            !profile.useOcclusion ||
+            occluderCount <= 0)
         {
             lowPass.cutoffFrequency = 22000f;
             lowPass.enabled = false;
@@ -526,9 +793,11 @@ public class AudioManager : MonoBehaviour
         }
 
         lowPass.enabled = true;
-        lowPass.cutoffFrequency = occluderCount >= 2
-            ? profile.multipleOccluderCutoff
-            : profile.oneOccluderCutoff;
+
+        lowPass.cutoffFrequency =
+            occluderCount >= 2
+                ? profile.multipleOccluderCutoff
+                : profile.oneOccluderCutoff;
     }
 
     private PlaybackProfile ResolvePlaybackProfile(
@@ -536,16 +805,26 @@ public class AudioManager : MonoBehaviour
         AudioEventDefinition definition,
         bool hasWorldPosition)
     {
-        bool isWorld = ResolveIsWorld(eventId, definition, hasWorldPosition);
-        bool autoMode = definition.SpatialMode == AudioSpatialMode.Auto;
+        bool isWorld =
+            ResolveIsWorld(
+                eventId,
+                definition,
+                hasWorldPosition
+            );
 
-        float minDistance = autoMode
-            ? ResolveAutomaticMinDistance(eventId)
-            : definition.MinDistance;
+        bool autoMode =
+            definition.SpatialMode ==
+            AudioSpatialMode.Auto;
 
-        float maxDistance = autoMode
-            ? ResolveAutomaticMaxDistance(eventId)
-            : definition.MaxDistance;
+        float minDistance =
+            autoMode
+                ? ResolveAutomaticMinDistance(eventId)
+                : definition.MinDistance;
+
+        float maxDistance =
+            autoMode
+                ? ResolveAutomaticMaxDistance(eventId)
+                : definition.MaxDistance;
 
         if (minDistance <= 0f)
         {
@@ -554,64 +833,127 @@ public class AudioManager : MonoBehaviour
 
         if (maxDistance <= minDistance)
         {
-            maxDistance = Mathf.Max(minDistance + 0.1f, defaultWorldMaxDistance);
+            maxDistance =
+                Mathf.Max(
+                    minDistance + 0.1f,
+                    defaultWorldMaxDistance
+                );
         }
 
-        float oneVolume = autoMode || definition.OneOccluderVolumeMultiplier <= 0f
-            ? oneOccluderVolumeMultiplier
-            : definition.OneOccluderVolumeMultiplier;
+        float oneVolume =
+            autoMode ||
+            definition.OneOccluderVolumeMultiplier <= 0f
+                ? oneOccluderVolumeMultiplier
+                : definition.OneOccluderVolumeMultiplier;
 
-        float multipleVolume = autoMode || definition.MultipleOccluderVolumeMultiplier <= 0f
-            ? multipleOccluderVolumeMultiplier
-            : definition.MultipleOccluderVolumeMultiplier;
+        float multipleVolume =
+            autoMode ||
+            definition.MultipleOccluderVolumeMultiplier <= 0f
+                ? multipleOccluderVolumeMultiplier
+                : definition.MultipleOccluderVolumeMultiplier;
 
-        float oneCutoff = autoMode || definition.OneOccluderLowPassCutoff <= 20f
-            ? oneOccluderLowPassCutoff
-            : definition.OneOccluderLowPassCutoff;
+        float oneCutoff =
+            autoMode ||
+            definition.OneOccluderLowPassCutoff <= 20f
+                ? oneOccluderLowPassCutoff
+                : definition.OneOccluderLowPassCutoff;
 
-        float multipleCutoff = autoMode || definition.MultipleOccluderLowPassCutoff <= 20f
-            ? multipleOccluderLowPassCutoff
-            : definition.MultipleOccluderLowPassCutoff;
+        float multipleCutoff =
+            autoMode ||
+            definition.MultipleOccluderLowPassCutoff <= 20f
+                ? multipleOccluderLowPassCutoff
+                : definition.MultipleOccluderLowPassCutoff;
 
         return new PlaybackProfile
         {
             isWorld = isWorld,
+
             spatialBlend = isWorld
-                ? (definition.SpatialBlend > 0.01f ? definition.SpatialBlend : 1f)
+                ? definition.SpatialBlend > 0.01f
+                    ? definition.SpatialBlend
+                    : 1f
                 : 0f,
+
             minDistance = minDistance,
             maxDistance = maxDistance,
-            rolloffMode = autoMode ? AudioRolloffMode.Linear : definition.RolloffMode,
-            dopplerLevel = autoMode ? 0f : Mathf.Max(0f, definition.DopplerLevel),
-            hardCull = autoMode ? hardCullWorldAudio : definition.HardCullOutsideMaxDistance,
-            useOcclusion = isWorld && (autoMode ? useWorldOcclusion : definition.UseOcclusion),
-            oneOccluderVolume = Mathf.Clamp01(oneVolume),
-            multipleOccluderVolume = Mathf.Clamp01(multipleVolume),
-            oneOccluderCutoff = Mathf.Clamp(oneCutoff, 10f, 22000f),
-            multipleOccluderCutoff = Mathf.Clamp(multipleCutoff, 10f, 22000f),
-            maxVoices = definition.MaxSimultaneousVoices > 0
-                ? definition.MaxSimultaneousVoices
-                : ResolveAutomaticVoiceLimit(eventId),
-            priority = ResolvePriority(eventId, definition.Priority),
-            retriggerInterval = definition.MinimumRetriggerInterval > 0f
-                ? definition.MinimumRetriggerInterval
-                : ResolveAutomaticRetriggerInterval(eventId)
+
+            rolloffMode = autoMode
+                ? AudioRolloffMode.Linear
+                : definition.RolloffMode,
+
+            dopplerLevel = autoMode
+                ? 0f
+                : Mathf.Max(
+                    0f,
+                    definition.DopplerLevel
+                ),
+
+            hardCull = autoMode
+                ? hardCullWorldAudio
+                : definition.HardCullOutsideMaxDistance,
+
+            useOcclusion =
+                isWorld &&
+                (autoMode
+                    ? useWorldOcclusion
+                    : definition.UseOcclusion),
+
+            oneOccluderVolume =
+                Mathf.Clamp01(oneVolume),
+
+            multipleOccluderVolume =
+                Mathf.Clamp01(multipleVolume),
+
+            oneOccluderCutoff =
+                Mathf.Clamp(
+                    oneCutoff,
+                    10f,
+                    22000f
+                ),
+
+            multipleOccluderCutoff =
+                Mathf.Clamp(
+                    multipleCutoff,
+                    10f,
+                    22000f
+                ),
+
+            maxVoices =
+                definition.MaxSimultaneousVoices > 0
+                    ? definition.MaxSimultaneousVoices
+                    : ResolveAutomaticVoiceLimit(eventId),
+
+            priority =
+                ResolvePriority(
+                    eventId,
+                    definition.Priority
+                ),
+
+            retriggerInterval =
+                definition.MinimumRetriggerInterval > 0f
+                    ? definition.MinimumRetriggerInterval
+                    : ResolveAutomaticRetriggerInterval(eventId)
         };
     }
 
-    private bool ResolveIsWorld(string eventId, AudioEventDefinition definition, bool hasWorldPosition)
+    private bool ResolveIsWorld(
+        string eventId,
+        AudioEventDefinition definition,
+        bool hasWorldPosition)
     {
         if (!hasWorldPosition)
         {
             return false;
         }
 
-        if (definition.SpatialMode == AudioSpatialMode.Force2D)
+        if (definition.SpatialMode ==
+            AudioSpatialMode.Force2D)
         {
             return false;
         }
 
-        if (definition.SpatialMode == AudioSpatialMode.World2D)
+        if (definition.SpatialMode ==
+            AudioSpatialMode.World2D)
         {
             return true;
         }
@@ -619,9 +961,14 @@ public class AudioManager : MonoBehaviour
         return !IsAutomaticTwoDEvent(eventId);
     }
 
-    private bool IsBlockedByDuplicateGuard(string eventId, float minimumInterval)
+    private bool IsBlockedByDuplicateGuard(
+        string eventId,
+        float minimumInterval)
     {
-        float interval = minimumInterval > 0f ? minimumInterval : sameEventMinimumInterval;
+        float interval =
+            minimumInterval > 0f
+                ? minimumInterval
+                : sameEventMinimumInterval;
 
         if (interval <= 0f)
         {
@@ -630,12 +977,16 @@ public class AudioManager : MonoBehaviour
 
         float now = Time.unscaledTime;
 
-        if (lastOneShotTimes.TryGetValue(eventId, out float previousTime) && now - previousTime < interval)
+        if (lastOneShotTimes.TryGetValue(
+                eventId,
+                out float previousTime) &&
+            now - previousTime < interval)
         {
             return true;
         }
 
         lastOneShotTimes[eventId] = now;
+
         return false;
     }
 
@@ -649,41 +1000,63 @@ public class AudioManager : MonoBehaviour
 
         PooledVoice limitedCandidate = null;
         int sameEventCount = 0;
-        float newDistanceSq = profile.isWorld && listener != null
-            ? ((Vector2)listener.position - worldPosition).sqrMagnitude
-            : 0f;
+
+        float newDistanceSq =
+            profile.isWorld && listener != null
+                ? ((Vector2)listener.position -
+                   worldPosition).sqrMagnitude
+                : 0f;
 
         for (int i = 0; i < voices.Count; i++)
         {
             PooledVoice voice = voices[i];
 
-            if (!voice.IsPlaying || !string.Equals(voice.eventId, eventId, StringComparison.Ordinal))
+            if (!voice.IsPlaying ||
+                !string.Equals(
+                    voice.eventId,
+                    eventId,
+                    StringComparison.Ordinal))
             {
                 continue;
             }
 
             sameEventCount++;
 
-            if (limitedCandidate == null || IsWorseVoice(voice, limitedCandidate, listener))
+            if (limitedCandidate == null ||
+                IsWorseVoice(
+                    voice,
+                    limitedCandidate,
+                    listener))
             {
                 limitedCandidate = voice;
             }
         }
 
-        if (profile.maxVoices > 0 && sameEventCount >= profile.maxVoices)
+        if (profile.maxVoices > 0 &&
+            sameEventCount >= profile.maxVoices)
         {
             if (limitedCandidate == null)
             {
                 return null;
             }
 
-            float candidateDistanceSq = limitedCandidate.isWorld && listener != null
-                ? ((Vector2)listener.position - limitedCandidate.worldPosition).sqrMagnitude
-                : 0f;
+            float candidateDistanceSq =
+                limitedCandidate.isWorld &&
+                listener != null
+                    ? ((Vector2)listener.position -
+                       limitedCandidate.worldPosition)
+                      .sqrMagnitude
+                    : 0f;
 
-            bool newVoiceIsBetter = profile.priority < limitedCandidate.priority ||
-                                    (profile.isWorld && newDistanceSq < candidateDistanceSq) ||
-                                    (!profile.isWorld && profile.priority <= limitedCandidate.priority);
+            bool newVoiceIsBetter =
+                profile.priority <
+                limitedCandidate.priority ||
+                (profile.isWorld &&
+                 newDistanceSq <
+                 candidateDistanceSq) ||
+                (!profile.isWorld &&
+                 profile.priority <=
+                 limitedCandidate.priority);
 
             if (!newVoiceIsBetter)
             {
@@ -695,12 +1068,18 @@ public class AudioManager : MonoBehaviour
 
         for (int i = 0; i < voices.Count; i++)
         {
-            int index = (nextVoiceIndex + i) % voices.Count;
+            int index =
+                (nextVoiceIndex + i) %
+                voices.Count;
+
             PooledVoice voice = voices[index];
 
             if (!voice.IsPlaying)
             {
-                nextVoiceIndex = (index + 1) % voices.Count;
+                nextVoiceIndex =
+                    (index + 1) %
+                    voices.Count;
+
                 return voice;
             }
         }
@@ -711,13 +1090,19 @@ public class AudioManager : MonoBehaviour
         {
             PooledVoice voice = voices[i];
 
-            if (stealCandidate == null || IsWorseVoice(voice, stealCandidate, listener))
+            if (stealCandidate == null ||
+                IsWorseVoice(
+                    voice,
+                    stealCandidate,
+                    listener))
             {
                 stealCandidate = voice;
             }
         }
 
-        if (stealCandidate == null || profile.priority > stealCandidate.priority)
+        if (stealCandidate == null ||
+            profile.priority >
+            stealCandidate.priority)
         {
             return null;
         }
@@ -725,35 +1110,58 @@ public class AudioManager : MonoBehaviour
         return stealCandidate;
     }
 
-    private bool IsWorseVoice(PooledVoice candidate, PooledVoice currentWorst, Transform listener)
+    private bool IsWorseVoice(
+        PooledVoice candidate,
+        PooledVoice currentWorst,
+        Transform listener)
     {
-        if (candidate.priority != currentWorst.priority)
+        if (candidate.priority !=
+            currentWorst.priority)
         {
-            return candidate.priority > currentWorst.priority;
+            return candidate.priority >
+                   currentWorst.priority;
         }
 
-        if (listener != null && candidate.isWorld != currentWorst.isWorld)
+        if (listener != null &&
+            candidate.isWorld !=
+            currentWorst.isWorld)
         {
             return candidate.isWorld;
         }
 
-        if (listener != null && candidate.isWorld && currentWorst.isWorld)
+        if (listener != null &&
+            candidate.isWorld &&
+            currentWorst.isWorld)
         {
-            float candidateDistance = ((Vector2)listener.position - candidate.worldPosition).sqrMagnitude;
-            float currentDistance = ((Vector2)listener.position - currentWorst.worldPosition).sqrMagnitude;
+            float candidateDistance =
+                ((Vector2)listener.position -
+                 candidate.worldPosition)
+                .sqrMagnitude;
 
-            if (!Mathf.Approximately(candidateDistance, currentDistance))
+            float currentDistance =
+                ((Vector2)listener.position -
+                 currentWorst.worldPosition)
+                .sqrMagnitude;
+
+            if (!Mathf.Approximately(
+                    candidateDistance,
+                    currentDistance))
             {
-                return candidateDistance > currentDistance;
+                return candidateDistance >
+                       currentDistance;
             }
         }
 
-        if (!Mathf.Approximately(candidate.effectiveVolume, currentWorst.effectiveVolume))
+        if (!Mathf.Approximately(
+                candidate.effectiveVolume,
+                currentWorst.effectiveVolume))
         {
-            return candidate.effectiveVolume < currentWorst.effectiveVolume;
+            return candidate.effectiveVolume <
+                   currentWorst.effectiveVolume;
         }
 
-        return candidate.startedAt < currentWorst.startedAt;
+        return candidate.startedAt <
+               currentWorst.startedAt;
     }
 
     private void RefreshVoiceRuntime()
@@ -762,7 +1170,8 @@ public class AudioManager : MonoBehaviour
         {
             PooledVoice voice = voices[i];
 
-            if (!voice.IsPlaying && !string.IsNullOrEmpty(voice.eventId))
+            if (!voice.IsPlaying &&
+                !string.IsNullOrEmpty(voice.eventId))
             {
                 voice.ClearRuntime();
             }
@@ -806,7 +1215,8 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        Vector3 finalPosition = requestedPosition.Value;
+        Vector3 finalPosition =
+            requestedPosition.Value;
 
         if (listener != null)
         {
@@ -826,35 +1236,48 @@ public class AudioManager : MonoBehaviour
             return cachedListenerTransform;
         }
 
-        if (!forceSearch && Time.unscaledTime < nextListenerSearchTime)
+        if (!forceSearch &&
+            Time.unscaledTime <
+            nextListenerSearchTime)
         {
             return cachedListenerTransform;
         }
 
-        nextListenerSearchTime = Time.unscaledTime + 0.5f;
+        nextListenerSearchTime =
+            Time.unscaledTime + 0.5f;
+
         cachedListener = null;
         cachedListenerTransform = null;
 
-        AudioListener[] listeners = FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
+        AudioListener[] listeners =
+            FindObjectsByType<AudioListener>(
+                FindObjectsSortMode.None
+            );
 
         for (int i = 0; i < listeners.Length; i++)
         {
             AudioListener candidate = listeners[i];
 
-            if (candidate == null || !candidate.enabled || !candidate.gameObject.activeInHierarchy)
+            if (candidate == null ||
+                !candidate.enabled ||
+                !candidate.gameObject.activeInHierarchy)
             {
                 continue;
             }
 
             cachedListener = candidate;
-            cachedListenerTransform = candidate.transform;
+            cachedListenerTransform =
+                candidate.transform;
+
             break;
         }
 
         return cachedListenerTransform;
     }
 
-    private int CountOccluders(Vector2 sourcePosition, Vector2 listenerPosition)
+    private int CountOccluders(
+        Vector2 sourcePosition,
+        Vector2 listenerPosition)
     {
         int mask = ResolveOccluderMask();
 
@@ -863,7 +1286,10 @@ public class AudioManager : MonoBehaviour
             return 0;
         }
 
-        Vector2 delta = listenerPosition - sourcePosition;
+        Vector2 delta =
+            listenerPosition -
+            sourcePosition;
+
         float distance = delta.magnitude;
 
         if (distance <= 0.05f)
@@ -871,13 +1297,14 @@ public class AudioManager : MonoBehaviour
             return 0;
         }
 
-        int hitCount = Physics2D.RaycastNonAlloc(
-            sourcePosition,
-            delta / distance,
-            occlusionHits,
-            distance,
-            mask
-        );
+        int hitCount =
+            Physics2D.RaycastNonAlloc(
+                sourcePosition,
+                delta / distance,
+                occlusionHits,
+                distance,
+                mask
+            );
 
         occlusionColliderIds.Clear();
 
@@ -886,12 +1313,17 @@ public class AudioManager : MonoBehaviour
             RaycastHit2D hit = occlusionHits[i];
             Collider2D collider = hit.collider;
 
-            if (collider == null || collider.isTrigger || hit.fraction <= 0.01f || hit.fraction >= 0.99f)
+            if (collider == null ||
+                collider.isTrigger ||
+                hit.fraction <= 0.01f ||
+                hit.fraction >= 0.99f)
             {
                 continue;
             }
 
-            occlusionColliderIds.Add(collider.GetInstanceID());
+            occlusionColliderIds.Add(
+                collider.GetInstanceID()
+            );
 
             if (occlusionColliderIds.Count >= 2)
             {
@@ -914,11 +1346,17 @@ public class AudioManager : MonoBehaviour
             return 0;
         }
 
-        int layer = LayerMask.NameToLayer("AudioOccluder");
-        return layer >= 0 ? 1 << layer : 0;
+        int layer =
+            LayerMask.NameToLayer("AudioOccluder");
+
+        return layer >= 0
+            ? 1 << layer
+            : 0;
     }
 
-    private float ResolveOcclusionVolume(PlaybackProfile profile, int occluderCount)
+    private float ResolveOcclusionVolume(
+        PlaybackProfile profile,
+        int occluderCount)
     {
         if (occluderCount <= 0)
         {
@@ -930,151 +1368,302 @@ public class AudioManager : MonoBehaviour
             : profile.oneOccluderVolume;
     }
 
-    private AudioSource GetLoopSource(string channelName)
+    private AudioSource GetLoopSource(
+        string channelName)
     {
-        if (loopSources.TryGetValue(channelName, out AudioSource source) && source != null)
+        if (loopSources.TryGetValue(
+                channelName,
+                out AudioSource source) &&
+            source != null)
         {
             return source;
         }
 
-        GameObject sourceObject = new GameObject($"LoopSource_{channelName}");
-        sourceObject.transform.SetParent(transform, false);
+        GameObject sourceObject =
+            new GameObject(
+                $"LoopSource_{channelName}"
+            );
 
-        source = sourceObject.AddComponent<AudioSource>();
+        sourceObject.transform.SetParent(
+            transform,
+            false
+        );
+
+        source =
+            sourceObject.AddComponent<AudioSource>();
+
         source.playOnAwake = false;
         source.loop = true;
         source.spatialBlend = 0f;
         source.priority = 200;
         source.dopplerLevel = 0f;
 
-        AudioLowPassFilter lowPass = sourceObject.AddComponent<AudioLowPassFilter>();
+        AudioLowPassFilter lowPass =
+            sourceObject.AddComponent<AudioLowPassFilter>();
+
         lowPass.cutoffFrequency = 22000f;
         lowPass.enabled = false;
 
         loopSources[channelName] = source;
         loopFilters[channelName] = lowPass;
+
         return source;
     }
 
-    private bool IsAutomaticTwoDEvent(string eventId)
+    private bool IsAutomaticTwoDEvent(
+        string eventId)
     {
-        if (string.IsNullOrWhiteSpace(eventId))
+        string baseEventId =
+            SoundEventIds.ToLegacy(eventId);
+
+        if (string.IsNullOrWhiteSpace(baseEventId))
         {
             return true;
         }
 
-        if (eventId.StartsWith("ui_", StringComparison.Ordinal) ||
-            eventId.StartsWith("pickup_", StringComparison.Ordinal) ||
-            eventId.StartsWith("radar_", StringComparison.Ordinal) ||
-            eventId.StartsWith("trait_", StringComparison.Ordinal) ||
-            eventId.StartsWith("reinforcement_", StringComparison.Ordinal) ||
-            eventId.StartsWith("tab_status_", StringComparison.Ordinal) ||
-            eventId.StartsWith("result_", StringComparison.Ordinal) ||
-            eventId.StartsWith("music_", StringComparison.Ordinal) ||
-            eventId.StartsWith("amb_", StringComparison.Ordinal))
+        if (baseEventId.StartsWith(
+                "ui_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "pickup_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "radar_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "trait_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "reinforcement_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "tab_status_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "result_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "music_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "amb_",
+                StringComparison.Ordinal))
         {
             return true;
         }
 
-        return eventId == SoundEventIds.WarningMessage ||
-               eventId == SoundEventIds.ActionDenied ||
-               eventId == SoundEventIds.LevelUp ||
-               eventId == SoundEventIds.ReturnChoiceOpen ||
-               eventId == SoundEventIds.SafeReturn ||
-               eventId == SoundEventIds.ShipDashStart ||
-               eventId == SoundEventIds.ShipDashEnd ||
-               eventId == SoundEventIds.ShipHit ||
-               eventId == SoundEventIds.ShipDeathBreakup ||
-               eventId == SoundEventIds.MachineGunFire ||
-               eventId == SoundEventIds.ShotgunFire ||
-               eventId == SoundEventIds.SniperChargeStart ||
-               eventId == SoundEventIds.SniperChargeCancel ||
-               eventId == SoundEventIds.SniperFire ||
-               eventId == SoundEventIds.ShopOpen ||
-               eventId == SoundEventIds.ShopBuySuccess ||
-               eventId == SoundEventIds.ShopBuyFail ||
-               eventId == SoundEventIds.ShopItemSold ||
-               eventId == SoundEventIds.ShopTransactionComplete;
+        string numberedEventId =
+            SoundEventIds.ToNumbered(eventId);
+
+        return
+            numberedEventId ==
+            SoundEventIds.WarningMessage ||
+
+            numberedEventId ==
+            SoundEventIds.ActionDenied ||
+
+            numberedEventId ==
+            SoundEventIds.LevelUp ||
+
+            numberedEventId ==
+            SoundEventIds.ReturnChoiceOpen ||
+
+            numberedEventId ==
+            SoundEventIds.SafeReturn ||
+
+            numberedEventId ==
+            SoundEventIds.ShipDashStart ||
+
+            numberedEventId ==
+            SoundEventIds.ShipDashEnd ||
+
+            numberedEventId ==
+            SoundEventIds.ShipHit ||
+
+            numberedEventId ==
+            SoundEventIds.ShipDeathBreakup ||
+
+            numberedEventId ==
+            SoundEventIds.MachineGunFire ||
+
+            numberedEventId ==
+            SoundEventIds.ShotgunFire ||
+
+            numberedEventId ==
+            SoundEventIds.SniperChargeStart ||
+
+            numberedEventId ==
+            SoundEventIds.SniperChargeCancel ||
+
+            numberedEventId ==
+            SoundEventIds.SniperFire ||
+
+            numberedEventId ==
+            SoundEventIds.ShopOpen ||
+
+            numberedEventId ==
+            SoundEventIds.ShopBuySuccess ||
+
+            numberedEventId ==
+            SoundEventIds.ShopBuyFail ||
+
+            numberedEventId ==
+            SoundEventIds.ShopItemSold ||
+
+            numberedEventId ==
+            SoundEventIds.ShopTransactionComplete;
     }
 
-    private float ResolveAutomaticMinDistance(string eventId)
+    private float ResolveAutomaticMinDistance(
+        string eventId)
     {
-        if (eventId.StartsWith("boss_", StringComparison.Ordinal))
+        string baseEventId =
+            SoundEventIds.ToLegacy(eventId);
+
+        if (baseEventId.StartsWith(
+                "boss_",
+                StringComparison.Ordinal))
         {
             return 2f;
         }
 
-        return Mathf.Max(0.1f, defaultWorldMinDistance);
+        return Mathf.Max(
+            0.1f,
+            defaultWorldMinDistance
+        );
     }
 
-    private float ResolveAutomaticMaxDistance(string eventId)
+    private float ResolveAutomaticMaxDistance(
+        string eventId)
     {
-        if (eventId.StartsWith("boss_", StringComparison.Ordinal))
+        string numberedEventId =
+            SoundEventIds.ToNumbered(eventId);
+
+        string baseEventId =
+            SoundEventIds.ToLegacy(eventId);
+
+        if (baseEventId.StartsWith(
+                "boss_",
+                StringComparison.Ordinal))
         {
             return 24f;
         }
 
-        if (eventId == SoundEventIds.EnemyChargerAimLoop || eventId == SoundEventIds.EnemyChargerFire)
+        if (numberedEventId ==
+                SoundEventIds.EnemyChargerAimLoop ||
+            numberedEventId ==
+                SoundEventIds.EnemyChargerFire)
         {
             return 18f;
         }
 
-        if (eventId == SoundEventIds.ObjectContainerHit ||
-            eventId == SoundEventIds.ObjectDebrisHit ||
-            eventId == SoundEventIds.ObjectMeteorHit)
+        if (numberedEventId ==
+                SoundEventIds.ObjectContainerHit ||
+            numberedEventId ==
+                SoundEventIds.ObjectDebrisHit ||
+            numberedEventId ==
+                SoundEventIds.ObjectMeteorHit)
         {
             return 10f;
         }
 
-        if (eventId == SoundEventIds.ObjectShipwreckBreak)
+        if (numberedEventId ==
+            SoundEventIds.ObjectShipwreckBreak)
         {
             return 16f;
         }
 
-        if (eventId.StartsWith("object_", StringComparison.Ordinal) ||
-            eventId.StartsWith("enemy_", StringComparison.Ordinal))
+        if (baseEventId.StartsWith(
+                "object_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "enemy_",
+                StringComparison.Ordinal))
         {
             return 14f;
         }
 
-        if (eventId.StartsWith("core_", StringComparison.Ordinal) ||
-            eventId.StartsWith("shop_", StringComparison.Ordinal) ||
-            eventId.StartsWith("event_", StringComparison.Ordinal) ||
-            eventId == SoundEventIds.ReturnBeaconSpawn ||
-            eventId == SoundEventIds.WormholeEnter ||
-            eventId == SoundEventIds.SecurityDroneSpawn)
+        if (baseEventId.StartsWith(
+                "core_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "shop_",
+                StringComparison.Ordinal) ||
+            baseEventId.StartsWith(
+                "event_",
+                StringComparison.Ordinal) ||
+
+            numberedEventId ==
+                SoundEventIds.ReturnBeaconSpawn ||
+
+            numberedEventId ==
+                SoundEventIds.WormholeEnter ||
+
+            numberedEventId ==
+                SoundEventIds.SecurityDroneSpawn)
         {
             return 18f;
         }
 
-        return Mathf.Max(1f, defaultWorldMaxDistance);
+        return Mathf.Max(
+            1f,
+            defaultWorldMaxDistance
+        );
     }
 
-    private int ResolveAutomaticVoiceLimit(string eventId)
+    private int ResolveAutomaticVoiceLimit(
+        string eventId)
     {
-        if (eventId == SoundEventIds.EnemyBasicFire)
+        string numberedEventId =
+            SoundEventIds.ToNumbered(eventId);
+
+        string baseEventId =
+            SoundEventIds.ToLegacy(eventId);
+
+        if (numberedEventId ==
+            SoundEventIds.EnemyBasicFire)
         {
             return 3;
         }
 
-        if (eventId == SoundEventIds.EnemyShotgunFire ||
-            eventId == SoundEventIds.EnemyChargerAimLoop ||
-            eventId == SoundEventIds.ObjectContainerHit ||
-            eventId == SoundEventIds.ObjectDebrisHit ||
-            eventId == SoundEventIds.ObjectMeteorHit ||
-            eventId == SoundEventIds.ObjectContainerBreak ||
-            eventId == SoundEventIds.ObjectDebrisBreak ||
-            eventId == SoundEventIds.ObjectMeteorBreak)
+        if (numberedEventId ==
+                SoundEventIds.EnemyShotgunFire ||
+
+            numberedEventId ==
+                SoundEventIds.EnemyChargerAimLoop ||
+
+            numberedEventId ==
+                SoundEventIds.ObjectContainerHit ||
+
+            numberedEventId ==
+                SoundEventIds.ObjectDebrisHit ||
+
+            numberedEventId ==
+                SoundEventIds.ObjectMeteorHit ||
+
+            numberedEventId ==
+                SoundEventIds.ObjectContainerBreak ||
+
+            numberedEventId ==
+                SoundEventIds.ObjectDebrisBreak ||
+
+            numberedEventId ==
+                SoundEventIds.ObjectMeteorBreak)
         {
             return 2;
         }
 
-        if (eventId == SoundEventIds.EnemyHit || eventId == SoundEventIds.EnemyDeath)
+        if (numberedEventId ==
+                SoundEventIds.EnemyHit ||
+            numberedEventId ==
+                SoundEventIds.EnemyDeath)
         {
             return 3;
         }
 
-        if (eventId.StartsWith("boss_", StringComparison.Ordinal))
+        if (baseEventId.StartsWith(
+                "boss_",
+                StringComparison.Ordinal))
         {
             return 4;
         }
@@ -1082,35 +1671,74 @@ public class AudioManager : MonoBehaviour
         return 4;
     }
 
-    private float ResolveAutomaticRetriggerInterval(string eventId)
+    private float ResolveAutomaticRetriggerInterval(
+        string eventId)
     {
-        if (eventId == SoundEventIds.MachineGunFire)
+        string numberedEventId =
+            SoundEventIds.ToNumbered(eventId);
+
+        string baseEventId =
+            SoundEventIds.ToLegacy(eventId);
+
+        if (numberedEventId ==
+            SoundEventIds.MachineGunFire)
         {
             return 0.015f;
         }
 
-        if (eventId == SoundEventIds.EnemyHit || eventId.StartsWith("object_", StringComparison.Ordinal))
+        if (numberedEventId ==
+                SoundEventIds.EnemyHit ||
+            baseEventId.StartsWith(
+                "object_",
+                StringComparison.Ordinal))
         {
             return 0.035f;
         }
 
-        return Mathf.Max(0f, sameEventMinimumInterval);
+        return Mathf.Max(
+            0f,
+            sameEventMinimumInterval
+        );
     }
 
-    private int ResolvePriority(string eventId, int configuredPriority)
+    private int ResolvePriority(
+        string eventId,
+        int configuredPriority)
     {
-        int priority = Mathf.Clamp(configuredPriority, 0, 256);
+        int priority =
+            Mathf.Clamp(
+                configuredPriority,
+                0,
+                256
+            );
 
-        if (eventId == SoundEventIds.ShipHit ||
-            eventId == SoundEventIds.ShipDeathBreakup ||
-            eventId == SoundEventIds.WarningMessage ||
-            eventId == SoundEventIds.ActionDenied)
+        string numberedEventId =
+            SoundEventIds.ToNumbered(eventId);
+
+        string baseEventId =
+            SoundEventIds.ToLegacy(eventId);
+
+        if (numberedEventId ==
+                SoundEventIds.ShipHit ||
+
+            numberedEventId ==
+                SoundEventIds.ShipDeathBreakup ||
+
+            numberedEventId ==
+                SoundEventIds.WarningMessage ||
+
+            numberedEventId ==
+                SoundEventIds.ActionDenied)
         {
             return Mathf.Min(priority, 32);
         }
 
-        if (eventId.StartsWith("boss_", StringComparison.Ordinal) ||
-            eventId == SoundEventIds.EnemyChargerAimLoop)
+        if (baseEventId.StartsWith(
+                "boss_",
+                StringComparison.Ordinal) ||
+
+            numberedEventId ==
+                SoundEventIds.EnemyChargerAimLoop)
         {
             return Mathf.Min(priority, 64);
         }

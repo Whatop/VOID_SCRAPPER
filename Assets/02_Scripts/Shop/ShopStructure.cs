@@ -31,6 +31,12 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     [SerializeField] private RadarTarget radarTarget;
     [SerializeField] private RewardDropper rewardDropper;
     [SerializeField] private ShopActiveMaintenanceBay activeMaintenanceBay;
+    [SerializeField] private ShopDefenseController2D defenseController;
+    [SerializeField] private ShopNeutralZone2D neutralZone;
+
+    [Header("Field Base Portal")]
+    [Tooltip("적 기지 포탈에서 이동했을 때 플레이어가 도착할 안전한 위치입니다. 상점 BodyCollider 밖에 두세요.")]
+    [SerializeField] private Transform portalArrivalPoint;
 
     [Header("Health")]
     [SerializeField] private float maxShield = 24f;
@@ -131,6 +137,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
  
     public string DisplayName => displayName;
+    public Transform PortalArrivalPoint => portalArrivalPoint;
     public ShopStructureState CurrentState { get; private set; } = ShopStructureState.Neutral;
     public string InteractionText => CanTrade ? neutralInteractionText : hostileInteractionText;
     public ShopActiveMaintenanceBay ActiveMaintenanceBay => EnsureActiveMaintenanceBay();
@@ -144,6 +151,11 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     public float RepairAmount => repairAmount;
     public int SpentCredits => spentCredits;
     public bool CanTrade => !globalHostile && CurrentState != ShopStructureState.Dead;
+    public bool IsHostile => globalHostile && CurrentState != ShopStructureState.Dead;
+    public bool IsNeutralSafeZoneActive =>
+        !globalHostile &&
+        (CurrentState == ShopStructureState.Neutral || CurrentState == ShopStructureState.Warning);
+    public float HostileDetectRange => Mathf.Max(0.1f, hostileDetectRange);
 
     public event Action<ShopStructure> StateChanged;
     public event Action<ShopStructure, float, float> ShieldChanged;
@@ -156,6 +168,14 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         radarTarget = GetComponent<RadarTarget>();
         rewardDropper = GetComponent<RewardDropper>();
         activeMaintenanceBay = GetComponentInChildren<ShopActiveMaintenanceBay>(true);
+        defenseController = GetComponent<ShopDefenseController2D>();
+        neutralZone = GetComponentInChildren<ShopNeutralZone2D>(true);
+
+        if (portalArrivalPoint == null)
+        {
+            portalArrivalPoint = transform.Find("PortalArrivalPoint");
+        }
+
         collidersToDisableOnDeath = GetComponentsInChildren<Collider2D>(true);
         renderersToDisableOnDeath = GetComponentsInChildren<Renderer>(true);
 
@@ -181,6 +201,21 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         }
 
         EnsureActiveMaintenanceBay();
+
+        if (defenseController == null)
+        {
+            defenseController = GetComponent<ShopDefenseController2D>();
+        }
+
+        if (neutralZone == null)
+        {
+            neutralZone = GetComponentInChildren<ShopNeutralZone2D>(true);
+        }
+
+        if (portalArrivalPoint == null)
+        {
+            portalArrivalPoint = transform.Find("PortalArrivalPoint");
+        }
 
         if (collidersToDisableOnDeath == null || collidersToDisableOnDeath.Length == 0)
         {
@@ -222,6 +257,8 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
             StopCoroutine(warningRoutine);
             warningRoutine = null;
         }
+
+        defenseController?.SetCombatActive(false, null);
     }
 
     private void Update()
@@ -347,7 +384,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     public void ResetShop()
     {
         EnsureActiveMaintenanceBay();
-        currentShield = globalHostile ? 0f : maxShield;
+        currentShield = maxShield;
         currentBodyHp = maxBodyHp;
         spentCredits = 0;
         combatStarted = false;
@@ -412,7 +449,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
             return;
         }
 
-        if (!globalHostile)
+        if (currentShield > 0f)
         {
             DamageShield(damage, hitPoint, incomingDirection);
             return;
@@ -550,19 +587,29 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
             return;
         }
 
-        if (globalHostile)
+        if (warningRoutine != null)
         {
-            currentShield = 0f;
-            CurrentState = ShopStructureState.HostileIdle;
+            StopCoroutine(warningRoutine);
+            warningRoutine = null;
         }
-        else
+
+        SetWarningVisual(false);
+        CurrentState = globalHostile
+            ? ShopStructureState.HostileIdle
+            : ShopStructureState.Neutral;
+
+        if (!globalHostile && currentShield <= 0f)
         {
             currentShield = maxShield;
-            CurrentState = ShopStructureState.Neutral;
         }
 
         ShieldChanged?.Invoke(this, currentShield, maxShield);
         StateChanged?.Invoke(this);
+
+        if (!globalHostile)
+        {
+            defenseController?.SetCombatActive(false, null);
+        }
     }
 
     private void UpdateHostileState()
@@ -575,7 +622,8 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         if (targetPlayer == null)
         {
-            CurrentState = ShopStructureState.HostileIdle;
+            SetHostileRuntimeState(ShopStructureState.HostileIdle);
+            defenseController?.SetCombatActive(false, null);
             return;
         }
 
@@ -583,41 +631,26 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         if (distance > hostileDetectRange)
         {
-            CurrentState = ShopStructureState.HostileIdle;
             combatStarted = false;
+            SetHostileRuntimeState(ShopStructureState.HostileIdle);
+            defenseController?.SetCombatActive(false, targetPlayer);
             return;
         }
 
-        if (!combatStarted)
-        {
-            StartCombat();
-        }
-
-        CurrentState = ShopStructureState.Combat;
-        attackTimer -= Time.deltaTime;
-        droneSummonTimer -= Time.deltaTime;
-
-        if (attackTimer <= 0f)
-        {
-            attackTimer = attackInterval;
-            FireShotgunPattern();
-        }
-
-        CleanupDroneList();
-
-        if (droneSummonTimer <= 0f)
-        {
-            droneSummonTimer = droneSummonInterval;
-            TrySummonSecurityDrones(1);
-        }
+        combatStarted = true;
+        SetHostileRuntimeState(ShopStructureState.Combat);
+        defenseController?.SetCombatActive(true, targetPlayer);
     }
 
-    private void StartCombat()
+    private void SetHostileRuntimeState(ShopStructureState nextState)
     {
-        combatStarted = true;
-        attackTimer = 0.2f;
-        droneSummonTimer = droneSummonInterval;
-        TrySummonSecurityDrones(dronesOnCombatStart);
+        if (CurrentState == nextState || CurrentState == ShopStructureState.Dead)
+        {
+            return;
+        }
+
+        CurrentState = nextState;
+        StateChanged?.Invoke(this);
     }
 
     private void FireShotgunPattern()
@@ -721,8 +754,22 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
             }
 
             activeDrones.Add(drone);
-            AudioManager.PlayAt(SoundEventIds.SecurityDroneSpawn, drone.transform.position, 0.75f);
-            TrySetDroneTarget(drone);
+
+            EnemyBaseAI droneAI = TrySetDroneTarget(drone);
+            bool arrivalStarted = EnemyArrivalSpawnUtility.BeginArrival(
+                drone,
+                position,
+                targetPlayer,
+                true,
+                transform.position
+            );
+
+            AudioManager.PlayAt(SoundEventIds.SecurityDroneSpawn, position, 0.75f);
+
+            if (!arrivalStarted && droneAI != null && targetPlayer != null)
+            {
+                droneAI.ApplyRadarAlert(transform.position);
+            }
         }
     }
 
@@ -746,20 +793,21 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         return null;
     }
 
-    private void TrySetDroneTarget(GameObject drone)
+    private EnemyBaseAI TrySetDroneTarget(GameObject drone)
     {
-        if (drone == null || targetPlayer == null)
+        if (drone == null)
         {
-            return;
+            return null;
         }
 
         EnemyBaseAI enemyAI = drone.GetComponentInChildren<EnemyBaseAI>(true);
 
-        if (enemyAI != null)
+        if (enemyAI != null && targetPlayer != null)
         {
             enemyAI.SetTarget(targetPlayer);
-            enemyAI.ApplyRadarAlert(transform.position);
         }
+
+        return enemyAI;
     }
 
     private void CleanupDroneList()
@@ -771,6 +819,32 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
                 activeDrones.RemoveAt(i);
             }
         }
+    }
+
+    public void ForceHostileFromSecuritySabotage(FieldBaseSecurityNode disabledNode)
+    {
+        string sourceName = disabledNode != null ? disabledNode.NodeName : "전력 장치";
+        ForceHostileFromDefenseSabotage(sourceName);
+    }
+
+    public void ForceHostileFromDefenseSabotage(string sourceName)
+    {
+        if (CurrentState == ShopStructureState.Dead)
+        {
+            return;
+        }
+
+        if (!globalHostile)
+        {
+            string finalSourceName = string.IsNullOrWhiteSpace(sourceName)
+                ? "방어 설비"
+                : sourceName;
+            ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+            hud?.ShowWarning($"{finalSourceName} 공격 감지. 상점 보안 체계가 적대화됩니다.");
+            AudioManager.PlayAt(SoundEventIds.ShopHostile, transform.position, 0.9f);
+        }
+
+        SetGlobalHostile();
     }
 
     public bool CanBuyRepair(GameObject playerObject)
@@ -1036,6 +1110,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         CurrentState = ShopStructureState.Dead;
         StateChanged?.Invoke(this);
+        defenseController?.SetCombatActive(false, null);
 
         SetWarningVisual(false);
 

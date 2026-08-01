@@ -11,6 +11,7 @@ public class RunTraitEffectApplier : MonoBehaviour
     [SerializeField] private PlayerWeaponModifiers weaponModifiers;
     [SerializeField] private PlayerRuntimeBonusState runtimeBonusState;
     [SerializeField] private PlayerCargoController cargoController;
+    [SerializeField] private BossPassiveRuntimeController bossPassiveController;
 
     [Header("Trait Source")]
     [SerializeField] private TraitCatalog traitCatalog;
@@ -321,6 +322,18 @@ public class RunTraitEffectApplier : MonoBehaviour
                 }
                 break;
 
+            case TraitEffectType.SectorBarrierProtocol:
+                GetBossPassiveController()?.ConfigureSectorBarrier(Mathf.RoundToInt(value));
+                break;
+
+            case TraitEffectType.MatterReconstructorProtocol:
+                GetBossPassiveController()?.ConfigureMatterReconstructor(Mathf.RoundToInt(value));
+                break;
+
+            case TraitEffectType.PhaseAfterimageProtocol:
+                GetBossPassiveController()?.ConfigurePhaseAfterimage(Mathf.RoundToInt(value));
+                break;
+
             case TraitEffectType.CloseRangeDamageReductionPercent:
             case TraitEffectType.DashDamageReductionPercent:
             case TraitEffectType.CloseRangeSuppressionPercent:
@@ -472,6 +485,18 @@ public class RunTraitEffectApplier : MonoBehaviour
                 runtimeBonusState?.RemoveRadarStealthDurationBonus(value);
                 break;
 
+            case TraitEffectType.SectorBarrierProtocol:
+                GetBossPassiveController()?.ConfigureSectorBarrier(Mathf.Max(0, Mathf.RoundToInt(value) - 1));
+                break;
+
+            case TraitEffectType.MatterReconstructorProtocol:
+                GetBossPassiveController()?.ConfigureMatterReconstructor(Mathf.Max(0, Mathf.RoundToInt(value) - 1));
+                break;
+
+            case TraitEffectType.PhaseAfterimageProtocol:
+                GetBossPassiveController()?.ConfigurePhaseAfterimage(Mathf.Max(0, Mathf.RoundToInt(value) - 1));
+                break;
+
             case TraitEffectType.CloseRangeDamageReductionPercent:
             case TraitEffectType.DashDamageReductionPercent:
             case TraitEffectType.CloseRangeSuppressionPercent:
@@ -524,6 +549,26 @@ public class RunTraitEffectApplier : MonoBehaviour
         {
             cargoController = gameObject.AddComponent<PlayerCargoController>();
         }
+
+        if (bossPassiveController == null)
+        {
+            bossPassiveController = GetComponent<BossPassiveRuntimeController>();
+        }
+    }
+
+    private BossPassiveRuntimeController GetBossPassiveController()
+    {
+        if (bossPassiveController == null)
+        {
+            bossPassiveController = GetComponent<BossPassiveRuntimeController>();
+        }
+
+        if (bossPassiveController == null)
+        {
+            bossPassiveController = gameObject.AddComponent<BossPassiveRuntimeController>();
+        }
+
+        return bossPassiveController;
     }
 
     private void ApplyCargoCapacityBonus(float value)

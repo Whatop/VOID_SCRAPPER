@@ -76,7 +76,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: ee8261317c1ff734daa9da91d24312b3, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 1bafdb4be926bda4e891a509bad5478f, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -118,7 +118,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 11.88, y: 3.09, z: 0}
-  m_LocalScale: {x: 0.3, y: 0.3, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1400643041236353376}
@@ -170,15 +170,18 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: 0.48521358, y: 0.80804604}
-      - {x: -0.23356977, y: 0.9197102}
-      - {x: -0.9270658, y: 0.67978644}
-      - {x: -1.0417001, y: 0.010422349}
-      - {x: -0.7370797, y: -0.6010676}
-      - {x: 0.3691714, y: -0.87300134}
-      - {x: 0.8115491, y: -0.86817396}
-      - {x: 1.0753706, y: -0.5319434}
-      - {x: 1.0736927, y: 0.05841139}
+    - - {x: -0.085660934, y: 0.14753056}
+      - {x: -0.1397438, y: 0.10164523}
+      - {x: -0.16250044, y: 0.009565383}
+      - {x: -0.1247229, y: -0.0740813}
+      - {x: 0.010828614, y: -0.16250873}
+      - {x: 0.0730629, y: -0.16032147}
+      - {x: 0.14151573, y: -0.097471}
+      - {x: 0.16098022, y: -0.054486036}
+      - {x: 0.14949322, y: 0.031294346}
+      - {x: 0.10831356, y: 0.09123778}
+      - {x: 0.055194855, y: 0.10036969}
+      - {x: -0.0057344437, y: 0.15736145}
   m_UseDelaunayMesh: 0
 --- !u!114 &855974415847308221
 MonoBehaviour:
@@ -192,7 +195,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a33fb127376052d43ad31f317b14a9a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHp: 3
+  maxHp: 1
   takeDamageFromPlayerProjectiles: 1
   takeDamageFromEnemyProjectiles: 0
   blockProjectileWhenDamageIgnored: 1

@@ -72,7 +72,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rewardDefinition: {fileID: 11400000, guid: c25376f45066b7e45a54d9f281a696bf, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
-  healPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
+  legacyHealPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
   fallbackReinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}
   reinforcementPickupPrefab: {fileID: 5731060007047836178, guid: 68a782fdd93f485418b72f76aa265798, type: 3}
   reinforcementMinScatterRadius: 0.35
@@ -146,15 +146,20 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: 0.7472687, y: 0.7675164}
-      - {x: -0.2314645, y: 0.41418818}
-      - {x: -0.62099713, y: 0.13752341}
-      - {x: -0.9339488, y: -0.34440562}
-      - {x: -0.9129489, y: -0.495571}
-      - {x: -0.6742685, y: -0.57653326}
-      - {x: -0.17261082, y: -0.5163259}
-      - {x: 0.5170335, y: -0.13266413}
-      - {x: 0.8957032, y: 0.25366387}
+    - - {x: 0.46622494, y: 0.26340932}
+      - {x: 0.21193004, y: 0.2640431}
+      - {x: -0.049694158, y: 0.19152337}
+      - {x: -0.2364015, y: 0.20066309}
+      - {x: -0.52595997, y: 0.12147817}
+      - {x: -0.5599668, y: -0.00143677}
+      - {x: -0.55171317, y: -0.11011656}
+      - {x: -0.51617694, y: -0.1588471}
+      - {x: 0.20087856, y: -0.26577348}
+      - {x: 0.4667823, y: -0.27560663}
+      - {x: 0.5511228, y: -0.24539353}
+      - {x: 0.5546761, y: -0.13517363}
+      - {x: 0.5252754, y: -0.0026867539}
+      - {x: 0.5443723, y: 0.22605927}
   m_UseDelaunayMesh: 0
 --- !u!114 &1470241364112002413
 MonoBehaviour:
@@ -286,12 +291,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: f24c2cdfdd7eea545a3f2ac8cb5f06ea, type: 3}
+  m_Sprite: {fileID: 21300000, guid: a52c785be7ef860429861f4924ec13d9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1.14, y: 1.88}
+  m_Size: {x: 1.28, y: 1.28}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1

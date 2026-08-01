@@ -1,10 +1,17 @@
-﻿using UnityEngine;
+using UnityEngine;
+using UnityEngine.Serialization;
 
 [CreateAssetMenu(menuName = "VOID SCRAPPER/Map/Map Generation Config")]
 public class MapGenerationConfig : ScriptableObject
 {
-    [Header("Map Size")]
-    [SerializeField] private Vector2 mapSize = new Vector2(80f, 80f);
+    [Header("Map Size - Campaign Regions")]
+    [Tooltip("기존 에셋 호환용이자 1해역 기본 크기입니다.")]
+    [SerializeField] private Vector2 mapSize = new Vector2(120f, 120f);
+    [SerializeField] private bool useRegionSpecificMapSizes = true;
+    [SerializeField] private Vector2 region1MapSize = new Vector2(120f, 120f);
+    [SerializeField] private Vector2 region2MapSize = new Vector2(128f, 128f);
+    [SerializeField] private Vector2 region3MapSize = new Vector2(116f, 116f);
+    [SerializeField] private Vector2 finalNetworkMapSize = new Vector2(96f, 96f);
 
     [Header("Placement Rules")]
     [SerializeField] private float startSafeRadius = 10f;
@@ -39,13 +46,27 @@ public class MapGenerationConfig : ScriptableObject
     [SerializeField] private int highValueWreckCount = 3;
     [SerializeField] private int supplyContainerCount = 16;
     [SerializeField] private int destroyedHullCount = 8;
-    [SerializeField] private int meteorCount = 24;
+
+    [Header("Meteors by Size")]
+    [FormerlySerializedAs("meteorCount")]
+    [Tooltip("소형 운석. 수량이 많고 이동 가능한 환경 오브젝트용입니다.")]
+    [SerializeField] private int smallMeteorCount = 30;
+    [Tooltip("대형 운석. 수량이 적고 벽/LOS 차단 지형용입니다.")]
+    [SerializeField] private int largeMeteorCount = 3;
 
     [Header("Enemies")]
     [SerializeField] private int basicEnemyCount = 20;
     [SerializeField] private int shotgunEnemyCount = 5;
     [SerializeField] private int chargingEnemyCount = 4;
+    [SerializeField] private int meleeChargerCount = 2;
+    [Tooltip("분할 엘리트 사용을 끈 경우에만 사용하는 기존 엘리트 총수입니다.")]
     [SerializeField] private int eliteEnemyCount = 2;
+
+    [Header("Elite Enemy Variants")]
+    [SerializeField] private bool useSplitEliteCounts = true;
+    [SerializeField] private int eliteMachineGunCount = 1;
+    [SerializeField] private int eliteShotgunCount = 1;
+    [SerializeField] private int eliteChargingCount;
 
     [Header("Enemy Roles - Total enemy count is preserved")]
     [SerializeField] private bool enableEnemyRoles = true;
@@ -64,13 +85,43 @@ public class MapGenerationConfig : ScriptableObject
     [SerializeField] private int maxConcurrentRivalActions = 1;
     [SerializeField] private int maxConcurrentScavengerActions = 1;
 
-    [Header("Deep Zone Modifier")]
+    [Header("Campaign Region Modifiers")]
+    [Tooltip("2해역 기존 심부 보정. 기존 에셋 호환을 위해 필드명을 유지합니다.")]
     [SerializeField] private float deepZoneEnemyHpMultiplier = 1.2f;
-    [SerializeField] private float deepZoneEnemyDamageMultiplier = 1.2f;
-    [SerializeField] private float deepZoneScrapMultiplier = 1.3f;
+    [SerializeField] private float deepZoneEnemyDamageMultiplier = 1.15f;
+    [SerializeField] private float deepZoneScrapMultiplier = 1.25f;
     [SerializeField] private int deepZoneAdditionalCoreReward = 1;
 
-    public Vector2 MapSize => mapSize;
+    [SerializeField] private float region3EnemyHpMultiplier = 1.4f;
+    [SerializeField] private float region3EnemyDamageMultiplier = 1.3f;
+    [SerializeField] private float region3ScrapMultiplier = 1.45f;
+    [SerializeField] private int region3CoreReward = 2;
+
+    [SerializeField] private float finalNetworkEnemyHpMultiplier = 1.6f;
+    [SerializeField] private float finalNetworkEnemyDamageMultiplier = 1.45f;
+    [SerializeField] private float finalNetworkScrapMultiplier = 1.6f;
+    [SerializeField] private int finalNetworkCoreReward = 0;
+
+    public Vector2 MapSize => GetMapSize(ExpeditionDepth.Normal);
+
+    public Vector2 GetMapSize(ExpeditionDepth depth)
+    {
+        if (!useRegionSpecificMapSizes)
+        {
+            return SanitizeMapSize(mapSize, CampaignProgressionCatalog.GetDefaultMapSize(depth));
+        }
+
+        Vector2 configured = depth switch
+        {
+            ExpeditionDepth.Normal => region1MapSize,
+            ExpeditionDepth.DeepZone1 => region2MapSize,
+            ExpeditionDepth.DeepZone2 => region3MapSize,
+            ExpeditionDepth.FinalNetwork => finalNetworkMapSize,
+            _ => mapSize
+        };
+
+        return SanitizeMapSize(configured, CampaignProgressionCatalog.GetDefaultMapSize(depth));
+    }
 
     public float StartSafeRadius => startSafeRadius;
     public float ImportantPointMinDistance => importantPointMinDistance;
@@ -100,12 +151,23 @@ public class MapGenerationConfig : ScriptableObject
     public int HighValueWreckCount => highValueWreckCount;
     public int SupplyContainerCount => supplyContainerCount;
     public int DestroyedHullCount => destroyedHullCount;
-    public int MeteorCount => meteorCount;
+    public int SmallMeteorCount => Mathf.Max(0, smallMeteorCount);
+    public int LargeMeteorCount => Mathf.Max(0, largeMeteorCount);
+
+    // 기존 외부 코드 호환용. 이제 소형 운석 수를 반환합니다.
+    public int MeteorCount => SmallMeteorCount;
 
     public int BasicEnemyCount => basicEnemyCount;
     public int ShotgunEnemyCount => shotgunEnemyCount;
     public int ChargingEnemyCount => chargingEnemyCount;
-    public int EliteEnemyCount => eliteEnemyCount;
+    public int MeleeChargerCount => Mathf.Max(0, meleeChargerCount);
+    public bool UseSplitEliteCounts => useSplitEliteCounts;
+    public int EliteMachineGunCount => useSplitEliteCounts ? Mathf.Max(0, eliteMachineGunCount) : 0;
+    public int EliteShotgunCount => useSplitEliteCounts
+        ? Mathf.Max(0, eliteShotgunCount)
+        : Mathf.Max(0, eliteEnemyCount);
+    public int EliteChargingCount => useSplitEliteCounts ? Mathf.Max(0, eliteChargingCount) : 0;
+    public int EliteEnemyCount => EliteMachineGunCount + EliteShotgunCount + EliteChargingCount;
 
     public bool EnableEnemyRoles => enableEnemyRoles;
     public int DefenderBasicCount => Mathf.Max(0, defenderBasicCount);
@@ -126,14 +188,84 @@ public class MapGenerationConfig : ScriptableObject
     public float DeepZoneEnemyDamageMultiplier => deepZoneEnemyDamageMultiplier;
     public float DeepZoneScrapMultiplier => deepZoneScrapMultiplier;
     public int DeepZoneAdditionalCoreReward => deepZoneAdditionalCoreReward;
+
+    public float GetEnemyHpMultiplier(ExpeditionDepth depth)
+    {
+        return depth switch
+        {
+            ExpeditionDepth.Normal => 1f,
+            ExpeditionDepth.DeepZone1 => Mathf.Max(0.01f, deepZoneEnemyHpMultiplier),
+            ExpeditionDepth.DeepZone2 => Mathf.Max(0.01f, region3EnemyHpMultiplier),
+            ExpeditionDepth.FinalNetwork => Mathf.Max(0.01f, finalNetworkEnemyHpMultiplier),
+            _ => 1f
+        };
+    }
+
+    public float GetEnemyDamageMultiplier(ExpeditionDepth depth)
+    {
+        return depth switch
+        {
+            ExpeditionDepth.Normal => 1f,
+            ExpeditionDepth.DeepZone1 => Mathf.Max(0.01f, deepZoneEnemyDamageMultiplier),
+            ExpeditionDepth.DeepZone2 => Mathf.Max(0.01f, region3EnemyDamageMultiplier),
+            ExpeditionDepth.FinalNetwork => Mathf.Max(0.01f, finalNetworkEnemyDamageMultiplier),
+            _ => 1f
+        };
+    }
+
+    public float GetScrapMultiplier(ExpeditionDepth depth)
+    {
+        return depth switch
+        {
+            ExpeditionDepth.Normal => 1f,
+            ExpeditionDepth.DeepZone1 => Mathf.Max(0f, deepZoneScrapMultiplier),
+            ExpeditionDepth.DeepZone2 => Mathf.Max(0f, region3ScrapMultiplier),
+            ExpeditionDepth.FinalNetwork => Mathf.Max(0f, finalNetworkScrapMultiplier),
+            _ => 1f
+        };
+    }
+
+    public int GetCoreShardReward(ExpeditionDepth depth)
+    {
+        return depth switch
+        {
+            ExpeditionDepth.Normal => 1,
+            ExpeditionDepth.DeepZone1 => 1 + Mathf.Max(0, deepZoneAdditionalCoreReward),
+            ExpeditionDepth.DeepZone2 => Mathf.Max(0, region3CoreReward),
+            ExpeditionDepth.FinalNetwork => Mathf.Max(0, finalNetworkCoreReward),
+            _ => 1
+        };
+    }
+
+    private Vector2 SanitizeMapSize(Vector2 value, Vector2 fallback)
+    {
+        if (value.x <= 0f || value.y <= 0f)
+        {
+            value = fallback;
+        }
+
+        return new Vector2(Mathf.Max(1f, value.x), Mathf.Max(1f, value.y));
+    }
 #if UNITY_EDITOR
     private void OnValidate()
     {
         mapSize.x = Mathf.Max(1f, mapSize.x);
         mapSize.y = Mathf.Max(1f, mapSize.y);
+        region1MapSize = SanitizeMapSize(region1MapSize, new Vector2(120f, 120f));
+        region2MapSize = SanitizeMapSize(region2MapSize, new Vector2(128f, 128f));
+        region3MapSize = SanitizeMapSize(region3MapSize, new Vector2(116f, 116f));
+        finalNetworkMapSize = SanitizeMapSize(finalNetworkMapSize, new Vector2(96f, 96f));
         startSafeRadius = Mathf.Max(0f, startSafeRadius);
         importantPointMinDistance = Mathf.Max(0f, importantPointMinDistance);
         fieldNpcCount = Mathf.Max(0, fieldNpcCount);
+        basicEnemyCount = Mathf.Max(0, basicEnemyCount);
+        shotgunEnemyCount = Mathf.Max(0, shotgunEnemyCount);
+        chargingEnemyCount = Mathf.Max(0, chargingEnemyCount);
+        meleeChargerCount = Mathf.Max(0, meleeChargerCount);
+        eliteEnemyCount = Mathf.Max(0, eliteEnemyCount);
+        eliteMachineGunCount = Mathf.Max(0, eliteMachineGunCount);
+        eliteShotgunCount = Mathf.Max(0, eliteShotgunCount);
+        eliteChargingCount = Mathf.Max(0, eliteChargingCount);
         boundaryWarningDistance = Mathf.Max(0f, boundaryWarningDistance);
         boundaryResistanceDistance = Mathf.Max(0.05f, boundaryResistanceDistance);
         boundaryMaxOutwardSpeedReduction = Mathf.Clamp(boundaryMaxOutwardSpeedReduction, 0f, 0.95f);

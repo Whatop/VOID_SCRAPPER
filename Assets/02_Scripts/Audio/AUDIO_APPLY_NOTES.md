@@ -35,4 +35,14 @@
 
 `AudioEventDatabase`의 `Spatial Mode`를 `World2D`로 바꾸면 이벤트별 Min/Max Distance와 차폐 수치를 직접 조정할 수 있다. 기존 에셋은 `Auto` 상태에서 코드 기본 프로필을 사용한다.
 
-Unity에서 `06_Audio/Resources/AudioEventDatabase.asset`가 정상 임포트되면 별도 인스펙터 연결 없이 대부분 자동으로 동작한다.
+Unity에서 `06_Audio/Resources/Audio/SoundEventLibrary.asset`가 정상 임포트되면 별도 인스펙터 연결 없이 동작한다.
+
+## 2026-07 Sound update
+
+- `SoundEventLibrary.asset`의 Event ID를 `01_ui_click` 형식으로 직접 번호화하고 정렬했다.
+- 기존 번호 없는 ID는 AudioEventDatabase 별칭 조회로 호환된다.
+- `99_music_shop_loop`를 추가하고 `06_Audio/BGM/shop.wav`를 연결했다.
+- 상점 UI에서는 환경음을 끄고 상점 음악을 재생한다.
+- 정산 결과와 정착지에서는 환경음을 끈다.
+- 기체 선택 및 특성 활성 버튼의 activate/deactivate 중복 재생을 방지한다.
+- 상세 적용법: `README_SOUND_NUMBERING_SHOP_MUSIC.md`

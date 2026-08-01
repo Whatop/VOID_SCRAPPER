@@ -18,10 +18,19 @@ public class PlayerInteractor : MonoBehaviour
 
     private readonly Collider2D[] interactableBuffer = new Collider2D[32];
 
+    private IHoldInteractable activeHoldTarget;
+    private float activeHoldTimer;
+    private bool activeHoldInterruptedByDamage;
+
     public IInteractable CurrentTarget { get; private set; }
+    public bool IsHoldingInteraction => activeHoldTarget != null;
+    public float HoldRatio => activeHoldTarget == null || activeHoldTarget.HoldDuration <= 0f
+        ? 0f
+        : Mathf.Clamp01(activeHoldTimer / activeHoldTarget.HoldDuration);
 
     public event Action<IInteractable> CurrentTargetChanged;
     public event Action<IInteractable> Interacted;
+    public event Action<IInteractable, float, bool> HoldProgressChanged;
 
     private void Awake()
     {
@@ -31,13 +40,25 @@ public class PlayerInteractor : MonoBehaviour
     private void OnEnable()
     {
         BindInput();
+
+        if (playerHealth != null)
+        {
+            playerHealth.Damaged += HandlePlayerDamaged;
+        }
     }
 
     private void OnDisable()
     {
+        CancelActiveHold();
+
         if (interactAction != null)
         {
             interactAction.Disable();
+        }
+
+        if (playerHealth != null)
+        {
+            playerHealth.Damaged -= HandlePlayerDamaged;
         }
 
         SetCurrentTarget(null);
@@ -47,10 +68,18 @@ public class PlayerInteractor : MonoBehaviour
     {
         if (GameplayPauseManager.IsPaused)
         {
+            CancelActiveHold();
             SetCurrentTarget(null);
             return;
         }
+
         UpdateCurrentTarget();
+
+        if (activeHoldTarget != null)
+        {
+            UpdateActiveHold();
+            return;
+        }
 
         if (WasInteractPressed())
         {
@@ -80,17 +109,16 @@ public class PlayerInteractor : MonoBehaviour
 
     private bool WasInteractPressed()
     {
-        if (interactAction != null && interactAction.WasPressedThisFrame())
-        {
-            return true;
-        }
+        bool inputActionPressed = interactAction != null && interactAction.WasPressedThisFrame();
+        bool keyboardPressed = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
+        return inputActionPressed || keyboardPressed;
+    }
 
-        if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
-        {
-            return true;
-        }
-
-        return false;
+    private bool IsInteractHeld()
+    {
+        bool inputActionHeld = interactAction != null && interactAction.IsPressed();
+        bool keyboardHeld = Keyboard.current != null && Keyboard.current.eKey.isPressed;
+        return inputActionHeld || keyboardHeld;
     }
 
     private void UpdateCurrentTarget()
@@ -149,6 +177,11 @@ public class PlayerInteractor : MonoBehaviour
             return;
         }
 
+        if (activeHoldTarget != null && !ReferenceEquals(activeHoldTarget, target))
+        {
+            CancelActiveHold();
+        }
+
         CurrentTarget = target;
         CurrentTargetChanged?.Invoke(CurrentTarget);
     }
@@ -157,28 +190,136 @@ public class PlayerInteractor : MonoBehaviour
     {
         if (GameplayPauseManager.IsPaused)
         {
+            CancelActiveHold();
             SetCurrentTarget(null);
             return false;
         }
+
         if (playerHealth != null && playerHealth.IsDead)
         {
             return false;
         }
 
-        if (CurrentTarget == null)
+        if (CurrentTarget == null || !CurrentTarget.CanInteract(gameObject))
         {
             return false;
         }
 
-        if (!CurrentTarget.CanInteract(gameObject))
+        if (CurrentTarget is IHoldInteractable holdTarget && holdTarget.HoldDuration > 0f)
         {
-            return false;
+            StartHoldInteraction(holdTarget);
+            return true;
         }
 
-        CurrentTarget.Interact(gameObject);
-        Interacted?.Invoke(CurrentTarget);
-        AudioManager.Play(SoundEventIds.UiClick);
+        ExecuteInteraction(CurrentTarget);
         return true;
+    }
+
+    private void StartHoldInteraction(IHoldInteractable holdTarget)
+    {
+        CancelActiveHold();
+
+        activeHoldTarget = holdTarget;
+        activeHoldTimer = 0f;
+        activeHoldInterruptedByDamage = false;
+
+        activeHoldTarget.OnHoldStarted(gameObject);
+        HoldProgressChanged?.Invoke(activeHoldTarget, 0f, true);
+    }
+
+    private void UpdateActiveHold()
+    {
+        if (activeHoldTarget == null)
+        {
+            return;
+        }
+
+        if (playerHealth != null && playerHealth.IsDead)
+        {
+            CancelActiveHold();
+            return;
+        }
+
+        if (activeHoldInterruptedByDamage ||
+            !ReferenceEquals(CurrentTarget, activeHoldTarget) ||
+            !activeHoldTarget.CanInteract(gameObject) ||
+            !IsInteractHeld())
+        {
+            CancelActiveHold();
+            return;
+        }
+
+        float duration = Mathf.Max(0.01f, activeHoldTarget.HoldDuration);
+        activeHoldTimer += Time.deltaTime;
+        float ratio = Mathf.Clamp01(activeHoldTimer / duration);
+
+        HoldProgressChanged?.Invoke(activeHoldTarget, ratio, true);
+
+        if (activeHoldTimer < duration)
+        {
+            return;
+        }
+
+        CompleteActiveHold();
+    }
+
+    private void CompleteActiveHold()
+    {
+        if (activeHoldTarget == null)
+        {
+            return;
+        }
+
+        IHoldInteractable completedTarget = activeHoldTarget;
+
+        activeHoldTarget = null;
+        activeHoldTimer = 0f;
+        activeHoldInterruptedByDamage = false;
+
+        HoldProgressChanged?.Invoke(completedTarget, 1f, false);
+
+        if (completedTarget.CanInteract(gameObject))
+        {
+            completedTarget.Interact(gameObject);
+            Interacted?.Invoke(completedTarget);
+        }
+    }
+
+    private void CancelActiveHold()
+    {
+        if (activeHoldTarget == null)
+        {
+            return;
+        }
+
+        IHoldInteractable canceledTarget = activeHoldTarget;
+
+        activeHoldTarget = null;
+        activeHoldTimer = 0f;
+        activeHoldInterruptedByDamage = false;
+
+        canceledTarget.OnHoldCanceled(gameObject);
+        HoldProgressChanged?.Invoke(canceledTarget, 0f, false);
+    }
+
+    private void ExecuteInteraction(IInteractable target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        target.Interact(gameObject);
+        Interacted?.Invoke(target);
+        AudioManager.Play(SoundEventIds.UiClick);
+    }
+
+    private void HandlePlayerDamaged(float currentHp, float maxHp)
+    {
+        if (activeHoldTarget != null && activeHoldTarget.CancelHoldOnDamage)
+        {
+            activeHoldInterruptedByDamage = true;
+        }
     }
 
     private void OnDrawGizmosSelected()

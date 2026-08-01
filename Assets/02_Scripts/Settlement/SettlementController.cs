@@ -894,6 +894,40 @@ public class SettlementController : MonoBehaviour
         SetMessage($"탐사 시작: {selectedShip.DisplayName} / {GetWeaponDisplayName(selectedWeaponTree)}");
         RunManager.Instance.StartNewRunAndLoadExpedition(selectedWeaponTree, selectedShip.ShipId);
     }
+
+    public bool LaunchFinalExpedition()
+    {
+        if (RunManager.Instance == null)
+        {
+            SetMessage("RunManager가 없어 중앙 물류망으로 출격할 수 없습니다.");
+            return false;
+        }
+
+        PermanentProgress progress = PermanentProgress.Instance;
+        if (progress == null || !progress.CanLaunchFinalExpedition)
+        {
+            SetMessage("완전 코어 활성화와 정착지 방어 완료가 필요합니다.");
+            return false;
+        }
+
+        ShipDefinition selectedShip = FindShipDefinition(SelectedShipId);
+        if (selectedShip == null || !IsShipUnlocked(selectedShip))
+        {
+            SetMessage("출격 가능한 기체를 먼저 선택하세요.");
+            return false;
+        }
+
+        selectedWeaponTree = ResolveWeaponTreeForShip(selectedShip);
+        progress.SetSelectedShipId(selectedShip.ShipId);
+        progress.SetLastSelectedWeaponTree(selectedWeaponTree);
+        SaveProgress();
+
+        SetMessage($"중앙 물류망 출격: {selectedShip.DisplayName} / {GetWeaponDisplayName(selectedWeaponTree)}");
+        return RunManager.Instance.StartFinalExpeditionAndLoad(
+            selectedWeaponTree,
+            selectedShip.ShipId
+        );
+    }
     private WeaponTreeType ResolveWeaponTreeForShip(ShipDefinition ship)
     {
         if (ship == null)
@@ -982,6 +1016,9 @@ public class SettlementController : MonoBehaviour
         builder.AppendLine($"엔진 공방: Lv {progress.GetBuildingLevel(BuildingType.EngineWorkshop)}");
         builder.AppendLine($"화기 연구소: Lv {progress.GetBuildingLevel(BuildingType.WeaponLab)}");
         builder.AppendLine($"회수 처리장: Lv {progress.GetBuildingLevel(BuildingType.RecoveryProcessor)}");
+        builder.AppendLine();
+        builder.AppendLine("[Campaign]");
+        builder.AppendLine(progress.BuildCampaignProgressText());
 
         return builder.ToString();
     }

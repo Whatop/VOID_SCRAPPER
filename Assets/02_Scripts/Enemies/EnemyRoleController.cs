@@ -68,6 +68,17 @@ public class EnemyRoleController : MonoBehaviour
     [SerializeField] private float escapeArrivalDistance = 0.6f;
     [SerializeField] private float escapeOutsidePadding = 1.5f;
 
+    [Header("Cargo Return Base")]
+    [Tooltip("직접 연결하면 이 기지로만 복귀합니다. 비어 있으면 Auto Find가 켜진 경우 가장 가까운 저장 가능 기지를 찾습니다.")]
+    [SerializeField] private FieldBaseController homeBase;
+    [SerializeField] private bool returnCargoToBase = true;
+    [SerializeField] private bool autoFindNearestBaseWhenMissing = true;
+    [SerializeField] private bool useBaseCargoRoutes = true;
+    [Min(0f)]
+    [SerializeField] private float cargoDepositDuration = 0.8f;
+    [SerializeField] private string cargoReturnWarning = "적 화물선이 기지로 복귀합니다";
+    [SerializeField] private string cargoDepositWarning = "적 기지 자원 보관량이 증가했습니다";
+
     [Header("Radar Role Visual")]
     [SerializeField] private bool applyRoleRadarVisual = true;
     [SerializeField] private Sprite roleMarkerSprite;
@@ -110,16 +121,24 @@ public class EnemyRoleController : MonoBehaviour
     private float noTargetTimer;
     private float panicTimer;
     private float escapePreparationTimer;
+    private float cargoDepositTimer;
     private float lastRoleNotificationTime = -999f;
     private int harvestedObjectCount;
     private RewardPickup channelingPickup;
     private bool harvestStartNotified;
+    private bool returningCargoToBase;
+    private bool cargoDepositStarted;
+    private bool leavingCargoBase;
+    private FieldBaseCargoRoute2D activeCargoRoute;
+    private int cargoRouteWaypointIndex;
 
     public EnemyRoleType RoleType => roleType;
     public EnemyRolePhase CurrentPhase => currentPhase;
     public Transform ProtectedTarget => protectedTarget;
     public EnemyCargoHold CargoHold => cargoHold;
+    public FieldBaseController HomeBase => homeBase;
     public bool IsEscaping => currentPhase == EnemyRolePhase.PreparingEscape || currentPhase == EnemyRolePhase.Fleeing;
+    public bool IsReturningCargoToBase => returningCargoToBase;
     public EnemyRoleSimulationLevel SimulationLevel => simulationGate != null
         ? simulationGate.CurrentLevel
         : EnemyRoleSimulationLevel.Active;
@@ -206,6 +225,11 @@ public class EnemyRoleController : MonoBehaviour
         SetMapBounds(bounds);
         EnsureCargoHold(scavengerCargoCapacity);
         InitializeRoleRuntime();
+    }
+
+    public void SetHomeBase(FieldBaseController targetBase)
+    {
+        homeBase = targetBase;
     }
 
     public void ConfigureSimulationGate(
@@ -498,10 +522,16 @@ public class EnemyRoleController : MonoBehaviour
         noTargetTimer = 0f;
         panicTimer = 0f;
         escapePreparationTimer = 0f;
+        cargoDepositTimer = 0f;
         lastRoleNotificationTime = -999f;
         harvestedObjectCount = 0;
         channelingPickup = null;
         harvestStartNotified = false;
+        returningCargoToBase = false;
+        cargoDepositStarted = false;
+        leavingCargoBase = false;
+        activeCargoRoute = null;
+        cargoRouteWaypointIndex = 0;
         rolePatrolTarget = transform.position;
         lastHarvestPosition = transform.position;
         SetHarvestBeamVisible(false);
@@ -705,7 +735,11 @@ public class EnemyRoleController : MonoBehaviour
             harvestWarmupTimer = 0f;
             harvestStartNotified = false;
             SetHarvestBeamVisible(false);
-            owner.CommandMoveTo(harvestTarget.transform.position, harvesterMoveSpeedMultiplier);
+            owner.CommandMoveTo(
+                harvestTarget.transform.position,
+                harvesterMoveSpeedMultiplier,
+                harvestTarget.transform
+            );
             return;
         }
 
@@ -952,10 +986,19 @@ public class EnemyRoleController : MonoBehaviour
 
         currentPhase = EnemyRolePhase.PreparingEscape;
         escapePreparationTimer = Mathf.Max(0f, escapePreparationDuration);
+        cargoDepositTimer = Mathf.Max(0f, cargoDepositDuration);
+        cargoDepositStarted = false;
         ReleaseHarvestTarget();
         ReleaseRewardPickupTarget();
         SetHarvestBeamVisible(false);
-        escapeTarget = CalculateEscapeTarget();
+
+        returningCargoToBase = TryResolveCargoReturnBase();
+        leavingCargoBase = false;
+        PrepareCargoRoute();
+
+        escapeTarget = returningCargoToBase
+            ? ResolveCurrentCargoRouteTarget()
+            : CalculateEscapeTarget();
 
         if (owner != null)
         {
@@ -964,8 +1007,8 @@ public class EnemyRoleController : MonoBehaviour
             owner.CommandFaceTo(escapeTarget);
         }
 
-        NotifyRoleActivity("적 화물선 이탈 준비");
-        Log("Escape preparation started.");
+        NotifyRoleActivity(returningCargoToBase ? cargoReturnWarning : "적 화물선 이탈 준비");
+        Log(returningCargoToBase ? "Cargo return preparation started." : "Escape preparation started.");
     }
 
     private void UpdateEscapePreparation(EnemyBaseAI owner, float deltaTime)
@@ -991,13 +1034,25 @@ public class EnemyRoleController : MonoBehaviour
         }
 
         currentPhase = EnemyRolePhase.Fleeing;
-        Log("Escape started.");
+        Log(returningCargoToBase ? "Cargo return started." : "Escape started.");
     }
 
     private void UpdateEscape(EnemyBaseAI owner)
     {
         if (owner == null)
         {
+            return;
+        }
+
+        if (leavingCargoBase)
+        {
+            UpdateCargoBaseExit(owner);
+            return;
+        }
+
+        if (returningCargoToBase)
+        {
+            UpdateCargoReturn(owner);
             return;
         }
 
@@ -1030,6 +1085,298 @@ public class EnemyRoleController : MonoBehaviour
 
         ReleaseIrreversibleSlot();
         ReleaseSelf();
+    }
+
+    private void UpdateCargoReturn(EnemyBaseAI owner)
+    {
+        if (cargoHold == null || !cargoHold.HasCargo)
+        {
+            CompleteCargoReturn(owner);
+            return;
+        }
+
+        if (homeBase == null || !homeBase.isActiveAndEnabled)
+        {
+            if (!TryResolveCargoReturnBase())
+            {
+                SwitchToWorldEscape(owner);
+                return;
+            }
+
+            PrepareCargoRoute();
+        }
+
+        Transform depositPoint = homeBase.ResourceDepositPoint;
+        if (depositPoint == null)
+        {
+            SwitchToWorldEscape(owner);
+            return;
+        }
+
+        if (activeCargoRoute == null && useBaseCargoRoutes)
+        {
+            PrepareCargoRoute();
+        }
+
+        if (UpdateCargoRouteForward(owner))
+        {
+            return;
+        }
+
+        escapeTarget = depositPoint.position;
+        float arrivalDistance = Mathf.Max(escapeArrivalDistance, homeBase.ResourceDepositArrivalDistance);
+        float distance = Vector2.Distance(transform.position, escapeTarget);
+
+        if (distance > arrivalDistance)
+        {
+            cargoDepositStarted = false;
+            cargoDepositTimer = Mathf.Max(0f, cargoDepositDuration);
+            owner.CommandMoveTo(escapeTarget, escapeSpeedMultiplier);
+            return;
+        }
+
+        owner.CommandStopMoving();
+        owner.CommandFaceTo(escapeTarget);
+
+        if (RefreshSimulationLevel() != EnemyRoleSimulationLevel.Active || !TryAcquireIrreversibleSlot())
+        {
+            return;
+        }
+
+        if (!cargoDepositStarted)
+        {
+            cargoDepositStarted = true;
+            cargoDepositTimer = Mathf.Max(0f, cargoDepositDuration);
+        }
+
+        cargoDepositTimer -= Time.deltaTime;
+        if (cargoDepositTimer > 0f)
+        {
+            return;
+        }
+
+        bool deposited = homeBase.TryDepositCargo(cargoHold, out int depositedWeight);
+        if (deposited && depositedWeight > 0)
+        {
+            NotifyRoleActivity(cargoDepositWarning);
+        }
+
+        if (!cargoHold.HasCargo)
+        {
+            CompleteCargoReturn(owner);
+            return;
+        }
+
+        // 지정 기지가 가득 찼으면 남은 화물을 들고 기존 해역 이탈로 전환한다.
+        if (!homeBase.CanAcceptCargo(cargoHold))
+        {
+            SwitchToWorldEscape(owner);
+            return;
+        }
+
+        cargoDepositStarted = false;
+        cargoDepositTimer = Mathf.Max(0f, cargoDepositDuration);
+    }
+
+    private void PrepareCargoRoute()
+    {
+        activeCargoRoute = null;
+        cargoRouteWaypointIndex = 0;
+
+        if (!returningCargoToBase || !useBaseCargoRoutes || homeBase == null)
+        {
+            return;
+        }
+
+        homeBase.TryGetClosestCargoRoute(transform.position, out activeCargoRoute);
+    }
+
+    private Vector2 ResolveCurrentCargoRouteTarget()
+    {
+        if (activeCargoRoute != null && activeCargoRoute.IsValid)
+        {
+            Transform waypoint = activeCargoRoute.GetWaypoint(cargoRouteWaypointIndex);
+            if (waypoint != null)
+            {
+                return waypoint.position;
+            }
+        }
+
+        return ResolveHomeBaseDepositPosition();
+    }
+
+    /// <summary>
+    /// true를 반환하면 아직 경로 Waypoint를 따라가는 중입니다.
+    /// </summary>
+    private bool UpdateCargoRouteForward(EnemyBaseAI owner)
+    {
+        if (owner == null || activeCargoRoute == null || !activeCargoRoute.IsValid)
+        {
+            return false;
+        }
+
+        while (cargoRouteWaypointIndex < activeCargoRoute.WaypointCount)
+        {
+            Transform waypoint = activeCargoRoute.GetWaypoint(cargoRouteWaypointIndex);
+
+            if (waypoint == null)
+            {
+                cargoRouteWaypointIndex++;
+                continue;
+            }
+
+            float arrivalDistance = activeCargoRoute.WaypointArrivalDistance;
+            float distance = Vector2.Distance(transform.position, waypoint.position);
+
+            if (distance > arrivalDistance)
+            {
+                escapeTarget = waypoint.position;
+                owner.CommandMoveTo(waypoint.position, escapeSpeedMultiplier);
+                return true;
+            }
+
+            cargoRouteWaypointIndex++;
+        }
+
+        return false;
+    }
+
+    private bool TryResolveCargoReturnBase()
+    {
+        if (!returnCargoToBase || cargoHold == null || !cargoHold.HasCargo)
+        {
+            return false;
+        }
+
+        if (homeBase != null)
+        {
+            return homeBase.isActiveAndEnabled && homeBase.CanAcceptCargo(cargoHold);
+        }
+
+        if (!autoFindNearestBaseWhenMissing)
+        {
+            return false;
+        }
+
+        homeBase = FieldBaseController.FindClosestResourceBase(transform.position);
+        return homeBase != null && homeBase.CanAcceptCargo(cargoHold);
+    }
+
+    private Vector2 ResolveHomeBaseDepositPosition()
+    {
+        if (homeBase == null)
+        {
+            return transform.position;
+        }
+
+        Transform point = homeBase.ResourceDepositPoint;
+        return point != null ? (Vector2)point.position : (Vector2)homeBase.transform.position;
+    }
+
+    private void CompleteCargoReturn(EnemyBaseAI owner)
+    {
+        returningCargoToBase = false;
+        cargoDepositStarted = false;
+        cargoDepositTimer = 0f;
+        escapePreparationTimer = 0f;
+        harvestedObjectCount = 0;
+        noTargetTimer = 0f;
+        targetSearchTimer = 0f;
+        ReleaseIrreversibleSlot();
+
+        if (activeCargoRoute != null && activeCargoRoute.IsValid && activeCargoRoute.WaypointCount > 0)
+        {
+            leavingCargoBase = true;
+            cargoRouteWaypointIndex = activeCargoRoute.WaypointCount - 1;
+            currentPhase = EnemyRolePhase.Fleeing;
+
+            Transform exitWaypoint = activeCargoRoute.GetWaypoint(cargoRouteWaypointIndex);
+            if (owner != null && exitWaypoint != null)
+            {
+                owner.CommandFaceTo(exitWaypoint.position);
+            }
+
+            Log("Cargo deposited. Leaving base through cargo route.");
+            return;
+        }
+
+        ResumeRoleAfterCargoReturn(owner);
+    }
+
+    private void ResumeRoleAfterCargoReturn(EnemyBaseAI owner)
+    {
+        leavingCargoBase = false;
+        activeCargoRoute = null;
+        cargoRouteWaypointIndex = 0;
+
+        currentPhase = roleType == EnemyRoleType.Scavenger
+            ? EnemyRolePhase.SeekingLoot
+            : EnemyRolePhase.SeekingHarvest;
+
+        if (owner != null)
+        {
+            owner.SetHomePosition(transform.position, false);
+            owner.RequestState(EnemyState.Patrol);
+        }
+
+        Log("Cargo deposited. Role resumed.");
+    }
+
+    private void UpdateCargoBaseExit(EnemyBaseAI owner)
+    {
+        if (owner == null)
+        {
+            return;
+        }
+
+        if (activeCargoRoute == null || !activeCargoRoute.IsValid)
+        {
+            ResumeRoleAfterCargoReturn(owner);
+            return;
+        }
+
+        while (cargoRouteWaypointIndex >= 0)
+        {
+            Transform waypoint = activeCargoRoute.GetWaypoint(cargoRouteWaypointIndex);
+
+            if (waypoint == null)
+            {
+                cargoRouteWaypointIndex--;
+                continue;
+            }
+
+            float arrivalDistance = activeCargoRoute.WaypointArrivalDistance;
+            float distance = Vector2.Distance(transform.position, waypoint.position);
+
+            if (distance > arrivalDistance)
+            {
+                owner.CommandMoveTo(waypoint.position, escapeSpeedMultiplier);
+                return;
+            }
+
+            cargoRouteWaypointIndex--;
+        }
+
+        ResumeRoleAfterCargoReturn(owner);
+    }
+
+    private void SwitchToWorldEscape(EnemyBaseAI owner)
+    {
+        returningCargoToBase = false;
+        cargoDepositStarted = false;
+        cargoDepositTimer = 0f;
+        leavingCargoBase = false;
+        activeCargoRoute = null;
+        cargoRouteWaypointIndex = 0;
+        escapeTarget = CalculateEscapeTarget();
+        currentPhase = EnemyRolePhase.Fleeing;
+
+        if (owner != null)
+        {
+            owner.CommandFaceTo(escapeTarget);
+        }
+
+        Log("Cargo base unavailable. Switched to world escape.");
     }
 
     private Vector2 CalculateEscapeTarget()
@@ -1416,7 +1763,11 @@ public class EnemyRoleController : MonoBehaviour
         {
             channelingPickup = rewardPickupTarget;
             pickupChannelTimer = Mathf.Max(0.05f, pickupCollectChannelDuration);
-            owner.CommandMoveTo(rewardPickupTarget.transform.position, moveSpeedMultiplier);
+            owner.CommandMoveTo(
+                rewardPickupTarget.transform.position,
+                moveSpeedMultiplier,
+                rewardPickupTarget.transform
+            );
             return false;
         }
 

@@ -23,9 +23,9 @@ TagManager:
   - Effect
   - AudioOccluder
   - DriftDebris
-  - 
-  - 
-  - 
+  - WorldSolid
+  - BaseLaser
+  - LogicZone
   - 
   - 
   - 

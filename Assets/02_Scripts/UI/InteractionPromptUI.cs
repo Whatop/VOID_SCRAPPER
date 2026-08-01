@@ -120,6 +120,7 @@ public class InteractionPromptUI : MonoBehaviour
         if (playerInteractor != null)
         {
             playerInteractor.CurrentTargetChanged += HandleTargetChanged;
+            playerInteractor.HoldProgressChanged += HandleInteractionHoldProgressChanged;
             HandleTargetChanged(playerInteractor.CurrentTarget);
         }
         else
@@ -138,6 +139,7 @@ public class InteractionPromptUI : MonoBehaviour
         if (playerInteractor != null)
         {
             playerInteractor.CurrentTargetChanged -= HandleTargetChanged;
+            playerInteractor.HoldProgressChanged -= HandleInteractionHoldProgressChanged;
         }
 
         CoreObject.ActivationProgressChanged -= HandleCoreActivationProgressChanged;
@@ -298,6 +300,16 @@ public class InteractionPromptUI : MonoBehaviour
 
         RefreshPromptText(target);
         FollowTarget();
+    }
+
+    private void HandleInteractionHoldProgressChanged(IInteractable target, float ratio, bool active)
+    {
+        if (target is not Component component)
+        {
+            return;
+        }
+
+        HandleDismantleProgressChanged(component, ratio, active);
     }
 
     private void HandleCoreActivationProgressChanged(CoreObject core, float ratio, bool active)

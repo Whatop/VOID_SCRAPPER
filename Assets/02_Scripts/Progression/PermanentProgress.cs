@@ -63,6 +63,14 @@ public class PermanentProgress : MonoBehaviour
     [Header("Unlock Flags")]
     [SerializeField] private List<string> unlockFlags = new List<string>();
 
+    [Header("Campaign Progression")]
+    [SerializeField] private List<CampaignBossId> defeatedCampaignBosses = new List<CampaignBossId>();
+    [SerializeField] private List<BossStoryPart> acquiredBossStoryParts = new List<BossStoryPart>();
+    [SerializeField] private ExpeditionDepth highestUnlockedDepth = ExpeditionDepth.Normal;
+    [SerializeField] private RouteCoreState routeCoreState = RouteCoreState.MissingParts;
+    [SerializeField] private bool settlementDefenseCleared;
+    [SerializeField] private bool finalBossDefeated;
+
     public int ScrapParts => scrapParts;
     public int CoreShards => coreShards;
     public int TotalRunCount => totalRunCount;
@@ -76,6 +84,21 @@ public class PermanentProgress : MonoBehaviour
     public int TotalCommittedCoreShards => totalCommittedCoreShards;
     public WeaponTreeType LastSelectedWeaponTree => lastSelectedWeaponTree;
     public string SelectedShipId => string.IsNullOrWhiteSpace(selectedShipId) ? "basic_ship" : selectedShipId;
+
+    public IReadOnlyList<CampaignBossId> DefeatedCampaignBosses => defeatedCampaignBosses;
+    public IReadOnlyList<BossStoryPart> AcquiredBossStoryParts => acquiredBossStoryParts;
+    public ExpeditionDepth HighestUnlockedDepth => highestUnlockedDepth;
+    public RouteCoreState CurrentRouteCoreState => ResolveRouteCoreState();
+    public bool SettlementDefenseCleared => settlementDefenseCleared;
+    public bool FinalBossDefeated => finalBossDefeated;
+    public int AcquiredBossStoryPartCount => CountRequiredStoryParts();
+    public bool HasAllRouteCoreParts =>
+        HasBossStoryPart(BossStoryPart.SectorStabilizer) &&
+        HasBossStoryPart(BossStoryPart.MatterCompressor) &&
+        HasBossStoryPart(BossStoryPart.PhaseNavigationLens);
+    public bool CanAssembleRouteCore => HasAllRouteCoreParts && CurrentRouteCoreState == RouteCoreState.ReadyToAssemble;
+    public bool CanActivateRouteCore => CurrentRouteCoreState == RouteCoreState.Assembled;
+    public bool CanLaunchFinalExpedition => CurrentRouteCoreState == RouteCoreState.Activated && settlementDefenseCleared;
 
     public event Action Changed;
 
@@ -153,6 +176,31 @@ public class PermanentProgress : MonoBehaviour
             }
         }
 
+        defeatedCampaignBosses.Clear();
+        if (saveData.defeatedCampaignBosses != null)
+        {
+            foreach (CampaignBossId bossId in saveData.defeatedCampaignBosses)
+            {
+                AddUniqueBossId(defeatedCampaignBosses, bossId);
+            }
+        }
+
+        acquiredBossStoryParts.Clear();
+        if (saveData.acquiredBossStoryParts != null)
+        {
+            foreach (BossStoryPart storyPart in saveData.acquiredBossStoryParts)
+            {
+                AddUniqueStoryPart(acquiredBossStoryParts, storyPart);
+            }
+        }
+
+        highestUnlockedDepth = ClampCampaignDepth(saveData.highestUnlockedDepth);
+        routeCoreState = saveData.routeCoreState;
+        settlementDefenseCleared = saveData.settlementDefenseCleared;
+        finalBossDefeated = saveData.finalBossDefeated;
+
+        RestoreCampaignProgressFromLegacyFlags();
+        RefreshCampaignDerivedState();
         PruneDisabledPermanentTraitIds();
         EnsureDefaultBuildings();
         Changed?.Invoke();
@@ -174,7 +222,11 @@ public class PermanentProgress : MonoBehaviour
             totalCommittedScrapParts = totalCommittedScrapParts,
             totalCommittedCoreShards = totalCommittedCoreShards,
             lastSelectedWeaponTree = lastSelectedWeaponTree,
-            selectedShipId = SelectedShipId
+            selectedShipId = SelectedShipId,
+            highestUnlockedDepth = highestUnlockedDepth,
+            routeCoreState = ResolveRouteCoreState(),
+            settlementDefenseCleared = settlementDefenseCleared,
+            finalBossDefeated = finalBossDefeated
         };
 
         foreach (BuildingLevelState state in buildingLevels)
@@ -199,6 +251,8 @@ public class PermanentProgress : MonoBehaviour
         }
 
         saveData.unlockFlags.AddRange(unlockFlags);
+        saveData.defeatedCampaignBosses.AddRange(defeatedCampaignBosses);
+        saveData.acquiredBossStoryParts.AddRange(acquiredBossStoryParts);
         return saveData;
     }
 
@@ -222,6 +276,12 @@ public class PermanentProgress : MonoBehaviour
         traitLevels.Clear();
         disabledPermanentTraitIds.Clear();
         unlockFlags.Clear();
+        defeatedCampaignBosses.Clear();
+        acquiredBossStoryParts.Clear();
+        highestUnlockedDepth = ExpeditionDepth.Normal;
+        routeCoreState = RouteCoreState.MissingParts;
+        settlementDefenseCleared = false;
+        finalBossDefeated = false;
 
         EnsureDefaultBuildings();
         Changed?.Invoke();
@@ -439,6 +499,127 @@ public class PermanentProgress : MonoBehaviour
         Changed?.Invoke();
     }
 
+    public bool HasDefeatedCampaignBoss(CampaignBossId bossId)
+    {
+        return bossId != CampaignBossId.None && defeatedCampaignBosses.Contains(bossId);
+    }
+
+    public bool HasBossStoryPart(BossStoryPart storyPart)
+    {
+        return storyPart != BossStoryPart.None && acquiredBossStoryParts.Contains(storyPart);
+    }
+
+    public bool IsDepthUnlocked(ExpeditionDepth depth)
+    {
+        if (depth == ExpeditionDepth.FinalNetwork)
+        {
+            return CanLaunchFinalExpedition;
+        }
+
+        return CampaignProgressionCatalog.GetRegionIndex(depth) <=
+               CampaignProgressionCatalog.GetRegionIndex(highestUnlockedDepth);
+    }
+
+    public bool RegisterCampaignBossDefeat(CampaignBossId bossId, bool grantStoryPart = true)
+    {
+        if (bossId == CampaignBossId.None)
+        {
+            return false;
+        }
+
+        bool changed = AddUniqueBossId(defeatedCampaignBosses, bossId);
+
+        if (bossId == CampaignBossId.NullDispatcher)
+        {
+            if (!finalBossDefeated)
+            {
+                finalBossDefeated = true;
+                changed = true;
+            }
+        }
+        else if (grantStoryPart)
+        {
+            BossStoryPart part = CampaignProgressionCatalog.GetStoryPart(bossId);
+            changed |= AddUniqueStoryPart(acquiredBossStoryParts, part);
+        }
+
+        AddUnlockFlag(GetBossUnlockFlag(bossId));
+        RefreshCampaignDerivedState();
+
+        if (changed)
+        {
+            Changed?.Invoke();
+        }
+
+        return changed;
+    }
+
+    public bool TryAssembleRouteCore()
+    {
+        RefreshCampaignDerivedState();
+
+        if (!HasAllRouteCoreParts || ResolveRouteCoreState() != RouteCoreState.ReadyToAssemble)
+        {
+            return false;
+        }
+
+        routeCoreState = RouteCoreState.Assembled;
+        AddUnlockFlag("campaign_route_core_assembled");
+        Changed?.Invoke();
+        return true;
+    }
+
+    public bool TryActivateRouteCore()
+    {
+        if (ResolveRouteCoreState() != RouteCoreState.Assembled)
+        {
+            return false;
+        }
+
+        routeCoreState = RouteCoreState.Activated;
+        settlementDefenseCleared = false;
+        AddUnlockFlag("campaign_route_core_activated");
+        Changed?.Invoke();
+        return true;
+    }
+
+    public void MarkSettlementDefenseCleared()
+    {
+        if (ResolveRouteCoreState() != RouteCoreState.Activated)
+        {
+            return;
+        }
+
+        if (settlementDefenseCleared)
+        {
+            return;
+        }
+
+        settlementDefenseCleared = true;
+        AddUnlockFlag("campaign_settlement_defense_cleared");
+        Changed?.Invoke();
+    }
+
+    public string BuildCampaignProgressText()
+    {
+        return
+            $"보스 부품 {AcquiredBossStoryPartCount}/3\n" +
+            $"항로 코어: {GetRouteCoreStateDisplayName()}\n" +
+            $"최고 해금 해역: {CampaignProgressionCatalog.GetRegionShortName(highestUnlockedDepth)}";
+    }
+
+    public string GetRouteCoreStateDisplayName()
+    {
+        return ResolveRouteCoreState() switch
+        {
+            RouteCoreState.MissingParts => "부품 수집 중",
+            RouteCoreState.ReadyToAssemble => "조립 가능",
+            RouteCoreState.Assembled => "조립 완료",
+            RouteCoreState.Activated => settlementDefenseCleared ? "중앙 항로 개방" : "활성화 · 방어전 대기",
+            _ => "미확인"
+        };
+    }
+
     public void ApplyRunResult(RunResultData resultData)
     {
         if (resultData == null)
@@ -467,6 +648,7 @@ public class PermanentProgress : MonoBehaviour
         switch (resultData.endReason)
         {
             case RunEndReason.SafeReturn:
+            case RunEndReason.FinalVictory:
                 safeReturnCount++;
                 break;
 
@@ -563,6 +745,146 @@ public class PermanentProgress : MonoBehaviour
         }
 
         return false;
+    }
+
+    private void RefreshCampaignDerivedState()
+    {
+        if (HasDefeatedCampaignBoss(CampaignBossId.PhaseGatekeeper))
+        {
+            highestUnlockedDepth = ExpeditionDepth.DeepZone2;
+        }
+        else if (HasDefeatedCampaignBoss(CampaignBossId.SalvageDevourer))
+        {
+            highestUnlockedDepth = ExpeditionDepth.DeepZone2;
+        }
+        else if (HasDefeatedCampaignBoss(CampaignBossId.SectorAdministrator))
+        {
+            highestUnlockedDepth = ExpeditionDepth.DeepZone1;
+        }
+        else
+        {
+            highestUnlockedDepth = ExpeditionDepth.Normal;
+        }
+
+        if (HasAllRouteCoreParts && routeCoreState == RouteCoreState.MissingParts)
+        {
+            routeCoreState = RouteCoreState.ReadyToAssemble;
+        }
+
+        if (!HasAllRouteCoreParts && routeCoreState != RouteCoreState.MissingParts)
+        {
+            routeCoreState = RouteCoreState.MissingParts;
+            settlementDefenseCleared = false;
+        }
+    }
+
+    private RouteCoreState ResolveRouteCoreState()
+    {
+        if (routeCoreState == RouteCoreState.MissingParts && HasAllRouteCoreParts)
+        {
+            return RouteCoreState.ReadyToAssemble;
+        }
+
+        return routeCoreState;
+    }
+
+    private int CountRequiredStoryParts()
+    {
+        int count = 0;
+
+        if (HasBossStoryPart(BossStoryPart.SectorStabilizer)) count++;
+        if (HasBossStoryPart(BossStoryPart.MatterCompressor)) count++;
+        if (HasBossStoryPart(BossStoryPart.PhaseNavigationLens)) count++;
+
+        return count;
+    }
+
+    private ExpeditionDepth ClampCampaignDepth(ExpeditionDepth depth)
+    {
+        return depth switch
+        {
+            ExpeditionDepth.Normal => ExpeditionDepth.Normal,
+            ExpeditionDepth.DeepZone1 => ExpeditionDepth.DeepZone1,
+            ExpeditionDepth.DeepZone2 => ExpeditionDepth.DeepZone2,
+            ExpeditionDepth.FinalNetwork => ExpeditionDepth.FinalNetwork,
+            _ => ExpeditionDepth.Normal
+        };
+    }
+
+    private bool AddUniqueBossId(List<CampaignBossId> target, CampaignBossId bossId)
+    {
+        if (target == null || bossId == CampaignBossId.None || target.Contains(bossId))
+        {
+            return false;
+        }
+
+        target.Add(bossId);
+        return true;
+    }
+
+    private bool AddUniqueStoryPart(List<BossStoryPart> target, BossStoryPart storyPart)
+    {
+        if (target == null || storyPart == BossStoryPart.None || target.Contains(storyPart))
+        {
+            return false;
+        }
+
+        target.Add(storyPart);
+        return true;
+    }
+
+    private string GetBossUnlockFlag(CampaignBossId bossId)
+    {
+        return bossId switch
+        {
+            CampaignBossId.SectorAdministrator => "campaign_boss_sector_administrator_defeated",
+            CampaignBossId.SalvageDevourer => "campaign_boss_salvage_devourer_defeated",
+            CampaignBossId.PhaseGatekeeper => "campaign_boss_phase_gatekeeper_defeated",
+            CampaignBossId.NullDispatcher => "campaign_boss_null_dispatcher_defeated",
+            _ => string.Empty
+        };
+    }
+
+    private void RestoreCampaignProgressFromLegacyFlags()
+    {
+        if (HasUnlockFlag("campaign_boss_sector_administrator_defeated"))
+        {
+            AddUniqueBossId(defeatedCampaignBosses, CampaignBossId.SectorAdministrator);
+            AddUniqueStoryPart(acquiredBossStoryParts, BossStoryPart.SectorStabilizer);
+        }
+
+        if (HasUnlockFlag("campaign_boss_salvage_devourer_defeated"))
+        {
+            AddUniqueBossId(defeatedCampaignBosses, CampaignBossId.SalvageDevourer);
+            AddUniqueStoryPart(acquiredBossStoryParts, BossStoryPart.MatterCompressor);
+        }
+
+        if (HasUnlockFlag("campaign_boss_phase_gatekeeper_defeated"))
+        {
+            AddUniqueBossId(defeatedCampaignBosses, CampaignBossId.PhaseGatekeeper);
+            AddUniqueStoryPart(acquiredBossStoryParts, BossStoryPart.PhaseNavigationLens);
+        }
+
+        if (HasUnlockFlag("campaign_boss_null_dispatcher_defeated"))
+        {
+            AddUniqueBossId(defeatedCampaignBosses, CampaignBossId.NullDispatcher);
+            finalBossDefeated = true;
+        }
+
+        if (HasUnlockFlag("campaign_route_core_assembled") && HasAllRouteCoreParts)
+        {
+            routeCoreState = RouteCoreState.Assembled;
+        }
+
+        if (HasUnlockFlag("campaign_route_core_activated") && HasAllRouteCoreParts)
+        {
+            routeCoreState = RouteCoreState.Activated;
+        }
+
+        if (HasUnlockFlag("campaign_settlement_defense_cleared"))
+        {
+            settlementDefenseCleared = true;
+        }
     }
 
     private void EnsureDefaultBuildings()

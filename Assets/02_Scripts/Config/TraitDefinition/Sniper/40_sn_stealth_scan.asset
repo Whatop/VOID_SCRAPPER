@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   traitId: sn_stealth_scan
   displayName: "침투 프로토콜"
-  description: "Lv1: 적 근접 레이더 탐지 차단 및 Q 스캔 적의 ?/! 상태 표시\nLv2: Q 스캔 적의 부채꼴 시야 표시\nLv3: 적의 시각 탐지 완료 시간 35% 증가"
+  description: "Lv1: 적 근접 레이더 탐지 차단 및 레이더 패널 활성화 중 모든 적의 ?/! 상태 표시\nLv2: 레이더 패널 활성화 중 모든 적의 부채꼴 시야 표시\nLv3: 적의 시각 탐지 완료 시간 35% 증가"
   icon: {fileID: 21300000, guid: acb8911b0f289aad39da499bbc3f64dc, type: 3}
   rarity: 2
   category: 1
