@@ -32,6 +32,7 @@ MonoBehaviour:
   bossCameraEdgePadding: 2.5
   fallbackBossCameraBaseOrthographicSize: 4.2
   fallbackBossCameraAspect: 1.7777778
+  fieldBaseCount: 2
   shopCount: 2
   eventCount: 4
   coreCount: 1

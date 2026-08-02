@@ -115,6 +115,18 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private float chargeProjectileSpeedOverride = 24f;
     [SerializeField] private float chargeProjectileRangeOverride = 22f;
     [SerializeField] private float chargeProjectileScaleMultiplier = 3f;
+    [Tooltip("켜면 보스 추적 차징탄이 StaticTerrain 또는 WorldSolid 대형 운석을 한 번에 파괴합니다.")]
+    [SerializeField] private bool chargeProjectileDestroysLargeMeteor = true;
+
+    [Header("Boss Projectile World Destruction")]
+    [Tooltip("보스의 모든 탄환이 소형 운석을 한 번에 파괴합니다. 대형 운석은 위 차징탄 옵션으로만 파괴합니다.")]
+    [SerializeField] private bool bossProjectilesDestroySmallMeteor = true;
+    [Tooltip("보스의 모든 탄환이 보급 컨테이너를 한 번에 파괴합니다.")]
+    [SerializeField] private bool bossProjectilesDestroySupplyContainer = true;
+    [Tooltip("보스의 모든 탄환이 고가치 잔해를 한 번에 파괴합니다.")]
+    [SerializeField] private bool bossProjectilesDestroyHighValueWreck = true;
+    [Tooltip("필요할 때만 켜세요. 기본값은 파괴된 선체를 보스 탄환에 보호합니다.")]
+    [SerializeField] private bool bossProjectilesDestroyDestroyedHull;
 
     [Header("Charge Visual")]
     [SerializeField] private Color chargeAimLineColor = new Color(1f, 0f, 0f, 0.8f);
@@ -731,7 +743,8 @@ public class BossPatternController : MonoBehaviour
             chargeProjectileDamage * GetDamageMultiplier(),
             chargeProjectileSpeedOverride,
             chargeProjectileRangeOverride,
-            chargeProjectileScaleMultiplier
+            chargeProjectileScaleMultiplier,
+            chargeProjectileDestroysLargeMeteor
         );
     }
     private IEnumerator Phase2HexagonRotatingLaserRoutine()
@@ -1212,7 +1225,8 @@ public class BossPatternController : MonoBehaviour
         float damage,
         float speedOverride,
         float rangeOverride,
-        float scaleMultiplier)
+        float scaleMultiplier,
+        bool destroyLargeMeteorOnHit = false)
     {
         if (projectileDefinition == null || projectileDefinition.ProjectilePrefab == null)
         {
@@ -1263,6 +1277,13 @@ public class BossPatternController : MonoBehaviour
             damage,
             speedOverride,
             rangeOverride
+        );
+        bullet.ConfigureBossWorldImpact(
+            destroyLargeMeteorOnHit,
+            bossProjectilesDestroySmallMeteor,
+            bossProjectilesDestroySupplyContainer,
+            bossProjectilesDestroyHighValueWreck,
+            bossProjectilesDestroyDestroyedHull
         );
     }
 

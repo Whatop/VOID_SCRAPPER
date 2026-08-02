@@ -81,7 +81,7 @@ MonoBehaviour:
   setPlayerAsEnemyTarget: 1
   playerTag: Player
   takeDamageFromPlayerProjectiles: 1
-  takeDamageFromEnemyProjectiles: 0
+  takeDamageFromEnemyProjectiles: 1
   blockProjectileWhenDamageIgnored: 1
   receiveDashKnockback: 0
   knockbackMultiplier: 1
@@ -175,6 +175,7 @@ MonoBehaviour:
   minScatterSpeed: 1
   maxScatterSpeed: 2.6
   angleJitter: 15
+  runtimeCurrencyMultiplier: 1
   logMissingPrefab: 1
 --- !u!114 &3755659635229719944
 MonoBehaviour:

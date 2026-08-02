@@ -8,7 +8,14 @@ public class EnemyAttackController : MonoBehaviour
     [SerializeField] private EnemyDefinition enemyDefinition;
 
     [Header("Fire Point")]
+    [Tooltip("일반 적과 터렛의 기본/중앙 발사 위치입니다.")]
     [SerializeField] private Transform firePoint;
+
+    [Header("Runtime Turret Fire Points")]
+    [Tooltip("BaseTurretController가 런타임에 연결합니다. 기관총 점사에서 좌/우 포인트를 번갈아 사용합니다.")]
+    [SerializeField] private Transform runtimeCenterFirePoint;
+    [SerializeField] private Transform runtimeMachineGunLeftFirePoint;
+    [SerializeField] private Transform runtimeMachineGunRightFirePoint;
 
     [Header("Projectile Allegiance")]
     [SerializeField] private ProjectileOwner projectileOwner = ProjectileOwner.Enemy;
@@ -105,7 +112,7 @@ public class EnemyAttackController : MonoBehaviour
     public bool CanAttack => !isAttacking && !isCharging && attackTimer <= 0f;
     public bool IsAimDirectionLocked => isCharging && lockAimDirectionOnChargeStart;
     public Vector2 LockedChargeDirection => lockedChargeDirection;
-    public Transform FirePoint => firePoint != null ? firePoint : transform;
+    public Transform FirePoint => ResolveCenterFirePoint();
     public EnemyRangedAttackPattern RangedAttackPattern => rangedAttackPattern;
 
     public event Action<EnemyAttackController> AttackStarted;
@@ -201,6 +208,21 @@ public class EnemyAttackController : MonoBehaviour
     {
         projectileOwner = owner;
         ignoreShopSecurityTargets = ignoreShopSecurity;
+    }
+
+
+    /// <summary>
+    /// 터렛 전용 발사 위치를 연결합니다.
+    /// 기관총 점사는 Left/Right를 번갈아 사용하고, 나머지 공격은 Center를 사용합니다.
+    /// </summary>
+    public void ConfigureFirePoints(
+        Transform center,
+        Transform machineGunLeft,
+        Transform machineGunRight)
+    {
+        runtimeCenterFirePoint = center;
+        runtimeMachineGunLeftFirePoint = machineGunLeft;
+        runtimeMachineGunRightFirePoint = machineGunRight;
     }
 
     public bool TryAttack(Transform target)
@@ -305,7 +327,7 @@ public class EnemyAttackController : MonoBehaviour
                 break;
             }
 
-            Vector2 origin = GetFireOrigin();
+            Vector2 origin = GetBurstFireOrigin(i);
             Vector2 aimDirection = lockedDirection;
 
             if (burstTrackTargetEachShot)
@@ -715,9 +737,51 @@ public class EnemyAttackController : MonoBehaviour
 
     private Vector2 GetFireOrigin()
     {
-        return firePoint != null
-            ? (Vector2)firePoint.position
+        Transform point = ResolveCenterFirePoint();
+        return point != null
+            ? (Vector2)point.position
             : (Vector2)transform.position;
+    }
+
+    private Vector2 GetBurstFireOrigin(int shotIndex)
+    {
+        Transform point = null;
+        bool hasLeft = runtimeMachineGunLeftFirePoint != null;
+        bool hasRight = runtimeMachineGunRightFirePoint != null;
+
+        if (hasLeft && hasRight)
+        {
+            point = shotIndex % 2 == 0
+                ? runtimeMachineGunLeftFirePoint
+                : runtimeMachineGunRightFirePoint;
+        }
+        else if (hasLeft)
+        {
+            point = runtimeMachineGunLeftFirePoint;
+        }
+        else if (hasRight)
+        {
+            point = runtimeMachineGunRightFirePoint;
+        }
+
+        if (point == null)
+        {
+            point = ResolveCenterFirePoint();
+        }
+
+        return point != null
+            ? (Vector2)point.position
+            : (Vector2)transform.position;
+    }
+
+    private Transform ResolveCenterFirePoint()
+    {
+        if (runtimeCenterFirePoint != null)
+        {
+            return runtimeCenterFirePoint;
+        }
+
+        return firePoint != null ? firePoint : transform;
     }
 
     private bool ShouldUsePredictiveAim(Rigidbody2D targetBody)

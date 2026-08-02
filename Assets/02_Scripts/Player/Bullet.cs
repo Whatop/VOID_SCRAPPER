@@ -32,6 +32,15 @@ public class Bullet : MonoBehaviour
     [Tooltip("알려진 피해 대상이 아니더라도 Trigger가 아닌 Collider2D에 닿으면 탄환을 제거합니다. 기지 벽 관통 방지용입니다.")]
     [SerializeField] private bool blockOnUnhandledSolidCollider = true;
 
+    [Header("Projectile Layer By Owner")]
+    [Tooltip("풀링된 같은 탄환 프리팹을 적/상점 포탑이 함께 사용해도 충돌 레이어를 소유자에 맞춰 복구합니다.")]
+    [SerializeField] private bool assignProjectileLayerByOwner = true;
+    [SerializeField] private string playerProjectileLayerName = "PlayerProjectile";
+    [SerializeField] private string enemyProjectileLayerName = "EnemyProjectile";
+    [Tooltip("전용 ShopProjectile 레이어를 만들지 않으면 PlayerProjectile을 사용하세요. 적과 충돌하고 플레이어와는 충돌하지 않는 설정을 재사용합니다.")]
+    [SerializeField] private string shopDefenseProjectileLayerName = "PlayerProjectile";
+    [SerializeField] private bool applyOwnerLayerToColliderChildren = true;
+
     [Header("Impact VFX")]
     [SerializeField] private GameObject impactEffectPrefab;
     [SerializeField] private float impactEffectLifeTime = 0.18f;
@@ -57,6 +66,11 @@ public class Bullet : MonoBehaviour
 
     private ProjectileOwner owner;
     private bool ignoreShopSecurityTargets;
+    private bool destroyLargeMeteorOnHit;
+    private bool destroySmallMeteorOnHit;
+    private bool destroySupplyContainerOnHit;
+    private bool destroyHighValueWreckOnHit;
+    private bool destroyDestroyedHullOnHit;
 
     private bool useSineWave;
     private float sineWaveLateralSpeed;
@@ -191,6 +205,7 @@ public class Bullet : MonoBehaviour
     {
         owner = projectileOwner;
         ignoreShopSecurityTargets = ignoreShopSecurity;
+        ApplyProjectileLayerByOwner();
         moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : Vector2.up;
         spawnPosition = transform.position;
 
@@ -289,6 +304,29 @@ public class Bullet : MonoBehaviour
         ReleaseSelf(spawnImpactEffect);
     }
 
+    public void ConfigureMeteorImpact(bool destroyLargeMeteor)
+    {
+        destroyLargeMeteorOnHit = destroyLargeMeteor;
+    }
+
+    /// <summary>
+    /// 보스 탄환의 월드 오브젝트 파괴 규칙을 설정합니다.
+    /// 일반 적탄과 플레이어탄에는 호출하지 않으면 기존 규칙을 그대로 사용합니다.
+    /// </summary>
+    public void ConfigureBossWorldImpact(
+        bool destroyLargeMeteor,
+        bool destroySmallMeteor,
+        bool destroySupplyContainer,
+        bool destroyHighValueWreck,
+        bool destroyDestroyedHull)
+    {
+        destroyLargeMeteorOnHit = destroyLargeMeteor;
+        destroySmallMeteorOnHit = destroySmallMeteor;
+        destroySupplyContainerOnHit = destroySupplyContainer;
+        destroyHighValueWreckOnHit = destroyHighValueWreck;
+        destroyDestroyedHullOnHit = destroyDestroyedHull;
+    }
+
     private void ResetRuntimeState()
     {
         moveDirection = Vector2.zero;
@@ -307,6 +345,11 @@ public class Bullet : MonoBehaviour
 
         owner = ProjectileOwner.Player;
         ignoreShopSecurityTargets = false;
+        destroyLargeMeteorOnHit = false;
+        destroySmallMeteorOnHit = false;
+        destroySupplyContainerOnHit = false;
+        destroyHighValueWreckOnHit = false;
+        destroyDestroyedHullOnHit = false;
         harvestObjectDamageMultiplier = 1f;
         damagedTargets.Clear();
         ClearSpecialMotion();
@@ -552,6 +595,12 @@ public class Bullet : MonoBehaviour
             }
         }
 
+        if (ShouldBlockAsWorldSolid(other))
+        {
+            ReleaseSelf(true);
+            return;
+        }
+
         HarvestObjectHealth harvestObject = other.GetComponentInParent<HarvestObjectHealth>();
 
         if (harvestObject != null)
@@ -559,6 +608,17 @@ public class Bullet : MonoBehaviour
             if (ignoreShopSecurityTargets)
             {
                 ReleaseSelf(true);
+            }
+            else if (ShouldForceDestroyHarvestObject(harvestObject))
+            {
+                TryApplyDamageToTarget(
+                    harvestObject,
+                    _ => harvestObject.TakeDamage(
+                        Mathf.Max(1f, harvestObject.CurrentHp + harvestObject.MaxHp),
+                        hitPoint,
+                        moveDirection
+                    )
+                );
             }
             else if (harvestObject.CanReceiveProjectileDamage(owner))
             {
@@ -585,13 +645,27 @@ public class Bullet : MonoBehaviour
 
         if (meteorObstacle != null)
         {
+            bool isLargeMeteor = IsLargeMeteor(meteorObstacle);
+            bool forceDestroyMeteor =
+                (isLargeMeteor && destroyLargeMeteorOnHit) ||
+                (!isLargeMeteor && destroySmallMeteorOnHit);
+
             if (ignoreShopSecurityTargets)
             {
                 ReleaseSelf(true);
             }
+            else if (forceDestroyMeteor)
+            {
+                ApplyDamageToMeteor(meteorObstacle, hitPoint, true);
+            }
+            else if (isLargeMeteor && owner != ProjectileOwner.Player)
+            {
+                // 플레이어 탄환을 제외한 비-차징 탄환은 대형 운석에 피해를 주지 못한다.
+                ReleaseSelf(true);
+            }
             else if (meteorObstacle.CanReceiveProjectileDamage(owner))
             {
-                ApplyDamageToMeteor(meteorObstacle, hitPoint);
+                ApplyDamageToMeteor(meteorObstacle, hitPoint, false);
             }
             else if (meteorObstacle.BlocksProjectileWhenDamageIgnored)
             {
@@ -676,6 +750,22 @@ public class Bullet : MonoBehaviour
         }
     }
 
+    private bool ShouldForceDestroyHarvestObject(HarvestObjectHealth harvestObject)
+    {
+        if (harvestObject == null)
+        {
+            return false;
+        }
+
+        return harvestObject.ObjectKind switch
+        {
+            HarvestObjectKind.SupplyContainer => destroySupplyContainerOnHit,
+            HarvestObjectKind.HighValueWreck => destroyHighValueWreckOnHit,
+            HarvestObjectKind.DestroyedHull => destroyDestroyedHullOnHit,
+            _ => false
+        };
+    }
+
     private static bool IsShopSecurityTarget(EnemyHealth enemyHealth)
     {
         if (enemyHealth == null)
@@ -739,7 +829,91 @@ public class Bullet : MonoBehaviour
         return other.GetComponentInParent<EnemyHealth>() != null;
     }
 
-    private void ApplyDamageToMeteor(MeteorObstacle meteorObstacle, Vector2 hitPoint)
+    private void ApplyProjectileLayerByOwner()
+    {
+        if (!assignProjectileLayerByOwner)
+        {
+            return;
+        }
+
+        string targetLayerName = owner switch
+        {
+            ProjectileOwner.Player => playerProjectileLayerName,
+            ProjectileOwner.Enemy => enemyProjectileLayerName,
+            ProjectileOwner.ShopDefense => shopDefenseProjectileLayerName,
+            _ => string.Empty
+        };
+
+        int targetLayer = string.IsNullOrWhiteSpace(targetLayerName)
+            ? -1
+            : LayerMask.NameToLayer(targetLayerName);
+
+        if (targetLayer < 0 && owner == ProjectileOwner.ShopDefense)
+        {
+            targetLayer = LayerMask.NameToLayer(playerProjectileLayerName);
+        }
+
+        if (targetLayer < 0)
+        {
+            return;
+        }
+
+        gameObject.layer = targetLayer;
+
+        if (!applyOwnerLayerToColliderChildren)
+        {
+            return;
+        }
+
+        Collider2D[] colliders = GetComponentsInChildren<Collider2D>(true);
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            if (colliders[i] != null)
+            {
+                colliders[i].gameObject.layer = targetLayer;
+            }
+        }
+    }
+
+    private static bool ShouldBlockAsWorldSolid(Collider2D other)
+    {
+        if (other == null || other.isTrigger)
+        {
+            return false;
+        }
+
+        int worldSolidLayer = LayerMask.NameToLayer("WorldSolid");
+
+        if (worldSolidLayer < 0 || other.gameObject.layer != worldSolidLayer)
+        {
+            return false;
+        }
+
+        // 대형 운석은 WorldSolid를 사용하지만 별도 MeteorObstacle 규칙으로 처리한다.
+        return other.GetComponentInParent<MeteorObstacle>() == null;
+    }
+
+    private static bool IsLargeMeteor(MeteorObstacle meteorObstacle)
+    {
+        if (meteorObstacle == null)
+        {
+            return false;
+        }
+
+        if (meteorObstacle.MotionMode == MeteorMotionMode.StaticTerrain)
+        {
+            return true;
+        }
+
+        int worldSolidLayer = LayerMask.NameToLayer("WorldSolid");
+        return worldSolidLayer >= 0 && meteorObstacle.gameObject.layer == worldSolidLayer;
+    }
+
+    private void ApplyDamageToMeteor(
+        MeteorObstacle meteorObstacle,
+        Vector2 hitPoint,
+        bool forceDestroy)
     {
         if (meteorObstacle == null)
         {
@@ -754,7 +928,12 @@ public class Bullet : MonoBehaviour
         }
 
         damagedTargets.Add(targetId);
-        meteorObstacle.TakeDamage(Mathf.CeilToInt(damage), hitPoint, moveDirection);
+
+        int meteorDamage = forceDestroy
+            ? int.MaxValue
+            : Mathf.CeilToInt(damage);
+
+        meteorObstacle.TakeDamage(meteorDamage, hitPoint, moveDirection);
 
         if (remainingPierceCount > 0)
         {

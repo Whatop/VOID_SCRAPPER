@@ -82,6 +82,8 @@ public class CoreBossIntroSequence : MonoBehaviour
     [SerializeField] private Vector2 bossBattlePositionOffset = new Vector2(0f, 2.5f);
 
     [Header("Laser Manager Ships")]
+    [Tooltip("켜면 보스의 BossPatternController가 1페이즈 4대를 소유합니다. 2페이즈에는 기존 4대를 육각형 어깨 위치로 이동시키고 상/하 2대만 추가합니다.")]
+    [SerializeField] private bool useBossPatternGuardianSystem = true;
     [SerializeField] private GameObject laserManagerShipPrefab;
     [SerializeField] private bool createRuntimePlaceholderIfMissing = true;
     [SerializeField] private bool keepManagerShipsUntilBossDeath = true;
@@ -329,16 +331,41 @@ public class CoreBossIntroSequence : MonoBehaviour
             true
         );
 
-        yield return SpawnAndMoveManagerShipsRoutine(effectiveArenaCenter);
-
-        // 3. 보스를 화면 밖에서 생성해 중앙으로 진입시킨다.
+        // 보스 오브젝트는 화면 밖에서 먼저 생성해 관리 기체 시스템을 하나로 통합한다.
+        // 시각적으로는 아직 화면 밖이므로 기존 등장 순서는 유지된다.
         spawnedBoss = SpawnBossForIntro(bossPrefab, effectiveBossBattlePosition);
         bossCreatedCallback?.Invoke(spawnedBoss);
+
+        BossPatternController bossPatternController = spawnedBoss != null
+            ? spawnedBoss.GetComponent<BossPatternController>()
+            : null;
+
+        bool useBossOwnedManagers = useBossPatternGuardianSystem && bossPatternController != null;
 
         DisableBossForIntro(spawnedBoss);
         CacheBossPresentation(spawnedBoss);
         TriggerBossAnimator(bossIntroEnterTrigger);
 
+        if (useBossOwnedManagers)
+        {
+            // 과거 IntroSequence가 별도로 만들던 4대를 제거하고 보스 패턴 쪽 4대만 사용한다.
+            DestroySpawnedWalls();
+            DestroySpawnedManagerShips();
+
+            bossPatternController.ConfigureBossArena(
+                effectiveArenaCenter,
+                arenaHalfExtents,
+                verticalSpaceScale
+            );
+
+            yield return bossPatternController.PlayIntroGuardianEntryRoutine();
+        }
+        else
+        {
+            yield return SpawnAndMoveManagerShipsRoutine(effectiveArenaCenter);
+        }
+
+        // 3. 보스를 화면 밖에서 중앙으로 진입시킨다.
         yield return MoveBossArrivalRoutine(spawnedBoss, effectiveBossBattlePosition, interactor);
 
         if (delayBeforeWallActivation > 0f)
@@ -346,7 +373,15 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield return Wait(delayBeforeWallActivation);
         }
 
-        ActivateLaserWallsFromManagerShips();
+        if (useBossOwnedManagers)
+        {
+            bossPatternController.ActivatePhase1BoundaryLasers();
+        }
+        else
+        {
+            ActivateLaserWallsFromManagerShips();
+        }
+
         TrackBossDeathForCleanup(spawnedBoss);
 
         if (delayAfterWallActivation > 0f)

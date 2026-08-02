@@ -151,6 +151,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 1729370689716797226}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -778,6 +779,38 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2434758558344378193}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &550173950851005865
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8126590757050792419}
+  m_Layer: 0
+  m_Name: Points_Defen
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8126590757050792419
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 550173950851005865}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.36, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 885980679807426335}
+  m_Father: {fileID: 8074732933343397856}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &619292392326297899
 GameObject:
   m_ObjectHideFlags: 0
@@ -1140,6 +1173,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 3782272113136668228}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -1218,6 +1252,37 @@ PolygonCollider2D:
       - {x: 0.2722712, y: 0.22237948}
       - {x: 0.22227119, y: 0.27891925}
   m_UseDelaunayMesh: 0
+--- !u!1 &983109637666380993
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4904068979689156928}
+  m_Layer: 0
+  m_Name: WP_02_Inside
+  m_TagString: Untagged
+  m_Icon: {fileID: -5397416234189338067, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4904068979689156928
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 983109637666380993}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -8.47, y: -2.34, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 885980679807426335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &988294774326682303
 GameObject:
   m_ObjectHideFlags: 0
@@ -1767,6 +1832,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 8256623135197141417}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -2049,6 +2115,37 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!1 &1707002734294628159
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6725812795966398894}
+  m_Layer: 0
+  m_Name: WP_00_Outside
+  m_TagString: Untagged
+  m_Icon: {fileID: -5397416234189338067, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6725812795966398894
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1707002734294628159}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.24, y: 1.951, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 885980679807426335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1728558353635988516
 GameObject:
   m_ObjectHideFlags: 0
@@ -2471,6 +2568,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 8256623135197141417}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -3347,6 +3445,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 7625043105169427141}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -4505,6 +4604,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 3782272113136668228}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -4858,6 +4958,37 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!1 &4055142852432652589
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4795391537530222162}
+  m_Layer: 0
+  m_Name: WP_03_StorageFront
+  m_TagString: Untagged
+  m_Icon: {fileID: -5397416234189338067, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4795391537530222162
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4055142852432652589}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -8.46, y: 1.95, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 885980679807426335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4077282267939974581
 GameObject:
   m_ObjectHideFlags: 0
@@ -5264,6 +5395,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 3782272113136668228}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -6341,6 +6473,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 8256623135197141417}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -6976,6 +7109,7 @@ Transform:
   - {fileID: 2734358034999904892}
   - {fileID: 7897742660976171492}
   - {fileID: 1740871586758390280}
+  - {fileID: 8126590757050792419}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8820943452537066168
@@ -7075,8 +7209,13 @@ MonoBehaviour:
   - {fileID: 8703043569256853950}
   - {fileID: 4342152091638303132}
   findCargoRoutesInChildrenWhenEmpty: 1
-  defenders: []
-  defenderZoneAnchors: []
+  defenders:
+  - {fileID: 8465091748884689616, guid: 55245b889bad8a44995f89d3dae3ffd0, type: 3}
+  defenderZoneAnchors:
+  - {fileID: 6725812795966398894}
+  - {fileID: 4942427280534440321}
+  - {fileID: 4904068979689156928}
+  - {fileID: 4795391537530222162}
   baseBoundsCollider: {fileID: 0}
   portalPrefab: {fileID: 770195100877310136, guid: da4c69155a7bfa7408bf5365bf24428e, type: 3}
   portalSpawnPoint: {fileID: 5447822830555638027}
@@ -7319,6 +7458,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 1864773397701985978}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -7522,6 +7662,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 5339609538351068425}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -10162,6 +10303,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 8256623135197141417}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -10792,6 +10934,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 2239244881999061960}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -10964,6 +11107,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 4182213619668623264}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -14537,6 +14681,37 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!1 &8435531828457340819
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4942427280534440321}
+  m_Layer: 0
+  m_Name: WP_01_GateCenter
+  m_TagString: Untagged
+  m_Icon: {fileID: -5397416234189338067, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4942427280534440321
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8435531828457340819}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.19, y: -2.29, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 885980679807426335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8652357441713372481
 GameObject:
   m_ObjectHideFlags: 0
@@ -15250,6 +15425,41 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7484368225894371515}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8841626353646289385
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 885980679807426335}
+  m_Layer: 0
+  m_Name: Def_Rigth
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &885980679807426335
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8841626353646289385}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 5.43, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6725812795966398894}
+  - {fileID: 4942427280534440321}
+  - {fileID: 4904068979689156928}
+  - {fileID: 4795391537530222162}
+  m_Father: {fileID: 8126590757050792419}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8914112911852786606
 GameObject:
   m_ObjectHideFlags: 0
@@ -15475,6 +15685,7 @@ MonoBehaviour:
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
   triggerZone: {fileID: 3782272113136668228}
+  pushPlayerWhenClosed: 1
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4

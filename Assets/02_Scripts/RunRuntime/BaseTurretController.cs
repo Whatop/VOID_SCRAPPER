@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyAttackController))]
@@ -13,7 +14,16 @@ public class BaseTurretController : MonoBehaviour
     [SerializeField] private EnemyAttackController attackController;
     [SerializeField] private EnemyHealth turretHealth;
     [SerializeField] private Transform headPivot;
-    [SerializeField] private Transform firePoint;
+
+    [Header("Fire Points")]
+    [FormerlySerializedAs("firePoint")]
+    [Tooltip("단발·샷건·차징 포탑이 사용하는 중앙 발사 위치입니다.")]
+    [SerializeField] private Transform centerFirePoint;
+    [Tooltip("기관총 포탑 점사의 왼쪽 발사 위치입니다.")]
+    [SerializeField] private Transform machineGunLeftFirePoint;
+    [Tooltip("기관총 포탑 점사의 오른쪽 발사 위치입니다.")]
+    [SerializeField] private Transform machineGunRightFirePoint;
+
     [Tooltip("전력 연결선이 도착할 포인트입니다. 비워두면 포탑 Root를 사용합니다.")]
     [SerializeField] private Transform powerLinkAnchor;
 
@@ -63,6 +73,7 @@ public class BaseTurretController : MonoBehaviour
     public EnemyHealth TurretHealth => turretHealth;
     public ShopStructure ShopOwner => shopOwner;
     public bool IsShopDefense => shopOwner != null;
+    public EnemyDefinition TurretDefinition => turretDefinition;
 
     public event Action<BaseTurretController, bool> PowerChanged;
     public event Action<BaseTurretController> Destroyed;
@@ -72,7 +83,9 @@ public class BaseTurretController : MonoBehaviour
         attackController = GetComponent<EnemyAttackController>();
         turretHealth = GetComponent<EnemyHealth>();
         headPivot = transform;
-        firePoint = transform;
+        centerFirePoint = transform;
+        machineGunLeftFirePoint = null;
+        machineGunRightFirePoint = null;
         powerLinkAnchor = transform;
     }
 
@@ -146,7 +159,7 @@ public class BaseTurretController : MonoBehaviour
             return;
         }
 
-        Vector2 origin = firePoint != null ? firePoint.position : transform.position;
+        Vector2 origin = centerFirePoint != null ? centerFirePoint.position : transform.position;
         Vector2 toTarget = (Vector2)target.position - origin;
         float finalDetectionRange = ResolveDetectionRange();
 
@@ -189,6 +202,23 @@ public class BaseTurretController : MonoBehaviour
         ConfigureProjectileAllegiance();
     }
 
+    public void ConfigureDefinition(EnemyDefinition definition)
+    {
+        if (definition == null)
+        {
+            return;
+        }
+
+        turretDefinition = definition;
+        ResolveReferences();
+        attackController?.CancelCharge();
+        attackController?.ApplyDefinition(turretDefinition);
+        turretHealth?.ApplyDefinition(turretDefinition);
+        targetRefreshTimer = 0f;
+        ClearTarget();
+        ConfigureProjectileAllegiance();
+    }
+
     public void SetPowered(bool value)
     {
         bool changed = poweredOn != value;
@@ -225,10 +255,16 @@ public class BaseTurretController : MonoBehaviour
             headPivot = transform;
         }
 
-        if (firePoint == null)
+        if (centerFirePoint == null)
         {
-            firePoint = headPivot != null ? headPivot : transform;
+            centerFirePoint = headPivot != null ? headPivot : transform;
         }
+
+        attackController?.ConfigureFirePoints(
+            centerFirePoint,
+            machineGunLeftFirePoint,
+            machineGunRightFirePoint
+        );
     }
 
     private void ApplyDefinitionIfAssigned()

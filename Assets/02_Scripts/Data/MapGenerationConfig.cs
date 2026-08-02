@@ -37,6 +37,8 @@ public class MapGenerationConfig : ScriptableObject
     [SerializeField] private float fallbackBossCameraAspect = 1.7777778f;
 
     [Header("Important Points")]
+    [Tooltip("적 기지 프리팹 배치 수입니다. 한 해역에 초록/파랑 기지를 둘 경우 2로 설정합니다.")]
+    [SerializeField] private int fieldBaseCount = 2;
     [SerializeField] private int shopCount = 2;
     [SerializeField] private int eventCount = 4;
     [SerializeField] private int coreCount = 1;
@@ -143,7 +145,8 @@ public class MapGenerationConfig : ScriptableObject
     public float FallbackBossCameraBaseOrthographicSize => Mathf.Max(0.1f, fallbackBossCameraBaseOrthographicSize);
     public float FallbackBossCameraAspect => Mathf.Max(0.1f, fallbackBossCameraAspect);
 
-    public int ShopCount => shopCount;
+    public int FieldBaseCount => Mathf.Max(0, fieldBaseCount);
+    public int ShopCount => Mathf.Max(0, shopCount);
     public int EventCount => eventCount;
     public int CoreCount => coreCount;
     public int FieldNpcCount => Mathf.Max(0, fieldNpcCount);
@@ -257,6 +260,10 @@ public class MapGenerationConfig : ScriptableObject
         finalNetworkMapSize = SanitizeMapSize(finalNetworkMapSize, new Vector2(96f, 96f));
         startSafeRadius = Mathf.Max(0f, startSafeRadius);
         importantPointMinDistance = Mathf.Max(0f, importantPointMinDistance);
+        fieldBaseCount = Mathf.Max(0, fieldBaseCount);
+        shopCount = Mathf.Max(0, shopCount);
+        eventCount = Mathf.Max(0, eventCount);
+        coreCount = Mathf.Max(0, coreCount);
         fieldNpcCount = Mathf.Max(0, fieldNpcCount);
         basicEnemyCount = Mathf.Max(0, basicEnemyCount);
         shotgunEnemyCount = Mathf.Max(0, shotgunEnemyCount);

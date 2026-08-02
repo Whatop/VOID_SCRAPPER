@@ -11,6 +11,8 @@ public class FieldBaseLaserGate : MonoBehaviour
 
     [Header("Blocking")]
     [SerializeField] private Collider2D triggerZone;
+    [Tooltip("끄면 레이저 시각과 전력 상태는 유지되지만 플레이어를 밀어내지 않습니다.")]
+    [SerializeField] private bool pushPlayerWhenClosed = true;
     [SerializeField] private float pushOutDistance = 0.35f;
     [SerializeField] private float warningCooldown = 0.75f;
     [SerializeField] private string blockedWarning = "레이저 차단막이 활성화되어 있다.";
@@ -44,6 +46,7 @@ public class FieldBaseLaserGate : MonoBehaviour
     private float lastWarningTime = -999f;
 
     public bool IsOpen => isOpen;
+    public bool PushPlayerWhenClosed => pushPlayerWhenClosed;
 
     private void Reset()
     {
@@ -108,9 +111,14 @@ public class FieldBaseLaserGate : MonoBehaviour
         }
     }
 
+    public void SetPlayerPushEnabled(bool enabled)
+    {
+        pushPlayerWhenClosed = enabled;
+    }
+
     private void OnTriggerStay2D(Collider2D other)
     {
-        if (isOpen || other == null)
+        if (isOpen || !pushPlayerWhenClosed || other == null)
         {
             return;
         }

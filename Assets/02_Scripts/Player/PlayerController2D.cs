@@ -35,12 +35,16 @@ public class PlayerController2D : MonoBehaviour
     private float externalPushTimer;
     private float externalPushDuration;
 
+    private bool movementVelocityOverrideActive;
+    private Vector2 movementVelocityOverride;
+
     public Vector2 MoveInput => moveInput;
     public Vector2 AimDirection => aimDirection;
     public float MoveSpeed => moveSpeed;
     public bool IsMoving => moveInput.sqrMagnitude > 0.001f;
     public bool ControlEnabled => controlEnabled;
     public bool MovementLocked => movementLocked;
+    public bool MovementVelocityOverrideActive => movementVelocityOverrideActive;
 
     private void Awake()
     {
@@ -62,6 +66,8 @@ public class PlayerController2D : MonoBehaviour
 
         externalPushVelocity = Vector2.zero;
         externalPushTimer = 0f;
+        movementVelocityOverrideActive = false;
+        movementVelocityOverride = Vector2.zero;
 
         if (rb != null)
         {
@@ -132,9 +138,18 @@ public class PlayerController2D : MonoBehaviour
             return;
         }
 
-        Vector2 inputVelocity = (!controlEnabled || movementLocked)
-            ? Vector2.zero
-            : moveInput * moveSpeed;
+        Vector2 inputVelocity;
+
+        if (movementVelocityOverrideActive)
+        {
+            inputVelocity = movementVelocityOverride;
+        }
+        else
+        {
+            inputVelocity = (!controlEnabled || movementLocked)
+                ? Vector2.zero
+                : moveInput * moveSpeed;
+        }
 
         Vector2 pushVelocity = Vector2.zero;
 
@@ -199,6 +214,7 @@ public class PlayerController2D : MonoBehaviour
         if (!controlEnabled)
         {
             moveInput = Vector2.zero;
+            ClearMovementVelocityOverride();
 
             if (rb != null)
             {
@@ -215,6 +231,18 @@ public class PlayerController2D : MonoBehaviour
         {
             rb.linearVelocity = Vector2.zero;
         }
+    }
+
+    public void SetMovementVelocityOverride(Vector2 velocity)
+    {
+        movementVelocityOverride = velocity;
+        movementVelocityOverrideActive = true;
+    }
+
+    public void ClearMovementVelocityOverride()
+    {
+        movementVelocityOverrideActive = false;
+        movementVelocityOverride = Vector2.zero;
     }
 
     public void ApplyExternalPush(

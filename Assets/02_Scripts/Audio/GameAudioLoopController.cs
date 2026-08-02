@@ -24,6 +24,7 @@ public class GameAudioLoopController : MonoBehaviour
     private bool hasResolvedState;
     private int shopModeDepth;
     private bool environmentPausedForMenu;
+    private bool bossIntroMusicOverride;
 
     private Coroutine shopBlendRoutine;
     private float shopBlend;
@@ -83,6 +84,33 @@ public class GameAudioLoopController : MonoBehaviour
         }
 
         controller.shopModeDepth = Mathf.Max(0, controller.shopModeDepth - 1);
+        controller.ApplyCurrentContext();
+    }
+
+    public static void EnterBossIntroMusic()
+    {
+        GameAudioLoopController controller = ResolveInstance();
+
+        if (controller == null)
+        {
+            return;
+        }
+
+        controller.bossIntroMusicOverride = true;
+        controller.shopModeDepth = 0;
+        controller.ApplyCurrentContext();
+    }
+
+    public static void CancelBossIntroMusic()
+    {
+        GameAudioLoopController controller = ResolveInstance();
+
+        if (controller == null)
+        {
+            return;
+        }
+
+        controller.bossIntroMusicOverride = false;
         controller.ApplyCurrentContext();
     }
 
@@ -169,6 +197,7 @@ public class GameAudioLoopController : MonoBehaviour
     {
         shopModeDepth = 0;
         environmentPausedForMenu = false;
+        bossIntroMusicOverride = false;
         shopBlend = 0f;
         shopLoopPrepared = false;
         StopShopBlendRoutine();
@@ -192,6 +221,16 @@ public class GameAudioLoopController : MonoBehaviour
             shopModeDepth = 0;
         }
 
+        if (next == GameState.BossBattle || next == GameState.FinalBossBattle)
+        {
+            // 이제 실제 GameState가 보스 음악을 담당하므로 임시 오버라이드는 해제한다.
+            bossIntroMusicOverride = false;
+        }
+        else if (!SupportsBossIntroOverride(next))
+        {
+            bossIntroMusicOverride = false;
+        }
+
         ApplyState(next);
     }
 
@@ -207,6 +246,12 @@ public class GameAudioLoopController : MonoBehaviour
         if (environmentPausedForMenu)
         {
             AudioManager.StopLoop(AmbienceChannel);
+            return;
+        }
+
+        if (bossIntroMusicOverride && SupportsBossIntroOverride(currentState))
+        {
+            ApplyBossIntroAudioImmediate();
             return;
         }
 
@@ -257,6 +302,19 @@ public class GameAudioLoopController : MonoBehaviour
             hasResolvedState = true;
             ApplyCurrentContext();
         }
+    }
+
+    private void ApplyBossIntroAudioImmediate()
+    {
+        StopShopBlendRoutine();
+        shopBlend = 0f;
+        shopLoopPrepared = false;
+        AudioManager.StopLoop(ShopMusicChannel);
+
+        PlayAmbience(SoundEventIds.AmbSpaceLoop);
+        PlayMusic(SoundEventIds.MusicBossLoop, musicVolumeScale);
+        AudioManager.SetLoopModulation(AmbienceChannel, 1f, 1f);
+        AudioManager.SetLoopModulation(MusicChannel, 1f, 1f);
     }
 
     private void ApplyBaseAudioImmediate()
@@ -439,6 +497,11 @@ public class GameAudioLoopController : MonoBehaviour
     }
 
     private static bool SupportsShopMode(GameState state)
+    {
+        return state == GameState.Expedition || state == GameState.ReturnChoice;
+    }
+
+    private static bool SupportsBossIntroOverride(GameState state)
     {
         return state == GameState.Expedition || state == GameState.ReturnChoice;
     }

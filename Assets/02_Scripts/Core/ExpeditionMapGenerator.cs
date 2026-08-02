@@ -39,9 +39,36 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [SerializeField] private bool movePlayerToStart = true;
 
     [Header("Important Object Prefabs")]
+    [Tooltip("Shop Zone Prefabs가 비어 있을 때 사용하는 기존 상점/상점 구역 단일 프리팹입니다.")]
     [SerializeField] private GameObject shopPrefab;
     [SerializeField] private GameObject[] eventPrefabs;
     [SerializeField] private GameObject corePrefab;
+
+    [Header("Generated Field Base / Shop Zones")]
+    [Tooltip("적 기지 완성 프리팹 후보입니다. FieldBaseController가 포함되어 있어야 합니다.")]
+    [SerializeField] private GameObject[] fieldBasePrefabs;
+    [Tooltip("배열이 비어 있을 때 사용하는 적 기지 단일 프리팹입니다.")]
+    [SerializeField] private GameObject fieldBasePrefab;
+    [Tooltip("상점 본체, 안전 구역, 포탑 포인트, 전력 장치가 포함된 완성 상점 구역 프리팹 후보입니다.")]
+    [SerializeField] private GameObject[] shopZonePrefabs;
+
+    [Header("Large Zone Placement")]
+    [Tooltip("적 기지 전체가 차지하는 예약 크기입니다. 기지 외벽보다 약간 크게 설정하세요.")]
+    [SerializeField] private Vector2 fieldBaseReservationSize = new Vector2(28f, 28f);
+    [Tooltip("상점 안전 구역까지 포함한 예약 크기입니다.")]
+    [SerializeField] private Vector2 shopZoneReservationSize = new Vector2(20f, 20f);
+    [Min(0f)]
+    [SerializeField] private float largeZoneSpacing = 4f;
+    [SerializeField] private bool rotateLargeZonesByRightAngles;
+    [SerializeField] private bool reserveBossArenaFromOtherSpawns = true;
+    [SerializeField] private bool configureBasePortalsToNearestShop = true;
+    [SerializeField] private bool assignRoleEnemiesToNearestGeneratedBase = true;
+
+    [Header("Enemy Projectile World Damage")]
+    [SerializeField] private bool enemyProjectilesDamageSupplyContainers = true;
+    [SerializeField] private bool enemyProjectilesDamageHighValueWrecks = true;
+    [SerializeField] private bool enemyProjectilesDamageDestroyedHulls;
+    [SerializeField] private bool enemyProjectilesDamageSmallMeteors = true;
 
     [Header("Field NPC Objectives")]
     [SerializeField] private GameObject[] fieldNpcPrefabs;
@@ -197,6 +224,9 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private readonly List<Vector2> harvestClusterAnchors = new List<Vector2>(64);
     private readonly List<HarvestObjectHealth> spawnedHarvestObjects = new List<HarvestObjectHealth>(64);
     private readonly List<HarvestObjectHealth> spawnedDefenderTargets = new List<HarvestObjectHealth>(16);
+    private readonly List<Bounds> reservedPlacementBounds = new List<Bounds>(16);
+    private readonly List<FieldBaseController> spawnedFieldBases = new List<FieldBaseController>(4);
+    private readonly List<ShopStructure> spawnedShopStructures = new List<ShopStructure>(4);
 
     private Vector2 mapSize = new Vector2(80f, 80f);
     private Vector2 startPosition;
@@ -242,6 +272,9 @@ public class ExpeditionMapGenerator : MonoBehaviour
         harvestClusterAnchors.Clear();
         spawnedHarvestObjects.Clear();
         spawnedDefenderTargets.Clear();
+        reservedPlacementBounds.Clear();
+        spawnedFieldBases.Clear();
+        spawnedShopStructures.Clear();
 
         basicEnemiesInsideStartSafeRadius = 0;
         startPosition = ResolveStartPosition();
@@ -401,21 +434,16 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private void PlaceImportantObjects()
     {
+        int fieldBaseCount = config != null ? config.FieldBaseCount : 2;
         int shopCount = config != null ? config.ShopCount : 2;
         int eventCount = config != null ? config.EventCount : 2;
         int coreCount = config != null ? config.CoreCount : 1;
 
-        // 코어를 먼저 배치해야 보스 카메라 안전 영역 안에서 자리를 확보할 수 있습니다.
+        // 코어 전장, 적 기지, 상점 구역 순으로 큰 공간을 먼저 예약한다.
         PlaceCoreBatch(coreCount);
-
-        PlacePrefabBatch(
-            shopPrefab,
-            shopCount,
-            true,
-            true,
-            generalMinDistance,
-            "Shop"
-        );
+        PlaceFieldBaseBatch(fieldBaseCount);
+        PlaceShopZoneBatch(shopCount);
+        ConfigureGeneratedBasePortalDestinations();
 
         PlacePrefabBatch(
             eventPrefabs,
@@ -430,6 +458,318 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         int fieldNpcCount = config != null ? config.FieldNpcCount : 2;
         PlaceFieldNpcBatch(fieldNpcCount);
+    }
+
+    private void PlaceFieldBaseBatch(int count)
+    {
+        PlaceLargeZoneBatch(
+            fieldBasePrefabs,
+            fieldBasePrefab,
+            count,
+            fieldBaseReservationSize,
+            "FieldBase",
+            true
+        );
+    }
+
+    private void PlaceShopZoneBatch(int count)
+    {
+        PlaceLargeZoneBatch(
+            shopZonePrefabs,
+            shopPrefab,
+            count,
+            shopZoneReservationSize,
+            "ShopZone",
+            false
+        );
+    }
+
+    private void PlaceLargeZoneBatch(
+        GameObject[] prefabs,
+        GameObject fallbackPrefab,
+        int count,
+        Vector2 reservationSize,
+        string label,
+        bool fieldBaseZone)
+    {
+        if (!HasValidPrefab(prefabs, fallbackPrefab) || count <= 0)
+        {
+            return;
+        }
+
+        reservationSize = new Vector2(
+            Mathf.Max(1f, reservationSize.x),
+            Mathf.Max(1f, reservationSize.y)
+        );
+
+        for (int i = 0; i < count; i++)
+        {
+            GameObject prefab = PickPrefab(prefabs, fallbackPrefab);
+            if (prefab == null)
+            {
+                continue;
+            }
+
+            int quarterTurns = rotateLargeZonesByRightAngles
+                ? Random.Range(0, 4)
+                : 0;
+
+            Quaternion rotation = Quaternion.Euler(0f, 0f, quarterTurns * 90f);
+            Vector2 rotatedReservationSize = quarterTurns % 2 == 0
+                ? reservationSize
+                : new Vector2(reservationSize.y, reservationSize.x);
+
+            if (!TryFindLargeZonePosition(rotatedReservationSize, out Vector2 position))
+            {
+                Debug.LogWarning(
+                    $"{label} 배치 실패. 예약 크기, 기지 수, 중요 지점 간격을 확인하세요.",
+                    this
+                );
+                continue;
+            }
+
+            GameObject spawned = Spawn(
+                prefab,
+                position,
+                $"{label}_{i:00}",
+                rotation
+            );
+
+            if (spawned == null)
+            {
+                continue;
+            }
+
+            Bounds reserved = new Bounds(
+                position,
+                new Vector3(rotatedReservationSize.x, rotatedReservationSize.y, 0f)
+            );
+
+            ReservePlacementBounds(reserved);
+            occupiedPositions.Add(position);
+            importantPositions.Add(position);
+
+            if (fieldBaseZone)
+            {
+                FieldBaseController[] bases = spawned.GetComponentsInChildren<FieldBaseController>(true);
+
+                if (bases == null || bases.Length == 0)
+                {
+                    Debug.LogWarning(
+                        $"[{spawned.name}] 적 기지 프리팹에 FieldBaseController가 없습니다.",
+                        spawned
+                    );
+                }
+                else
+                {
+                    for (int baseIndex = 0; baseIndex < bases.Length; baseIndex++)
+                    {
+                        if (bases[baseIndex] != null && !spawnedFieldBases.Contains(bases[baseIndex]))
+                        {
+                            spawnedFieldBases.Add(bases[baseIndex]);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ShopStructure[] shops = spawned.GetComponentsInChildren<ShopStructure>(true);
+
+                if (shops == null || shops.Length == 0)
+                {
+                    Debug.LogWarning(
+                        $"[{spawned.name}] 상점 구역 프리팹에 ShopStructure가 없습니다.",
+                        spawned
+                    );
+                }
+                else
+                {
+                    for (int shopIndex = 0; shopIndex < shops.Length; shopIndex++)
+                    {
+                        if (shops[shopIndex] != null && !spawnedShopStructures.Contains(shops[shopIndex]))
+                        {
+                            spawnedShopStructures.Add(shops[shopIndex]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private bool TryFindLargeZonePosition(Vector2 reservationSize, out Vector2 position)
+    {
+        position = Vector2.zero;
+        Vector2 halfSize = reservationSize * 0.5f;
+        float mapHalfWidth = mapSize.x * 0.5f - edgePadding;
+        float mapHalfHeight = mapSize.y * 0.5f - edgePadding;
+
+        if (halfSize.x >= mapHalfWidth || halfSize.y >= mapHalfHeight)
+        {
+            return false;
+        }
+
+        float startSafeRadius = config != null ? config.StartSafeRadius : 10f;
+        float importantMinDistance = config != null ? config.ImportantPointMinDistance : 20f;
+
+        for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
+        {
+            Vector2 candidate = new Vector2(
+                Random.Range(-mapHalfWidth + halfSize.x, mapHalfWidth - halfSize.x),
+                Random.Range(-mapHalfHeight + halfSize.y, mapHalfHeight - halfSize.y)
+            );
+
+            Bounds candidateBounds = new Bounds(
+                candidate,
+                new Vector3(reservationSize.x, reservationSize.y, 0f)
+            );
+
+            Vector3 startPoint3D = new Vector3(startPosition.x, startPosition.y, candidateBounds.center.z);
+            if (candidateBounds.SqrDistance(startPoint3D) < startSafeRadius * startSafeRadius)
+            {
+                continue;
+            }
+
+            if (!HasMinimumDistance(candidate, importantPositions, importantMinDistance))
+            {
+                continue;
+            }
+
+            if (IntersectsReservedPlacementBounds(candidateBounds, largeZoneSpacing))
+            {
+                continue;
+            }
+
+            if (useBlockedLayerCheck &&
+                Physics2D.OverlapBox(candidate, reservationSize, 0f, blockedLayer) != null)
+            {
+                continue;
+            }
+
+            position = candidate;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void ReservePlacementBounds(Bounds bounds)
+    {
+        bounds.size = new Vector3(
+            Mathf.Max(0.1f, bounds.size.x),
+            Mathf.Max(0.1f, bounds.size.y),
+            0f
+        );
+        reservedPlacementBounds.Add(bounds);
+    }
+
+    private bool IntersectsReservedPlacementBounds(Bounds candidate, float padding)
+    {
+        Bounds expandedCandidate = candidate;
+        expandedCandidate.Expand(new Vector3(
+            Mathf.Max(0f, padding) * 2f,
+            Mathf.Max(0f, padding) * 2f,
+            0f
+        ));
+
+        for (int i = 0; i < reservedPlacementBounds.Count; i++)
+        {
+            if (expandedCandidate.Intersects(reservedPlacementBounds[i]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsPointBlockedByReservedPlacement(Vector2 point, float padding)
+    {
+        for (int i = 0; i < reservedPlacementBounds.Count; i++)
+        {
+            Bounds bounds = reservedPlacementBounds[i];
+            bounds.Expand(new Vector3(
+                Mathf.Max(0f, padding) * 2f,
+                Mathf.Max(0f, padding) * 2f,
+                0f
+            ));
+
+            Vector3 point3D = new Vector3(point.x, point.y, bounds.center.z);
+            if (bounds.Contains(point3D))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ConfigureGeneratedBasePortalDestinations()
+    {
+        if (!configureBasePortalsToNearestShop ||
+            spawnedFieldBases.Count == 0 ||
+            spawnedShopStructures.Count == 0)
+        {
+            return;
+        }
+
+        for (int baseIndex = 0; baseIndex < spawnedFieldBases.Count; baseIndex++)
+        {
+            FieldBaseController fieldBase = spawnedFieldBases[baseIndex];
+            if (fieldBase == null)
+            {
+                continue;
+            }
+
+            ShopStructure nearestShop = null;
+            float nearestSqrDistance = float.MaxValue;
+
+            for (int shopIndex = 0; shopIndex < spawnedShopStructures.Count; shopIndex++)
+            {
+                ShopStructure shop = spawnedShopStructures[shopIndex];
+                if (shop == null || shop.IsDead || shop.PortalArrivalPoint == null)
+                {
+                    continue;
+                }
+
+                float sqrDistance = (shop.PortalArrivalPoint.position - fieldBase.transform.position).sqrMagnitude;
+                if (sqrDistance < nearestSqrDistance)
+                {
+                    nearestSqrDistance = sqrDistance;
+                    nearestShop = shop;
+                }
+            }
+
+            if (nearestShop != null)
+            {
+                fieldBase.ConfigurePortalDestination(nearestShop.PortalArrivalPoint, Vector2.zero);
+            }
+        }
+    }
+
+    private FieldBaseController FindClosestGeneratedFieldBase(Vector2 position)
+    {
+        FieldBaseController closest = null;
+        float closestSqrDistance = float.MaxValue;
+
+        for (int i = 0; i < spawnedFieldBases.Count; i++)
+        {
+            FieldBaseController candidate = spawnedFieldBases[i];
+            if (candidate == null || !candidate.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            Vector3 approachPosition = candidate.ResolveClosestCargoApproachPosition(position);
+            float sqrDistance = ((Vector2)approachPosition - position).sqrMagnitude;
+
+            if (sqrDistance < closestSqrDistance)
+            {
+                closestSqrDistance = sqrDistance;
+                closest = candidate;
+            }
+        }
+
+        return closest;
     }
 
     private void EnsureProgressionRuntimeSystems()
@@ -892,6 +1232,22 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
             occupiedPositions.Add(position);
             importantPositions.Add(position);
+
+            if (reserveBossArenaFromOtherSpawns)
+            {
+                Vector2 arenaHalfExtents = config != null
+                    ? config.BossArenaHalfExtents
+                    : new Vector2(14f, 9.8f);
+
+                ReservePlacementBounds(new Bounds(
+                    position,
+                    new Vector3(
+                        Mathf.Max(1f, arenaHalfExtents.x * 2f),
+                        Mathf.Max(1f, arenaHalfExtents.y * 2f),
+                        0f
+                    )
+                ));
+            }
         }
     }
 
@@ -1390,6 +1746,16 @@ public class ExpeditionMapGenerator : MonoBehaviour
                         ConfigureRoleSimulation(role);
                         break;
                 }
+
+                if (assignRoleEnemiesToNearestGeneratedBase &&
+                    (roleType == EnemyRoleType.RivalHarvester || roleType == EnemyRoleType.Scavenger))
+                {
+                    FieldBaseController closestBase = FindClosestGeneratedFieldBase(position);
+                    if (closestBase != null)
+                    {
+                        role.SetHomeBase(closestBase);
+                    }
+                }
             }
 
             BeginEnemyArrival(spawned, position);
@@ -1777,6 +2143,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
             return false;
         }
 
+        if (IsPointBlockedByReservedPlacement(position, minDistance))
+        {
+            return false;
+        }
+
         if (useBlockedLayerCheck &&
             Physics2D.OverlapCircle(position, blockedCheckRadius, blockedLayer) != null)
         {
@@ -1957,8 +2328,30 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         HarvestObjectHealth harvestObject = spawned.GetComponent<HarvestObjectHealth>();
 
+        if (harvestObject == null)
+        {
+            harvestObject = spawned.GetComponentInChildren<HarvestObjectHealth>(true);
+        }
+
         if (harvestObject != null)
         {
+            bool enemyProjectileDamageEnabled = category switch
+            {
+                MapSpawnCategory.SupplyContainer => enemyProjectilesDamageSupplyContainers,
+                MapSpawnCategory.HighValueWreck => enemyProjectilesDamageHighValueWrecks,
+                MapSpawnCategory.DestroyedHull => enemyProjectilesDamageDestroyedHulls,
+                MapSpawnCategory.SpecialActiveContainer => false,
+                MapSpawnCategory.SpecialPassiveContainer => false,
+                _ => harvestObject.ObjectKind switch
+                {
+                    HarvestObjectKind.SupplyContainer => enemyProjectilesDamageSupplyContainers,
+                    HarvestObjectKind.HighValueWreck => enemyProjectilesDamageHighValueWrecks,
+                    HarvestObjectKind.DestroyedHull => enemyProjectilesDamageDestroyedHulls,
+                    _ => false
+                }
+            };
+
+            harvestObject.SetEnemyProjectileDamageEnabled(enemyProjectileDamageEnabled, true);
             spawnedHarvestObjects.Add(harvestObject);
 
             if (harvestObject.ObjectKind == HarvestObjectKind.HighValueWreck ||
@@ -1998,8 +2391,17 @@ public class ExpeditionMapGenerator : MonoBehaviour
         {
             MeteorObstacle meteor = spawned.GetComponent<MeteorObstacle>();
 
+            if (meteor == null)
+            {
+                meteor = spawned.GetComponentInChildren<MeteorObstacle>(true);
+            }
+
             if (meteor != null)
             {
+                meteor.SetEnemyProjectileDamageEnabled(
+                    category == MapSpawnCategory.Meteor && enemyProjectilesDamageSmallMeteors,
+                    true
+                );
                 meteor.SetRoamingBounds(MapBounds);
             }
         }
@@ -2010,6 +2412,15 @@ public class ExpeditionMapGenerator : MonoBehaviour
         Vector2 position,
         string objectName)
     {
+        return Spawn(prefab, position, objectName, Quaternion.identity);
+    }
+
+    private GameObject Spawn(
+        GameObject prefab,
+        Vector2 position,
+        string objectName,
+        Quaternion rotation)
+    {
         if (prefab == null)
         {
             return null;
@@ -2018,7 +2429,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
         GameObject spawned = Instantiate(
             prefab,
             position,
-            Quaternion.identity,
+            rotation,
             generatedRoot
         );
 

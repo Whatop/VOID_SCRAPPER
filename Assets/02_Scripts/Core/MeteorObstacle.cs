@@ -46,6 +46,13 @@ public class MeteorObstacle : MonoBehaviour
     [Header("Static Visual Rotation")]
     [SerializeField] private Vector2 staticVisualSpinRange = new Vector2(-3f, 3f);
 
+    [Header("Break / Release Root")]
+    [Tooltip("MeteorObstacle가 Collider 자식에 붙어 있을 때, 파괴 시 함께 제거할 운석 프리팹 Root를 연결합니다. 비우면 VisualRoot 구조를 기준으로 자동 탐색합니다.")]
+    [SerializeField] private GameObject objectRoot;
+    [SerializeField] private bool disableVisualsAndCollidersImmediatelyOnBreak = true;
+    [SerializeField] private Renderer[] renderersToDisableOnBreak;
+    [SerializeField] private Collider2D[] collidersToDisableOnBreak;
+
     [Header("Hit Effect")]
     [SerializeField] private GameObject hitEffectPrefab;
     [SerializeField] private float hitEffectDuration = 0.12f;
@@ -80,6 +87,13 @@ public class MeteorObstacle : MonoBehaviour
         {
             visualRoot = childVisual;
         }
+
+        if (visualRoot != null && visualRoot.parent == transform)
+        {
+            objectRoot = gameObject;
+        }
+
+        CacheBreakObjects();
     }
 
     private void Awake()
@@ -92,10 +106,12 @@ public class MeteorObstacle : MonoBehaviour
         }
 
         ResolveVisualRoot();
+        CacheBreakObjects();
     }
 
     private void OnEnable()
     {
+        SetBreakObjectsEnabled(true);
         currentHp = Mathf.Max(1, maxHp);
         InitializeMotion();
     }
@@ -130,6 +146,16 @@ public class MeteorObstacle : MonoBehaviour
         return projectileOwner == ProjectileOwner.Player
             ? takeDamageFromPlayerProjectiles
             : takeDamageFromEnemyProjectiles;
+    }
+
+    public void SetEnemyProjectileDamageEnabled(bool enabled, bool blockProjectileWhenDisabled = true)
+    {
+        takeDamageFromEnemyProjectiles = enabled;
+
+        if (!enabled)
+        {
+            blockProjectileWhenDamageIgnored = blockProjectileWhenDisabled;
+        }
     }
 
     public void TakeDamage(int damage)
@@ -390,13 +416,86 @@ public class MeteorObstacle : MonoBehaviour
 
         AudioManager.PlayAt(SoundEventIds.ObjectMeteorBreak, transform.position);
 
+        GameObject releaseTarget = ResolveObjectRoot();
+
+        if (disableVisualsAndCollidersImmediatelyOnBreak)
+        {
+            SetBreakObjectsEnabled(false);
+        }
+
         if (PoolManager.Instance != null)
         {
-            PoolManager.Instance.Release(gameObject);
+            PoolManager.Instance.Release(releaseTarget);
         }
         else
         {
-            Destroy(gameObject);
+            Destroy(releaseTarget);
+        }
+    }
+
+    private GameObject ResolveObjectRoot()
+    {
+        if (objectRoot != null)
+        {
+            return objectRoot;
+        }
+
+        if (visualRoot != null && visualRoot.parent != null)
+        {
+            Transform candidate = visualRoot.parent;
+            MeteorObstacle linkedMeteor = candidate.GetComponentInChildren<MeteorObstacle>(true);
+
+            if (linkedMeteor == this)
+            {
+                return candidate.gameObject;
+            }
+        }
+
+        return gameObject;
+    }
+
+    private void CacheBreakObjects()
+    {
+        GameObject root = ResolveObjectRoot();
+
+        if (root == null)
+        {
+            root = gameObject;
+        }
+
+        if (renderersToDisableOnBreak == null || renderersToDisableOnBreak.Length == 0)
+        {
+            renderersToDisableOnBreak = root.GetComponentsInChildren<Renderer>(true);
+        }
+
+        if (collidersToDisableOnBreak == null || collidersToDisableOnBreak.Length == 0)
+        {
+            collidersToDisableOnBreak = root.GetComponentsInChildren<Collider2D>(true);
+        }
+    }
+
+    private void SetBreakObjectsEnabled(bool value)
+    {
+        if (renderersToDisableOnBreak != null)
+        {
+            for (int i = 0; i < renderersToDisableOnBreak.Length; i++)
+            {
+                if (renderersToDisableOnBreak[i] != null)
+                {
+                    renderersToDisableOnBreak[i].enabled = value;
+                }
+            }
+        }
+
+        if (collidersToDisableOnBreak != null)
+        {
+            for (int i = 0; i < collidersToDisableOnBreak.Length; i++)
+            {
+                if (collidersToDisableOnBreak[i] != null)
+                {
+                    collidersToDisableOnBreak[i].enabled = value;
+                }
+            }
         }
     }
 }

@@ -31,6 +31,9 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7187754585451843859}
+  - {fileID: 7203523255711621032}
+  - {fileID: 4928645610961003561}
+  - {fileID: 2372190799716322867}
   m_Father: {fileID: 4120115157706738655}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &4555646646082738751
@@ -98,7 +101,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7187754585451843859}
   m_Layer: 0
-  m_Name: FirePoint
+  m_Name: C_FirePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -113,7 +116,7 @@ Transform:
   m_GameObject: {fileID: 1123055788546554026}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.191, z: 0}
+  m_LocalPosition: {x: 0, y: 0.205, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -253,8 +256,101 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.0050992966, y: 0}
-  m_Radius: 0.23265457
+  m_Offset: {x: 0.0061149597, y: -0.034534454}
+  m_Radius: 0.14428735
+--- !u!1 &5197624594632740315
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7203523255711621032}
+  m_Layer: 0
+  m_Name: L_FirePoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7203523255711621032
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5197624594632740315}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.024, y: 0.205, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4584002096259415628}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5452857908193787137
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2372190799716322867}
+  m_Layer: 0
+  m_Name: PowerLinkAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2372190799716322867
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5452857908193787137}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4584002096259415628}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5523387262787702636
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4928645610961003561}
+  m_Layer: 0
+  m_Name: R_FirePoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4928645610961003561
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5523387262787702636}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.025, y: 0.205, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4584002096259415628}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8700428605217978792
 GameObject:
   m_ObjectHideFlags: 0
@@ -426,6 +522,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyDefinition: {fileID: 11400000, guid: e6e5bef48873ddd4488e1def09de0b86, type: 2}
   firePoint: {fileID: 7187754585451843859}
+  runtimeCenterFirePoint: {fileID: 0}
+  runtimeMachineGunLeftFirePoint: {fileID: 0}
+  runtimeMachineGunRightFirePoint: {fileID: 0}
+  projectileOwner: 1
+  ignoreShopSecurityTargets: 0
   projectileDefinition: {fileID: 0}
   attackRange: 6
   attackInterval: 1.2
@@ -436,6 +537,22 @@ MonoBehaviour:
   secondaryProjectileDefinition: {fileID: 0}
   secondaryProjectileCount: 1
   secondarySpreadAngle: 0
+  rangedAttackPattern: 1
+  burstShotCount: 10
+  burstShotInterval: 0.1
+  burstHalfAngle: 10
+  burstTrackTargetEachShot: 0
+  shakeLateralSpeed: 1.35
+  shakeFrequency: 4.5
+  staggeredVolleyCount: 2
+  staggeredVolleyInterval: 0.25
+  staggeredVolleyAngleOffset: 9
+  staggeredTrackTargetEachVolley: 1
+  splitProjectileDefinition: {fileID: 0}
+  splitProjectileCount: 6
+  splitDelay: 0.95
+  splitAngleOffset: 0
+  removeParentProjectileOnSplit: 1
   predictiveShotChance: 0
   predictiveMinimumTargetSpeed: 0.5
   predictiveMaxLeadTime: 0.65
@@ -468,15 +585,22 @@ MonoBehaviour:
   attackController: {fileID: 6249281648082033461}
   turretHealth: {fileID: 8777496687107800868}
   headPivot: {fileID: 4584002096259415628}
-  firePoint: {fileID: 7187754585451843859}
-  powerLinkAnchor: {fileID: 0}
-  target: {fileID: 0}
+  centerFirePoint: {fileID: 7187754585451843859}
+  machineGunLeftFirePoint: {fileID: 7203523255711621032}
+  machineGunRightFirePoint: {fileID: 4928645610961003561}
+  powerLinkAnchor: {fileID: 2372190799716322867}
   detectionRange: 9
   useAttackRangeAsMinimumDetectionRange: 1
   lineOfSightBlockMask:
     serializedVersion: 2
     m_Bits: 68608
   requireLineOfSight: 1
+  shopOwner: {fileID: 0}
+  neutralEnemyTargetLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  targetRefreshInterval: 0.2
+  requireThreateningEnemy: 1
   turnSpeed: 360
   headRotationOffset: -90
   requireAimAlignment: 1

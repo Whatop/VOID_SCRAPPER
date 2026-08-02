@@ -57,6 +57,11 @@ public class ShopDefenseController2D : MonoBehaviour
     [SerializeField] private bool skipOccupiedSpawnPoints = true;
     [SerializeField] private bool spawnOnStart = true;
 
+    [Header("Turret Attack Definitions")]
+    [Tooltip("권장 순서: 단발, 기관총, 차징. 포탑 생성 순서대로 반복 적용됩니다. 비우면 Turret Prefab 자체 설정을 사용합니다.")]
+    [SerializeField] private EnemyDefinition[] turretAttackDefinitions;
+    [SerializeField] private bool cycleTurretAttackDefinitions = true;
+
     [Header("Turret Count by Region")]
     [Min(0)]
     [SerializeField] private int region1TurretCount = 4;
@@ -111,6 +116,7 @@ public class ShopDefenseController2D : MonoBehaviour
     private float summonTimer;
     private float summonAngleCursor;
     private bool spawned;
+    private int turretDefinitionCursor;
 
     public bool CombatActive => combatActive;
 
@@ -225,6 +231,7 @@ public class ShopDefenseController2D : MonoBehaviour
         int requestedCount = ResolveTurretCount();
         int remaining = requestedCount;
         int spawnedCount = 0;
+        turretDefinitionCursor = 0;
 
         if (powerGroups == null || powerGroups.Length == 0)
         {
@@ -314,6 +321,14 @@ public class ShopDefenseController2D : MonoBehaviour
                 group.RuntimeTurrets.Add(turret);
             }
 
+            EnemyDefinition turretAttackDefinition = ResolveTurretAttackDefinition(turretDefinitionCursor);
+            turretDefinitionCursor++;
+
+            if (turretAttackDefinition != null)
+            {
+                turret.ConfigureDefinition(turretAttackDefinition);
+            }
+
             turret.ConfigureShopDefense(shopOwner);
 
             if (turret.TurretHealth != null)
@@ -328,6 +343,34 @@ public class ShopDefenseController2D : MonoBehaviour
         }
 
         return placed;
+    }
+
+    private EnemyDefinition ResolveTurretAttackDefinition(int spawnIndex)
+    {
+        if (turretAttackDefinitions == null || turretAttackDefinitions.Length == 0)
+        {
+            return null;
+        }
+
+        if (cycleTurretAttackDefinitions)
+        {
+            int startIndex = Mathf.Abs(spawnIndex) % turretAttackDefinitions.Length;
+
+            for (int offset = 0; offset < turretAttackDefinitions.Length; offset++)
+            {
+                EnemyDefinition candidate = turretAttackDefinitions[(startIndex + offset) % turretAttackDefinitions.Length];
+
+                if (candidate != null)
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        int clampedIndex = Mathf.Clamp(spawnIndex, 0, turretAttackDefinitions.Length - 1);
+        return turretAttackDefinitions[clampedIndex];
     }
 
     private void CreatePowerLink(

@@ -260,6 +260,12 @@ MonoBehaviour:
   boundsPadding: 0.5
   hitImpulse: 0.35
   staticVisualSpinRange: {x: -3, y: 3}
+  objectRoot: {fileID: 6474441654705686714}
+  disableVisualsAndCollidersImmediatelyOnBreak: 1
+  renderersToDisableOnBreak:
+  - {fileID: 3525678277131728043}
+  collidersToDisableOnBreak:
+  - {fileID: 5021425564774195704}
   hitEffectPrefab: {fileID: 0}
   hitEffectDuration: 0.12
   useProceduralHitEffectWhenPrefabMissing: 1

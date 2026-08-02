@@ -34,22 +34,22 @@ public class PlayerDash : MonoBehaviour
     [SerializeField] private float knockbackDistance = 1.5f;
 
     [Header("Weapon Dash Rules")]
-    [Tooltip("±â°üÃÑÀº ´ë½¬ ÀÌµ¿°ú ¹«Àû¸¸ »ç¿ëÇÕ´Ï´Ù. Åº »èÁ¦, Àû ¹ĞÄ§, Ãæ°İÆÄ¸¦ »ç¿ëÇÏÁö ¾Ê½À´Ï´Ù.")]
+    [Tooltip("ê¸°ê´€ì´ì€ ëŒ€ì‰¬ ì´ë™ê³¼ ë¬´ì ë§Œ ì‚¬ìš©í•©ë‹ˆë‹¤. íƒ„ ì‚­ì œ, ì  ë°€ì¹¨, ì¶©ê²©íŒŒë¥¼ ì‚¬ìš©í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.")]
     [SerializeField] private bool machineGunDashInvincibleOnly = true;
 
-    [Tooltip("¼¦°ÇÀº ±âº» ´ë½¬¿¡¼­ ±ÙÁ¢ ÀûÀ» »ìÂ¦ ¹Ğ¾î³¾ ¼ö ÀÖ½À´Ï´Ù.")]
+    [Tooltip("ìƒ·ê±´ì€ ê¸°ë³¸ ëŒ€ì‰¬ì—ì„œ ê·¼ì ‘ ì ì„ ì‚´ì§ ë°€ì–´ë‚¼ ìˆ˜ ìˆìŠµë‹ˆë‹¤.")]
     [SerializeField] private bool shotgunUsesNormalKnockback = true;
 
-    [Tooltip("½º³ªÀÌÆÛµµ ´ë½¬ ¹ĞÄ§À» ÁÙÁö ¿©ºÎÀÔ´Ï´Ù. ±âº»Àº ²¨µÎ´Â °ÍÀ» ±ÇÀåÇÕ´Ï´Ù.")]
+    [Tooltip("ìŠ¤ë‚˜ì´í¼ë„ ëŒ€ì‰¬ ë°€ì¹¨ì„ ì¤„ì§€ ì—¬ë¶€ì…ë‹ˆë‹¤. ê¸°ë³¸ì€ êº¼ë‘ëŠ” ê²ƒì„ ê¶Œì¥í•©ë‹ˆë‹¤.")]
     [SerializeField] private bool sniperUsesNormalKnockback;
 
-    [Tooltip("½º³ªÀÌÆÛ°¡ ´ë½¬ Áß Àû ÅºÈ¯À» »èÁ¦ÇÒÁö ¿©ºÎÀÔ´Ï´Ù.")]
+    [Tooltip("ìŠ¤ë‚˜ì´í¼ê°€ ëŒ€ì‰¬ ì¤‘ ì  íƒ„í™˜ì„ ì‚­ì œí• ì§€ ì—¬ë¶€ì…ë‹ˆë‹¤.")]
     [SerializeField] private bool sniperClearsProjectiles = true;
 
-    [Tooltip("¼¦°Ç Ãæ°İÆÄ¸¦ ÇØ±İÇü ´É·ÂÀ¸·Î »ç¿ëÇÒÁö ¿©ºÎÀÔ´Ï´Ù.")]
+    [Tooltip("ìƒ·ê±´ ì¶©ê²©íŒŒë¥¼ í•´ê¸ˆí˜• ëŠ¥ë ¥ìœ¼ë¡œ ì‚¬ìš©í• ì§€ ì—¬ë¶€ì…ë‹ˆë‹¤.")]
     [SerializeField] private bool shotgunShockwaveRequiresUnlock = true;
 
-    [Tooltip("¼¦°Ç Ãæ°İÆÄ ÇØ±İ »óÅÂÀÔ´Ï´Ù. ³ªÁß¿¡ Æ¯¼º/ÇØ±İ ½Ã½ºÅÛ¿¡¼­ true·Î ¹Ù²Ù¸é µË´Ï´Ù.")]
+    [Tooltip("ìƒ·ê±´ ì¶©ê²©íŒŒ í•´ê¸ˆ ìƒíƒœì…ë‹ˆë‹¤. ë‚˜ì¤‘ì— íŠ¹ì„±/í•´ê¸ˆ ì‹œìŠ¤í…œì—ì„œ trueë¡œ ë°”ê¾¸ë©´ ë©ë‹ˆë‹¤.")]
     [SerializeField] private bool shotgunShockwaveUnlocked;
 
     [Header("Dash Shockwave - Shotgun Unlock Only")]
@@ -214,6 +214,11 @@ public class PlayerDash : MonoBehaviour
             return false;
         }
 
+        if (controller != null && (!controller.ControlEnabled || controller.MovementLocked))
+        {
+            return false;
+        }
+
         Vector2 direction = GetDashDirection();
 
         if (direction.sqrMagnitude <= 0.001f)
@@ -246,6 +251,8 @@ public class PlayerDash : MonoBehaviour
     private IEnumerator DashRoutine(Vector2 direction)
     {
         DashEffectProfile effectProfile = ResolveDashEffectProfile();
+        float dashSpeed = dashDistance / Mathf.Max(0.01f, dashDuration);
+        Vector2 dashVelocity = direction * dashSpeed;
 
         isDashing = true;
         lastDashTime = Time.time;
@@ -256,6 +263,11 @@ public class PlayerDash : MonoBehaviour
         if (controller != null)
         {
             controller.SetMovementLocked(true);
+            controller.SetMovementVelocityOverride(dashVelocity);
+        }
+        else if (rb != null)
+        {
+            rb.linearVelocity = dashVelocity;
         }
 
         if (health != null)
@@ -276,13 +288,16 @@ public class PlayerDash : MonoBehaviour
         }
 
         float elapsed = 0f;
-        float dashSpeed = dashDistance / Mathf.Max(0.01f, dashDuration);
 
         while (elapsed < dashDuration)
         {
-            if (rb != null)
+            if (controller != null)
             {
-                rb.linearVelocity = direction * dashSpeed;
+                controller.SetMovementVelocityOverride(dashVelocity);
+            }
+            else if (rb != null)
+            {
+                rb.linearVelocity = dashVelocity;
             }
 
             if (effectProfile.useProjectileClear)
@@ -299,6 +314,11 @@ public class PlayerDash : MonoBehaviour
 
     private void EndDashState()
     {
+        if (controller != null)
+        {
+            controller.ClearMovementVelocityOverride();
+        }
+
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;

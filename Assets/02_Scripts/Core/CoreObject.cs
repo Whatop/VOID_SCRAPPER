@@ -268,6 +268,10 @@ public class CoreObject : MonoBehaviour, IInteractable
             yield break;
         }
 
+        // 코어 활성화가 완료된 즉시 보스 음악으로 전환한다.
+        // 실제 BossBattle GameState 전환은 인트로 종료 시점에 유지한다.
+        GameAudioLoopController.EnterBossIntroMusic();
+
         if (useBossIntroSequence)
         {
             EnsureIntroSequence();
