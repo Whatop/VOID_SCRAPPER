@@ -19,6 +19,9 @@ MonoBehaviour:
   speed: 5
   range: 9
   lifeTime: 2
+  impactEffectPrefab: {fileID: 8200224275209536821, guid: 2a32310c19eec6149a88819e2dc064ae, type: 3}
+  impactEffectLifeTime: 0.18
+  rotateImpactEffectToProjectile: 1
   pierceCount: 0
   useHoming: 0
   homingAngle: 0

@@ -1797,16 +1797,6 @@ public class ShipTraitTreePanel : MonoBehaviour
         );
     }
 
-    private string BuildDetailText(
-        ShipTraitBranchNodeEntry entry,
-        bool selectable,
-        bool unlocked,
-        int unlockedShipCount)
-    {
-        ShipTraitDetailViewData viewData = BuildTraitDetailViewData(entry, selectable, unlocked, unlockedShipCount);
-        return viewData != null ? viewData.BuildFallbackBodyText() : string.Empty;
-    }
-
     private string BuildLevelText(ShipTraitBranchNodeEntry entry)
     {
         if (entry == null || IsReinforcementNode(entry))
@@ -1998,23 +1988,6 @@ public class ShipTraitTreePanel : MonoBehaviour
         }
 
         return $"{GetBranchDisplayName(branchKind)} 브랜치가 잠겨 있습니다.";
-    }
-
-    private string BuildUnlockConditionRequirementText(ShipTraitUnlockCondition condition)
-    {
-        if (condition == null)
-        {
-            return string.Empty;
-        }
-
-        string displayName = GetUnlockConditionDisplayName(condition);
-
-        if (IsBinaryUnlockCondition(condition.conditionKind))
-        {
-            return displayName;
-        }
-
-        return $"{displayName}: {GetConditionRequiredValue(condition)} 이상";
     }
 
     private string BuildUnlockConditionProgressText(ShipTraitUnlockCondition condition, int unlockedShipCount)
@@ -2553,26 +2526,6 @@ public class ShipTraitTreePanel : MonoBehaviour
 
             _ => "특성 그룹입니다."
         };
-    }
-
-    private string ResolveTargetShipId()
-    {
-        if (!string.IsNullOrWhiteSpace(targetShipIdOverride))
-        {
-            return targetShipIdOverride;
-        }
-
-        if (settlementController != null)
-        {
-            return settlementController.SelectedShipId;
-        }
-
-        if (PermanentProgress.Instance != null)
-        {
-            return PermanentProgress.Instance.SelectedShipId;
-        }
-
-        return "basic_ship";
     }
 
     private void SetIcon(Sprite icon)

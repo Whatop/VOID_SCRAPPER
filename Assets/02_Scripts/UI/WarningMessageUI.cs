@@ -14,7 +14,7 @@ public class WarningMessageUI : MonoBehaviour
     [SerializeField] private float fadeSpeed = 12f;
 
     [Header("Option")]
-    [Tooltip("ÄÑµÎ¸é ºñÈ°¼ºÈ­µÈ »óÅÂ¿¡¼­ ShowMessage°¡ È£ÃâµÅµµ ÀÚ±â ¿ÀºêÁ§Æ®¸¦ ´Ù½Ã È°¼ºÈ­ÇÕ´Ï´Ù.")]
+    [Tooltip("ì¼œë‘ë©´ ì˜¤ë¸Œì íŠ¸ê°€ ë¹„í™œì„±í™”ëœ ìƒíƒœì—ì„œë„ ShowMessage í˜¸ì¶œ ì‹œ ìžë™ìœ¼ë¡œ ë‹¤ì‹œ í™œì„±í™”í•©ë‹ˆë‹¤.")]
     [SerializeField] private bool reactivateSelfWhenNeeded = true;
 
     private Coroutine routine;
@@ -31,9 +31,23 @@ public class WarningMessageUI : MonoBehaviour
         HideImmediate();
     }
 
+    private void OnEnable()
+    {
+        GameSettingsRuntime.Changed += HandleSettingsChanged;
+    }
+
     private void OnDisable()
     {
+        GameSettingsRuntime.Changed -= HandleSettingsChanged;
         routine = null;
+    }
+
+    private void HandleSettingsChanged()
+    {
+        if (canvasGroup != null && canvasGroup.alpha > 0.001f)
+        {
+            canvasGroup.alpha = Mathf.Min(canvasGroup.alpha, GameSettingsRuntime.WarningOpacity);
+        }
     }
 
     public void ShowMessage(string message)
@@ -54,7 +68,7 @@ public class WarningMessageUI : MonoBehaviour
         if (!isActiveAndEnabled)
         {
             Debug.LogWarning(
-                "WarningMessageUI°¡ ºñÈ°¼ºÈ­µÇ¾î °æ°í ¸Þ½ÃÁö¸¦ Ç¥½ÃÇÒ ¼ö ¾ø½À´Ï´Ù. WarningMessage ¿ÀºêÁ§Æ®¸¦ Hierarchy¿¡¼­ ÄÑµÎ¼¼¿ä.",
+                "WarningMessageUIê°€ ë¹„í™œì„±í™”ë˜ì–´ ê²½ê³  ë©”ì‹œì§€ë¥¼ í‘œì‹œí•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤. WarningMessage ì˜¤ë¸Œì íŠ¸ë¥¼ Hierarchyì—ì„œ í™œì„± ìƒíƒœë¡œ ìœ ì§€í•˜ì„¸ìš”.",
                 this
             );
             return;
@@ -100,9 +114,8 @@ public class WarningMessageUI : MonoBehaviour
 
         SetCanvasGroup(0f, false);
 
-        // Áß¿ä:
-        // ¿©±â¼­ gameObject.SetActive(false) ÇÏÁö ¾Ê´Â´Ù.
-        // WarningMessageUI´Â Ç×»ó ÄÑÁ® ÀÖ¾î¾ß CoroutineÀ» ½ÃÀÛÇÒ ¼ö ÀÖ´Ù.
+        // ì´ ì˜¤ë¸Œì íŠ¸ ìžì²´ëŠ” ë„ì§€ ì•ŠëŠ”ë‹¤. í•­ìƒ í™œì„± ìƒíƒœë¥¼ ìœ ì§€í•´ì•¼
+        // ë‹¤ìŒ ê²½ê³ ì—ì„œ Coroutineì„ ì •ìƒì ìœ¼ë¡œ ì‹œìž‘í•  ìˆ˜ ìžˆë‹¤.
     }
 
     private IEnumerator ShowRoutine(string message, float duration)
@@ -150,12 +163,15 @@ public class WarningMessageUI : MonoBehaviour
         }
 
         targetAlpha = Mathf.Clamp01(targetAlpha);
+        float effectiveTargetAlpha = targetAlpha > 0.001f
+            ? targetAlpha * GameSettingsRuntime.WarningOpacity
+            : 0f;
 
-        while (!Mathf.Approximately(canvasGroup.alpha, targetAlpha))
+        while (!Mathf.Approximately(canvasGroup.alpha, effectiveTargetAlpha))
         {
             canvasGroup.alpha = Mathf.MoveTowards(
                 canvasGroup.alpha,
-                targetAlpha,
+                effectiveTargetAlpha,
                 fadeSpeed * Time.unscaledDeltaTime
             );
 
@@ -166,7 +182,7 @@ public class WarningMessageUI : MonoBehaviour
             yield return null;
         }
 
-        SetCanvasGroup(targetAlpha, targetAlpha > 0.01f);
+        SetCanvasGroup(effectiveTargetAlpha, effectiveTargetAlpha > 0.01f);
     }
 
     private void SetCanvasGroup(float alpha, bool visible)

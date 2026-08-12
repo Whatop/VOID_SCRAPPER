@@ -43,7 +43,6 @@ public class EventEnemyArrivalMover : MonoBehaviour
     [Header("Arrival Facing")]
     [SerializeField] private bool rotateToArrivalDirection = true;
     [SerializeField] private float rotationOffset = -90f;
-    [SerializeField] private bool keepArrivalFacingUntilReady = true;
 
     public void Begin(
         Vector2 entry,

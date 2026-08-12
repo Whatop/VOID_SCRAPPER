@@ -7,10 +7,6 @@ public class WormholePortal : MonoBehaviour, IInteractable
     [SerializeField] private string interactionText = "위상 분기 항로 진입";
     [SerializeField] private bool requireBossDefeated = true;
 
-    [Header("Legacy")]
-    [Tooltip("기존 프리팹 직렬화 호환용입니다. 새 진행은 RunManager가 판단합니다.")]
-    [SerializeField, HideInInspector] private bool normalZoneOnly = true;
-
     [Header("UI")]
     [SerializeField] private WormholeChoiceUI wormholeChoiceUI;
 

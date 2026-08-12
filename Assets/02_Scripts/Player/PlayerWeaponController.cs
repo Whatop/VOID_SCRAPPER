@@ -50,6 +50,7 @@ public class PlayerWeaponController : MonoBehaviour
     public Transform FirePoint => firePoint;
     public PlayerWeaponBase CurrentWeapon => currentWeapon;
     public WeaponTreeType CurrentWeaponTree => currentWeaponTree;
+    public bool ExternalInputLocked => externalInputLocked;
 
     public event Action<WeaponTreeType, PlayerWeaponBase> WeaponEquipped;
 

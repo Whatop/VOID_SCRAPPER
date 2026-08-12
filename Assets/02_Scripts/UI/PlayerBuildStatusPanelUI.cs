@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
@@ -77,6 +77,10 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     [SerializeField] private bool deactivateVisualRootWhenClosed = true;
     [SerializeField] private Button closeButton;
 
+    [Header("External Menu Ownership")]
+    [Tooltip("켜면 ExpeditionMenuController가 열기/닫기, Pause, Cursor, ESC를 전담합니다.")]
+    [SerializeField] private bool externalMenuControlsLifecycle = true;
+
     [Header("Input")]
     [SerializeField] private bool holdTabToOpen = true;
     [SerializeField] private Key fallbackKey = Key.Tab;
@@ -126,7 +130,10 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     [SerializeField] private string fallbackDefaultReinforcementId = "rf_emergency_return_anchor";
 
     [Header("Field Drop")]
-    [Tooltip("Tab 상태창에서 선택 대상을 필드에 드랍하는 키입니다.")]
+    [SerializeField] private InputActionAsset inputActions;
+    [SerializeField] private string playerActionMapName = "Player";
+    [SerializeField] private string fieldDropActionName = "Dismantle";
+    [Tooltip("입력 액션이 없을 때 사용하는 필드 드랍 키입니다.")]
     [SerializeField] private Key fieldDropKey = Key.G;
     [Tooltip("액티브 슬롯 전체에 Button을 붙이고 연결하면 클릭으로 액티브를 드랍 대상으로 선택할 수 있습니다.")]
     [SerializeField] private Button activeSlotSelectButton;
@@ -211,6 +218,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     private bool isOpen;
     private bool suppressOpenUntilKeyReleased;
     private bool runtimeEventsBound;
+    private InputAction fieldDropAction;
     private int selectedPassiveIndex = -1;
     private string selectedPassiveId;
     private BuildStatusFieldDropTarget selectedFieldDropTarget = BuildStatusFieldDropTarget.Active;
@@ -225,6 +233,9 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     private RunManager subscribedRunManager;
 
     public bool IsOpen => isOpen;
+    public bool ExternalMenuControlsLifecycle => externalMenuControlsLifecycle;
+
+    public event Action CloseRequested;
 
     private void OnValidate()
     {
@@ -255,6 +266,8 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void OnEnable()
     {
+        BindFieldDropInput();
+
         if (closeButton != null)
         {
             closeButton.onClick.AddListener(CloseFromButton);
@@ -278,6 +291,8 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void OnDisable()
     {
+        fieldDropAction?.Disable();
+
         if (closeButton != null)
         {
             closeButton.onClick.RemoveListener(CloseFromButton);
@@ -306,6 +321,16 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void Update()
     {
+        if (externalMenuControlsLifecycle)
+        {
+            if (isOpen)
+            {
+                HandleFieldDropInput();
+            }
+
+            return;
+        }
+
         bool keyPressed = IsOpenKeyPressed();
 
         if (suppressOpenUntilKeyReleased)
@@ -359,7 +384,8 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             return;
         }
 
-        if (blockOpenWhileAnotherPauseActive &&
+        if (!externalMenuControlsLifecycle &&
+            blockOpenWhileAnotherPauseActive &&
             GameplayPauseManager.IsPaused &&
             !GameplayPauseManager.Instance.IsPausedBy(this))
         {
@@ -380,17 +406,25 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             ? BuildStatusFieldDropTarget.Active
             : BuildStatusFieldDropTarget.Passive;
         BindRuntimeEvents();
-        StoreAndApplyCursorState();
+
+        if (!externalMenuControlsLifecycle)
+        {
+            StoreAndApplyCursorState();
+        }
+
         SetPanelVisible(true);
         RefreshAll();
 
-        if (pauseWhileOpen)
+        if (!externalMenuControlsLifecycle)
         {
-            GameplayPauseManager.Instance.PushPause(this, "PlayerBuildStatusPanel");
-        }
+            if (pauseWhileOpen)
+            {
+                GameplayPauseManager.Instance.PushPause(this, "PlayerBuildStatusPanel");
+            }
 
-        GameplayPauseManager.Instance.RegisterCancelHandler(this, CloseFromCancel);
-        AudioManager.Play(SoundEventIds.UiPanelOpen);
+            GameplayPauseManager.Instance.RegisterCancelHandler(this, CloseFromCancel);
+            AudioManager.Play(SoundEventIds.UiPanelOpen);
+        }
     }
 
     public void Close()
@@ -910,11 +944,6 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         int runtimeLevel = entry.IsOwned ? Mathf.Max(0, entry.runtimeLevel) : 0;
 
         return BuildTraitEffectsCombined(entry.trait, permanentLevel, runtimeLevel);
-    }
-
-    private string BuildTraitEffectsUpToLevel(TraitDefinition trait, int level)
-    {
-        return BuildTraitEffectsCombined(trait, level, 0);
     }
 
     private string BuildTraitEffectsCombined(TraitDefinition trait, int permanentLevel, int runtimeLevel)
@@ -1517,17 +1546,42 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void HandleFieldDropInput()
     {
-        if (Keyboard.current == null)
+        bool pressed;
+
+        if (fieldDropAction != null)
         {
-            return;
+            pressed = fieldDropAction.WasPressedThisFrame();
+        }
+        else
+        {
+            KeyControl keyControl = Keyboard.current != null ? Keyboard.current[fieldDropKey] : null;
+            pressed = keyControl != null && keyControl.wasPressedThisFrame;
         }
 
-        KeyControl keyControl = Keyboard.current[fieldDropKey];
-
-        if (keyControl != null && keyControl.wasPressedThisFrame)
+        if (pressed)
         {
             TryDropSelectedFieldItem();
         }
+    }
+
+    private void BindFieldDropInput()
+    {
+        fieldDropAction = InputBindingUtility.ResolveAction(
+            inputActions,
+            playerActionMapName,
+            fieldDropActionName
+        );
+        fieldDropAction?.Enable();
+    }
+
+    private string ResolveFieldDropKeyText()
+    {
+        return InputBindingUtility.GetDisplayString(
+            inputActions,
+            playerActionMapName,
+            fieldDropActionName,
+            fieldDropKey.ToString()
+        );
     }
 
     private TraitPickup SpawnTraitFieldPickup(TraitDefinition trait, Vector2 position)
@@ -1620,14 +1674,14 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             string activeName = reinforcementController != null && reinforcementController.EquippedDefinition != null
                 ? reinforcementController.EquippedDefinition.DisplayName
                 : "장비 없음";
-            fieldDropHintText.text = $"[{fieldDropKey}] 액티브 필드 드랍 : {activeName}";
+            fieldDropHintText.text = $"[{ResolveFieldDropKeyText()}] 액티브 필드 드랍 : {activeName}";
             return;
         }
 
         string passiveName = selectedPassiveIndex >= 0 && selectedPassiveIndex < passiveEntries.Count && passiveEntries[selectedPassiveIndex]?.trait != null
             ? passiveEntries[selectedPassiveIndex].trait.DisplayName
             : "패시브 미선택";
-        fieldDropHintText.text = $"[{fieldDropKey}] 패시브 필드 드랍 : {passiveName}";
+        fieldDropHintText.text = $"[{ResolveFieldDropKeyText()}] 패시브 필드 드랍 : {passiveName}";
     }
 
     private void ShowFieldDropWarning(string message)
@@ -1789,12 +1843,24 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void CloseFromButton()
     {
+        if (externalMenuControlsLifecycle)
+        {
+            CloseRequested?.Invoke();
+            return;
+        }
+
         suppressOpenUntilKeyReleased = holdTabToOpen && IsOpenKeyPressed();
         CloseInternal(true, true);
     }
 
     private void CloseFromCancel()
     {
+        if (externalMenuControlsLifecycle)
+        {
+            CloseRequested?.Invoke();
+            return;
+        }
+
         suppressOpenUntilKeyReleased = holdTabToOpen && IsOpenKeyPressed();
         CloseInternal(true, true);
     }
@@ -1809,7 +1875,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         isOpen = false;
         UnbindRuntimeEvents();
 
-        if (GameplayPauseManager.Instance != null)
+        if (!externalMenuControlsLifecycle && GameplayPauseManager.Instance != null)
         {
             GameplayPauseManager.Instance.UnregisterCancelHandler(this);
 
@@ -1819,14 +1885,14 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             }
         }
 
-        if (restoreCursor)
+        if (!externalMenuControlsLifecycle && restoreCursor)
         {
             RestoreCursorState();
         }
 
         SetPanelVisible(false);
 
-        if (playSound)
+        if (playSound && !externalMenuControlsLifecycle)
         {
             AudioManager.Play(SoundEventIds.UiPanelClose);
         }

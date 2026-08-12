@@ -391,6 +391,10 @@ MonoBehaviour:
   disableColliderOnAwake: 1
   forceTriggerCollider: 1
   ignoreDamageWhenInactive: 1
+  useProceduralHitEffect: 1
+  hitEffectIntensity: 0.9
+  hitShakeAmplitude: 0.025
+  hitShakeDuration: 0.05
   logMissingOwner: 0
 --- !u!1 &5276898961526464115
 GameObject:
@@ -493,6 +497,9 @@ MonoBehaviour:
   eventType: 2
   state: 0
   resetOnEnable: 1
+  countsAsHighValueObjective: 1
+  objectiveSignalAmount: 1
+  objectiveId: 
   rescueText: "\uAD6C\uC870 \uC2E0\uD638 \uC870\uC0AC"
   unknownText: "\uBBF8\uD655\uC778 \uC7A5\uCE58 \uC870\uC0AC"
   reactorText: "\uBD88\uC548\uC815 \uC6D0\uC790\uB85C \uAC00\uB3D9"
@@ -515,7 +522,6 @@ MonoBehaviour:
   unknownCombatDropPreset: 3
   reactorDropPreset: 4
   blackBoxDropPreset: 5
-  motionTitlePrefab: {fileID: 7339016641647669697, guid: 259ad2fdb3d58aa4cb6296c6c5ed24d8, type: 3}
   basicEnemyDefinition: {fileID: 11400000, guid: e6e5bef48873ddd4488e1def09de0b86, type: 2}
   shotgunEnemyDefinition: {fileID: 11400000, guid: 2fa9f4364489b8b48a441bfe87b8323e, type: 2}
   chargingEnemyDefinition: {fileID: 11400000, guid: 6e238d53877964e4691b4ac037651abd, type: 2}
@@ -549,6 +555,25 @@ MonoBehaviour:
   alertSpawnedEnemies: 1
   suppressSpawnedEnemyNormalRewards: 1
   deepZoneEnemyHpMultiplier: 1.2
+  useArrivalSpawn: 1
+  useEventDefaultArrivalRadiusFloor: 1
+  arrivalMarkerPrefab: {fileID: 0}
+  arrivalImpactPrefab: {fileID: 0}
+  createFallbackArrivalMarker: 1
+  createFallbackLandingBurst: 1
+  arrivalWarningTime: 0.75
+  arrivalTravelTime: 0.35
+  arrivalReadyDelay: 0.25
+  offscreenEntryDistance: 10.5
+  preferOffscreenEntry: 1
+  arrivalMarkerRadius: 0.85
+  arrivalMarkerColor: {r: 1, g: 0.05, b: 0.03, a: 0.9}
+  useEnemyArrivalAfterimages: 1
+  enemyAfterimageInterval: 0.055
+  enemyAfterimageLifetime: 0.22
+  enemyAfterimageColor: {r: 1, g: 0.18, b: 0.12, a: 0.35}
+  enemyAfterimageSortingOrderOffset: -1
+  disableEnemyCollidersDuringArrival: 1
   visualRoot: {fileID: 2411156127860287579}
   animatedRoot: {fileID: 3395410023217105570}
   coreRenderer: {fileID: 8574925247785382801}
@@ -559,6 +584,8 @@ MonoBehaviour:
   hideVisualOnFinished: 1
   radarTarget: {fileID: 7153581795668313685}
   autoConfigureRadarTarget: 1
+  preventAnimatedRootFromUsingEventRoot: 1
+  visualRootChildName: VisualRoot
   useTween: 1
   idleFloatY: 0.1
   idleFloatDuration: 1.2
@@ -588,13 +615,17 @@ MonoBehaviour:
   markerType: 4
   markerTransform: {fileID: 3486426835848565797}
   visible: 1
-  markerSprite: {fileID: 0}
+  markerSprite: {fileID: 21300000, guid: 49b2bca3a3f8d7a48bbc281b2a42304c, type: 3}
   markerColor: {r: 1, g: 1, b: 1, a: 1}
   markerScale: 1
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 1
   alertOnMachineGunScan: 0
   alertOnSniperScan: 0
+  lastScannedTime: -999
 --- !u!114 &5721050576343127703
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -609,7 +640,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rewardDefinition: {fileID: 11400000, guid: f247da96b6e747bbbbf6332f0cd0225b, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
-  healPickupPrefab: {fileID: 3676966635386126382, guid: a7f1f0c9c5ee96c4ea79449c8394d7a9, type: 3}
+  legacyHealPickupPrefab: {fileID: 3676966635386126382, guid: a7f1f0c9c5ee96c4ea79449c8394d7a9, type: 3}
   fallbackReinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}
   reinforcementPickupPrefab: {fileID: 5731060007047836178, guid: 68a782fdd93f485418b72f76aa265798, type: 3}
   reinforcementMinScatterRadius: 0.35
@@ -623,6 +654,12 @@ MonoBehaviour:
   compactCurrencyDrops: 1
   compactAmountPerShard: 5
   compactMaxShardsPerCurrency: 8
+  usePerCurrencyShardSize: 1
+  creditsAmountPerShard: 5
+  scrapAmountPerShard: 1
+  coreAmountPerShard: 1
+  tuningChipAmountPerShard: 1
+  experienceAmountPerShard: 3
   amountPerShard: 5
   maxShardsPerCurrency: 8
   minScatterRadius: 0.18
@@ -630,6 +667,7 @@ MonoBehaviour:
   minScatterSpeed: 1
   maxScatterSpeed: 2.6
   angleJitter: 15
+  runtimeCurrencyMultiplier: 1
   logMissingPrefab: 1
 --- !u!1 &5642906520485921349
 GameObject:

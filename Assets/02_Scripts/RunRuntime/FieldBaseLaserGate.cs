@@ -13,6 +13,9 @@ public class FieldBaseLaserGate : MonoBehaviour
     [SerializeField] private Collider2D triggerZone;
     [Tooltip("끄면 레이저 시각과 전력 상태는 유지되지만 플레이어를 밀어내지 않습니다.")]
     [SerializeField] private bool pushPlayerWhenClosed = true;
+    [SerializeField] private bool blockPlayerProjectilesWhenClosed = true;
+    [SerializeField] private bool blockEnemyProjectilesWhenClosed;
+    [SerializeField] private bool blockShopDefenseProjectilesWhenClosed = true;
     [SerializeField] private float pushOutDistance = 0.35f;
     [SerializeField] private float warningCooldown = 0.75f;
     [SerializeField] private string blockedWarning = "레이저 차단막이 활성화되어 있다.";
@@ -47,6 +50,22 @@ public class FieldBaseLaserGate : MonoBehaviour
 
     public bool IsOpen => isOpen;
     public bool PushPlayerWhenClosed => pushPlayerWhenClosed;
+
+    public bool ShouldBlockProjectile(ProjectileOwner projectileOwner)
+    {
+        if (isOpen)
+        {
+            return false;
+        }
+
+        return projectileOwner switch
+        {
+            ProjectileOwner.Player => blockPlayerProjectilesWhenClosed,
+            ProjectileOwner.Enemy => blockEnemyProjectilesWhenClosed,
+            ProjectileOwner.ShopDefense => blockShopDefenseProjectilesWhenClosed,
+            _ => true
+        };
+    }
 
     private void Reset()
     {
@@ -103,6 +122,12 @@ public class FieldBaseLaserGate : MonoBehaviour
         isOpen = open;
         SetObjectsActive(closedVisuals, !isOpen);
         SetObjectsActive(openVisuals, isOpen);
+
+        if (triggerZone != null)
+        {
+            triggerZone.enabled = !isOpen;
+        }
+
         UpdateLaserVisual();
 
         if (!immediate)
@@ -116,7 +141,17 @@ public class FieldBaseLaserGate : MonoBehaviour
         pushPlayerWhenClosed = enabled;
     }
 
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        TryBlockPlayer(other);
+    }
+
     private void OnTriggerStay2D(Collider2D other)
+    {
+        TryBlockPlayer(other);
+    }
+
+    private void TryBlockPlayer(Collider2D other)
     {
         if (isOpen || !pushPlayerWhenClosed || other == null)
         {
@@ -146,16 +181,21 @@ public class FieldBaseLaserGate : MonoBehaviour
 
         if (pushDirection.sqrMagnitude <= 0.0001f)
         {
-            Vector2 fallbackDirection = ((Vector2)(beamEndPoint != null ? beamEndPoint.position : transform.position)
+            Vector2 beamDirection = ((Vector2)(beamEndPoint != null ? beamEndPoint.position : transform.position)
                 - (Vector2)(beamStartPoint != null ? beamStartPoint.position : transform.position)).normalized;
 
-            pushDirection = fallbackDirection.sqrMagnitude > 0.001f
-                ? new Vector2(-fallbackDirection.y, fallbackDirection.x)
+            Vector2 normal = beamDirection.sqrMagnitude > 0.001f
+                ? new Vector2(-beamDirection.y, beamDirection.x)
                 : (Vector2)transform.up;
+
+            Vector2 velocity = rb != null ? rb.linearVelocity : Vector2.zero;
+            pushDirection = velocity.sqrMagnitude > 0.001f && Vector2.Dot(normal, velocity) > 0f
+                ? -normal
+                : normal;
         }
 
         pushDirection.Normalize();
-        Vector2 correctedPosition = closest + (pushDirection * Mathf.Max(0.05f, pushOutDistance));
+        Vector2 correctedPosition = closest + pushDirection * Mathf.Max(0.05f, pushOutDistance);
 
         if (rb != null)
         {
@@ -167,17 +207,15 @@ public class FieldBaseLaserGate : MonoBehaviour
             player.transform.position = correctedPosition;
         }
 
-        if (Time.time - lastWarningTime >= warningCooldown)
+        if (Time.time - lastWarningTime < warningCooldown)
         {
-            lastWarningTime = Time.time;
-            ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
-            if (hud != null)
-            {
-                hud.ShowWarning(blockedWarning);
-            }
-
-            AudioManager.PlayAt(SoundEventIds.ActionDenied, transform.position, 0.8f);
+            return;
         }
+
+        lastWarningTime = Time.time;
+        ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+        hud?.ShowWarning(blockedWarning);
+        AudioManager.PlayAt(SoundEventIds.ActionDenied, transform.position, 0.8f);
     }
 
     private void EnsureLineRenderer()

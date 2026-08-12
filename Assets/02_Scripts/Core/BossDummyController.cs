@@ -41,8 +41,6 @@ public class BossDummyController : MonoBehaviour
     [SerializeField] private bool forceWorldPickupOnly = true;
     [Tooltip("디버그용 레거시 옵션입니다. Force World Pickup Only가 꺼져 있을 때만 사용됩니다.")]
     [SerializeField] private bool fallbackToDirectCoreGrant;
-    [HideInInspector]
-    [SerializeField] private bool grantDeepZoneAdditionalCoreDirectly;
 
     [Header("Selectable Boss Reward")]
     [Tooltip("보스 처치 후 귀환 오브젝트를 열기 전에 선택형 장비 보상을 지급합니다.")]
@@ -276,30 +274,6 @@ public class BossDummyController : MonoBehaviour
             bossRewardCapsulePrefab,
             ResolveBossRewardCapsuleSpawnPosition()
         );
-    }
-
-    private void SpawnReturnBeacon()
-    {
-        if (returnBeaconPrefab == null)
-        {
-            Debug.LogWarning("보스 사망 후 생성할 returnBeaconPrefab이 없습니다.", this);
-            return;
-        }
-
-        Vector3 spawnPosition = ResolveReturnBeaconSpawnPosition();
-        Instantiate(returnBeaconPrefab, spawnPosition, Quaternion.identity);
-    }
-
-    private void SpawnWormholePortal()
-    {
-        if (wormholePortalPrefab == null)
-        {
-            Debug.LogWarning("보스 사망 후 생성할 wormholePortalPrefab이 없습니다.", this);
-            return;
-        }
-
-        Vector3 spawnPosition = ResolveWormholeSpawnPosition();
-        Instantiate(wormholePortalPrefab, spawnPosition, Quaternion.identity);
     }
 
 

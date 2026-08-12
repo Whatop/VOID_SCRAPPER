@@ -2,26 +2,43 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+[DisallowMultipleComponent]
 public class ResourceCounterUI : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Image iconImage;
     [SerializeField] private TextMeshProUGUI amountText;
     [SerializeField] private TextMeshProUGUI labelText;
+    [SerializeField] private GameObject rootObject;
 
     [Header("Display")]
     [SerializeField] private string displayName;
     [SerializeField] private string amountFormat = "{0}";
     [SerializeField] private int maxVisibleAmount = 99999;
     [SerializeField] private bool showPlusWhenClamped;
+    [SerializeField] private bool hideWhenZero = true;
+
+    private bool externalVisible = true;
 
     public int Amount { get; private set; }
     public int DisplayAmount => Mathf.Min(Amount, Mathf.Max(0, maxVisibleAmount));
+    public bool HideWhenZero => hideWhenZero;
 
     private void Reset()
     {
         iconImage = GetComponentInChildren<Image>(true);
         amountText = GetComponentInChildren<TextMeshProUGUI>(true);
+        rootObject = gameObject;
+    }
+
+    private void Awake()
+    {
+        if (rootObject == null)
+        {
+            rootObject = gameObject;
+        }
+
+        RefreshVisibility();
     }
 
     private void OnValidate()
@@ -42,6 +59,20 @@ public class ResourceCounterUI : MonoBehaviour
         {
             labelText.text = displayName;
         }
+
+        RefreshVisibility();
+    }
+
+    public void SetExternalVisible(bool visible)
+    {
+        externalVisible = visible;
+        RefreshVisibility();
+    }
+
+    public void SetHideWhenZero(bool value)
+    {
+        hideWhenZero = value;
+        RefreshVisibility();
     }
 
     public void SetIcon(Sprite icon)
@@ -62,6 +93,21 @@ public class ResourceCounterUI : MonoBehaviour
         if (labelText != null)
         {
             labelText.text = displayName;
+        }
+    }
+
+    private void RefreshVisibility()
+    {
+        if (rootObject == null)
+        {
+            rootObject = gameObject;
+        }
+
+        bool visible = externalVisible && (!hideWhenZero || Amount > 0);
+
+        if (rootObject != null && rootObject.activeSelf != visible)
+        {
+            rootObject.SetActive(visible);
         }
     }
 

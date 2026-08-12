@@ -23,6 +23,10 @@ public class BossHealthBarUI : MonoBehaviour
     [SerializeField] private string hpFormat = "{0:0} / {1:0}";
     [SerializeField] private bool hideWhenNoBoss = true;
 
+    [Header("Phase Shield")]
+    [SerializeField] private string phaseShieldLabel = "SHIELD";
+    [SerializeField] private Color phaseShieldFillColor = new Color(0.35f, 0.9f, 1f, 1f);
+
     [Header("Reveal Animation")]
     [SerializeField] private bool useAnimatedReveal = true;
     [Min(0.05f)]
@@ -44,6 +48,11 @@ public class BossHealthBarUI : MonoBehaviour
     private float cachedCurrentHp;
     private float cachedMaxHp = 1f;
     private bool revealing;
+    private bool phaseShieldOverride;
+    private float phaseShieldCurrent;
+    private float phaseShieldMax = 1f;
+    private Color cachedNormalFillColor = Color.white;
+    private string cachedBossName = "";
 
     public float AnimatedRevealDuration => useAnimatedReveal
         ? Mathf.Max(0.05f, frameRevealDuration) + Mathf.Max(0.05f, hpFillDuration)
@@ -64,6 +73,11 @@ public class BossHealthBarUI : MonoBehaviour
         if (revealRoot != null)
         {
             revealBaseScale = revealRoot.localScale;
+        }
+
+        if (fillImage != null)
+        {
+            cachedNormalFillColor = fillImage.color;
         }
 
         if (hideWhenNoBoss)
@@ -129,6 +143,48 @@ public class BossHealthBarUI : MonoBehaviour
         visibilityRoutine = StartCoroutine(RevealRoutine());
     }
 
+    public void ShowPhaseShield(float currentShield, float maxShield)
+    {
+        phaseShieldOverride = true;
+        phaseShieldCurrent = Mathf.Max(0f, currentShield);
+        phaseShieldMax = Mathf.Max(1f, maxShield);
+
+        if (fillImage != null)
+        {
+            fillImage.color = phaseShieldFillColor;
+        }
+
+        float ratio = Mathf.Clamp01(phaseShieldCurrent / phaseShieldMax);
+        SetDisplayedRatio(ratio, phaseShieldCurrent, phaseShieldMax);
+
+        if (hpText != null)
+        {
+            hpText.text = $"{phaseShieldLabel} {phaseShieldCurrent:0} / {phaseShieldMax:0}";
+        }
+    }
+
+    public void ClearPhaseShield()
+    {
+        if (!phaseShieldOverride)
+        {
+            return;
+        }
+
+        phaseShieldOverride = false;
+
+        if (fillImage != null)
+        {
+            fillImage.color = cachedNormalFillColor;
+        }
+
+        if (currentBossHealth != null)
+        {
+            cachedCurrentHp = currentBossHealth.CurrentHp;
+            cachedMaxHp = Mathf.Max(1f, currentBossHealth.MaxHp);
+            Refresh(cachedCurrentHp, cachedMaxHp);
+        }
+    }
+
     public void Hide()
     {
         StopVisibilityRoutine();
@@ -151,14 +207,23 @@ public class BossHealthBarUI : MonoBehaviour
         currentBossHealth.HealthChanged += HandleBossHealthChanged;
         currentBossHealth.Died += HandleBossDied;
 
+        phaseShieldOverride = false;
+
+        if (fillImage != null)
+        {
+            cachedNormalFillColor = fillImage.color;
+        }
+
+        cachedBossName = string.IsNullOrWhiteSpace(bossName)
+            ? defaultBossName
+            : bossName;
+
         cachedCurrentHp = currentBossHealth.CurrentHp;
         cachedMaxHp = Mathf.Max(1f, currentBossHealth.MaxHp);
 
         if (bossNameText != null)
         {
-            bossNameText.text = string.IsNullOrWhiteSpace(bossName)
-                ? defaultBossName
-                : bossName;
+            bossNameText.text = cachedBossName;
         }
 
         if (hpText != null)
@@ -274,7 +339,7 @@ public class BossHealthBarUI : MonoBehaviour
         cachedCurrentHp = Mathf.Max(0f, currentHp);
         cachedMaxHp = Mathf.Max(1f, maxHp);
 
-        if (!revealing)
+        if (!revealing && !phaseShieldOverride)
         {
             Refresh(cachedCurrentHp, cachedMaxHp);
         }
@@ -314,6 +379,13 @@ public class BossHealthBarUI : MonoBehaviour
 
     private void UnbindBoss()
     {
+        phaseShieldOverride = false;
+
+        if (fillImage != null)
+        {
+            fillImage.color = cachedNormalFillColor;
+        }
+
         if (currentBossHealth == null)
         {
             return;

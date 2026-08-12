@@ -16,7 +16,6 @@ public class EventTitleDirector : MonoBehaviour
     public static EventTitleDirector Instance { get; private set; }
 
     private const string DefaultNormalAreaName = "잔해 해역";
-    private const string DefaultDeepAreaName = "심부 잔해 해역";
 
     [Header("Instance")]
     [SerializeField] private bool registerAsGlobalInstance = true;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class RunRuntimeTraitStore : MonoBehaviour
 {
@@ -47,9 +48,20 @@ public class RunRuntimeTraitStore : MonoBehaviour
         EnsureRunManagerSubscription();
     }
 
-    private void Update()
+    private void OnEnable()
     {
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    private void Start()
+    {
+        // 모든 Awake가 끝난 뒤 RunManager를 한 번 더 확인한다.
         EnsureRunManagerSubscription();
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
     }
 
     private void OnDestroy()
@@ -172,6 +184,11 @@ public class RunRuntimeTraitStore : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        EnsureRunManagerSubscription();
     }
 
     private void EnsureRunManagerSubscription()

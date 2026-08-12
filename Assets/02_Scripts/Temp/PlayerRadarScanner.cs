@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 [DisallowMultipleComponent]
 public class PlayerRadarScanner : MonoBehaviour
@@ -9,14 +11,18 @@ public class PlayerRadarScanner : MonoBehaviour
     [SerializeField] private InputActionAsset inputActions;
     [SerializeField] private string actionMapName = "Player";
     [SerializeField] private string radarActionName = "Radar";
+    [SerializeField] private Key radarFallbackKey = Key.Q;
 
     [Header("References")]
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerWeaponController weaponController;
+    [SerializeField] private PlayerRuntimeBonusState runtimeBonusState;
     [SerializeField] private ExpeditionHUD expeditionHUD;
     [SerializeField] private RadarPanelAnimator radarPanelAnimator;
     [SerializeField] private RadarHUD radarHUD;
     [SerializeField] private PlayerRadarVFXController radarVFX;
+    [SerializeField] private MapDiscoveryController mapDiscoveryController;
+    [SerializeField] private ExpeditionObjectiveDirector objectiveDirector;
 
     [Header("Scan Rule")]
     [SerializeField] private float holdTime = 1f;
@@ -25,6 +31,10 @@ public class PlayerRadarScanner : MonoBehaviour
 
     [Tooltip("레이더가 열려 있을 때 Q를 짧게 누르면 닫습니다. 길게 누르면 다시 스캔합니다.")]
     [SerializeField] private bool shortPressClosesRadar = true;
+
+    [Header("Global Revealed Targets")]
+    [Tooltip("코어 추적 신호로 공개된 코어는 현재 스캔 반경 밖이어도 레이더 방향 표식에 포함합니다.")]
+    [SerializeField] private bool includeGloballyRevealedCore = true;
 
     [Header("Sniper Option")]
     [SerializeField] private float sniperLingerTime = 6f;
@@ -37,7 +47,6 @@ public class PlayerRadarScanner : MonoBehaviour
     [SerializeField] private bool drawScanRadius = true;
 
     private InputAction radarAction;
-
     private bool isHolding;
     private bool isRadarOpen;
     private float holdTimer;
@@ -49,22 +58,20 @@ public class PlayerRadarScanner : MonoBehaviour
 
     public bool IsHolding => isHolding;
     public bool IsRadarOpen => isRadarOpen;
-
-    // 실제 RadarPanelAnimator 상태를 우선 사용하고, UI 참조가 없을 때만 내부 상태로 대체합니다.
-    public bool IsRadarPanelOpen =>
-        radarPanelAnimator != null
-            ? radarPanelAnimator.IsOpen
-            : isRadarOpen;
-
+    public bool IsRadarPanelOpen => radarPanelAnimator != null ? radarPanelAnimator.IsOpen : isRadarOpen;
     public float HoldRatio => holdTime <= 0f ? 1f : Mathf.Clamp01(holdTimer / holdTime);
-    public float ScanRadius => scanRadius;
+    public float ScanRadius => ResolveEffectiveScanRadius();
     public float LastScanTime => lastScanTime;
-    public float SniperLingerTime => sniperLingerTime;
+    public float SniperLingerTime => sniperLingerTime + (runtimeBonusState != null ? runtimeBonusState.RadarStealthDurationBonus : 0f);
+    public IReadOnlyList<RadarTarget> LastScannedTargets => scannedTargets;
+
+    public event Action<Vector2, float, IReadOnlyList<RadarTarget>> ScanCompleted;
 
     private void Reset()
     {
         playerHealth = GetComponent<PlayerHealth>();
         weaponController = GetComponent<PlayerWeaponController>();
+        runtimeBonusState = GetComponent<PlayerRuntimeBonusState>();
         radarVFX = GetComponent<PlayerRadarVFXController>();
     }
 
@@ -76,15 +83,22 @@ public class PlayerRadarScanner : MonoBehaviour
     private void OnEnable()
     {
         BindInput();
+        objectiveDirector ??= ExpeditionObjectiveDirector.Instance;
+
+        if (objectiveDirector != null)
+        {
+            objectiveDirector.CoreRevealedEvent += HandleCoreGloballyRevealed;
+        }
     }
 
     private void OnDisable()
     {
-        if (radarAction != null)
+        if (objectiveDirector != null)
         {
-            radarAction.Disable();
+            objectiveDirector.CoreRevealedEvent -= HandleCoreGloballyRevealed;
         }
 
+        radarAction?.Disable();
         CancelHold();
         CloseRadar();
     }
@@ -96,6 +110,7 @@ public class PlayerRadarScanner : MonoBehaviour
             CancelHold();
             return;
         }
+
         if (playerHealth != null && playerHealth.IsDead)
         {
             CancelHold();
@@ -104,65 +119,29 @@ public class PlayerRadarScanner : MonoBehaviour
         }
 
         UpdateHoldInput();
-
-        // ߿:
-        //  ¶ ؼ ̴ ڵ  ʴ´.
-        //    ο ݱ δ ÷̾ Q Է  Ѵ.
     }
 
     private void CacheReferences()
     {
-        if (playerHealth == null)
-        {
-            playerHealth = GetComponent<PlayerHealth>();
-        }
+        playerHealth ??= GetComponent<PlayerHealth>();
+        weaponController ??= GetComponent<PlayerWeaponController>();
+        runtimeBonusState ??= GetComponent<PlayerRuntimeBonusState>();
+        radarVFX ??= GetComponent<PlayerRadarVFXController>();
+        expeditionHUD ??= FindFirstObjectByType<ExpeditionHUD>();
+        radarPanelAnimator ??= FindFirstObjectByType<RadarPanelAnimator>();
+        radarHUD ??= FindFirstObjectByType<RadarHUD>();
+        mapDiscoveryController ??= MapDiscoveryController.Instance;
 
-        if (weaponController == null)
+        if (objectiveDirector == null && Application.isPlaying)
         {
-            weaponController = GetComponent<PlayerWeaponController>();
-        }
-
-        if (radarVFX == null)
-        {
-            radarVFX = GetComponent<PlayerRadarVFXController>();
-        }
-
-        if (expeditionHUD == null)
-        {
-            expeditionHUD = FindFirstObjectByType<ExpeditionHUD>();
-        }
-
-        if (radarPanelAnimator == null)
-        {
-            radarPanelAnimator = FindFirstObjectByType<RadarPanelAnimator>();
-        }
-
-        if (radarHUD == null)
-        {
-            radarHUD = FindFirstObjectByType<RadarHUD>();
+            objectiveDirector = ExpeditionObjectiveDirector.Instance;
         }
     }
 
     private void BindInput()
     {
-        if (inputActions == null)
-        {
-            return;
-        }
-
-        InputActionMap actionMap = inputActions.FindActionMap(actionMapName, false);
-
-        if (actionMap == null)
-        {
-            return;
-        }
-
-        radarAction = actionMap.FindAction(radarActionName, false);
-
-        if (radarAction != null)
-        {
-            radarAction.Enable();
-        }
+        radarAction = InputBindingUtility.ResolveAction(inputActions, actionMapName, radarActionName);
+        radarAction?.Enable();
     }
 
     private void UpdateHoldInput()
@@ -179,7 +158,7 @@ public class PlayerRadarScanner : MonoBehaviour
         if (isHolding && held)
         {
             holdTimer += Time.deltaTime;
-            UpdateChargeVFX();
+            radarVFX?.SetChargeRatio(HoldRatio);
         }
 
         if (releasedThisFrame)
@@ -190,32 +169,35 @@ public class PlayerRadarScanner : MonoBehaviour
 
     private bool WasRadarPressedThisFrame()
     {
-        if (radarAction != null && radarAction.WasPressedThisFrame())
+        if (radarAction != null)
         {
-            return true;
+            return radarAction.WasPressedThisFrame();
         }
 
-        return Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame;
+        KeyControl key = Keyboard.current != null ? Keyboard.current[radarFallbackKey] : null;
+        return key != null && key.wasPressedThisFrame;
     }
 
     private bool IsRadarHeld()
     {
-        if (radarAction != null && radarAction.IsPressed())
+        if (radarAction != null)
         {
-            return true;
+            return radarAction.IsPressed();
         }
 
-        return Keyboard.current != null && Keyboard.current.qKey.isPressed;
+        KeyControl key = Keyboard.current != null ? Keyboard.current[radarFallbackKey] : null;
+        return key != null && key.isPressed;
     }
 
     private bool WasRadarReleasedThisFrame()
     {
-        if (radarAction != null && radarAction.WasReleasedThisFrame())
+        if (radarAction != null)
         {
-            return true;
+            return radarAction.WasReleasedThisFrame();
         }
 
-        return Keyboard.current != null && Keyboard.current.qKey.wasReleasedThisFrame;
+        KeyControl key = Keyboard.current != null ? Keyboard.current[radarFallbackKey] : null;
+        return key != null && key.wasReleasedThisFrame;
     }
 
     private void BeginHold()
@@ -231,9 +213,10 @@ public class PlayerRadarScanner : MonoBehaviour
         AudioManager.PlayAt(SoundEventIds.RadarChargeStart, transform.position);
         AudioManager.PlayLoop(SoundEventIds.RadarChargeLoop, "radar_charge", 1f);
 
+        float effectiveRadius = ResolveEffectiveScanRadius();
         if (radarVFX != null)
         {
-            radarVFX.SetScanRadius(scanRadius);
+            radarVFX.SetScanRadius(effectiveRadius);
             radarVFX.BeginCharge();
             radarVFX.SetChargeRatio(0f);
         }
@@ -247,7 +230,6 @@ public class PlayerRadarScanner : MonoBehaviour
         }
 
         float finalHoldTime = holdTimer;
-
         isHolding = false;
         holdTimer = 0f;
 
@@ -255,11 +237,7 @@ public class PlayerRadarScanner : MonoBehaviour
         {
             AudioManager.StopLoop("radar_charge");
             AudioManager.PlayAt(SoundEventIds.RadarChargeCancel, transform.position, 0.7f);
-
-            if (radarVFX != null)
-            {
-                radarVFX.CancelCharge();
-            }
+            radarVFX?.CancelCharge();
 
             if (isRadarOpen && shortPressClosesRadar)
             {
@@ -285,128 +263,115 @@ public class PlayerRadarScanner : MonoBehaviour
             AudioManager.StopLoop("radar_charge");
         }
 
-        if (radarVFX != null)
-        {
-            radarVFX.CancelCharge();
-        }
-    }
-
-    private void UpdateChargeVFX()
-    {
-        if (radarVFX == null)
-        {
-            return;
-        }
-
-        radarVFX.SetChargeRatio(HoldRatio);
+        radarVFX?.CancelCharge();
     }
 
     public bool TryScan()
     {
         if (playerHealth != null && playerHealth.IsDead)
         {
-            if (radarVFX != null)
-            {
-                radarVFX.CancelCharge();
-            }
-
+            radarVFX?.CancelCharge();
             return false;
         }
+
+        float effectiveRadius = ResolveEffectiveScanRadius();
 
         AudioManager.StopLoop("radar_charge");
         AudioManager.PlayAt(SoundEventIds.RadarScanPulse, transform.position);
 
         if (radarVFX != null)
         {
-            radarVFX.SetScanRadius(scanRadius);
+            radarVFX.SetScanRadius(effectiveRadius);
             radarVFX.CompleteScan();
         }
 
-        ScanTargets();
+        ScanTargets(effectiveRadius);
+
+        mapDiscoveryController ??= MapDiscoveryController.Instance;
+        mapDiscoveryController?.RegisterRadarScan(transform.position, effectiveRadius, scannedTargets);
+
+        ScanCompleted?.Invoke(transform.position, effectiveRadius, scannedTargets);
+        lastScanTime = Time.time;
 
         if (scannedTargets.Count == 0)
         {
             ShowWarning(noTargetMessage);
             CloseRadar();
-            return false;
+            return true;
         }
 
-        OpenRadar();
-        lastScanTime = Time.time;
+        OpenRadar(effectiveRadius);
         return true;
     }
 
-    private void ScanTargets()
+    private void ScanTargets(float effectiveRadius)
     {
         scannedTargets.Clear();
         scannedSet.Clear();
 
         Vector2 origin = transform.position;
         WeaponTreeType weaponTreeType = ResolveCurrentWeaponTree();
+        RadarScanContext context = new RadarScanContext(gameObject, transform, origin, weaponTreeType, effectiveRadius);
 
-        RadarScanContext context = new RadarScanContext(
-            gameObject,
-            transform,
-            origin,
-            weaponTreeType,
-            scanRadius
-        );
-
-        int count = Physics2D.OverlapCircleNonAlloc(
-            origin,
-            scanRadius,
-            scanBuffer,
-            radarTargetLayer
-        );
+        int count = Physics2D.OverlapCircleNonAlloc(origin, effectiveRadius, scanBuffer, radarTargetLayer);
 
         for (int i = 0; i < count; i++)
         {
-            Collider2D hit = scanBuffer[i];
+            RadarTarget target = scanBuffer[i] != null ? scanBuffer[i].GetComponentInParent<RadarTarget>() : null;
+            TryAddScannedTarget(target, context);
+        }
 
-            if (hit == null)
+        if (!includeGloballyRevealedCore)
+        {
+            return;
+        }
+
+        foreach (RadarTarget target in RadarTarget.ActiveTargets)
+        {
+            if (target == null || target.MarkerType != RadarMarkerType.Core || !target.IsRadarVisible)
             {
                 continue;
             }
 
-            RadarTarget radarTarget = hit.GetComponentInParent<RadarTarget>();
+            bool globallyRevealed = target.IsMapDiscovered ||
+                                    (ExpeditionObjectiveDirector.Instance != null && ExpeditionObjectiveDirector.Instance.CoreRevealed);
 
-            if (radarTarget == null)
+            if (globallyRevealed && scannedSet.Add(target))
             {
-                continue;
+                scannedTargets.Add(target);
+                mapDiscoveryController?.DiscoverTarget(target, false);
             }
-
-            if (scannedSet.Contains(radarTarget))
-            {
-                continue;
-            }
-
-            if (!radarTarget.IsRadarVisible)
-            {
-                continue;
-            }
-
-            RadarScanResult result = radarTarget.OnRadarScanned(context);
-
-            if (result != RadarScanResult.Detected)
-            {
-                continue;
-            }
-
-            scannedSet.Add(radarTarget);
-            scannedTargets.Add(radarTarget);
         }
     }
 
-    private void OpenRadar()
+    private void TryAddScannedTarget(RadarTarget target, RadarScanContext context)
+    {
+        if (target == null || scannedSet.Contains(target) || !target.IsRadarVisible)
+        {
+            return;
+        }
+
+        if (target.OnRadarScanned(context) != RadarScanResult.Detected)
+        {
+            return;
+        }
+
+        scannedSet.Add(target);
+        scannedTargets.Add(target);
+        mapDiscoveryController?.DiscoverTarget(target, false);
+    }
+
+    private void OpenRadar(float effectiveRadius)
     {
         if (radarHUD != null)
         {
+            radarHUD.SetScanRadius(effectiveRadius);
             radarHUD.SetTargets(scannedTargets, transform);
         }
 
-        if (!isRadarOpen && radarPanelAnimator != null)
+        if (!isRadarOpen)
         {
-            radarPanelAnimator.Open();
+            radarPanelAnimator?.Open();
         }
 
         isRadarOpen = true;
@@ -419,17 +384,44 @@ public class PlayerRadarScanner : MonoBehaviour
             return;
         }
 
-        if (radarHUD != null)
-        {
-            radarHUD.Clear();
-        }
-
-        if (radarPanelAnimator != null)
-        {
-            radarPanelAnimator.Close();
-        }
-
+        radarHUD?.Clear();
+        radarPanelAnimator?.Close();
         isRadarOpen = false;
+    }
+
+    private void HandleCoreGloballyRevealed()
+    {
+        mapDiscoveryController ??= MapDiscoveryController.Instance;
+        bool changed = false;
+
+        foreach (RadarTarget target in RadarTarget.ActiveTargets)
+        {
+            if (target == null || target.MarkerType != RadarMarkerType.Core)
+            {
+                continue;
+            }
+
+            target.SetVisible(true);
+            target.SetMapDiscovered(true);
+            mapDiscoveryController?.DiscoverTarget(target, true);
+
+            if (scannedSet.Add(target))
+            {
+                scannedTargets.Add(target);
+                changed = true;
+            }
+        }
+
+        if (changed && isRadarOpen && radarHUD != null)
+        {
+            radarHUD.SetTargets(scannedTargets, transform);
+        }
+    }
+
+    private float ResolveEffectiveScanRadius()
+    {
+        float bonus = runtimeBonusState != null ? runtimeBonusState.RadarScanRadiusBonus : 0f;
+        return Mathf.Max(0.1f, scanRadius + bonus);
     }
 
     private WeaponTreeType ResolveCurrentWeaponTree()
@@ -460,12 +452,7 @@ public class PlayerRadarScanner : MonoBehaviour
             return;
         }
 
-        WarningMessageUI warningMessageUI = FindFirstObjectByType<WarningMessageUI>();
-
-        if (warningMessageUI != null)
-        {
-            warningMessageUI.ShowMessage(message);
-        }
+        FindFirstObjectByType<WarningMessageUI>()?.ShowMessage(message);
     }
 
     private void OnDrawGizmosSelected()
@@ -476,6 +463,6 @@ public class PlayerRadarScanner : MonoBehaviour
         }
 
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, scanRadius);
+        Gizmos.DrawWireSphere(transform.position, Application.isPlaying ? ResolveEffectiveScanRadius() : scanRadius);
     }
 }

@@ -21,7 +21,7 @@ public class BossPatternController : MonoBehaviour
     }
 
     [Header("Identity")]
-    [SerializeField] private string bossName = "±¸È¹ °ü¸®ÀÚ";
+    [SerializeField] private string bossName = "êµ¬íš ê´€ë¦¬ì";
 
     [Header("References")]
     [SerializeField] private EnemyHealth enemyHealth;
@@ -115,17 +115,17 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private float chargeProjectileSpeedOverride = 24f;
     [SerializeField] private float chargeProjectileRangeOverride = 22f;
     [SerializeField] private float chargeProjectileScaleMultiplier = 3f;
-    [Tooltip("ÄÑ¸é º¸½º ÃßÀû Â÷Â¡ÅºÀÌ StaticTerrain ¶Ç´Â WorldSolid ´ëÇü ¿î¼®À» ÇÑ ¹ø¿¡ ÆÄ±«ÇÕ´Ï´Ù.")]
+    [Tooltip("ì¼œë©´ ë³´ìŠ¤ ì¶”ì  ì°¨ì§•íƒ„ì´ StaticTerrain ë˜ëŠ” WorldSolid ëŒ€í˜• ìš´ì„ì„ í•œ ë²ˆì— íŒŒê´´í•©ë‹ˆë‹¤.")]
     [SerializeField] private bool chargeProjectileDestroysLargeMeteor = true;
 
     [Header("Boss Projectile World Destruction")]
-    [Tooltip("º¸½ºÀÇ ¸ğµç ÅºÈ¯ÀÌ ¼ÒÇü ¿î¼®À» ÇÑ ¹ø¿¡ ÆÄ±«ÇÕ´Ï´Ù. ´ëÇü ¿î¼®Àº À§ Â÷Â¡Åº ¿É¼ÇÀ¸·Î¸¸ ÆÄ±«ÇÕ´Ï´Ù.")]
+    [Tooltip("ë³´ìŠ¤ì˜ ëª¨ë“  íƒ„í™˜ì´ ì†Œí˜• ìš´ì„ì„ í•œ ë²ˆì— íŒŒê´´í•©ë‹ˆë‹¤. ëŒ€í˜• ìš´ì„ì€ ìœ„ ì°¨ì§•íƒ„ ì˜µì…˜ìœ¼ë¡œë§Œ íŒŒê´´í•©ë‹ˆë‹¤.")]
     [SerializeField] private bool bossProjectilesDestroySmallMeteor = true;
-    [Tooltip("º¸½ºÀÇ ¸ğµç ÅºÈ¯ÀÌ º¸±Ş ÄÁÅ×ÀÌ³Ê¸¦ ÇÑ ¹ø¿¡ ÆÄ±«ÇÕ´Ï´Ù.")]
+    [Tooltip("ë³´ìŠ¤ì˜ ëª¨ë“  íƒ„í™˜ì´ ë³´ê¸‰ ì»¨í…Œì´ë„ˆë¥¼ í•œ ë²ˆì— íŒŒê´´í•©ë‹ˆë‹¤.")]
     [SerializeField] private bool bossProjectilesDestroySupplyContainer = true;
-    [Tooltip("º¸½ºÀÇ ¸ğµç ÅºÈ¯ÀÌ °í°¡Ä¡ ÀÜÇØ¸¦ ÇÑ ¹ø¿¡ ÆÄ±«ÇÕ´Ï´Ù.")]
+    [Tooltip("ë³´ìŠ¤ì˜ ëª¨ë“  íƒ„í™˜ì´ ê³ ê°€ì¹˜ ì”í•´ë¥¼ í•œ ë²ˆì— íŒŒê´´í•©ë‹ˆë‹¤.")]
     [SerializeField] private bool bossProjectilesDestroyHighValueWreck = true;
-    [Tooltip("ÇÊ¿äÇÒ ¶§¸¸ ÄÑ¼¼¿ä. ±âº»°ªÀº ÆÄ±«µÈ ¼±Ã¼¸¦ º¸½º ÅºÈ¯¿¡ º¸È£ÇÕ´Ï´Ù.")]
+    [Tooltip("í•„ìš”í•  ë•Œë§Œ ì¼œì„¸ìš”. ê¸°ë³¸ê°’ì€ íŒŒê´´ëœ ì„ ì²´ë¥¼ ë³´ìŠ¤ íƒ„í™˜ì— ë³´í˜¸í•©ë‹ˆë‹¤.")]
     [SerializeField] private bool bossProjectilesDestroyDestroyedHull;
 
     [Header("Charge Visual")]
@@ -138,11 +138,47 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private float phase2HpRatio = 0.3f;
     [SerializeField] private bool logPhaseChange = true;
 
+    [Header("Phase 2 Transition - Shield")]
+    [SerializeField] private bool usePhase2ShieldTransition = true;
+    [Range(0.05f, 0.5f)]
+    [SerializeField] private float phase2ShieldHpRatio = 0.22f;
+    [SerializeField] private float phase2ShieldMinHp = 24f;
+    [SerializeField] private float phase2ShieldRadius = 1.45f;
+    [SerializeField] private float phase2ShieldLineWidth = 0.12f;
+    [Range(16, 96)]
+    [SerializeField] private int phase2ShieldSegments = 48;
+    [SerializeField] private Color phase2ShieldColor = new Color(0.2f, 0.85f, 1f, 0.95f);
+    [SerializeField] private Color phase2ShieldLowColor = new Color(0.95f, 0.25f, 0.85f, 0.95f);
+    [SerializeField] private Material phase2ShieldMaterial;
+    [SerializeField] private GameObject phase2ShieldVisualRoot;
+    [SerializeField] private float phase2ShieldBreakShakeAmplitude = 0.18f;
+    [SerializeField] private float phase2ShieldBreakShakeDuration = 0.2f;
+    [SerializeField] private float phase2ShieldBreakSettleTime = 0.25f;
+
+    [Header("Phase 2 Transition - Camera / Cinematic")]
+    [SerializeField] private CameraZoomController2D phase2CameraZoomController;
+    [SerializeField] private GungeonStyleCamera2D phase2GungeonCamera;
+    [SerializeField] private SpaceBackgroundGenerator2D phase2SpaceBackgroundGenerator;
+    [SerializeField] private ExpeditionHUD phase2ExpeditionHUD;
+    [SerializeField] private bool usePhase2Letterbox = true;
+    [Range(0.02f, 0.16f)]
+    [SerializeField] private float phase2LetterboxHeightRatio = 0.085f;
+    [SerializeField] private float phase2LetterboxInDuration = 0.18f;
+    [SerializeField] private float phase2LetterboxOutDuration = 0.22f;
+    [SerializeField] private float phase2WideZoomMultiplier = 2.5f;
+    [SerializeField] private float phase2ZoomOutDuration = 0.9f;
+    [SerializeField] private float phase2ZoomInDuration = 0.85f;
+    [SerializeField] private AnimationCurve phase2ZoomOutCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [SerializeField] private AnimationCurve phase2ZoomInCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [SerializeField] private float phase2CinematicSettleTime = 0.16f;
+    [SerializeField] private bool lockPlayerDuringPhase2Setup = true;
+    [SerializeField] private bool hideHudDuringPhase2Setup = true;
+
     [Header("Laser Manager Ships - Boss Ability")]
-    [Tooltip("±¸È¹ °ü¸®ÀÚ Àü¿ë ·¹ÀÌÀú °ü¸®±âÃ¼ ÇÁ¸®ÆÕ. ±âÁ¸ CoreBossIntroSequence¿¡ ¿¬°áÇÏ´ø ÇÁ¸®ÆÕÀ» ¿©±â·Î ¿Å±ä´Ù.")]
+    [Tooltip("êµ¬íš ê´€ë¦¬ì ì „ìš© ë ˆì´ì € ê´€ë¦¬ê¸°ì²´ í”„ë¦¬íŒ¹. ê¸°ì¡´ CoreBossIntroSequenceì— ì—°ê²°í•˜ë˜ í”„ë¦¬íŒ¹ì„ ì—¬ê¸°ë¡œ ì˜®ê¸´ë‹¤.")]
     [SerializeField] private GameObject laserManagerShipPrefab;
 
-    [Tooltip("ÀÌÀü ÇÊµå È£È¯¿ë. laserManagerShipPrefabÀÌ ºñ¾î ÀÖÀ¸¸é ÀÌ °ªÀ» »ç¿ëÇÑ´Ù.")]
+    [Tooltip("ì´ì „ í•„ë“œ í˜¸í™˜ìš©. laserManagerShipPrefabì´ ë¹„ì–´ ìˆìœ¼ë©´ ì´ ê°’ì„ ì‚¬ìš©í•œë‹¤.")]
     [SerializeField] private GameObject phase2LaserManagerShipPrefab;
 
     [SerializeField] private bool createRuntimeManagerIfMissing = true;
@@ -176,10 +212,10 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private AnimationCurve phase2ManagerMoveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
     [Header("Phase 2 - Hexagon Layout")]
-    [Tooltip("2ÆäÀÌÁî¿¡¼­ ±âÁ¸ 4´ë °ü¸®±âÃ¼¸¦ Á÷»ç°¢Çü ²ÀÁşÁ¡¿¡¼­ À°°¢Çü ¾î±ú À§Ä¡·Î Àç¹èÄ¡ÇÒ ¶§ÀÇ X ¹èÀ²ÀÔ´Ï´Ù.")]
+    [Tooltip("2í˜ì´ì¦ˆì—ì„œ ê¸°ì¡´ 4ëŒ€ ê´€ë¦¬ê¸°ì²´ë¥¼ ì§ì‚¬ê°í˜• ê¼­ì§“ì ì—ì„œ ìœ¡ê°í˜• ì–´ê¹¨ ìœ„ì¹˜ë¡œ ì¬ë°°ì¹˜í•  ë•Œì˜ X ë°°ìœ¨ì…ë‹ˆë‹¤.")]
     [SerializeField] private float phase2HexagonSideXScale = 1f;
 
-    [Tooltip("2ÆäÀÌÁî À°°¢ÇüÀÇ ÁÂ»ó/ÁÂÇÏ/¿ìÇÏ/¿ì»ó °ü¸®±âÃ¼ Y À§Ä¡ ºñÀ²ÀÔ´Ï´Ù. 0.5¸é Á¤À°°¢Çü¿¡ °¡±î¿î ¾î±ú À§Ä¡°¡ µË´Ï´Ù.")]
+    [Tooltip("2í˜ì´ì¦ˆ ìœ¡ê°í˜•ì˜ ì¢Œìƒ/ì¢Œí•˜/ìš°í•˜/ìš°ìƒ ê´€ë¦¬ê¸°ì²´ Y ìœ„ì¹˜ ë¹„ìœ¨ì…ë‹ˆë‹¤. 0.5ë©´ ì •ìœ¡ê°í˜•ì— ê°€ê¹Œìš´ ì–´ê¹¨ ìœ„ì¹˜ê°€ ë©ë‹ˆë‹¤.")]
     [SerializeField] private float phase2HexagonShoulderYRatio = 0.5f;
 
     [Header("Phase 2 - Opposite Pair Rotating Lasers")]
@@ -197,9 +233,13 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private bool alternatePhase2RotatingLaserColor = true;
     [SerializeField] private Phase2RotatingLaserColor firstPhase2RotatingLaserColor = Phase2RotatingLaserColor.Purple;
     [SerializeField] private bool phase2BoundaryLasersFollowManagers = true;
-    [SerializeField] private bool usePhase2HexagonTelegraph;
-    [SerializeField] private float phase2HexagonTelegraphTime = 0.2f;
-    [SerializeField] private float phase2HexagonTelegraphWidth = 0.12f;
+    [SerializeField] private bool usePhase2HexagonTelegraph = true;
+    [SerializeField] private float phase2HexagonTelegraphTime = 0.65f;
+    [SerializeField] private float phase2HexagonTelegraphWidth = 0.18f;
+    [Min(0f)]
+    [SerializeField] private float phase2HexagonCastMotionTime = 0.22f;
+    [Min(1f)]
+    [SerializeField] private float phase2HexagonCastScale = 1.12f;
     [Header("Debug")]
     [SerializeField] private bool logPattern;
 
@@ -220,9 +260,14 @@ public class BossPatternController : MonoBehaviour
     private readonly List<GameObject> transientVisualObjects = new List<GameObject>();
     private readonly List<LaserGuardianDrone> phase1ManagerShips = new List<LaserGuardianDrone>(4);
     private readonly List<GameObject> boundaryLaserWalls = new List<GameObject>(6);
+    private readonly List<BossDynamicLaserBeam> activeRotatingLasers = new List<BossDynamicLaserBeam>(3);
+    private readonly List<BossLaserHazard> activePatternLaserHazards = new List<BossLaserHazard>(8);
 
     private Coroutine patternRoutine;
     private Coroutine phase2ManagerEntryRoutine;
+    private Coroutine phase2TransitionRoutine;
+    private Coroutine phase2ShieldCombatRoutine;
+    private Coroutine phase2ShieldBreakRoutine;
 
     private Vector2 arenaCenter;
     private Vector2 moveTarget;
@@ -248,9 +293,32 @@ public class BossPatternController : MonoBehaviour
     private bool phase1BoundaryLasersActive;
     private bool phase2TopBottomManagersSpawned;
     private bool phase2BoundaryRebuilt;
+    private bool phase2TransitionStarted;
+    private bool phase2ShieldActive;
+    private bool phase2ShieldDamageEnabled;
+    private float phase2ShieldHp;
+    private float phase2ShieldMaxHpRuntime;
 
     private LaserGuardianDrone phase2TopManagerShip;
     private LaserGuardianDrone phase2BottomManagerShip;
+
+    private GameObject phase2RuntimeShieldObject;
+    private LineRenderer phase2RuntimeShieldLine;
+    private Material phase2RuntimeShieldMaterial;
+    private BossCinematicLetterboxUI phase2LetterboxUi;
+
+    private bool phase2PlayerLockActive;
+    private PlayerController2D phase2LockedPlayerController;
+    private bool phase2LockedPlayerControlWasEnabled;
+    private bool phase2LockedPlayerMovementWasLocked;
+    private PlayerWeaponController phase2LockedWeaponController;
+    private bool phase2LockedWeaponInputWasLocked;
+    private PlayerInteractor phase2LockedPlayerInteractor;
+    private bool phase2LockedPlayerInteractorWasEnabled;
+    private MonoBehaviour phase2LockedRadarScanner;
+    private bool phase2LockedRadarScannerWasEnabled;
+    private EmergencyReturnController phase2LockedEmergencyReturn;
+    private bool phase2LockedEmergencyReturnWasEnabled;
 
     private void Reset()
     {
@@ -283,6 +351,7 @@ public class BossPatternController : MonoBehaviour
         }
 
         DisableLegacyEnemyControllersIfNeeded();
+        ResolvePhase2PresentationReferences();
     }
 
     private void OnEnable()
@@ -292,6 +361,11 @@ public class BossPatternController : MonoBehaviour
         casting = false;
         phase2TopBottomManagersSpawned = false;
         phase2BoundaryRebuilt = false;
+        phase2TransitionStarted = false;
+        phase2ShieldActive = false;
+        phase2ShieldDamageEnabled = false;
+        phase2ShieldHp = 0f;
+        phase2ShieldMaxHpRuntime = 0f;
         nextPatternIndex = 0;
         nextPhase2RotatingLaserUsePurple = firstPhase2RotatingLaserColor == Phase2RotatingLaserColor.Purple;
         arenaCenter = ResolveArenaCenter();
@@ -308,6 +382,8 @@ public class BossPatternController : MonoBehaviour
         }
 
         ResolvePlayer();
+        ResolvePhase2PresentationReferences();
+        SetPhase2ShieldVisualVisible(false);
 
         initialized = true;
         patternRoutine = StartCoroutine(PatternLoopRoutine());
@@ -334,11 +410,43 @@ public class BossPatternController : MonoBehaviour
             phase2ManagerEntryRoutine = null;
         }
 
+        if (phase2TransitionRoutine != null)
+        {
+            StopCoroutine(phase2TransitionRoutine);
+            phase2TransitionRoutine = null;
+        }
+
+        if (phase2ShieldCombatRoutine != null)
+        {
+            StopCoroutine(phase2ShieldCombatRoutine);
+            phase2ShieldCombatRoutine = null;
+        }
+
+        if (phase2ShieldBreakRoutine != null)
+        {
+            StopCoroutine(phase2ShieldBreakRoutine);
+            phase2ShieldBreakRoutine = null;
+        }
+
+        DeactivateRotatingLasers();
+        DeactivatePatternLaserHazards();
         ClearTransientVisualObjects();
+        RestorePhase2PlayerInput();
+        RestorePhase2Presentation(true);
+        SetPhase2ShieldVisualVisible(false);
 
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (phase2RuntimeShieldMaterial != null)
+        {
+            Destroy(phase2RuntimeShieldMaterial);
+            phase2RuntimeShieldMaterial = null;
         }
     }
 
@@ -351,6 +459,7 @@ public class BossPatternController : MonoBehaviour
 
         ResolvePlayer();
         UpdatePhase();
+        UpdatePhase2ShieldVisual();
         UpdateMovement(Time.deltaTime);
         UpdateFacing(Time.deltaTime);
     }
@@ -435,7 +544,7 @@ public class BossPatternController : MonoBehaviour
 
         if (!phase1ManagersSpawned || phase1ManagerShips.Count < 4)
         {
-            Debug.LogWarning($"{bossName}: 1ÆäÀÌÁî ·¹ÀÌÀú °ü¸®±âÃ¼°¡ ºÎÁ·ÇØ¼­ ºÀ¼â ·¹ÀÌÀú¸¦ È°¼ºÈ­ÇÒ ¼ö ¾ø½À´Ï´Ù.", this);
+            Debug.LogWarning($"{bossName}: 1í˜ì´ì¦ˆ ë ˆì´ì € ê´€ë¦¬ê¸°ì²´ê°€ ë¶€ì¡±í•´ì„œ ë´‰ì‡„ ë ˆì´ì €ë¥¼ í™œì„±í™”í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.", this);
             return;
         }
 
@@ -479,7 +588,7 @@ public class BossPatternController : MonoBehaviour
 
             if (logPattern)
             {
-                Debug.Log($"{bossName} ÆĞÅÏ ½ÃÀÛ: {pattern}", this);
+                Debug.Log($"{bossName} íŒ¨í„´ ì‹œì‘: {pattern}", this);
             }
 
             casting = true;
@@ -754,6 +863,21 @@ public class BossPatternController : MonoBehaviour
             yield break;
         }
 
+        yield return Phase2HexagonRotatingLaserCycleRoutine(true);
+
+        if (phase2RotatingLaserPatternEndDelay > 0f)
+        {
+            yield return new WaitForSeconds(phase2RotatingLaserPatternEndDelay);
+        }
+    }
+
+    private IEnumerator Phase2HexagonRotatingLaserCycleRoutine(bool includeChargeCannon)
+    {
+        if (!phase2 && !phase2ShieldActive)
+        {
+            yield break;
+        }
+
         yield return EnsurePhase2HexagonManagersRoutine();
 
         LaserGuardianDrone[] slots = GetHexagonSlotsCounterClockwise();
@@ -773,7 +897,14 @@ public class BossPatternController : MonoBehaviour
             ? 1f
             : -1f;
 
-        if (usePhase2HexagonTelegraph && phase2HexagonTelegraphTime > 0f)
+        AudioManager.PlayAt(SoundEventIds.BossLaserWarning, arenaCenter);
+
+        if (phase2HexagonCastMotionTime > 0f)
+        {
+            yield return PlayHexagonManagerCastMotionRoutine(slots);
+        }
+
+        if (phase2HexagonTelegraphTime > 0f)
         {
             AddOppositePairTelegraphs(slots, laserColor);
             yield return new WaitForSeconds(phase2HexagonTelegraphTime);
@@ -785,8 +916,10 @@ public class BossPatternController : MonoBehaviour
             yield return new WaitForSeconds(phase2HexagonLaserWarmup);
         }
 
+        DeactivateRotatingLasers();
+
         float activeLaserLifetime = GetPhase2RotatingLaserLifetimeEstimate();
-        List<BossDynamicLaserBeam> activeLasers = CreateOppositePairDynamicLasers(
+        List<BossDynamicLaserBeam> createdLasers = CreateOppositePairDynamicLasers(
             slots,
             laserColor,
             activeLaserLifetime,
@@ -795,13 +928,17 @@ public class BossPatternController : MonoBehaviour
                 : "Boss_Phase2_RedOppositeLaser"
         );
 
+        activeRotatingLasers.AddRange(createdLasers);
+
         int repeatCount = Mathf.Max(1, phase2RotatingLaserRepeatCount);
 
         for (int i = 0; i < repeatCount; i++)
         {
-            if (enemyHealth == null || enemyHealth.IsDead)
+            if (enemyHealth == null ||
+                enemyHealth.IsDead ||
+                (!phase2 && !phase2ShieldActive))
             {
-                DeactivateDynamicLasers(activeLasers);
+                DeactivateRotatingLasers();
                 yield break;
             }
 
@@ -816,15 +953,57 @@ public class BossPatternController : MonoBehaviour
                 yield return new WaitForSeconds(phase2RotatingLaserPostStepDelay);
             }
 
-            yield return TrackingChargeCannonSingleShotRoutine();
+            if (includeChargeCannon && phase2)
+            {
+                yield return TrackingChargeCannonSingleShotRoutine();
+            }
         }
 
-        DeactivateDynamicLasers(activeLasers);
+        DeactivateRotatingLasers();
         RebuildBoundaryLasersAsPhase2Hexagon();
+    }
 
-        if (phase2RotatingLaserPatternEndDelay > 0f)
+    private IEnumerator PlayHexagonManagerCastMotionRoutine(LaserGuardianDrone[] slots)
+    {
+        if (!AreHexagonSlotsValid(slots))
         {
-            yield return new WaitForSeconds(phase2RotatingLaserPatternEndDelay);
+            yield break;
+        }
+
+        float duration = Mathf.Max(0.01f, phase2HexagonCastMotionTime);
+        Vector3[] baseScales = new Vector3[slots.Length];
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            baseScales[i] = slots[i] != null ? slots[i].transform.localScale : Vector3.one;
+        }
+
+        float timer = 0f;
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;
+            float t = Mathf.Clamp01(timer / duration);
+            float pulse = Mathf.Sin(t * Mathf.PI);
+            float scaleMultiplier = Mathf.Lerp(1f, Mathf.Max(1f, phase2HexagonCastScale), pulse);
+
+            for (int i = 0; i < slots.Length; i++)
+            {
+                if (slots[i] != null)
+                {
+                    slots[i].transform.localScale = baseScales[i] * scaleMultiplier;
+                }
+            }
+
+            yield return null;
+        }
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (slots[i] != null)
+            {
+                slots[i].transform.localScale = baseScales[i];
+            }
         }
     }
 
@@ -1230,7 +1409,7 @@ public class BossPatternController : MonoBehaviour
     {
         if (projectileDefinition == null || projectileDefinition.ProjectilePrefab == null)
         {
-            Debug.LogWarning($"{bossName}: projectileDefinition ¶Ç´Â ProjectilePrefabÀÌ ¾ø½À´Ï´Ù.", this);
+            Debug.LogWarning($"{bossName}: projectileDefinition ë˜ëŠ” ProjectilePrefabì´ ì—†ìŠµë‹ˆë‹¤.", this);
             return;
         }
 
@@ -1265,7 +1444,7 @@ public class BossPatternController : MonoBehaviour
 
         if (bullet == null)
         {
-            Debug.LogWarning($"{bossName}: º¸½º ÅºÈ¯ ÇÁ¸®ÆÕ¿¡ Bullet ÄÄÆ÷³ÍÆ®°¡ ¾ø½À´Ï´Ù.", projectileObject);
+            Debug.LogWarning($"{bossName}: ë³´ìŠ¤ íƒ„í™˜ í”„ë¦¬íŒ¹ì— Bullet ì»´í¬ë„ŒíŠ¸ê°€ ì—†ìŠµë‹ˆë‹¤.", projectileObject);
             Destroy(projectileObject);
             return;
         }
@@ -1317,38 +1496,11 @@ public class BossPatternController : MonoBehaviour
             lineSortingLayerName,
             lineSortingOrder
         );
-    }
 
-    private void SpawnLaserHazardBetween(
-        Vector2 start,
-        Vector2 end,
-        float duration,
-        float damage,
-        float width,
-        Color color,
-        float damageCooldown)
-    {
-        Vector2 delta = end - start;
-        float length = delta.magnitude;
-
-        if (length <= 0.001f)
+        if (!activePatternLaserHazards.Contains(hazard))
         {
-            return;
+            activePatternLaserHazards.Add(hazard);
         }
-
-        Vector2 center = (start + end) * 0.5f;
-        Vector2 direction = delta.normalized;
-
-        SpawnLaserHazard(
-            center,
-            direction,
-            length,
-            duration,
-            damage,
-            width,
-            color,
-            damageCooldown
-        );
     }
 
     private BossLaserHazard CreateLaserHazard(Vector2 position)
@@ -1443,16 +1595,6 @@ public class BossPatternController : MonoBehaviour
             managerShipBaseRotationZ + 180f,
             managerShipBaseRotationZ + 90f
         };
-    }
-
-    private Vector2 GetPhase2TopManagerFinalPosition()
-    {
-        return GetPhase2HexagonFinalPositionsCounterClockwise()[0];
-    }
-
-    private Vector2 GetPhase2BottomManagerFinalPosition()
-    {
-        return GetPhase2HexagonFinalPositionsCounterClockwise()[3];
     }
 
     private LaserGuardianDrone[] GetHexagonSlotsCounterClockwise()
@@ -1556,8 +1698,11 @@ public class BossPatternController : MonoBehaviour
             wall = wallObject.AddComponent<BossArenaLaserWall>();
         }
 
-        if (phase2 && phase2BoundaryLasersFollowManagers)
+        bool shouldFollowManagers = phase2 || phase2BoundaryLasersFollowManagers;
+
+        if (shouldFollowManagers)
         {
+            // 2í˜ì´ì¦ˆì—ì„œëŠ” ê´€ë¦¬ê¸°ì²´ ì´ë™ì— ë§ì¶° ì™¸ê³½ ë ˆì´ì € ë²½ë„ í•­ìƒ ì¶”ì¢…í•œë‹¤.
             wall.InitializeFollowBetween(
                 firstDrone.transform,
                 secondDrone.transform,
@@ -1802,6 +1947,12 @@ public class BossPatternController : MonoBehaviour
 
     private void UpdateMovement(float deltaTime)
     {
+        if (phase2TransitionStarted && !phase2)
+        {
+            StopMoving();
+            return;
+        }
+
         if (stopMovementWhileCasting && casting)
         {
             StopMoving();
@@ -1879,7 +2030,7 @@ public class BossPatternController : MonoBehaviour
 
     private void UpdatePhase()
     {
-        if (phase2 || enemyHealth == null)
+        if (phase2 || phase2TransitionStarted || enemyHealth == null)
         {
             return;
         }
@@ -1889,18 +2040,17 @@ public class BossPatternController : MonoBehaviour
             return;
         }
 
-        phase2 = true;
-        nextPatternIndex = 0;
-        AudioManager.PlayAt(SoundEventIds.BossPhase2, transform.position);
-
-        if (logPhaseChange)
+        if (!usePhase2ShieldTransition)
         {
-            Debug.Log($"{bossName}: 2ÆäÀÌÁî ÁøÀÔ. »ó/ÇÏ ·¹ÀÌÀú °ü¸®±âÃ¼ Ãß°¡.", this);
+            EnterTruePhase2();
+            return;
         }
 
-        if (phase2ManagerEntryRoutine == null && isActiveAndEnabled)
+        phase2TransitionStarted = true;
+
+        if (phase2TransitionRoutine == null && isActiveAndEnabled)
         {
-            phase2ManagerEntryRoutine = StartCoroutine(Phase2ManagerEntryWrapperRoutine());
+            phase2TransitionRoutine = StartCoroutine(Phase2TransitionRoutine());
         }
     }
 
@@ -1908,6 +2058,637 @@ public class BossPatternController : MonoBehaviour
     {
         yield return Phase2TopBottomManagerEntryRoutine();
         phase2ManagerEntryRoutine = null;
+    }
+
+    private IEnumerator Phase2TransitionRoutine()
+    {
+        StopCurrentBossPatternForTransition();
+        casting = true;
+        StopMoving();
+
+        ResolvePhase2PresentationReferences();
+        ActivatePhase2Shield();
+
+        AudioManager.PlayAt(SoundEventIds.BossPhase2, transform.position);
+
+        if (logPhaseChange)
+        {
+            Debug.Log($"{bossName}: 2í˜ì´ì¦ˆ ì „í™˜ì „ ì‹œì‘. ë³´í˜¸ë§‰ + í™•ì¥ ì¹´ë©”ë¼ + 6ê¸° ë ˆì´ì € êµ¬ë„.", this);
+        }
+
+        GameObject playerObject = player != null ? player.gameObject : GameObject.FindGameObjectWithTag("Player");
+
+        if (lockPlayerDuringPhase2Setup)
+        {
+            LockPhase2PlayerInput(playerObject);
+        }
+
+        if (playerObject != null)
+        {
+            PlayerHealth playerHealth = playerObject.GetComponent<PlayerHealth>();
+
+            if (playerHealth != null)
+            {
+                float safetyInvincibility =
+                    Mathf.Max(0f, phase2LetterboxInDuration) +
+                    Mathf.Max(0f, phase2ZoomOutDuration) +
+                    Mathf.Max(0f, phase2ManagerMoveDuration) +
+                    Mathf.Max(0f, phase2CinematicSettleTime) +
+                    Mathf.Max(0f, phase2LetterboxOutDuration) +
+                    0.35f;
+
+                playerHealth.AddInvincibleTime(safetyInvincibility);
+            }
+        }
+
+        if (hideHudDuringPhase2Setup && phase2ExpeditionHUD != null)
+        {
+            phase2ExpeditionHUD.SetCinematicMode(true);
+        }
+
+        if (phase2GungeonCamera != null)
+        {
+            phase2GungeonCamera.SetCinematicFocus(arenaCenter, false);
+        }
+
+        if (usePhase2Letterbox)
+        {
+            phase2LetterboxUi = BossCinematicLetterboxUI.GetOrCreate();
+
+            if (phase2LetterboxUi != null)
+            {
+                yield return phase2LetterboxUi.ShowRoutine(
+                    phase2LetterboxHeightRatio,
+                    Mathf.Max(0f, phase2LetterboxInDuration)
+                );
+            }
+        }
+
+        yield return AnimatePhase2CameraRoutine(
+            Mathf.Max(1f, phase2WideZoomMultiplier),
+            Mathf.Max(0.05f, phase2ZoomOutDuration),
+            phase2ZoomOutCurve,
+            true
+        );
+
+        if (phase2ManagerEntryRoutine == null)
+        {
+            phase2ManagerEntryRoutine = StartCoroutine(Phase2ManagerEntryWrapperRoutine());
+        }
+
+        while (phase2ManagerEntryRoutine != null)
+        {
+            yield return null;
+        }
+
+        if (phase2CinematicSettleTime > 0f)
+        {
+            yield return new WaitForSeconds(phase2CinematicSettleTime);
+        }
+
+        if (usePhase2Letterbox && phase2LetterboxUi != null)
+        {
+            yield return phase2LetterboxUi.HideRoutine(Mathf.Max(0f, phase2LetterboxOutDuration));
+        }
+
+        if (phase2GungeonCamera != null)
+        {
+            phase2GungeonCamera.ClearCinematicFocus(false);
+        }
+
+        if (hideHudDuringPhase2Setup && phase2ExpeditionHUD != null)
+        {
+            phase2ExpeditionHUD.SetCinematicMode(false);
+        }
+
+        RestorePhase2PlayerInput();
+
+        phase2ShieldDamageEnabled = true;
+        casting = false;
+        phase2TransitionRoutine = null;
+
+        if (phase2ShieldCombatRoutine == null && isActiveAndEnabled && phase2ShieldActive)
+        {
+            phase2ShieldCombatRoutine = StartCoroutine(Phase2ShieldCombatRoutine());
+        }
+    }
+
+    private IEnumerator Phase2ShieldCombatRoutine()
+    {
+        while (phase2ShieldActive && enemyHealth != null && !enemyHealth.IsDead)
+        {
+            yield return Phase2HexagonRotatingLaserCycleRoutine(false);
+
+            if (!phase2ShieldActive || enemyHealth == null || enemyHealth.IsDead)
+            {
+                break;
+            }
+
+            if (phase2RotatingLaserPatternEndDelay > 0f)
+            {
+                yield return new WaitForSeconds(phase2RotatingLaserPatternEndDelay);
+            }
+        }
+
+        DeactivateRotatingLasers();
+        phase2ShieldCombatRoutine = null;
+    }
+
+    private void EnterTruePhase2()
+    {
+        phase2 = true;
+        phase2TransitionStarted = true;
+        phase2ShieldActive = false;
+        phase2ShieldDamageEnabled = false;
+        nextPatternIndex = 0;
+
+        BossHealthBarUI.Instance?.ClearPhaseShield();
+        SetPhase2ShieldVisualVisible(false);
+
+        if (!usePhase2ShieldTransition)
+        {
+            AudioManager.PlayAt(SoundEventIds.BossPhase2, transform.position);
+        }
+
+        if (logPhaseChange)
+        {
+            Debug.Log($"{bossName}: ì§„ì§œ 2í˜ì´ì¦ˆ ì§„ì…. ê°•í™” íŒ¨í„´ ì¬ê°œ.", this);
+        }
+
+        if (patternRoutine == null && isActiveAndEnabled && enemyHealth != null && !enemyHealth.IsDead)
+        {
+            patternRoutine = StartCoroutine(PatternLoopRoutine());
+        }
+    }
+
+    public bool TryAbsorbIncomingDamage(float damage, Vector2 hitPoint, Vector2 incomingDirection)
+    {
+        if (!phase2ShieldActive || damage <= 0f)
+        {
+            return false;
+        }
+
+        // ì „í™˜ ì»·ì‹  ì¤‘ì—ëŠ” ë³´í˜¸ë§‰ì´ ì´ë¯¸ ì „ê°œë˜ì–´ ìˆìœ¼ë¯€ë¡œ ë³¸ì²´ í”¼í•´ëŠ” ë§‰ë˜,
+        // ì»·ì‹ ì´ ëë‚˜ê¸° ì „ì—ëŠ” ë³´í˜¸ë§‰ ì²´ë ¥ì„ ê¹ì§€ ì•ŠëŠ”ë‹¤.
+        if (!phase2ShieldDamageEnabled)
+        {
+            return true;
+        }
+
+        phase2ShieldHp = Mathf.Max(0f, phase2ShieldHp - damage);
+        BossHealthBarUI.Instance?.ShowPhaseShield(phase2ShieldHp, phase2ShieldMaxHpRuntime);
+
+        CombatFeedbackManager.PlayHit(
+            hitPoint,
+            incomingDirection,
+            CombatFeedbackKind.Shield,
+            Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.1f, damage) / 2f), 0.8f, 1.6f),
+            0.025f,
+            0.045f,
+            true
+        );
+
+        if (phase2ShieldHp <= 0f && phase2ShieldBreakRoutine == null && isActiveAndEnabled)
+        {
+            phase2ShieldDamageEnabled = false;
+            phase2ShieldBreakRoutine = StartCoroutine(Phase2ShieldBreakRoutine());
+        }
+
+        return true;
+    }
+
+    private IEnumerator Phase2ShieldBreakRoutine()
+    {
+        phase2ShieldActive = false;
+        phase2ShieldDamageEnabled = false;
+
+        DeactivateRotatingLasers();
+        ClearTransientVisualObjects();
+
+        if (phase2ShieldCombatRoutine != null)
+        {
+            StopCoroutine(phase2ShieldCombatRoutine);
+            phase2ShieldCombatRoutine = null;
+        }
+
+        if (phase2ShieldBreakShakeAmplitude > 0f && phase2ShieldBreakShakeDuration > 0f)
+        {
+            GungeonStyleCamera2D.RequestShake(
+                phase2ShieldBreakShakeAmplitude,
+                phase2ShieldBreakShakeDuration
+            );
+        }
+
+        SetPhase2ShieldVisualVisible(false);
+        BossHealthBarUI.Instance?.ClearPhaseShield();
+
+        if (phase2ShieldBreakSettleTime > 0f)
+        {
+            yield return new WaitForSeconds(phase2ShieldBreakSettleTime);
+        }
+
+        yield return AnimatePhase2CameraRoutine(
+            1f,
+            Mathf.Max(0.05f, phase2ZoomInDuration),
+            phase2ZoomInCurve,
+            false
+        );
+
+        EnterTruePhase2();
+        phase2ShieldBreakRoutine = null;
+    }
+
+    private void ActivatePhase2Shield()
+    {
+        phase2ShieldMaxHpRuntime = Mathf.Max(
+            Mathf.Max(1f, phase2ShieldMinHp),
+            enemyHealth != null
+                ? enemyHealth.MaxHp * Mathf.Clamp(phase2ShieldHpRatio, 0.05f, 0.5f)
+                : phase2ShieldMinHp
+        );
+
+        phase2ShieldHp = phase2ShieldMaxHpRuntime;
+        phase2ShieldActive = true;
+        phase2ShieldDamageEnabled = false;
+
+        EnsurePhase2ShieldVisual();
+        SetPhase2ShieldVisualVisible(true);
+        BossHealthBarUI.Instance?.ShowPhaseShield(phase2ShieldHp, phase2ShieldMaxHpRuntime);
+    }
+
+    private void EnsurePhase2ShieldVisual()
+    {
+        if (phase2ShieldVisualRoot != null)
+        {
+            return;
+        }
+
+        if (phase2RuntimeShieldObject == null)
+        {
+            phase2RuntimeShieldObject = new GameObject("Boss_Phase2_Shield_Runtime");
+            phase2RuntimeShieldObject.transform.SetParent(transform, false);
+            phase2RuntimeShieldObject.transform.localPosition = Vector3.zero;
+            phase2RuntimeShieldObject.transform.localRotation = Quaternion.identity;
+
+            phase2RuntimeShieldLine = phase2RuntimeShieldObject.AddComponent<LineRenderer>();
+            phase2RuntimeShieldLine.useWorldSpace = false;
+            phase2RuntimeShieldLine.loop = true;
+            phase2RuntimeShieldLine.textureMode = LineTextureMode.Stretch;
+            phase2RuntimeShieldLine.numCapVertices = 0;
+            phase2RuntimeShieldLine.numCornerVertices = 2;
+            phase2RuntimeShieldLine.sortingLayerName = lineSortingLayerName;
+            phase2RuntimeShieldLine.sortingOrder = lineSortingOrder + 8;
+        }
+
+        if (phase2RuntimeShieldLine == null && phase2RuntimeShieldObject != null)
+        {
+            phase2RuntimeShieldLine = phase2RuntimeShieldObject.GetComponent<LineRenderer>();
+        }
+
+        if (phase2RuntimeShieldLine == null)
+        {
+            return;
+        }
+
+        Material material = phase2ShieldMaterial != null
+            ? phase2ShieldMaterial
+            : lineMaterial;
+
+        if (material == null)
+        {
+            if (phase2RuntimeShieldMaterial == null)
+            {
+                Shader shader = Shader.Find("Sprites/Default");
+
+                if (shader == null)
+                {
+                    shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                }
+
+                if (shader != null)
+                {
+                    phase2RuntimeShieldMaterial = new Material(shader)
+                    {
+                        name = "Runtime Boss Phase2 Shield Material",
+                        hideFlags = HideFlags.HideAndDontSave
+                    };
+                }
+            }
+
+            material = phase2RuntimeShieldMaterial;
+        }
+
+        if (material != null)
+        {
+            phase2RuntimeShieldLine.sharedMaterial = material;
+        }
+
+        int segmentCount = Mathf.Clamp(phase2ShieldSegments, 16, 96);
+        phase2RuntimeShieldLine.positionCount = segmentCount;
+
+        float radius = Mathf.Max(0.1f, phase2ShieldRadius);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float angle = (Mathf.PI * 2f * i) / segmentCount;
+            phase2RuntimeShieldLine.SetPosition(
+                i,
+                new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f)
+            );
+        }
+
+        phase2RuntimeShieldLine.startWidth = Mathf.Max(0.01f, phase2ShieldLineWidth);
+        phase2RuntimeShieldLine.endWidth = Mathf.Max(0.01f, phase2ShieldLineWidth);
+    }
+
+    private void UpdatePhase2ShieldVisual()
+    {
+        if (!phase2ShieldActive)
+        {
+            return;
+        }
+
+        float ratio = phase2ShieldMaxHpRuntime <= 0f
+            ? 0f
+            : Mathf.Clamp01(phase2ShieldHp / phase2ShieldMaxHpRuntime);
+
+        Color color = Color.Lerp(phase2ShieldLowColor, phase2ShieldColor, ratio);
+        float pulse = 1f + Mathf.Sin(Time.unscaledTime * 8f) * 0.07f;
+
+        if (phase2RuntimeShieldLine != null)
+        {
+            phase2RuntimeShieldLine.startColor = color;
+            phase2RuntimeShieldLine.endColor = color;
+            float width = Mathf.Max(0.01f, phase2ShieldLineWidth) * pulse;
+            phase2RuntimeShieldLine.startWidth = width;
+            phase2RuntimeShieldLine.endWidth = width;
+        }
+
+        if (phase2ShieldVisualRoot != null)
+        {
+            phase2ShieldVisualRoot.transform.localScale = Vector3.one * pulse;
+        }
+    }
+
+    private void SetPhase2ShieldVisualVisible(bool visible)
+    {
+        if (phase2ShieldVisualRoot != null)
+        {
+            phase2ShieldVisualRoot.SetActive(visible);
+        }
+
+        if (phase2RuntimeShieldObject != null)
+        {
+            phase2RuntimeShieldObject.SetActive(visible);
+        }
+    }
+
+    private void StopCurrentBossPatternForTransition()
+    {
+        if (patternRoutine != null)
+        {
+            StopCoroutine(patternRoutine);
+            patternRoutine = null;
+        }
+
+        casting = false;
+        ClearTransientVisualObjects();
+        DeactivateRotatingLasers();
+        DeactivatePatternLaserHazards();
+        StopMoving();
+    }
+
+    private void DeactivateRotatingLasers()
+    {
+        DeactivateDynamicLasers(activeRotatingLasers);
+    }
+
+    private void DeactivatePatternLaserHazards()
+    {
+        for (int i = activePatternLaserHazards.Count - 1; i >= 0; i--)
+        {
+            BossLaserHazard hazard = activePatternLaserHazards[i];
+
+            if (hazard != null)
+            {
+                hazard.Deactivate();
+            }
+        }
+
+        activePatternLaserHazards.Clear();
+    }
+
+    private void ResolvePhase2PresentationReferences()
+    {
+        if (phase2CameraZoomController == null)
+        {
+            phase2CameraZoomController = FindFirstObjectByType<CameraZoomController2D>();
+        }
+
+        if (phase2GungeonCamera == null)
+        {
+            phase2GungeonCamera = FindFirstObjectByType<GungeonStyleCamera2D>();
+        }
+
+        if (phase2SpaceBackgroundGenerator == null)
+        {
+            phase2SpaceBackgroundGenerator = FindFirstObjectByType<SpaceBackgroundGenerator2D>();
+        }
+
+        if (phase2ExpeditionHUD == null)
+        {
+            phase2ExpeditionHUD = FindFirstObjectByType<ExpeditionHUD>();
+        }
+    }
+
+    private IEnumerator AnimatePhase2CameraRoutine(
+        float targetMultiplier,
+        float duration,
+        AnimationCurve curve,
+        bool zoomingOut)
+    {
+        ResolvePhase2PresentationReferences();
+
+        if (phase2SpaceBackgroundGenerator != null && zoomingOut)
+        {
+            phase2SpaceBackgroundGenerator.BeginCameraZoomTransition(targetMultiplier);
+        }
+
+        if (phase2CameraZoomController == null)
+        {
+            if (phase2SpaceBackgroundGenerator != null)
+            {
+                phase2SpaceBackgroundGenerator.SetCameraZoomTransitionProgress(zoomingOut ? 1f : 0f);
+
+                if (!zoomingOut)
+                {
+                    phase2SpaceBackgroundGenerator.EndCameraZoomTransition(true);
+                    phase2SpaceBackgroundGenerator.ForceSyncNow();
+                }
+            }
+
+            yield break;
+        }
+
+        System.Action<float, float> progressCallback = null;
+
+        if (phase2SpaceBackgroundGenerator != null &&
+            phase2SpaceBackgroundGenerator.IsCameraZoomTransitionActive)
+        {
+            progressCallback = (normalized, currentMultiplier) =>
+            {
+                phase2SpaceBackgroundGenerator.SetCameraZoomTransitionProgress(
+                    zoomingOut ? normalized : 1f - normalized
+                );
+            };
+        }
+
+        yield return phase2CameraZoomController.AnimateZoomMultiplier(
+            targetMultiplier,
+            Mathf.Max(0.05f, duration),
+            curve,
+            progressCallback
+        );
+
+        if (phase2SpaceBackgroundGenerator != null &&
+            phase2SpaceBackgroundGenerator.IsCameraZoomTransitionActive)
+        {
+            if (zoomingOut)
+            {
+                phase2SpaceBackgroundGenerator.SetCameraZoomTransitionProgress(1f);
+            }
+            else
+            {
+                phase2SpaceBackgroundGenerator.SetCameraZoomTransitionProgress(0f);
+                phase2SpaceBackgroundGenerator.EndCameraZoomTransition(true);
+                phase2SpaceBackgroundGenerator.ForceSyncNow();
+            }
+        }
+    }
+
+    private void RestorePhase2Presentation(bool resetCamera)
+    {
+        if (phase2LetterboxUi != null)
+        {
+            phase2LetterboxUi.HideImmediate();
+        }
+
+        if (hideHudDuringPhase2Setup && phase2ExpeditionHUD != null)
+        {
+            phase2ExpeditionHUD.SetCinematicMode(false);
+        }
+
+        if (phase2GungeonCamera != null)
+        {
+            phase2GungeonCamera.ClearCinematicFocus(resetCamera);
+        }
+
+        if (resetCamera && phase2CameraZoomController != null)
+        {
+            phase2CameraZoomController.CancelCinematicTransition(true);
+            phase2CameraZoomController.ResetZoom(true);
+        }
+
+        if (resetCamera && phase2SpaceBackgroundGenerator != null)
+        {
+            phase2SpaceBackgroundGenerator.EndCameraZoomTransition(true);
+            phase2SpaceBackgroundGenerator.ForceSyncNow();
+        }
+
+        BossHealthBarUI.Instance?.ClearPhaseShield();
+    }
+
+    private void LockPhase2PlayerInput(GameObject playerObject)
+    {
+        if (phase2PlayerLockActive || playerObject == null)
+        {
+            return;
+        }
+
+        phase2PlayerLockActive = true;
+
+        phase2LockedPlayerController = playerObject.GetComponent<PlayerController2D>();
+
+        if (phase2LockedPlayerController != null)
+        {
+            phase2LockedPlayerControlWasEnabled = phase2LockedPlayerController.ControlEnabled;
+            phase2LockedPlayerMovementWasLocked = phase2LockedPlayerController.MovementLocked;
+            phase2LockedPlayerController.SetControlEnabled(false);
+            phase2LockedPlayerController.SetMovementLocked(true);
+        }
+
+        phase2LockedWeaponController = playerObject.GetComponent<PlayerWeaponController>();
+
+        if (phase2LockedWeaponController != null)
+        {
+            phase2LockedWeaponInputWasLocked = phase2LockedWeaponController.ExternalInputLocked;
+            phase2LockedWeaponController.SetExternalInputLocked(true);
+        }
+
+        phase2LockedPlayerInteractor = playerObject.GetComponent<PlayerInteractor>();
+
+        if (phase2LockedPlayerInteractor != null)
+        {
+            phase2LockedPlayerInteractorWasEnabled = phase2LockedPlayerInteractor.enabled;
+            phase2LockedPlayerInteractor.enabled = false;
+        }
+
+        phase2LockedRadarScanner = playerObject.GetComponent("PlayerRadarScanner") as MonoBehaviour;
+
+        if (phase2LockedRadarScanner != null)
+        {
+            phase2LockedRadarScannerWasEnabled = phase2LockedRadarScanner.enabled;
+            phase2LockedRadarScanner.enabled = false;
+        }
+
+        phase2LockedEmergencyReturn = playerObject.GetComponent<EmergencyReturnController>();
+
+        if (phase2LockedEmergencyReturn != null)
+        {
+            phase2LockedEmergencyReturnWasEnabled = phase2LockedEmergencyReturn.enabled;
+            phase2LockedEmergencyReturn.enabled = false;
+        }
+    }
+
+    private void RestorePhase2PlayerInput()
+    {
+        if (!phase2PlayerLockActive)
+        {
+            return;
+        }
+
+        if (phase2LockedPlayerController != null)
+        {
+            phase2LockedPlayerController.SetControlEnabled(phase2LockedPlayerControlWasEnabled);
+            phase2LockedPlayerController.SetMovementLocked(phase2LockedPlayerMovementWasLocked);
+        }
+
+        if (phase2LockedWeaponController != null)
+        {
+            phase2LockedWeaponController.SetExternalInputLocked(phase2LockedWeaponInputWasLocked);
+        }
+
+        if (phase2LockedPlayerInteractor != null)
+        {
+            phase2LockedPlayerInteractor.enabled = phase2LockedPlayerInteractorWasEnabled;
+        }
+
+        if (phase2LockedRadarScanner != null)
+        {
+            phase2LockedRadarScanner.enabled = phase2LockedRadarScannerWasEnabled;
+        }
+
+        if (phase2LockedEmergencyReturn != null)
+        {
+            phase2LockedEmergencyReturn.enabled = phase2LockedEmergencyReturnWasEnabled;
+        }
+
+        phase2LockedPlayerController = null;
+        phase2LockedWeaponController = null;
+        phase2LockedPlayerInteractor = null;
+        phase2LockedRadarScanner = null;
+        phase2LockedEmergencyReturn = null;
+        phase2PlayerLockActive = false;
     }
 
     private IEnumerator WaitForPatternCooldown(BossPattern pattern)
@@ -2326,22 +3107,34 @@ public class BossPatternController : MonoBehaviour
             phase2ManagerEntryRoutine = null;
         }
 
+        if (phase2TransitionRoutine != null)
+        {
+            StopCoroutine(phase2TransitionRoutine);
+            phase2TransitionRoutine = null;
+        }
+
+        if (phase2ShieldCombatRoutine != null)
+        {
+            StopCoroutine(phase2ShieldCombatRoutine);
+            phase2ShieldCombatRoutine = null;
+        }
+
+        if (phase2ShieldBreakRoutine != null)
+        {
+            StopCoroutine(phase2ShieldBreakRoutine);
+            phase2ShieldBreakRoutine = null;
+        }
+
+        DeactivateRotatingLasers();
+        DeactivatePatternLaserHazards();
         ClearTransientVisualObjects();
+        RestorePhase2PlayerInput();
+        RestorePhase2Presentation(true);
+        SetPhase2ShieldVisualVisible(false);
         DestroyBoundaryLaserWalls();
         DestroyPhase2ManagerShips();
         DestroyPhase1ManagerShips();
         StopMoving();
-    }
-
-    private int PositiveMod(int value, int modulo)
-    {
-        if (modulo <= 0)
-        {
-            return 0;
-        }
-
-        int result = value % modulo;
-        return result < 0 ? result + modulo : result;
     }
 
     private Vector2 RotateVector(Vector2 vector, float angle)

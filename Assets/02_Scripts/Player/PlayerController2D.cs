@@ -16,6 +16,13 @@ public class PlayerController2D : MonoBehaviour
 
     [Header("Rotation Settings")]
     [SerializeField] private float rotationOffset = -90f;
+    [SerializeField] private bool useAimDeadZone = true;
+    [Min(0f)]
+    [SerializeField] private float aimDeadZoneEnterPixels = 14f;
+    [Min(0f)]
+    [SerializeField] private float aimDeadZoneExitPixels = 20f;
+    [Min(0f)]
+    [SerializeField] private float rotationDegreesPerSecond = 1440f;
 
     [Header("External Push")]
     [Min(0.02f)]
@@ -27,6 +34,8 @@ public class PlayerController2D : MonoBehaviour
 
     private Vector2 moveInput;
     private Vector2 aimDirection = Vector2.up;
+    private float currentRotationZ;
+    private bool aimDeadZoneActive;
 
     private bool controlEnabled = true;
     private bool movementLocked;
@@ -38,6 +47,8 @@ public class PlayerController2D : MonoBehaviour
     private bool movementVelocityOverrideActive;
     private Vector2 movementVelocityOverride;
 
+    public InputActionAsset InputActions => inputActions;
+    public string ActionMapName => actionMapName;
     public Vector2 MoveInput => moveInput;
     public Vector2 AimDirection => aimDirection;
     public float MoveSpeed => moveSpeed;
@@ -50,6 +61,7 @@ public class PlayerController2D : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         mainCamera = Camera.main;
+        currentRotationZ = transform.eulerAngles.z;
     }
 
     private void OnEnable()
@@ -192,19 +204,61 @@ public class PlayerController2D : MonoBehaviour
         }
 
         Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-        Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(mouseScreenPosition);
+
+        if (useAimDeadZone)
+        {
+            Vector3 playerScreenPosition3D = mainCamera.WorldToScreenPoint(transform.position);
+            Vector2 playerScreenPosition = new Vector2(playerScreenPosition3D.x, playerScreenPosition3D.y);
+            float screenDistance = Vector2.Distance(mouseScreenPosition, playerScreenPosition);
+            float enterDistance = Mathf.Max(0f, aimDeadZoneEnterPixels);
+            float exitDistance = Mathf.Max(enterDistance, aimDeadZoneExitPixels);
+
+            if (aimDeadZoneActive)
+            {
+                if (screenDistance <= exitDistance)
+                {
+                    return;
+                }
+
+                aimDeadZoneActive = false;
+            }
+            else if (screenDistance <= enterDistance)
+            {
+                aimDeadZoneActive = true;
+                return;
+            }
+        }
+
+        float cameraDepth = Mathf.Abs(mainCamera.transform.position.z - transform.position.z);
+        Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(
+            new Vector3(mouseScreenPosition.x, mouseScreenPosition.y, cameraDepth)
+        );
         mouseWorldPosition.z = transform.position.z;
 
         Vector2 direction = mouseWorldPosition - transform.position;
-        if (direction.sqrMagnitude <= 0.001f)
+        if (direction.sqrMagnitude <= 0.0001f)
         {
             return;
         }
 
         aimDirection = direction.normalized;
 
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.Euler(0f, 0f, angle + rotationOffset);
+        float targetRotationZ = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg + rotationOffset;
+
+        if (rotationDegreesPerSecond <= 0f)
+        {
+            currentRotationZ = targetRotationZ;
+        }
+        else
+        {
+            currentRotationZ = Mathf.MoveTowardsAngle(
+                currentRotationZ,
+                targetRotationZ,
+                rotationDegreesPerSecond * Time.unscaledDeltaTime
+            );
+        }
+
+        transform.rotation = Quaternion.Euler(0f, 0f, currentRotationZ);
     }
 
     public void SetControlEnabled(bool enabled)

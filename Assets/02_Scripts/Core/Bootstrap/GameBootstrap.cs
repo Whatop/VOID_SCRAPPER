@@ -75,27 +75,27 @@ public class GameBootstrap : MonoBehaviour
 
         if (gameStateManager == null)
         {
-            Debug.LogError("GameStateManager�� ������� �ʾҽ��ϴ�.", this);
+            Debug.LogError("GameStateManager를 찾지 못했습니다.", this);
         }
 
         if (sceneFlowManager == null)
         {
-            Debug.LogError("SceneFlowManager�� ������� �ʾҽ��ϴ�.", this);
+            Debug.LogError("SceneFlowManager를 찾지 못했습니다.", this);
         }
 
         if (runManager == null)
         {
-            Debug.LogError("RunManager�� ������� �ʾҽ��ϴ�.", this);
+            Debug.LogError("RunManager를 찾지 못했습니다.", this);
         }
 
         if (saveManager == null)
         {
-            Debug.LogError("SaveManager�� ������� �ʾҽ��ϴ�.", this);
+            Debug.LogError("SaveManager를 찾지 못했습니다.", this);
         }
 
         if (permanentProgress == null)
         {
-            Debug.LogError("PermanentProgress�� ������� �ʾҽ��ϴ�.", this);
+            Debug.LogError("PermanentProgress를 찾지 못했습니다.", this);
         }
     }
 

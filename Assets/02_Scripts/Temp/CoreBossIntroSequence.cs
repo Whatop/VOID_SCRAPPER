@@ -156,6 +156,7 @@ public class CoreBossIntroSequence : MonoBehaviour
     private Animator spawnedBossAnimator;
     private Vector3 spawnedBossBaseScale = Vector3.one;
     private bool isPlaying;
+    private bool introWideZoomHoldActive;
 
     public GameObject SpawnedBoss => spawnedBoss;
     public bool IsPlaying => isPlaying;
@@ -180,7 +181,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         public PlayerWeaponController weaponController;
         public bool weaponWasEnabled;
-        public WeaponTreeType weaponTreeBeforeLock;
+        public bool weaponExternalInputWasLocked;
 
         public PlayerInteractor interactor;
         public bool interactorWasEnabled;
@@ -219,6 +220,8 @@ public class CoreBossIntroSequence : MonoBehaviour
         {
             gungeonCamera.ClearCinematicFocus(true);
         }
+
+        ReleaseIntroWideZoomHold(false);
 
         if (returnCameraZoomAfterIntro || resetCameraZoomOnBattleStart)
         {
@@ -331,6 +334,10 @@ public class CoreBossIntroSequence : MonoBehaviour
             true
         );
 
+        // 스나이퍼 차징 취소나 무기 컴포넌트 상태 변경이 ResetZoom을 호출해도
+        // 관리 기체 진입과 보스 등장 전까지 넓어진 화면을 유지한다.
+        HoldIntroWideZoom();
+
         // 보스 오브젝트는 화면 밖에서 먼저 생성해 관리 기체 시스템을 하나로 통합한다.
         // 시각적으로는 아직 화면 밖이므로 기존 등장 순서는 유지된다.
         spawnedBoss = SpawnBossForIntro(bossPrefab, effectiveBossBattlePosition);
@@ -390,6 +397,8 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
 
         // 4. 보스에게 다시 줌인하고 등장 애니메이션을 재생한다.
+        ReleaseIntroWideZoomHold(true);
+
         if (spawnedBoss != null && gungeonCamera != null)
         {
             gungeonCamera.SetCinematicFocus(spawnedBoss.transform.position);
@@ -1296,10 +1305,43 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
     }
 
+    private void HoldIntroWideZoom()
+    {
+        if (cameraZoomController == null)
+        {
+            ResolveReferences();
+        }
+
+        if (cameraZoomController == null || introWideZoomHoldActive)
+        {
+            return;
+        }
+
+        cameraZoomController.BeginCinematicZoomHold(wideZoomMultiplier);
+        introWideZoomHoldActive = true;
+    }
+
+    private void ReleaseIntroWideZoomHold(bool keepCurrentZoom)
+    {
+        if (!introWideZoomHoldActive)
+        {
+            return;
+        }
+
+        if (cameraZoomController != null)
+        {
+            cameraZoomController.EndCinematicZoomHold(keepCurrentZoom);
+        }
+
+        introWideZoomHoldActive = false;
+    }
+
     private void ResetCameraZoom()
     {
         if (cameraZoomController != null)
         {
+            cameraZoomController.ClearCinematicZoomHold(false);
+            introWideZoomHoldActive = false;
             cameraZoomController.CancelCinematicTransition(true);
             cameraZoomController.ResetZoom(true);
         }
@@ -1355,8 +1397,8 @@ public class CoreBossIntroSequence : MonoBehaviour
         if (playerLockState.weaponController != null)
         {
             playerLockState.weaponWasEnabled = playerLockState.weaponController.enabled;
-            playerLockState.weaponTreeBeforeLock = playerLockState.weaponController.CurrentWeaponTree;
-            playerLockState.weaponController.enabled = false;
+            playerLockState.weaponExternalInputWasLocked = playerLockState.weaponController.ExternalInputLocked;
+            playerLockState.weaponController.SetExternalInputLocked(true);
         }
 
         playerLockState.interactor = interactor.GetComponent<PlayerInteractor>();
@@ -1436,11 +1478,7 @@ public class CoreBossIntroSequence : MonoBehaviour
         if (playerLockState.weaponController != null)
         {
             playerLockState.weaponController.enabled = playerLockState.weaponWasEnabled;
-
-            if (playerLockState.weaponWasEnabled)
-            {
-                playerLockState.weaponController.EquipWeapon(playerLockState.weaponTreeBeforeLock);
-            }
+            playerLockState.weaponController.SetExternalInputLocked(playerLockState.weaponExternalInputWasLocked);
         }
 
         if (playerLockState.interactor != null)

@@ -571,6 +571,8 @@ MonoBehaviour:
   collidersToDisable:
   - {fileID: 1124569729126954043}
   - {fileID: 7610199130418867407}
+  - {fileID: 3782272113136668228}
+  - {fileID: 8256623135197141417}
   holdStartedWarning: "\uC804\uB825\uB9DD \uCC28\uB2E8\uC744 \uC2DC\uC791\uD569\uB2C8\uB2E4.
     \uD53C\uACA9\uB418\uAC70\uB098 E\uB97C \uB193\uC73C\uBA74 \uCDE8\uC18C\uB429\uB2C8\uB2E4."
   disabledWarning: "\uAE30\uC9C0 \uC804\uB825\uB9DD\uC744 \uCC28\uB2E8\uD588\uB2E4."
@@ -1172,8 +1174,8 @@ MonoBehaviour:
   startsOpen: 0
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
-  triggerZone: {fileID: 3782272113136668228}
-  pushPlayerWhenClosed: 1
+  triggerZone: {fileID: 0}
+  pushPlayerWhenClosed: 0
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -1831,8 +1833,8 @@ MonoBehaviour:
   startsOpen: 0
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
-  triggerZone: {fileID: 8256623135197141417}
-  pushPlayerWhenClosed: 1
+  triggerZone: {fileID: 0}
+  pushPlayerWhenClosed: 0
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -2171,7 +2173,7 @@ Transform:
   m_GameObject: {fileID: 1728558353635988516}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.328, y: 1.433, z: 0}
+  m_LocalPosition: {x: -0.314, y: -0.061, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2264,6 +2266,37 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!1 &1747040749710115315
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4679091005841410257}
+  m_Layer: 0
+  m_Name: PortalSpawnPoint (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 3443629218296621865, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4679091005841410257
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1747040749710115315}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.272, y: 1.98, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 905726881918403540}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1801099964498465832
 GameObject:
   m_ObjectHideFlags: 0
@@ -2567,8 +2600,8 @@ MonoBehaviour:
   startsOpen: 0
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
-  triggerZone: {fileID: 8256623135197141417}
-  pushPlayerWhenClosed: 1
+  triggerZone: {fileID: 0}
+  pushPlayerWhenClosed: 0
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -2901,7 +2934,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -4603,8 +4636,8 @@ MonoBehaviour:
   startsOpen: 0
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
-  triggerZone: {fileID: 3782272113136668228}
-  pushPlayerWhenClosed: 1
+  triggerZone: {fileID: 0}
+  pushPlayerWhenClosed: 0
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -5288,6 +5321,84 @@ MonoBehaviour:
   requireDynamicRigidbodyForKnockback: 1
   useImpulseKnockback: 1
   maxKnockbackSpeed: 2
+--- !u!1 &4191996932299056437
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4629865938668072809}
+  - component: {fileID: 4347493345175611989}
+  m_Layer: 0
+  m_Name: BaseBounds
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4629865938668072809
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4191996932299056437}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8074732933343397856}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!61 &4347493345175611989
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4191996932299056437}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.31684494, y: 0.030701637}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0, y: 0}
+    oldSize: {x: 0, y: 0}
+    newSize: {x: 0, y: 0}
+    adaptiveTilingThreshold: 0
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 10.731665, y: 10.7325115}
+  m_EdgeRadius: 0
 --- !u!1 &4200488347847243643
 GameObject:
   m_ObjectHideFlags: 0
@@ -5394,8 +5505,8 @@ MonoBehaviour:
   startsOpen: 0
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
-  triggerZone: {fileID: 3782272113136668228}
-  pushPlayerWhenClosed: 1
+  triggerZone: {fileID: 0}
+  pushPlayerWhenClosed: 0
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -6472,8 +6583,8 @@ MonoBehaviour:
   startsOpen: 0
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
-  triggerZone: {fileID: 8256623135197141417}
-  pushPlayerWhenClosed: 1
+  triggerZone: {fileID: 0}
+  pushPlayerWhenClosed: 0
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -7103,6 +7214,7 @@ Transform:
   m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 4629865938668072809}
   - {fileID: 236056352791209090}
   - {fileID: 551248177249474435}
   - {fileID: 8674986371360760024}
@@ -7216,10 +7328,10 @@ MonoBehaviour:
   - {fileID: 4942427280534440321}
   - {fileID: 4904068979689156928}
   - {fileID: 4795391537530222162}
-  baseBoundsCollider: {fileID: 0}
+  baseBoundsCollider: {fileID: 4347493345175611989}
   portalPrefab: {fileID: 770195100877310136, guid: da4c69155a7bfa7408bf5365bf24428e, type: 3}
   portalSpawnPoint: {fileID: 5447822830555638027}
-  shopPortalDestinationPoint: {fileID: 0}
+  shopPortalDestinationPoint: {fileID: 4679091005841410257}
   autoFindNearestShopPortalDestination: 1
   shopPortalDestinationOffset: {x: 0, y: 0}
   skipCutsceneAfterFirstActivation: 1
@@ -8038,7 +8150,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -8089,6 +8201,7 @@ Transform:
   - {fileID: 8572763477379058779}
   - {fileID: 2812837719054703948}
   - {fileID: 5447822830555638027}
+  - {fileID: 4679091005841410257}
   m_Father: {fileID: 7274631152865294933}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6149021630914261432
@@ -10302,8 +10415,8 @@ MonoBehaviour:
   startsOpen: 0
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
-  triggerZone: {fileID: 8256623135197141417}
-  pushPlayerWhenClosed: 1
+  triggerZone: {fileID: 0}
+  pushPlayerWhenClosed: 0
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
@@ -15684,8 +15797,8 @@ MonoBehaviour:
   startsOpen: 0
   allowEnemiesWhenClosed: 1
   allowNpcWhenClosed: 1
-  triggerZone: {fileID: 3782272113136668228}
-  pushPlayerWhenClosed: 1
+  triggerZone: {fileID: 0}
+  pushPlayerWhenClosed: 0
   pushOutDistance: 0.35
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4

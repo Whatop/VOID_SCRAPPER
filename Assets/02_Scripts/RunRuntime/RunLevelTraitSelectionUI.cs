@@ -6,12 +6,7 @@ using UnityEngine;
 
 public class RunLevelTraitSelectionUI : MonoBehaviour
 {
-    [Header("Legacy Level Trigger")]
-    [Tooltip("기본 OFF. 신규 구조에서는 특수 상자/NPC/보스가 이 UI를 직접 엽니다.")]
-    [SerializeField] private bool legacyExperienceLevelTriggerEnabled;
-
     [Header("References")]
-    [SerializeField] private RunLevelSystem runLevelSystem;
     [SerializeField] private ExpeditionHUD expeditionHUD;
 
     [Header("Trait Source")]
@@ -39,8 +34,6 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
     private readonly List<TraitDefinition> resolvedTraits = new List<TraitDefinition>();
     private readonly List<ReinforcementDefinition> resolvedReinforcements = new List<ReinforcementDefinition>();
     private readonly List<RunRewardOption> currentOptions = new List<RunRewardOption>();
-    private readonly Queue<int> pendingLevelQueue = new Queue<int>();
-
     private bool showing;
     private Vector2 currentSourcePosition;
     private Action<RunRewardChoiceResult> completionCallback;
@@ -57,11 +50,6 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         HideImmediate();
     }
 
-    private void OnEnable()
-    {
-        Subscribe();
-    }
-
     private void Start()
     {
         ResolveReferences();
@@ -70,8 +58,6 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
     private void OnDisable()
     {
-        Unsubscribe();
-
         if (showing && pauseGameplayWhileSelecting)
         {
             GameplayPauseManager.Instance.PopPause(this);
@@ -248,11 +234,6 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
     private void ResolveReferences()
     {
-        if (runLevelSystem == null)
-        {
-            runLevelSystem = FindFirstObjectByType<RunLevelSystem>();
-        }
-
         if (expeditionHUD == null)
         {
             expeditionHUD = FindFirstObjectByType<ExpeditionHUD>();
@@ -293,74 +274,6 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         {
             reinforcementCatalog = shopStock.ReinforcementCatalog;
         }
-    }
-
-    private void Subscribe()
-    {
-        ResolveReferences();
-
-        if (legacyExperienceLevelTriggerEnabled &&
-            runLevelSystem != null &&
-            runLevelSystem.LegacyExperienceLevelingEnabled)
-        {
-            runLevelSystem.LeveledUp -= HandleLeveledUp;
-            runLevelSystem.LeveledUp += HandleLeveledUp;
-        }
-    }
-
-    private void Unsubscribe()
-    {
-        if (runLevelSystem != null)
-        {
-            runLevelSystem.LeveledUp -= HandleLeveledUp;
-        }
-    }
-
-    private void HandleLeveledUp(int newLevel)
-    {
-        if (!legacyExperienceLevelTriggerEnabled)
-        {
-            return;
-        }
-
-        pendingLevelQueue.Enqueue(newLevel);
-
-        if (!showing)
-        {
-            ShowNextPendingLevel();
-        }
-    }
-
-    private void ShowNextPendingLevel()
-    {
-        if (pendingLevelQueue.Count <= 0)
-        {
-            return;
-        }
-
-        int level = pendingLevelQueue.Dequeue();
-        int finalCount = ResolveChoiceCount(choiceCount);
-
-        if (!TryBuildRewardOptions(
-                SpecialRewardMode.TraitOnly,
-                finalCount,
-                RunRewardRarity.Common,
-                false,
-                out List<RunRewardOption> options))
-        {
-            expeditionHUD?.ShowWarning("선택 가능한 특성이 없습니다.");
-            ShowNextPendingLevel();
-            return;
-        }
-
-        ShowOptions(
-            $"레벨 {level} 달성 · 구버전",
-            "구버전 경험치 성장 선택입니다.",
-            options,
-            transform.position,
-            _ => ShowNextPendingLevel(),
-            0
-        );
     }
 
     private bool ShowOptions(
@@ -531,6 +444,17 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
             for (int i = 0; i < traitDefinitions.Count; i++)
             {
                 AppendUniqueTrait(traitDefinitions[i]);
+            }
+        }
+
+        if (!includeHiddenTraits)
+        {
+            for (int i = resolvedTraits.Count - 1; i >= 0; i--)
+            {
+                if (resolvedTraits[i] == null || resolvedTraits[i].IsHidden)
+                {
+                    resolvedTraits.RemoveAt(i);
+                }
             }
         }
 

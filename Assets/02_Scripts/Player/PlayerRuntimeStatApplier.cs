@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerRuntimeStatApplier : MonoBehaviour
@@ -103,8 +103,9 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
         ApplyBuildings(progress, buildingDefinitions);
         ApplyPermanentTraits(progress, traitDefinitions, selectedWeaponTree);
-        ApplyRunTraits(runContext, traitDefinitions, selectedWeaponTree);
 
+        // 런 중 Trait는 RunRuntimeTraitStore + RunTraitEffectApplier가 단독 적용한다.
+        // 여기서 다시 적용하면 심부 해역 씬 전환 때 효과가 중복된다.
         CommitStats(refillHealth, runContext);
 
         if (weaponController != null)
@@ -248,27 +249,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
         return null;
     }
-
-    private TraitDefinition FindTraitDefinition(IReadOnlyList<TraitDefinition> traitDefinitions, string traitId)
-    {
-        if (traitDefinitions == null || string.IsNullOrWhiteSpace(traitId))
-        {
-            return null;
-        }
-
-        for (int i = 0; i < traitDefinitions.Count; i++)
-        {
-            TraitDefinition trait = traitDefinitions[i];
-            if (trait != null && trait.TraitId == traitId)
-            {
-                return trait;
-            }
-        }
-
-        return null;
-    }
-
-    private BuildingDefinition FindBuildingDefinition(
+private BuildingDefinition FindBuildingDefinition(
         IReadOnlyList<BuildingDefinition> buildingDefinitions,
         BuildingType buildingType)
     {
@@ -576,32 +557,6 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
             }
 
             ApplyTraitLevelEffects(trait, level);
-        }
-
-        ClampStats();
-    }
-
-    private void ApplyRunTraits(RunContext runContext, IReadOnlyList<TraitDefinition> traitDefinitions, WeaponTreeType selectedWeaponTree)
-    {
-        if (runContext == null || runContext.SelectedTraitIds == null || traitDefinitions == null)
-        {
-            return;
-        }
-
-        foreach (string traitId in runContext.SelectedTraitIds)
-        {
-            TraitDefinition trait = FindTraitDefinition(traitDefinitions, traitId);
-            if (trait == null)
-            {
-                continue;
-            }
-
-            if (!trait.IsAvailableFor(selectedWeaponTree))
-            {
-                continue;
-            }
-
-            ApplyTraitLevelEffects(trait, 1);
         }
 
         ClampStats();

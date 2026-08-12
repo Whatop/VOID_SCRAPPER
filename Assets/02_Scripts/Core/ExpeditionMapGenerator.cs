@@ -1,9 +1,18 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 public class ExpeditionMapGenerator : MonoBehaviour
 {
+    public static event Action<ExpeditionMapGenerator> AnyMapGenerated;
+    public event Action MapGenerated;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticEvents()
+    {
+        AnyMapGenerated = null;
+    }
     private enum MapSpawnCategory
     {
         None,
@@ -147,6 +156,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [FormerlySerializedAs("eliteEnemyDefinition")]
     [SerializeField] private EnemyDefinition eliteShotgunDefinition;
     [SerializeField] private EnemyDefinition eliteChargingDefinition;
+
+    [Header("Enemy Role Definitions")]
+    [Tooltip("경쟁 회수정 전용 기체 프리팹이 연결된 EnemyDefinition입니다. 비어 있거나 Prefab이 없으면 Basic Definition을 사용합니다.")]
+    [SerializeField] private EnemyDefinition rivalHarvesterDefinition;
+    [Tooltip("약탈자 전용 기체 프리팹이 연결된 EnemyDefinition입니다. 비어 있거나 Prefab이 없으면 Basic Definition을 사용합니다.")]
+    [SerializeField] private EnemyDefinition scavengerDefinition;
 
     [Header("Enemy Role Placement")]
     [SerializeField] private bool useEnemyRoles = true;
@@ -302,6 +317,9 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 this
             );
         }
+
+        MapGenerated?.Invoke();
+        AnyMapGenerated?.Invoke(this);
     }
 
     [ContextMenu("Clear Generated Objects")]
@@ -511,7 +529,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             }
 
             int quarterTurns = rotateLargeZonesByRightAngles
-                ? Random.Range(0, 4)
+                ? UnityEngine.Random.Range(0, 4)
                 : 0;
 
             Quaternion rotation = Quaternion.Euler(0f, 0f, quarterTurns * 90f);
@@ -614,8 +632,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
         for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
         {
             Vector2 candidate = new Vector2(
-                Random.Range(-mapHalfWidth + halfSize.x, mapHalfWidth - halfSize.x),
-                Random.Range(-mapHalfHeight + halfSize.y, mapHalfHeight - halfSize.y)
+                UnityEngine.Random.Range(-mapHalfWidth + halfSize.x, mapHalfWidth - halfSize.x),
+                UnityEngine.Random.Range(-mapHalfHeight + halfSize.y, mapHalfHeight - halfSize.y)
             );
 
             Bounds candidateBounds = new Bounds(
@@ -1114,8 +1132,18 @@ public class ExpeditionMapGenerator : MonoBehaviour
             );
             shotgunCount -= placedDefenderShotgun;
 
+            EnemyDefinition resolvedRivalDefinition =
+                rivalHarvesterDefinition != null && rivalHarvesterDefinition.EnemyPrefab != null
+                    ? rivalHarvesterDefinition
+                    : basicEnemyDefinition;
+
+            EnemyDefinition resolvedScavengerDefinition =
+                scavengerDefinition != null && scavengerDefinition.EnemyPrefab != null
+                    ? scavengerDefinition
+                    : basicEnemyDefinition;
+
             int placedRivals = PlaceRoleEnemyBatch(
-                basicEnemyDefinition,
+                resolvedRivalDefinition,
                 Mathf.Min(rivalRequest, basicCount),
                 EnemyRoleType.RivalHarvester,
                 "RivalHarvester"
@@ -1123,7 +1151,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             basicCount -= placedRivals;
 
             int placedScavengers = PlaceRoleEnemyBatch(
-                basicEnemyDefinition,
+                resolvedScavengerDefinition,
                 Mathf.Min(scavengerRequest, basicCount),
                 EnemyRoleType.Scavenger,
                 "Scavenger"
@@ -1422,8 +1450,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
         Vector3 max = bounds.max;
 
         return new Vector2(
-            Random.Range(min.x, max.x),
-            Random.Range(min.y, max.y)
+            UnityEngine.Random.Range(min.x, max.x),
+            UnityEngine.Random.Range(min.y, max.y)
         );
     }
 
@@ -1809,7 +1837,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
         {
-            Vector2 direction = Random.insideUnitCircle;
+            Vector2 direction = UnityEngine.Random.insideUnitCircle;
 
             if (direction.sqrMagnitude <= 0.001f)
             {
@@ -1817,7 +1845,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             }
 
             direction.Normalize();
-            Vector2 candidate = ClampToMap(center + direction * Random.Range(minRadius, maxRadius));
+            Vector2 candidate = ClampToMap(center + direction * UnityEngine.Random.Range(minRadius, maxRadius));
 
             if (IsPositionValid(
                     candidate,
@@ -2046,12 +2074,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         if (useHarvestClusters &&
             harvestClusterAnchors.Count > 0 &&
-            Random.value < harvestClusterChance)
+            UnityEngine.Random.value < harvestClusterChance)
         {
             for (int attempt = 0; attempt < clusterCandidateAttempts; attempt++)
             {
-                Vector2 anchor = harvestClusterAnchors[Random.Range(0, harvestClusterAnchors.Count)];
-                Vector2 offset = Random.insideUnitCircle;
+                Vector2 anchor = harvestClusterAnchors[UnityEngine.Random.Range(0, harvestClusterAnchors.Count)];
+                Vector2 offset = UnityEngine.Random.insideUnitCircle;
 
                 if (offset.sqrMagnitude <= 0.001f)
                 {
@@ -2062,7 +2090,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
                 float minRadius = Mathf.Min(harvestClusterRadiusRange.x, harvestClusterRadiusRange.y);
                 float maxRadius = Mathf.Max(harvestClusterRadiusRange.x, harvestClusterRadiusRange.y);
-                float radius = Random.Range(minRadius, maxRadius);
+                float radius = UnityEngine.Random.Range(minRadius, maxRadius);
 
                 Vector2 candidate = ClampToMap(anchor + offset * radius);
 
@@ -2184,8 +2212,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
         halfHeight = Mathf.Max(0.1f, halfHeight);
 
         return new Vector2(
-            Random.Range(-halfWidth, halfWidth),
-            Random.Range(-halfHeight, halfHeight)
+            UnityEngine.Random.Range(-halfWidth, halfWidth),
+            UnityEngine.Random.Range(-halfHeight, halfHeight)
         );
     }
 
@@ -2242,7 +2270,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
             if (validCount > 0)
             {
-                int targetIndex = Random.Range(0, validCount);
+                int targetIndex = UnityEngine.Random.Range(0, validCount);
                 int currentIndex = 0;
 
                 for (int i = 0; i < prefabs.Length; i++)
@@ -2277,7 +2305,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             spawned.transform.rotation = Quaternion.Euler(
                 0f,
                 0f,
-                Random.Range(0f, 360f)
+                UnityEngine.Random.Range(0f, 360f)
             );
         }
 
@@ -2294,7 +2322,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
         minScale = Mathf.Max(0.01f, minScale);
         maxScale = Mathf.Max(0.01f, maxScale);
 
-        float scale = Random.Range(minScale, maxScale);
+        float scale = UnityEngine.Random.Range(minScale, maxScale);
 
         Vector3 baseScale = spawned.transform.localScale;
         spawned.transform.localScale = new Vector3(

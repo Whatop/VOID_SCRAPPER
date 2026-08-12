@@ -387,10 +387,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 3
   rewardDropper: {fileID: 0}
-  hitEffectPrefab: {fileID: 100002, guid: cafecd3fc3b761c45bb1553f35cf5c96, type: 3}
-  hitEffectDuration: 0.12
-  useProceduralHitEffectWhenPrefabMissing: 1
-  hitEffectIntensity: 0.9
   hitShakeAmplitude: 0.04
   hitShakeDuration: 0.065
   deathShakeAmplitude: 0.11
@@ -400,6 +396,9 @@ MonoBehaviour:
   knockbackDuration: 0.14
   knockbackDistanceMultiplier: 1
   clearVelocityDuringKnockback: 1
+  deathEffectPrefab: {fileID: 0}
+  deathEffectLifeTime: 0.45
+  useProceduralDeathEffectWhenPrefabMissing: 1
   dropRewardOnDeath: 1
   releaseOnDeath: 1
   releaseDelayOnDeath: 0.25
@@ -435,6 +434,8 @@ MonoBehaviour:
   useNavigationAgent: 1
   visionRange: 9
   loseSightTime: 2
+  radarCanTrackExactPlayerPosition: 0
+  cancelAttackImmediatelyOnSightLoss: 1
   alertDuration: 3
   searchDuration: 2.5
   defaultTauntDuration: 4
@@ -501,6 +502,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   obstacleProbeRadius: 0.3
+  meleeHitEffectPrefab: {fileID: 0}
+  meleeHitEffectLifeTime: 0.2
   pathRenderer: {fileID: 0}
   autoCreatePathRenderer: 1
   pathMaterial: {fileID: 0}
@@ -565,9 +568,12 @@ MonoBehaviour:
   markerType: 1
   markerTransform: {fileID: 4730108900570780396}
   visible: 1
-  markerSprite: {fileID: 21300000, guid: 0a5e3355c8b94fb439bb3416622c7886, type: 3}
+  markerSprite: {fileID: 21300000, guid: 49b2bca3a3f8d7a48bbc281b2a42304c, type: 3}
   markerColor: {r: 1, g: 0, b: 0, a: 1}
   markerScale: 1
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 273957859501520518}
   allowShotgunTaunt: 1
   alertOnMachineGunScan: 0

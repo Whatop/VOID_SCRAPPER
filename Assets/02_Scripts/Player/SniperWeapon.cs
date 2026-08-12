@@ -13,6 +13,16 @@ public class SniperWeapon : PlayerWeaponBase
 
     [Header("Charge")]
     [SerializeField] private float fallbackMaxChargeTime = 1.2f;
+    [Tooltip("이 시간보다 짧게 눌렀다 떼면 발사하지 않고 조용히 취소합니다.")]
+    [Min(0f)]
+    [SerializeField] private float minimumChargeTime = 0.15f;
+    [Tooltip("짧은 클릭마다 시작음이 반복되지 않도록 차징음 재생을 지연합니다.")]
+    [Min(0f)]
+    [SerializeField] private float chargeAudioStartDelay = 0.08f;
+    [Tooltip("빠른 연속 클릭으로 차징 시작/취소가 반복되는 것을 막는 입력 잠금 시간입니다.")]
+    [Min(0f)]
+    [SerializeField] private float rapidClickLockout = 0.22f;
+    [SerializeField] private bool suppressCancelSoundBeforeMinimumCharge = true;
     [SerializeField] private float nextChargeDelay = 0.25f;
     [SerializeField] private bool cancelChargeOnMove = true;
     [Tooltip("켜면 이동 중에도 차징을 유지합니다. 기존 cancelChargeOnMove보다 우선합니다.")]
@@ -64,6 +74,7 @@ public class SniperWeapon : PlayerWeaponBase
     [SerializeField] private bool logProjectileFailure = true;
 
     private bool isCharging;
+    private bool chargeAudioStarted;
     private float chargeTimer;
     private float nextChargeAllowedTime;
 
@@ -163,6 +174,12 @@ public class SniperWeapon : PlayerWeaponBase
         }
 
         chargeTimer += effectiveDeltaTime;
+
+        if (!chargeAudioStarted && chargeTimer >= Mathf.Max(0f, chargeAudioStartDelay))
+        {
+            StartChargeAudio();
+        }
+
         UpdateCameraZoom();
         UpdateAimAssist();
         UpdateChargePresentation();
@@ -193,29 +210,12 @@ public class SniperWeapon : PlayerWeaponBase
         SetChargeLineVisible(showChargeAimLine);
         UpdateChargePresentation();
 
-        bool loopStarted = AudioManager.PlayLoop(
-            SoundEventIds.SniperChargeLoop,
-            chargeLoopChannel,
-            1f
-        );
+        chargeAudioStarted = false;
 
-        bool usedStartSoundAsLoop = false;
-
-        if (!loopStarted && fallbackToStartSoundAsLoop)
+        if (chargeAudioStartDelay <= 0f)
         {
-            usedStartSoundAsLoop = AudioManager.PlayLoop(
-                SoundEventIds.SniperChargeStart,
-                chargeLoopChannel,
-                0.75f
-            );
+            StartChargeAudio();
         }
-
-        if (!usedStartSoundAsLoop)
-        {
-            AudioManager.PlayAt(SoundEventIds.SniperChargeStart, transform.position, 0.8f);
-        }
-
-        UpdateChargeLoopModulation(0f);
 
         NotifyChargeStarted();
         NotifyChargeChanged(ChargeRatio);
@@ -225,6 +225,14 @@ public class SniperWeapon : PlayerWeaponBase
     {
         if (!isCharging)
         {
+            return;
+        }
+
+        if (chargeTimer < Mathf.Max(0f, minimumChargeTime))
+        {
+            bool playCancel = !suppressCancelSoundBeforeMinimumCharge && chargeAudioStarted;
+            CancelCharge(!playCancel);
+            nextChargeAllowedTime = Time.time + Mathf.Max(rapidClickLockout, nextChargeDelay);
             return;
         }
 
@@ -283,17 +291,24 @@ public class SniperWeapon : PlayerWeaponBase
         nextChargeAllowedTime = Time.time + Mathf.Max(0f, nextChargeDelay);
     }
 
-    private void CancelCharge()
+    private void CancelCharge(bool silent = false)
     {
         if (!isCharging)
         {
             StopChargeLoop();
+            chargeAudioStarted = false;
             SetChargeLineVisible(false);
             return;
         }
 
+        bool shouldPlayCancelSound = !silent && chargeAudioStarted;
         StopChargeLoop();
-        AudioManager.PlayAt(SoundEventIds.SniperChargeCancel, transform.position, 0.7f);
+
+        if (shouldPlayCancelSound)
+        {
+            AudioManager.PlayAt(SoundEventIds.SniperChargeCancel, transform.position, 0.7f);
+        }
+
         NotifyChargeCanceled();
         ResetChargeState();
     }
@@ -301,6 +316,7 @@ public class SniperWeapon : PlayerWeaponBase
     private void ResetChargeState()
     {
         StopChargeLoop();
+        chargeAudioStarted = false;
         isCharging = false;
         chargeTimer = 0f;
         SetChargeLineVisible(false);
@@ -319,8 +335,47 @@ public class SniperWeapon : PlayerWeaponBase
     private void UpdateChargePresentation()
     {
         float ratio = ChargeRatio;
-        UpdateChargeLoopModulation(ratio);
+
+        if (chargeAudioStarted)
+        {
+            UpdateChargeLoopModulation(ratio);
+        }
+
         UpdateChargeAimLine(ratio);
+    }
+
+    private void StartChargeAudio()
+    {
+        if (chargeAudioStarted || !isCharging)
+        {
+            return;
+        }
+
+        chargeAudioStarted = true;
+
+        bool loopStarted = AudioManager.PlayLoop(
+            SoundEventIds.SniperChargeLoop,
+            chargeLoopChannel,
+            1f
+        );
+
+        bool usedStartSoundAsLoop = false;
+
+        if (!loopStarted && fallbackToStartSoundAsLoop)
+        {
+            usedStartSoundAsLoop = AudioManager.PlayLoop(
+                SoundEventIds.SniperChargeStart,
+                chargeLoopChannel,
+                0.75f
+            );
+        }
+
+        if (!usedStartSoundAsLoop)
+        {
+            AudioManager.PlayAt(SoundEventIds.SniperChargeStart, transform.position, 0.8f);
+        }
+
+        UpdateChargeLoopModulation(ChargeRatio);
     }
 
     private void UpdateChargeLoopModulation(float ratio)
@@ -479,7 +534,17 @@ public class SniperWeapon : PlayerWeaponBase
             return;
         }
 
-        cameraZoomController = FindFirstObjectByType<CameraZoomController2D>(FindObjectsInactive.Include);
+        GungeonStyleCamera2D preferredCamera = GungeonStyleCamera2D.Instance;
+
+        if (preferredCamera != null)
+        {
+            cameraZoomController = preferredCamera.GetComponent<CameraZoomController2D>();
+        }
+
+        if (cameraZoomController == null)
+        {
+            cameraZoomController = FindFirstObjectByType<CameraZoomController2D>(FindObjectsInactive.Include);
+        }
     }
 
     private void ResolveGungeonStyleCamera()

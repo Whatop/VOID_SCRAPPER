@@ -1,76 +1,132 @@
+using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
+[DisallowMultipleComponent]
 public class ExpeditionHUD : MonoBehaviour
 {
     [Header("Player References")]
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerArmor playerArmor;
     [SerializeField] private PlayerDash playerDash;
-    [SerializeField] private PlayerInteractor playerInteractor;
     [SerializeField] private PlayerReinforcementController reinforcementController;
     [SerializeField] private PlayerCargoController cargoController;
 
-    [Header("Systems")]
-    [SerializeField] private RunLevelSystem runLevelSystem;
+    [Header("Objective")]
     [SerializeField] private ExpeditionObjectiveDirector objectiveDirector;
+    [SerializeField] private string coreSignalCountFormat = "{0}/{1}";
+    [SerializeField] private string coreSignalReadyText = "CORE FOUND";
 
-    [Header("Progress Gauge Mode")]
-    [Tooltip("기본 ON. 기존 EXP 게이지를 코어 추적 신호 게이지로 사용합니다.")]
-    [SerializeField] private bool useObjectiveSignalGauge = true;
-    [SerializeField] private string objectiveLockedText = "CORE SIGNAL {0}/{1}";
-    [SerializeField] private string objectiveReadyText = "CORE SIGNAL {0}/{1}  READY";
+    [Header("Input Binding Hints")]
+    [SerializeField] private InputActionAsset inputActions;
+    [SerializeField] private string playerActionMapName = "Player";
+    [SerializeField] private string mapActionName = "Map";
+    [SerializeField] private string inventoryActionName = "Inventory";
+    [SerializeField] private string reinforcementActionName = "UseReinforcement";
+    [SerializeField] private GameObject menuHintRoot;
+    [SerializeField] private TextMeshProUGUI mapHintText;
+    [SerializeField] private TextMeshProUGUI inventoryHintText;
+    [SerializeField] private TextMeshProUGUI reinforcementKeyText;
+    [SerializeField] private string mapHintFormat = "[{0}] 지도";
+    [SerializeField] private string inventoryHintFormat = "[{0}] 인벤토리";
+    [SerializeField] private string reinforcementKeyFormat = "[{0}]";
 
     [Header("HUD Roots")]
     [SerializeField] private GameObject statusRoot;
     [SerializeField] private GameObject resourceRoot;
+    [SerializeField] private GameObject cargoRoot;
+    [SerializeField] private GameObject objectiveRoot;
     [SerializeField] private GameObject[] additionalObjectsToHideDuringCinematic;
 
-    [Header("Gauges")]
+    [Header("HP + Armor")]
     [SerializeField] private GaugeBarUI hpGauge;
-    [SerializeField] private GaugeBarUI armorGauge;
-    [Tooltip("신규 구조에서는 코어 추적 신호 게이지로 사용합니다.")]
-    [SerializeField] private GaugeBarUI expGauge;
-    [SerializeField] private GaugeBarUI dashGauge;
-    [SerializeField] private GaugeBarUI cargoGauge;
+    [SerializeField] private TextMeshProUGUI hpValueText;
+    [SerializeField] private GameObject armorBonusRoot;
+    [SerializeField] private TextMeshProUGUI armorBonusText;
+    [Tooltip("HP Fill의 오른쪽 끝에서 이어지는 흰색 Armor 세그먼트 RectTransform입니다. 부모에 Mask/RectMask2D를 두지 마세요.")]
+    [SerializeField] private RectTransform armorFillRect;
+    [SerializeField] private Image armorFillImage;
+    [SerializeField] private string hpValueFormat = "{0:0}/{1:0}";
+    [SerializeField] private string armorBonusFormat = "(+{0:0})";
+    [SerializeField] private Color armorBonusColor = Color.white;
+    [SerializeField] private Color armorFillColor = Color.white;
+    [SerializeField] private bool autoPositionArmorBonusBesideHpText = true;
+    [Min(0f)]
+    [SerializeField] private float armorBonusTextSpacing = 2f;
+    [FormerlySerializedAs("armorGauge")]
+    [SerializeField, HideInInspector] private GaugeBarUI legacyArmorGauge;
 
-    [Header("Resource Counters")]
+    [Header("Core Signal Icon")]
+    [FormerlySerializedAs("objectiveSignalGauge")]
+    [SerializeField] private GaugeBarUI legacyObjectiveSignalGauge;
+    [SerializeField] private Image coreSignalIcon;
+    [SerializeField] private Image[] coreSignalPips;
+    [SerializeField] private TextMeshProUGUI coreSignalCountText;
+    [SerializeField] private GameObject coreSignalReadyPulseRoot;
+    [SerializeField] private Color coreSignalInactiveColor = new Color(0.22f, 0.25f, 0.3f, 0.75f);
+    [SerializeField] private Color coreSignalActiveColor = new Color(1f, 0.76f, 0.16f, 1f);
+    [SerializeField] private Color coreSignalReadyColor = new Color(1f, 0.95f, 0.45f, 1f);
+
+    [Header("Dash Icon")]
+    [SerializeField] private GaugeBarUI dashGauge;
+    [SerializeField] private Image dashCooldownFill;
+    [SerializeField] private Image dashIcon;
+    [SerializeField] private GameObject dashReadyGlowRoot;
+    [SerializeField] private TextMeshProUGUI dashCooldownText;
+    [SerializeField] private Color dashReadyColor = Color.white;
+    [SerializeField] private Color dashCooldownColor = new Color(0.45f, 0.48f, 0.55f, 1f);
+
+    [Header("Cargo Bottom Bar")]
+    [SerializeField] private GaugeBarUI cargoGauge;
+    [SerializeField] private TextMeshProUGUI cargoValueText;
+    [SerializeField] private string cargoValueFormat = "{0}/{1}";
+    [SerializeField] private Color cargoNormalColor = new Color(0.35f, 0.85f, 1f, 1f);
+    [SerializeField] private Color cargoWarningColor = new Color(1f, 0.75f, 0.18f, 1f);
+    [SerializeField] private Color cargoFullColor = new Color(1f, 0.2f, 0.15f, 1f);
+    [Range(0f, 1f)]
+    [SerializeField] private float cargoWarningRatio = 0.8f;
+
+    [Header("Resource Counters - Vertical")]
     [SerializeField] private ResourceCounterUI creditsCounter;
     [SerializeField] private ResourceCounterUI scrapCounter;
     [SerializeField] private ResourceCounterUI coreShardCounter;
     [SerializeField] private ResourceCounterUI tuningChipCounter;
+    [SerializeField] private bool hideZeroResources = true;
 
-    [Header("Reinforcement")]
-    [Tooltip("좌측 하단 Reinforcement 전용 슬롯 UI")]
+    [Header("Reinforcement / Heat")]
     [SerializeField] private ReinforcementSlotUI reinforcementSlotUI;
+    [SerializeField] private WeaponHeatUI weaponHeatUI;
 
     [Header("Messages")]
-    [SerializeField] private InteractionPromptUI interactionPromptUI;
     [SerializeField] private WarningMessageUI warningMessageUI;
 
-    [Header("Dash Gauge")]
-    [SerializeField] private string dashReadyText = "READY";
-    [SerializeField] private string dashCooldownText = "{0:0.0}s";
-
-    [Header("Fallback EXP - Legacy Only")]
-    [SerializeField] private int fallbackExpToNextLevel = 100;
-
     private bool cinematicMode;
+    private bool subscribed;
 
     private void Awake()
     {
         ResolveReferences();
+        ResolveInputActions();
+        InputBindingPersistence.LoadOnce(inputActions);
     }
 
     private void OnEnable()
     {
         ResolveReferences();
         Subscribe();
+        InputSystem.onActionChange += HandleInputActionChange;
+        GameSettingsRuntime.Changed += HandleGameSettingsChanged;
         RefreshAll();
         ApplyCinematicVisibility();
     }
 
     private void Start()
     {
+        Unsubscribe();
+        ResolveReferences();
+        Subscribe();
         RefreshAll();
         ApplyCinematicVisibility();
     }
@@ -78,6 +134,8 @@ public class ExpeditionHUD : MonoBehaviour
     private void OnDisable()
     {
         Unsubscribe();
+        InputSystem.onActionChange -= HandleInputActionChange;
+        GameSettingsRuntime.Changed -= HandleGameSettingsChanged;
     }
 
     private void Update()
@@ -87,9 +145,9 @@ public class ExpeditionHUD : MonoBehaviour
             return;
         }
 
-        UpdateDashGauge();
+        UpdateDashDisplay();
         UpdateReinforcementSlot();
-        UpdateCargoGauge();
+        UpdateCargoDisplay();
     }
 
     public void SetCinematicMode(bool enabled)
@@ -98,95 +156,45 @@ public class ExpeditionHUD : MonoBehaviour
         ApplyCinematicVisibility();
     }
 
-    public void SetObjectiveSignalGaugeEnabled(bool enabled)
-    {
-        useObjectiveSignalGauge = enabled;
-        RefreshProgressGauge();
-    }
-
     public void RefreshAll()
     {
         ResolveReferences();
 
-        if (playerHealth != null)
-        {
-            RefreshHealth(playerHealth.CurrentHp, playerHealth.MaxHp);
-        }
+        float hp = playerHealth != null ? playerHealth.CurrentHp : 0f;
+        float maxHp = playerHealth != null ? playerHealth.MaxHp : 1f;
+        float armor = playerArmor != null ? playerArmor.CurrentArmor : 0f;
+        RefreshHealthAndArmor(hp, maxHp, armor);
 
-        if (playerArmor != null)
-        {
-            RefreshArmor(playerArmor.CurrentArmor, playerArmor.MaxArmor);
-        }
-        else if (armorGauge != null)
-        {
-            armorGauge.SetValue(0f, 1f);
-        }
+        RefreshObjectiveProgress();
+        RefreshWallet(RunManager.Instance != null && RunManager.Instance.CurrentRun != null
+            ? RunManager.Instance.CurrentRun.Wallet
+            : null);
 
-        RefreshProgressGauge();
-
-        if (RunManager.Instance != null && RunManager.Instance.CurrentRun != null)
-        {
-            RefreshWallet(RunManager.Instance.CurrentRun.Wallet);
-        }
-        else
-        {
-            RefreshWallet(null);
-        }
-
-        UpdateDashGauge();
+        RefreshBindingHints();
+        UpdateDashDisplay();
         UpdateReinforcementSlot();
-        UpdateCargoGauge();
+        UpdateCargoDisplay();
     }
 
     public void ShowWarning(string message)
     {
-        if (warningMessageUI != null)
+        if (!string.IsNullOrWhiteSpace(message))
         {
-            warningMessageUI.ShowMessage(message);
+            warningMessageUI?.ShowMessage(message);
         }
     }
 
     private void ResolveReferences()
     {
-        if (playerHealth == null)
-        {
-            playerHealth = FindFirstObjectByType<PlayerHealth>();
-        }
-
-        if (playerArmor == null)
-        {
-            playerArmor = FindFirstObjectByType<PlayerArmor>();
-        }
-
-        if (playerDash == null)
-        {
-            playerDash = FindFirstObjectByType<PlayerDash>();
-        }
-
-        if (playerInteractor == null)
-        {
-            playerInteractor = FindFirstObjectByType<PlayerInteractor>();
-        }
-
-        if (reinforcementController == null)
-        {
-            reinforcementController = FindFirstObjectByType<PlayerReinforcementController>();
-        }
-
-        if (reinforcementSlotUI == null)
-        {
-            reinforcementSlotUI = FindFirstObjectByType<ReinforcementSlotUI>();
-        }
-
-        if (cargoController == null)
-        {
-            cargoController = FindFirstObjectByType<PlayerCargoController>();
-        }
-
-        if (runLevelSystem == null)
-        {
-            runLevelSystem = FindFirstObjectByType<RunLevelSystem>();
-        }
+        playerHealth ??= FindFirstObjectByType<PlayerHealth>();
+        playerArmor ??= FindFirstObjectByType<PlayerArmor>();
+        playerDash ??= FindFirstObjectByType<PlayerDash>();
+        reinforcementController ??= FindFirstObjectByType<PlayerReinforcementController>();
+        reinforcementSlotUI ??= FindFirstObjectByType<ReinforcementSlotUI>();
+        cargoController ??= FindFirstObjectByType<PlayerCargoController>();
+        weaponHeatUI ??= FindFirstObjectByType<WeaponHeatUI>(FindObjectsInactive.Include);
+        warningMessageUI ??= FindFirstObjectByType<WarningMessageUI>(FindObjectsInactive.Include);
+        ResolveInputActions();
 
         if (objectiveDirector == null && Application.isPlaying)
         {
@@ -196,6 +204,11 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void Subscribe()
     {
+        if (subscribed)
+        {
+            return;
+        }
+
         if (playerHealth != null)
         {
             playerHealth.Damaged += HandleHealthChanged;
@@ -225,11 +238,6 @@ public class ExpeditionHUD : MonoBehaviour
             cargoController.CargoChanged += HandleCargoChanged;
         }
 
-        if (!useObjectiveSignalGauge && runLevelSystem != null)
-        {
-            runLevelSystem.LevelStateChanged += HandleLevelStateChanged;
-        }
-
         if (objectiveDirector != null)
         {
             objectiveDirector.ProgressChanged += HandleObjectiveProgressChanged;
@@ -241,10 +249,17 @@ public class ExpeditionHUD : MonoBehaviour
             RunManager.Instance.WalletChanged += HandleWalletChanged;
             RunManager.Instance.RunStarted += HandleRunStarted;
         }
+
+        subscribed = true;
     }
 
     private void Unsubscribe()
     {
+        if (!subscribed)
+        {
+            return;
+        }
+
         if (playerHealth != null)
         {
             playerHealth.Damaged -= HandleHealthChanged;
@@ -274,11 +289,6 @@ public class ExpeditionHUD : MonoBehaviour
             cargoController.CargoChanged -= HandleCargoChanged;
         }
 
-        if (runLevelSystem != null)
-        {
-            runLevelSystem.LevelStateChanged -= HandleLevelStateChanged;
-        }
-
         if (objectiveDirector != null)
         {
             objectiveDirector.ProgressChanged -= HandleObjectiveProgressChanged;
@@ -290,36 +300,35 @@ public class ExpeditionHUD : MonoBehaviour
             RunManager.Instance.WalletChanged -= HandleWalletChanged;
             RunManager.Instance.RunStarted -= HandleRunStarted;
         }
+
+        subscribed = false;
     }
 
     private void ApplyCinematicVisibility()
     {
         bool visible = !cinematicMode;
-
         SetGameObjectVisible(statusRoot, visible);
         SetGameObjectVisible(resourceRoot, visible);
-
-        if (reinforcementSlotUI != null)
-        {
-            reinforcementSlotUI.SetVisible(visible);
-        }
+        SetGameObjectVisible(cargoRoot, visible);
+        SetGameObjectVisible(objectiveRoot, visible);
+        reinforcementSlotUI?.SetVisible(visible);
+        weaponHeatUI?.SetExternalVisible(visible);
 
         if (statusRoot == null)
         {
-            SetGaugeVisible(hpGauge, visible);
-            SetGaugeVisible(armorGauge, visible);
-            SetGaugeVisible(expGauge, visible);
-            SetGaugeVisible(dashGauge, visible);
-            SetGaugeVisible(cargoGauge, visible);
+            hpGauge?.SetVisible(visible);
+            dashGauge?.SetVisible(visible);
         }
 
-        if (resourceRoot == null)
+        if (cargoRoot == null)
         {
-            SetCounterVisible(creditsCounter, visible);
-            SetCounterVisible(scrapCounter, visible);
-            SetCounterVisible(coreShardCounter, visible);
-            SetCounterVisible(tuningChipCounter, visible);
+            cargoGauge?.SetVisible(visible);
         }
+
+        creditsCounter?.SetExternalVisible(visible);
+        scrapCounter?.SetExternalVisible(visible);
+        coreShardCounter?.SetExternalVisible(visible);
+        tuningChipCounter?.SetExternalVisible(visible);
 
         if (additionalObjectsToHideDuringCinematic != null)
         {
@@ -328,6 +337,8 @@ public class ExpeditionHUD : MonoBehaviour
                 SetGameObjectVisible(additionalObjectsToHideDuringCinematic[i], visible);
             }
         }
+
+        RefreshBindingHints();
     }
 
     private static void SetGameObjectVisible(GameObject target, bool visible)
@@ -338,254 +349,289 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
-    private static void SetGaugeVisible(GaugeBarUI gauge, bool visible)
+    private void HandleRunStarted(RunContext _) => RefreshAll();
+    private void HandleWalletChanged(RunWallet wallet) => RefreshWallet(wallet);
+    private void HandleHealthChanged(float current, float max) => RefreshHealthAndArmor(current, max, playerArmor != null ? playerArmor.CurrentArmor : 0f);
+    private void HandleArmorChanged(float current, float max) => RefreshHealthAndArmor(playerHealth != null ? playerHealth.CurrentHp : 0f, playerHealth != null ? playerHealth.MaxHp : 1f, current);
+    private void HandleObjectiveProgressChanged(int current, int required) => RefreshObjectiveProgress(current, required);
+    private void HandleCoreRevealed() => RefreshObjectiveProgress();
+    private void HandleDashStarted(Vector2 _) => UpdateDashDisplay();
+    private void HandleDashEnded() => UpdateDashDisplay();
+    private void HandleReinforcementEquipmentChanged(ReinforcementDefinition _, int __, int ___) => UpdateReinforcementSlot();
+    private void HandleReinforcementChargesChanged(int _, int __, float ___) => UpdateReinforcementSlot();
+    private void HandleReinforcementUsed(ReinforcementDefinition _) => UpdateReinforcementSlot();
+    private void HandleCargoChanged(int _, int __) => UpdateCargoDisplay();
+    private void HandleGameSettingsChanged() => RefreshBindingHints();
+
+    private void HandleInputActionChange(object changedObject, InputActionChange change)
     {
-        if (gauge != null)
+        if (change == InputActionChange.BoundControlsChanged)
         {
-            gauge.SetVisible(visible);
+            RefreshBindingHints();
         }
     }
 
-    private static void SetCounterVisible(ResourceCounterUI counter, bool visible)
+    private void RefreshHealthAndArmor(float currentHp, float maxHp, float armor)
     {
-        if (counter != null)
+        maxHp = Mathf.Max(1f, maxHp);
+        hpGauge?.SetValue(currentHp, maxHp);
+
+        if (hpValueText != null)
         {
-            counter.gameObject.SetActive(visible);
+            hpValueText.text = string.Format(hpValueFormat, currentHp, maxHp);
+        }
+
+        bool hasArmor = armor > 0.001f;
+        GameObject resolvedArmorRoot = armorBonusRoot != null
+            ? armorBonusRoot
+            : armorBonusText != null ? armorBonusText.gameObject : null;
+
+        SetGameObjectVisible(resolvedArmorRoot, hasArmor);
+
+        if (hasArmor && armorBonusText != null)
+        {
+            armorBonusText.text = string.Format(armorBonusFormat, armor);
+            armorBonusText.color = armorBonusColor;
+            RefreshArmorBonusPosition();
+        }
+
+        RefreshArmorFill(currentHp, maxHp, armor);
+
+        if (legacyArmorGauge != null)
+        {
+            legacyArmorGauge.SetVisible(false);
         }
     }
 
-    private void HandleRunStarted(RunContext runContext)
-    {
-        RefreshAll();
-    }
 
-    private void HandleWalletChanged(RunWallet wallet)
+    private void ResolveInputActions()
     {
-        RefreshWallet(wallet);
-
-        if (!useObjectiveSignalGauge && runLevelSystem == null)
+        if (inputActions != null)
         {
-            RefreshExpFallback();
-        }
-    }
-
-    private void HandleHealthChanged(float current, float max)
-    {
-        RefreshHealth(current, max);
-    }
-
-    private void HandleArmorChanged(float current, float max)
-    {
-        RefreshArmor(current, max);
-    }
-
-    private void HandleLevelStateChanged(int level, int expInLevel, int requiredExp)
-    {
-        if (!useObjectiveSignalGauge)
-        {
-            RefreshExp(level, expInLevel, requiredExp);
-        }
-    }
-
-    private void HandleObjectiveProgressChanged(int current, int required)
-    {
-        RefreshObjectiveProgress(current, required);
-    }
-
-    private void HandleCoreRevealed()
-    {
-        RefreshProgressGauge();
-    }
-
-    private void HandleDashStarted(Vector2 direction)
-    {
-        UpdateDashGauge();
-    }
-
-    private void HandleDashEnded()
-    {
-        UpdateDashGauge();
-    }
-
-    private void HandleReinforcementEquipmentChanged(ReinforcementDefinition definition, int charges, int maxCharges)
-    {
-        UpdateReinforcementSlot();
-    }
-
-    private void HandleReinforcementChargesChanged(int charges, int maxCharges, float rechargeRatio)
-    {
-        UpdateReinforcementSlot();
-    }
-
-    private void HandleReinforcementUsed(ReinforcementDefinition definition)
-    {
-        UpdateReinforcementSlot();
-    }
-
-    private void HandleCargoChanged(int currentLoad, int maxCapacity)
-    {
-        UpdateCargoGauge();
-    }
-
-    private void RefreshHealth(float current, float max)
-    {
-        if (hpGauge != null)
-        {
-            hpGauge.SetValue(current, max);
-        }
-    }
-
-    private void RefreshArmor(float current, float max)
-    {
-        if (armorGauge != null)
-        {
-            armorGauge.SetValue(current, Mathf.Max(1f, max));
-        }
-    }
-
-    private void RefreshProgressGauge()
-    {
-        if (useObjectiveSignalGauge)
-        {
-            if (objectiveDirector == null && Application.isPlaying)
-            {
-                objectiveDirector = ExpeditionObjectiveDirector.Instance;
-            }
-
-            int current = objectiveDirector != null ? objectiveDirector.SignalCount : 0;
-            int required = objectiveDirector != null ? objectiveDirector.SignalsRequiredToRevealCore : 2;
-            RefreshObjectiveProgress(current, required);
             return;
         }
 
-        if (runLevelSystem != null && runLevelSystem.LegacyExperienceLevelingEnabled)
+        PlayerInteractor interactor = FindFirstObjectByType<PlayerInteractor>(FindObjectsInactive.Include);
+
+        if (interactor != null && interactor.InputActions != null)
         {
-            RefreshExp(
-                runLevelSystem.CurrentLevel,
-                runLevelSystem.CurrentExpInLevel,
-                runLevelSystem.CurrentRequiredExp
-            );
+            inputActions = interactor.InputActions;
+            playerActionMapName = interactor.ActionMapName;
+            InputBindingPersistence.LoadOnce(inputActions);
+            return;
         }
-        else
+
+        PlayerController2D controller = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
+
+        if (controller != null && controller.InputActions != null)
         {
-            RefreshExpFallback();
+            inputActions = controller.InputActions;
+            playerActionMapName = controller.ActionMapName;
+            InputBindingPersistence.LoadOnce(inputActions);
         }
+    }
+
+    private void RefreshArmorBonusPosition()
+    {
+        if (!autoPositionArmorBonusBesideHpText || hpValueText == null || armorBonusText == null)
+        {
+            return;
+        }
+
+        RectTransform hpRect = hpValueText.rectTransform;
+        RectTransform armorRect = armorBonusRoot != null
+            ? armorBonusRoot.transform as RectTransform
+            : armorBonusText.rectTransform;
+
+        if (armorRect == null || armorRect.parent == null)
+        {
+            return;
+        }
+
+        if (armorRect.parent.GetComponent<LayoutGroup>() != null)
+        {
+            return;
+        }
+
+        Canvas.ForceUpdateCanvases();
+
+        Vector3[] worldCorners = new Vector3[4];
+        hpRect.GetWorldCorners(worldCorners);
+        Vector3 rightCenter = (worldCorners[2] + worldCorners[3]) * 0.5f;
+
+        armorRect.pivot = new Vector2(0f, 0.5f);
+        armorRect.position = rightCenter;
+        armorRect.anchoredPosition += Vector2.right * armorBonusTextSpacing;
+    }
+
+    private void RefreshArmorFill(float currentHp, float maxHp, float armor)
+    {
+        if (armorFillRect == null)
+        {
+            return;
+        }
+
+        bool hasArmor = armor > 0.001f;
+        SetGameObjectVisible(armorFillRect.gameObject, hasArmor);
+
+        if (!hasArmor)
+        {
+            return;
+        }
+
+        maxHp = Mathf.Max(1f, maxHp);
+        float hpRatio = Mathf.Clamp01(currentHp / maxHp);
+        float armorEndRatio = Mathf.Max(hpRatio, (currentHp + armor) / maxHp);
+
+        Vector2 anchorMin = armorFillRect.anchorMin;
+        Vector2 anchorMax = armorFillRect.anchorMax;
+        anchorMin.x = hpRatio;
+        anchorMin.y = 0f;
+        anchorMax.x = armorEndRatio;
+        anchorMax.y = 1f;
+
+        armorFillRect.anchorMin = anchorMin;
+        armorFillRect.anchorMax = anchorMax;
+        armorFillRect.offsetMin = Vector2.zero;
+        armorFillRect.offsetMax = Vector2.zero;
+
+        if (armorFillImage != null)
+        {
+            armorFillImage.color = armorFillColor;
+        }
+    }
+
+    private void RefreshObjectiveProgress()
+    {
+        if (objectiveDirector == null && Application.isPlaying)
+        {
+            objectiveDirector = ExpeditionObjectiveDirector.Instance;
+        }
+
+        int current = objectiveDirector != null ? objectiveDirector.SignalCount : 0;
+        int required = objectiveDirector != null ? objectiveDirector.SignalsRequiredToRevealCore : 2;
+        RefreshObjectiveProgress(current, required);
     }
 
     private void RefreshObjectiveProgress(int current, int required)
     {
-        if (expGauge == null)
-        {
-            return;
-        }
-
         required = Mathf.Max(1, required);
         int clamped = Mathf.Clamp(current, 0, required);
         bool ready = current >= required;
 
-        expGauge.SetValue(clamped, required);
-        expGauge.SetText(string.Format(
-            ready ? objectiveReadyText : objectiveLockedText,
-            current,
-            required
-        ));
-    }
-
-    private void RefreshExp(int level, int expInLevel, int requiredExp)
-    {
-        if (expGauge == null)
+        if (coreSignalPips != null && coreSignalPips.Length > 0)
         {
-            return;
+            for (int i = 0; i < coreSignalPips.Length; i++)
+            {
+                if (coreSignalPips[i] != null)
+                {
+                    coreSignalPips[i].color = i < clamped
+                        ? ready ? coreSignalReadyColor : coreSignalActiveColor
+                        : coreSignalInactiveColor;
+                }
+            }
+        }
+        else if (legacyObjectiveSignalGauge != null)
+        {
+            legacyObjectiveSignalGauge.SetValue(clamped, required);
         }
 
-        expGauge.SetValue(expInLevel, Mathf.Max(1, requiredExp));
-        expGauge.SetText($"LV {level}  {expInLevel}/{requiredExp}");
-    }
-
-    private void RefreshExpFallback()
-    {
-        RunWallet wallet = RunManager.Instance != null && RunManager.Instance.CurrentRun != null
-            ? RunManager.Instance.CurrentRun.Wallet
-            : null;
-
-        int exp = wallet != null ? wallet.Experience : 0;
-        int required = Mathf.Max(1, fallbackExpToNextLevel);
-
-        if (expGauge != null)
+        if (coreSignalIcon != null)
         {
-            expGauge.SetValue(exp % required, required);
-            expGauge.SetText($"EXP {exp % required}/{required}");
+            coreSignalIcon.color = ready ? coreSignalReadyColor : coreSignalActiveColor;
         }
+
+        if (coreSignalCountText != null)
+        {
+            coreSignalCountText.text = ready
+                ? coreSignalReadyText
+                : string.Format(coreSignalCountFormat, current, required);
+        }
+
+        SetGameObjectVisible(coreSignalReadyPulseRoot, ready);
     }
 
     private void RefreshWallet(RunWallet wallet)
     {
-        int credits = wallet != null ? wallet.Credits : 0;
-        int scrap = wallet != null ? wallet.PendingScrapParts : 0;
-        int core = wallet != null ? wallet.PendingCoreShards : 0;
-        int tuningChips = wallet != null ? wallet.TuningChips : 0;
+        ResourceCounterUI[] counters = { creditsCounter, scrapCounter, coreShardCounter, tuningChipCounter };
+        for (int i = 0; i < counters.Length; i++)
+        {
+            counters[i]?.SetHideWhenZero(hideZeroResources);
+        }
 
-        creditsCounter?.SetAmount(credits);
-        scrapCounter?.SetAmount(scrap);
-        coreShardCounter?.SetAmount(core);
-        tuningChipCounter?.SetAmount(tuningChips);
-
-        UpdateCargoGauge();
+        creditsCounter?.SetAmount(wallet != null ? wallet.Credits : 0);
+        scrapCounter?.SetAmount(wallet != null ? wallet.PendingScrapParts : 0);
+        coreShardCounter?.SetAmount(wallet != null ? wallet.PendingCoreShards : 0);
+        tuningChipCounter?.SetAmount(wallet != null ? wallet.TuningChips : 0);
+        UpdateCargoDisplay();
     }
 
-    private void UpdateDashGauge()
+    private void UpdateDashDisplay()
     {
-        if (dashGauge == null)
+        bool ready = playerDash == null || playerDash.CanDash;
+        float ratio = 1f;
+        float remaining = 0f;
+
+        if (!ready && playerDash != null)
         {
-            return;
+            float cooldown = Mathf.Max(0.05f, playerDash.DashCooldown);
+            remaining = Mathf.Clamp(playerDash.RemainingCooldown, 0f, cooldown);
+            ratio = 1f - Mathf.Clamp01(remaining / cooldown);
         }
 
-        if (playerDash == null)
+        dashGauge?.SetRatio(ratio);
+        dashGauge?.SetText(ready ? string.Empty : $"{remaining:0.0}");
+
+        if (dashCooldownFill != null)
         {
-            dashGauge.SetRatio(1f);
-            dashGauge.SetText(dashReadyText);
-            return;
+            dashCooldownFill.fillAmount = ready ? 0f : 1f - ratio;
         }
 
-        if (playerDash.CanDash)
+        if (dashIcon != null)
         {
-            dashGauge.SetRatio(1f);
-            dashGauge.SetText(dashReadyText);
-            return;
+            dashIcon.color = ready ? dashReadyColor : dashCooldownColor;
         }
 
-        float cooldown = Mathf.Max(0.05f, playerDash.DashCooldown);
-        float remaining = Mathf.Clamp(playerDash.RemainingCooldown, 0f, cooldown);
-        float ratio = 1f - Mathf.Clamp01(remaining / cooldown);
+        if (dashCooldownText != null)
+        {
+            dashCooldownText.text = ready ? string.Empty : $"{remaining:0.0}";
+        }
 
-        dashGauge.SetRatio(ratio);
-        dashGauge.SetText(string.Format(dashCooldownText, remaining));
+        SetGameObjectVisible(dashReadyGlowRoot, ready);
     }
 
-    private void UpdateCargoGauge()
+    private void UpdateCargoDisplay()
     {
-        if (cargoGauge == null)
-        {
-            return;
-        }
+        int current = 0;
+        int capacity = 0;
 
         if (cargoController != null)
         {
-            cargoGauge.SetValue(cargoController.CurrentLoad, Mathf.Max(1, cargoController.MaxCapacity));
-            cargoGauge.SetText($"Cargo {cargoController.CurrentLoad}/{cargoController.MaxCapacity}");
-            return;
+            current = cargoController.CurrentLoad;
+            capacity = cargoController.MaxCapacity;
         }
-
-        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        else if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
         {
             RunContext runContext = RunManager.Instance.CurrentRun;
-            cargoGauge.SetValue(runContext.CurrentCargoLoad, Mathf.Max(1, runContext.MaxCargoCapacity));
-            cargoGauge.SetText($"Cargo {runContext.CurrentCargoLoad}/{runContext.MaxCargoCapacity}");
-            return;
+            current = runContext.CurrentCargoLoad;
+            capacity = runContext.MaxCargoCapacity;
         }
 
-        cargoGauge.SetValue(0f, 1f);
-        cargoGauge.SetText("Cargo 0/0");
+        int safeCapacity = Mathf.Max(1, capacity);
+        float ratio = Mathf.Clamp01(current / (float)safeCapacity);
+        Color color = ratio >= 0.999f
+            ? cargoFullColor
+            : ratio >= cargoWarningRatio ? cargoWarningColor : cargoNormalColor;
+
+        cargoGauge?.SetValue(current, safeCapacity);
+        cargoGauge?.SetText(string.Format(cargoValueFormat, current, capacity));
+        cargoGauge?.SetFillColor(color);
+
+        if (cargoValueText != null)
+        {
+            cargoValueText.text = string.Format(cargoValueFormat, current, capacity);
+            cargoValueText.color = color;
+        }
     }
 
     private void UpdateReinforcementSlot()
@@ -602,5 +648,39 @@ public class ExpeditionHUD : MonoBehaviour
         }
 
         reinforcementSlotUI.RefreshFrom(reinforcementController);
+    }
+
+    private void RefreshBindingHints()
+    {
+        ResolveInputActions();
+
+        string mapKey = InputBindingUtility.GetDisplayString(inputActions, playerActionMapName, mapActionName, "Tab");
+        string inventoryKey = InputBindingUtility.GetDisplayString(inputActions, playerActionMapName, inventoryActionName, "E");
+        string reinforcementKey = InputBindingUtility.GetDisplayString(inputActions, playerActionMapName, reinforcementActionName, "R");
+
+        reinforcementSlotUI?.SetKeyLabel(reinforcementKey);
+
+        bool visible = !cinematicMode && GameSettingsRuntime.ShowHudKeyHints;
+        SetGameObjectVisible(menuHintRoot, visible);
+
+        if (!visible)
+        {
+            return;
+        }
+
+        if (mapHintText != null)
+        {
+            mapHintText.text = string.Format(mapHintFormat, mapKey);
+        }
+
+        if (inventoryHintText != null)
+        {
+            inventoryHintText.text = string.Format(inventoryHintFormat, inventoryKey);
+        }
+
+        if (reinforcementKeyText != null)
+        {
+            reinforcementKeyText.text = string.Format(reinforcementKeyFormat, reinforcementKey);
+        }
     }
 }

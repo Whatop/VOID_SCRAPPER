@@ -22,11 +22,17 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
 
     [SerializeField] private Sprite fallbackSprite;
 
+    [Header("Input Actions")]
+    [SerializeField] private InputActionAsset inputActions;
+    [SerializeField] private string playerActionMapName = "Player";
+    [SerializeField] private string interactActionName = "Interact";
+    [SerializeField] private string dismantleActionName = "Dismantle";
+
     [Header("Interaction Text")]
     [SerializeField] private string acquireText = "획득";
     [SerializeField] private string exchangeText = "교체";
     [SerializeField] private string dismantleText = "분해";
-    [SerializeField] private string acquireKeyText = "E";
+    [SerializeField] private string acquireKeyText = "F";
     [SerializeField] private string dismantleKeyText = "G";
     [SerializeField] private bool useTwoLinePrompt = true;
     [SerializeField] private float pickupBlockSeconds = 0.5f;
@@ -42,6 +48,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
     [Header("Lifetime")]
     [SerializeField] private bool releaseWhenNoItem = true;
 
+    private InputAction dismantleAction;
     private float blockTimer;
     private float dismantleTimer;
     private Collider2D pickupCollider;
@@ -65,7 +72,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
                 : acquireText;
 
             string title = $"[{reinforcementDefinition.GetRarityText()}] {reinforcementDefinition.DisplayName}";
-            string actions = $"[{acquireKeyText}] {primaryAction}    {BuildDismantleActionText()}";
+            string actions = $"[{ResolveAcquireKeyText()}] {primaryAction}    {BuildDismantleActionText()}";
 
             return useTwoLinePrompt ? $"{title}\n{actions}" : $"{actions}  {title}";
         }
@@ -73,7 +80,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
 
     private string BuildDismantleActionText()
     {
-        string keyText = string.IsNullOrWhiteSpace(dismantleKeyText) ? "G" : dismantleKeyText.Trim();
+        string keyText = ResolveDismantleKeyText();
         string label = string.IsNullOrWhiteSpace(dismantleText) ? "분해" : dismantleText.Trim();
 
         label = label.Replace($"[{keyText}]", string.Empty).Replace(keyText, string.Empty).Trim();
@@ -89,6 +96,69 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
         }
 
         return $"[{keyText}] {label}";
+    }
+
+    private void ResolveInputActions()
+    {
+        if (inputActions != null)
+        {
+            return;
+        }
+
+        PlayerInteractor interactor = FindFirstObjectByType<PlayerInteractor>(FindObjectsInactive.Include);
+
+        if (interactor != null && interactor.InputActions != null)
+        {
+            inputActions = interactor.InputActions;
+            playerActionMapName = interactor.ActionMapName;
+            interactActionName = interactor.InteractActionName;
+            InputBindingPersistence.LoadOnce(inputActions);
+            return;
+        }
+
+        PlayerController2D controller = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
+
+        if (controller != null && controller.InputActions != null)
+        {
+            inputActions = controller.InputActions;
+            playerActionMapName = controller.ActionMapName;
+            InputBindingPersistence.LoadOnce(inputActions);
+        }
+    }
+
+    private void BindDismantleInput()
+    {
+        ResolveInputActions();
+        dismantleAction = InputBindingUtility.ResolveAction(
+            inputActions,
+            playerActionMapName,
+            dismantleActionName
+        );
+        dismantleAction?.Enable();
+    }
+
+    private string ResolveAcquireKeyText()
+    {
+        ResolveInputActions();
+        string fallback = string.IsNullOrWhiteSpace(acquireKeyText) ? "F" : acquireKeyText.Trim();
+        return InputBindingUtility.GetDisplayString(
+            inputActions,
+            playerActionMapName,
+            interactActionName,
+            fallback
+        );
+    }
+
+    private string ResolveDismantleKeyText()
+    {
+        ResolveInputActions();
+        string fallback = string.IsNullOrWhiteSpace(dismantleKeyText) ? dismantleKey.ToString() : dismantleKeyText.Trim();
+        return InputBindingUtility.GetDisplayString(
+            inputActions,
+            playerActionMapName,
+            dismantleActionName,
+            fallback
+        );
     }
 
     private void ForceHoldDismantleSetting()
@@ -115,6 +185,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
 
     private void Awake()
     {
+        ResolveInputActions();
         ForceHoldDismantleSetting();
         CacheReferences();
         ConfigureCollider();
@@ -123,6 +194,8 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
 
     private void OnEnable()
     {
+        ResolveInputActions();
+        BindDismantleInput();
         ForceHoldDismantleSetting();
         CacheReferences();
         ConfigureCollider();
@@ -134,6 +207,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
 
     private void OnDisable()
     {
+        dismantleAction?.Disable();
         RaiseDismantleProgress(0f, false);
         currentInteractor = null;
         dismantleTimer = 0f;
@@ -256,6 +330,20 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
         }
     }
 
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (other == null)
+        {
+            return;
+        }
+
+        PlayerReinforcementController controller = other.GetComponentInParent<PlayerReinforcementController>();
+        if (controller != null)
+        {
+            currentInteractor = controller.gameObject;
+        }
+    }
+
     private void OnTriggerExit2D(Collider2D other)
     {
         if (other == null || currentInteractor == null)
@@ -291,23 +379,21 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
             return;
         }
 
-        if (Keyboard.current == null)
+        bool held;
+
+        if (dismantleAction != null)
         {
-            CancelDismantleHold();
-            return;
+            held = dismantleAction.IsPressed();
         }
-
-        KeyControl key = Keyboard.current[dismantleKey];
-
-        if (key == null)
+        else
         {
-            CancelDismantleHold();
-            return;
+            KeyControl key = Keyboard.current != null ? Keyboard.current[dismantleKey] : null;
+            held = key != null && key.isPressed;
         }
 
         // 분해는 항상 홀드 입력만 허용한다.
-        // G 즉시 입력은 Tab 상태창의 필드드랍 전용으로만 사용한다.
-        if (!key.isPressed)
+        // 즉시 입력은 상태창의 필드드랍 전용으로만 사용한다.
+        if (!held)
         {
             CancelDismantleHold();
             return;

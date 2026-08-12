@@ -433,9 +433,12 @@ MonoBehaviour:
   markerType: 1
   markerTransform: {fileID: 5398946317520001759}
   visible: 1
-  markerSprite: {fileID: 0}
+  markerSprite: {fileID: 21300000, guid: 49b2bca3a3f8d7a48bbc281b2a42304c, type: 3}
   markerColor: {r: 1, g: 1, b: 1, a: 1}
   markerScale: 1
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 1
   alertOnMachineGunScan: 0

@@ -18,6 +18,8 @@ public class GaugeBarUI : MonoBehaviour
     [SerializeField] private string ratioFormat = "{0:0}%";
 
     public float Ratio { get; private set; }
+    public Image FillImage => fillImage;
+    public TextMeshProUGUI ValueText => valueText;
 
     private void Reset()
     {
@@ -56,7 +58,7 @@ public class GaugeBarUI : MonoBehaviour
 
         if (slider != null)
         {
-            slider.value = Ratio;
+            slider.SetValueWithoutNotify(Ratio);
         }
 
         if (valueText != null && showValueText)
@@ -73,6 +75,14 @@ public class GaugeBarUI : MonoBehaviour
         }
     }
 
+    public void SetFillColor(Color color)
+    {
+        if (fillImage != null)
+        {
+            fillImage.color = color;
+        }
+    }
+
     public void SetVisible(bool visible)
     {
         if (canvasGroup != null)
@@ -80,6 +90,12 @@ public class GaugeBarUI : MonoBehaviour
             canvasGroup.alpha = visible ? 1f : 0f;
             canvasGroup.interactable = false;
             canvasGroup.blocksRaycasts = false;
+            return;
+        }
+
+        if (rootObject != null && rootObject != gameObject)
+        {
+            rootObject.SetActive(visible);
         }
     }
 
@@ -135,7 +151,7 @@ public class GaugeBarUI : MonoBehaviour
                 continue;
             }
 
-            if (image.name.ToLower().Contains("fill"))
+            if (image.name.ToLowerInvariant().Contains("fill"))
             {
                 return image;
             }

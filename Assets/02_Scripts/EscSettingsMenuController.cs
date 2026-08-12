@@ -196,29 +196,19 @@ public class EscSettingsMenuController : MonoBehaviour
 
     private void BindInput()
     {
-        if (inputActions == null)
-        {
-            return;
-        }
-
-        InputActionMap actionMap = inputActions.FindActionMap(actionMapName, false);
-        if (actionMap == null)
-        {
-            return;
-        }
-
-        cancelAction = actionMap.FindAction(cancelActionName, false);
-        if (cancelAction != null)
-        {
-            cancelAction.Enable();
-        }
+        cancelAction = InputBindingUtility.ResolveAction(
+            inputActions,
+            actionMapName,
+            cancelActionName
+        );
+        cancelAction?.Enable();
     }
 
     private bool WasCancelPressedThisFrame()
     {
-        if (cancelAction != null && cancelAction.WasPressedThisFrame())
+        if (cancelAction != null)
         {
-            return true;
+            return cancelAction.WasPressedThisFrame();
         }
 
         return Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;

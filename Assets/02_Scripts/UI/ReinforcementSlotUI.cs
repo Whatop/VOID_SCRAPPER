@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -36,6 +37,18 @@ public class ReinforcementSlotUI : MonoBehaviour
 
     [Tooltip("장비가 없을 때 아이콘 색. 기본 아이콘을 비워두면 아이콘 자체가 꺼집니다.")]
     [SerializeField] private Color emptyIconColor = new Color(0.35f, 0.35f, 0.35f, 0.45f);
+
+    [Header("Icon Recharge Fill")]
+    [Tooltip("아이콘과 같은 Sprite를 사용하는 Filled Image입니다. Fill Method는 Inspector에서 Radial 360 또는 Vertical로 설정합니다.")]
+    [SerializeField] private Image iconRechargeFillImage;
+    [SerializeField] private bool useIconFillAsPrimaryCooldownVisual = true;
+    [SerializeField] private bool syncRechargeFillSpriteToIcon = true;
+
+    [Header("Icon Text")]
+    [SerializeField] private TextMeshProUGUI chargeText;
+    [SerializeField] private TextMeshProUGUI keyText;
+    [SerializeField] private string chargeTextFormat = "{0}/{1}";
+    [SerializeField] private bool hideChargeTextWhenSingleCharge = true;
 
     [Header("Disabled Overlay")]
     [Tooltip("아이콘 위에 덮는 회색/검정 반투명 오버레이. 없으면 아이콘 tint만 사용합니다.")]
@@ -126,6 +139,7 @@ public class ReinforcementSlotUI : MonoBehaviour
         SetDisabledOverlay(false);
         SetGaugeVisible(false);
         SetGaugeRatio(0f, false, false);
+        SetChargeText(0, 0);
     }
 
     public void SetState(
@@ -187,6 +201,8 @@ public class ReinforcementSlotUI : MonoBehaviour
                 isRecharging || (!hasAnyCharge && definition.UsesRecharge)
             );
         }
+
+        SetChargeText(currentCharges, maxCharges);
     }
 
     public void RefreshFrom(PlayerReinforcementController controller)
@@ -299,6 +315,12 @@ public class ReinforcementSlotUI : MonoBehaviour
         {
             rechargeFillImage = rechargeSlider.fillRect.GetComponent<Image>();
         }
+
+        if (iconRechargeFillImage != null)
+        {
+            iconRechargeFillImage.raycastTarget = false;
+            iconRechargeFillImage.preserveAspect = true;
+        }
     }
 
     private void SetIcon(Sprite icon, Color color)
@@ -312,6 +334,11 @@ public class ReinforcementSlotUI : MonoBehaviour
         iconImage.enabled = icon != null;
         iconImage.color = color;
         iconImage.preserveAspect = true;
+
+        if (iconRechargeFillImage != null && syncRechargeFillSpriteToIcon)
+        {
+            iconRechargeFillImage.sprite = icon;
+        }
     }
 
     private void SetDisabledOverlay(bool visible)
@@ -327,24 +354,31 @@ public class ReinforcementSlotUI : MonoBehaviour
 
     private void SetGaugeVisible(bool visible)
     {
-        if (rechargeGaugeRoot != null && rechargeGaugeRoot.activeSelf != visible)
+        bool showLegacyGauge = visible && !useIconFillAsPrimaryCooldownVisual;
+
+        if (rechargeGaugeRoot != null && rechargeGaugeRoot.activeSelf != showLegacyGauge)
         {
-            rechargeGaugeRoot.SetActive(visible);
+            rechargeGaugeRoot.SetActive(showLegacyGauge);
         }
 
         if (rechargeSlider != null && rechargeSlider.gameObject != rechargeGaugeRoot)
         {
-            rechargeSlider.gameObject.SetActive(visible);
+            rechargeSlider.gameObject.SetActive(showLegacyGauge);
         }
 
         if (rechargeGauge != null)
         {
-            rechargeGauge.SetVisible(visible);
+            rechargeGauge.SetVisible(showLegacyGauge);
         }
 
         if (rechargeFillImage != null)
         {
-            rechargeFillImage.enabled = visible;
+            rechargeFillImage.enabled = showLegacyGauge;
+        }
+
+        if (iconRechargeFillImage != null)
+        {
+            iconRechargeFillImage.enabled = visible;
         }
     }
 
@@ -360,18 +394,59 @@ public class ReinforcementSlotUI : MonoBehaviour
             rechargeSlider.interactable = false;
         }
 
+        Color gaugeColor = canUse
+            ? gaugeReadyColor
+            : (isCharging ? gaugeChargingColor : gaugeDisabledColor);
+
         if (rechargeFillImage != null)
         {
             rechargeFillImage.fillAmount = ratio;
-            rechargeFillImage.color = canUse
-                ? gaugeReadyColor
-                : (isCharging ? gaugeChargingColor : gaugeDisabledColor);
+            rechargeFillImage.color = gaugeColor;
+        }
+
+        if (iconRechargeFillImage != null)
+        {
+            iconRechargeFillImage.fillAmount = ratio;
+            iconRechargeFillImage.color = gaugeColor;
+
+            if (syncRechargeFillSpriteToIcon && iconImage != null)
+            {
+                iconRechargeFillImage.sprite = iconImage.sprite;
+            }
         }
 
         if (rechargeGauge != null)
         {
             rechargeGauge.SetRatio(ratio);
             rechargeGauge.SetText(string.Empty);
+        }
+    }
+
+    public void SetKeyLabel(string label)
+    {
+        if (keyText != null)
+        {
+            keyText.text = string.IsNullOrWhiteSpace(label) ? string.Empty : label;
+        }
+    }
+
+    private void SetChargeText(int currentCharges, int maxCharges)
+    {
+        if (chargeText == null)
+        {
+            return;
+        }
+
+        bool visible = maxCharges > 0 && (!hideChargeTextWhenSingleCharge || maxCharges > 1);
+        chargeText.gameObject.SetActive(visible);
+
+        if (visible)
+        {
+            chargeText.text = string.Format(
+                chargeTextFormat,
+                Mathf.Max(0, currentCharges),
+                Mathf.Max(1, maxCharges)
+            );
         }
     }
 

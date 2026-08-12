@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 public class PlayerInteractor : MonoBehaviour
 {
@@ -8,6 +9,7 @@ public class PlayerInteractor : MonoBehaviour
     [SerializeField] private InputActionAsset inputActions;
     [SerializeField] private string actionMapName = "Player";
     [SerializeField] private string interactActionName = "Interact";
+    [SerializeField] private Key interactFallbackKey = Key.F;
 
     [Header("Interaction")]
     [SerializeField] private float interactRadius = 1.5f;
@@ -22,6 +24,9 @@ public class PlayerInteractor : MonoBehaviour
     private float activeHoldTimer;
     private bool activeHoldInterruptedByDamage;
 
+    public InputActionAsset InputActions => inputActions;
+    public string ActionMapName => actionMapName;
+    public string InteractActionName => interactActionName;
     public IInteractable CurrentTarget { get; private set; }
     public bool IsHoldingInteraction => activeHoldTarget != null;
     public float HoldRatio => activeHoldTarget == null || activeHoldTarget.HoldDuration <= 0f
@@ -89,36 +94,34 @@ public class PlayerInteractor : MonoBehaviour
 
     private void BindInput()
     {
-        if (inputActions == null)
-        {
-            return;
-        }
-
-        InputActionMap actionMap = inputActions.FindActionMap(actionMapName, false);
-        if (actionMap == null)
-        {
-            return;
-        }
-
-        interactAction = actionMap.FindAction(interactActionName, false);
-        if (interactAction != null)
-        {
-            interactAction.Enable();
-        }
+        interactAction = InputBindingUtility.ResolveAction(
+            inputActions,
+            actionMapName,
+            interactActionName
+        );
+        interactAction?.Enable();
     }
 
     private bool WasInteractPressed()
     {
-        bool inputActionPressed = interactAction != null && interactAction.WasPressedThisFrame();
-        bool keyboardPressed = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
-        return inputActionPressed || keyboardPressed;
+        if (interactAction != null)
+        {
+            return interactAction.WasPressedThisFrame();
+        }
+
+        KeyControl key = Keyboard.current != null ? Keyboard.current[interactFallbackKey] : null;
+        return key != null && key.wasPressedThisFrame;
     }
 
     private bool IsInteractHeld()
     {
-        bool inputActionHeld = interactAction != null && interactAction.IsPressed();
-        bool keyboardHeld = Keyboard.current != null && Keyboard.current.eKey.isPressed;
-        return inputActionHeld || keyboardHeld;
+        if (interactAction != null)
+        {
+            return interactAction.IsPressed();
+        }
+
+        KeyControl key = Keyboard.current != null ? Keyboard.current[interactFallbackKey] : null;
+        return key != null && key.isPressed;
     }
 
     private void UpdateCurrentTarget()

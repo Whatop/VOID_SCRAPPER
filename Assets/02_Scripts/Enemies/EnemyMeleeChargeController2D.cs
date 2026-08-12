@@ -52,6 +52,11 @@ public class EnemyMeleeChargeController2D : MonoBehaviour
     [Min(0.01f)]
     [SerializeField] private float obstacleProbeRadius = 0.3f;
 
+    [Header("Melee Impact VFX")]
+    [SerializeField] private GameObject meleeHitEffectPrefab;
+    [Min(0.01f)]
+    [SerializeField] private float meleeHitEffectLifeTime = 0.2f;
+
     [Header("Path Warning")]
     [SerializeField] private LineRenderer pathRenderer;
     [SerializeField] private bool autoCreatePathRenderer = true;
@@ -392,7 +397,35 @@ public class EnemyMeleeChargeController2D : MonoBehaviour
         }
 
         damagedTargetThisDash = true;
-        playerHealth.TakeDamage(dashDamage, transform.position);
+
+        Collider2D playerCollider = playerHealth.GetComponent<Collider2D>();
+        Vector2 hitPoint = playerCollider != null
+            ? playerCollider.ClosestPoint(transform.position)
+            : (Vector2)playerHealth.transform.position;
+
+        Vector2 incomingDirection = ((Vector2)playerHealth.transform.position - (Vector2)transform.position).normalized;
+        playerHealth.TakeDamage(dashDamage, hitPoint, incomingDirection);
+        SpawnMeleeHitEffect(hitPoint);
+    }
+
+    private void SpawnMeleeHitEffect(Vector2 position)
+    {
+        if (meleeHitEffectPrefab == null)
+        {
+            return;
+        }
+
+        float lifeTime = Mathf.Max(0.01f, meleeHitEffectLifeTime);
+
+        if (PoolManager.Instance != null)
+        {
+            PoolManager.Instance.SpawnAutoRelease(meleeHitEffectPrefab, position, lifeTime);
+        }
+        else
+        {
+            GameObject effect = Instantiate(meleeHitEffectPrefab, position, Quaternion.identity);
+            Destroy(effect, lifeTime);
+        }
     }
 
     private void EnsurePathRenderer()

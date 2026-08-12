@@ -2204,19 +2204,6 @@ MonoBehaviour:
   repairAmount: 8
   hostileDetectRange: 18
   playerTag: Player
-  shopProjectilePrefab: {fileID: 4939712952834317954, guid: cdbe042ab84857740b982d9e7107abab, type: 3}
-  firePoint: {fileID: 2983283565560518868}
-  attackInterval: 1.5
-  pelletCount: 5
-  spreadAngle: 70
-  projectileSpeed: 9
-  projectileDamage: 2
-  projectileLifetime: 4
-  securityDronePrefabs: []
-  dronesOnCombatStart: 2
-  droneSummonInterval: 8
-  maxActiveDrones: 4
-  droneSpawnRadius: 2.5
   minRewardCredits: 10
   maxRewardCredits: 25
   minRewardScrap: 4
@@ -2236,7 +2223,7 @@ MonoBehaviour:
   deathEffectLifetime: 0.8
   releaseOnDeath: 0
   releaseDelay: 0.1
-  reinforcementPickupPrefab: {fileID: 0}
+  reinforcementPickupPrefab: {fileID: 5731060007047836178, guid: 68a782fdd93f485418b72f76aa265798, type: 3}
   reinforcementDropPoint: {fileID: 474964885907312178}
 --- !u!114 &6428305975438978380
 MonoBehaviour:
@@ -2256,6 +2243,9 @@ MonoBehaviour:
   markerSprite: {fileID: 21300000, guid: 0a5e3355c8b94fb439bb3416622c7886, type: 3}
   markerColor: {r: 1, g: 1, b: 1, a: 1}
   markerScale: 1
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 1
   alertOnMachineGunScan: 0

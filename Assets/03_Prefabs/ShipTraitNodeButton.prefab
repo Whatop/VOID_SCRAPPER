@@ -148,7 +148,7 @@ MonoBehaviour:
   lockRoot: {fileID: 3528678711311879629}
   activeRoot: {fileID: 0}
   inactiveRoot: {fileID: 0}
-  selectedRoot: {fileID: 0}
+  selectedRoot: {fileID: 6387709207243060707}
   canvasGroup: {fileID: 0}
   stateImage: {fileID: 6615372601142068276}
   lockedStateSprite: {fileID: 21300000, guid: 2195e314e582f924e919ee41f06894bb, type: 3}
@@ -156,6 +156,9 @@ MonoBehaviour:
   activeStateSprite: {fileID: 21300000, guid: 1fe5a7887d4d25c448821b998ec50d9e, type: 3}
   inactiveStateSprite: {fileID: 0}
   hideStateImageWhenAvailable: 1
+  playClickSound: 1
+  clickSoundEventId: 01_ui_click
+  lockedClickSoundEventId: 12_ui_disabled
   allowClickWhenLocked: 0
   lockedAlpha: 0.35
   inactiveAlpha: 0.55

@@ -119,6 +119,11 @@ public class ShopStockController : MonoBehaviour
             return false;
         }
 
+        if (RunRuntimeTraitStore.Instance.GetLevel(trait.TraitId) >= trait.MaxLevel)
+        {
+            return false;
+        }
+
         return ShopRunBridge.CanSpendCredits(TraitCost);
     }
 
@@ -139,7 +144,11 @@ public class ShopStockController : MonoBehaviour
             return false;
         }
 
-        if (!ShopRunBridge.AddRunTrait(trait.TraitId))
+        if (!RunTraitAcquisitionService.TryAcquire(
+                trait,
+                playerObject,
+                out _,
+                out _))
         {
             ShopRunBridge.AddCredits(TraitCost);
             return false;
@@ -158,8 +167,6 @@ public class ShopStockController : MonoBehaviour
         }
 
         shop?.RegisterSpentCredits(TraitCost);
-        ShopRuntimeEffectApplier.ApplyTraitImmediate(trait, playerObject);
-
         return true;
     }
 
@@ -236,7 +243,19 @@ public class ShopStockController : MonoBehaviour
             return false;
         }
 
-        bool equipped = ShopRuntimeEffectApplier.EquipReinforcementImmediate(reinforcement, playerObject, shop);
+        PlayerReinforcementController controller = playerObject != null
+            ? playerObject.GetComponentInChildren<PlayerReinforcementController>(true)
+            : null;
+
+        if (controller == null && playerObject != null)
+        {
+            controller = playerObject.AddComponent<PlayerReinforcementController>();
+        }
+
+        bool equipped = controller != null && controller.EquipFromShop(
+            reinforcement,
+            shop != null ? shop.ActiveMaintenanceBay : null
+        );
 
         if (!equipped)
         {
@@ -379,7 +398,14 @@ public class ShopStockController : MonoBehaviour
             return;
         }
 
-        if (excludeAlreadyOwnedRunTraits && ShopRunBridge.HasRunTrait(trait.TraitId))
+        int runtimeLevel = RunRuntimeTraitStore.Instance.GetLevel(trait.TraitId);
+
+        if (runtimeLevel >= trait.MaxLevel)
+        {
+            return;
+        }
+
+        if (excludeAlreadyOwnedRunTraits && runtimeLevel > 0)
         {
             return;
         }
@@ -460,7 +486,14 @@ public class ShopStockController : MonoBehaviour
             return false;
         }
 
-        if (ShopRunBridge.HasRunTrait(trait.TraitId))
+        int runtimeLevel = RunRuntimeTraitStore.Instance.GetLevel(trait.TraitId);
+
+        if (runtimeLevel >= trait.MaxLevel)
+        {
+            return false;
+        }
+
+        if (excludeAlreadyOwnedRunTraits && runtimeLevel > 0)
         {
             return false;
         }

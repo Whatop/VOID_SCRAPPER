@@ -175,6 +175,10 @@ MonoBehaviour:
   iconRenderer: {fileID: 5290708778530801848}
   rarityBubbleRenderer: {fileID: 3280401987376882914}
   fallbackSprite: {fileID: 0}
+  inputActions: {fileID: -944628639613478452, guid: 99f22a85a3f432e418ee7d4a8d4a77ce, type: 3}
+  playerActionMapName: Player
+  interactActionName: Interact
+  dismantleActionName: Dismantle
   acquireText: "\uD68D\uB4DD"
   exchangeText: "\uAD50\uCCB4"
   dismantleText: "G \uBD84\uD574"

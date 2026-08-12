@@ -6,23 +6,25 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 {
     [Header("Health Settings")]
     [SerializeField] private float maxHp = 20f;
-    [SerializeField] private float invincibleTimeAfterHit = 0.5f;
+    [SerializeField] private float invincibleTimeAfterHit = 0.35f;
 
     [Header("References")]
     [SerializeField] private PlayerArmor armor;
     [SerializeField] private ComponentShieldPassive componentShield;
 
-    [Header("Hit Effect")]
-    [SerializeField] private GameObject hitEffectPrefab;
-    [SerializeField] private float hitEffectDuration = 0.15f;
-    [SerializeField] private bool useProceduralHitEffectWhenPrefabMissing = true;
-    [SerializeField] private float hitEffectIntensity = 1.2f;
-
     [Header("Camera Shake")]
+    [Tooltip("ProjectileDefinition의 Hit VFX와 함께 짧은 공용 스파크/섬광을 추가합니다.")]
+    [SerializeField] private bool addProceduralHitFeedback = true;
     [SerializeField] private float hitShakeAmplitude = 0.17f;
     [SerializeField] private float hitShakeDuration = 0.14f;
     [SerializeField] private float deathShakeAmplitude = 0.34f;
     [SerializeField] private float deathShakeDuration = 0.32f;
+
+    [Header("Death Effect")]
+    [SerializeField] private GameObject deathEffectPrefab;
+    [Min(0.01f)]
+    [SerializeField] private float deathEffectLifeTime = 0.5f;
+    [SerializeField] private bool useProceduralDeathEffectWhenPrefabMissing = true;
 
     [Header("Death")]
     [SerializeField] private bool disableColliderOnDeath = true;
@@ -238,35 +240,38 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private void PlayHitFeedback(float damage, Vector2 position, Vector2 incomingDirection)
     {
-        bool customEffectSpawned = SpawnHitEffect(position);
         float damageScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, damage) / 2f), 0.8f, 1.8f);
 
+        // 피격 VFX는 적 Bullet 또는 근접 공격 컨트롤러가 생성한다.
+        // Health는 카메라 흔들림만 담당한다.
         CombatFeedbackManager.PlayHit(
             position,
             incomingDirection,
             CombatFeedbackKind.Player,
-            hitEffectIntensity * damageScale,
+            damageScale,
             hitShakeAmplitude * damageScale,
             hitShakeDuration,
-            useProceduralHitEffectWhenPrefabMissing && !customEffectSpawned
+            addProceduralHitFeedback
         );
     }
 
-    private bool SpawnHitEffect(Vector2 position)
+    private bool SpawnDeathEffect()
     {
-        if (hitEffectPrefab == null)
+        if (deathEffectPrefab == null)
         {
             return false;
         }
 
+        float lifeTime = Mathf.Max(0.01f, deathEffectLifeTime);
+
         if (PoolManager.Instance != null)
         {
-            PoolManager.Instance.SpawnAutoRelease(hitEffectPrefab, position, hitEffectDuration);
+            PoolManager.Instance.SpawnAutoRelease(deathEffectPrefab, transform.position, lifeTime);
         }
         else
         {
-            GameObject effect = Instantiate(hitEffectPrefab, position, Quaternion.identity);
-            Destroy(effect, hitEffectDuration);
+            GameObject effect = Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
+            Destroy(effect, lifeTime);
         }
 
         return true;
@@ -303,13 +308,15 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             }
         }
 
+        bool deathEffectSpawned = SpawnDeathEffect();
+
         CombatFeedbackManager.PlayBreak(
             transform.position,
             CombatFeedbackKind.Player,
             1.6f,
             deathShakeAmplitude,
             deathShakeDuration,
-            true
+            useProceduralDeathEffectWhenPrefabMissing && !deathEffectSpawned
         );
 
         Died?.Invoke();

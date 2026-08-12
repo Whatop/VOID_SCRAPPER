@@ -1,8 +1,12 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class RadarTarget : MonoBehaviour, IRadarScannable
 {
+    private static readonly HashSet<RadarTarget> activeTargets = new HashSet<RadarTarget>();
+
     [Header("Radar")]
     [SerializeField] private RadarMarkerType markerType = RadarMarkerType.RewardObject;
     [SerializeField] private Transform markerTransform;
@@ -13,6 +17,12 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     [SerializeField] private Color markerColor = Color.white;
     [SerializeField] private float markerScale = 1f;
 
+    [Header("Full Map")]
+    [SerializeField] private bool showOnMap = true;
+    [Tooltip("적처럼 일시적으로만 표시할 대상의 최소 지도 유지 시간입니다.")]
+    [SerializeField, Min(0f)] private float mapMarkerLifetime = 6f;
+    [SerializeField] private bool mapDiscovered;
+
     [Header("Enemy Reaction")]
     [SerializeField] private EnemyBaseAI enemyAI;
     [SerializeField] private bool allowShotgunTaunt = true;
@@ -22,6 +32,16 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     [Header("Runtime Scan State")]
     [SerializeField] private float lastScannedTime = -999f;
 
+    public static IReadOnlyCollection<RadarTarget> ActiveTargets => activeTargets;
+    public static event Action RegistryChanged;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        activeTargets.Clear();
+        RegistryChanged = null;
+    }
+
     public RadarMarkerType MarkerType => markerType;
     public Transform RadarTransform => markerTransform != null ? markerTransform : transform;
     public bool IsRadarVisible => visible && isActiveAndEnabled && gameObject.activeInHierarchy;
@@ -30,6 +50,10 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     public Sprite MarkerSprite => markerSprite;
     public Color MarkerColor => markerColor;
     public float MarkerScale => Mathf.Max(0.1f, markerScale);
+
+    public bool ShowOnMap => showOnMap;
+    public float MapMarkerLifetime => Mathf.Max(0f, mapMarkerLifetime);
+    public bool IsMapDiscovered => mapDiscovered;
 
     public bool AllowShotgunTaunt => allowShotgunTaunt;
     public bool AlertOnMachineGunScan => alertOnMachineGunScan;
@@ -42,11 +66,6 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
         markerScale = 1f;
         markerColor = Color.white;
         enemyAI = GetComponentInParent<EnemyBaseAI>();
-    }
-
-    private void OnEnable()
-    {
-        lastScannedTime = -999f;
     }
 
     private void Awake()
@@ -62,14 +81,39 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
         }
     }
 
+    private void OnEnable()
+    {
+        lastScannedTime = -999f;
+        activeTargets.Add(this);
+        RegistryChanged?.Invoke();
+    }
+
+    private void OnDisable()
+    {
+        if (activeTargets.Remove(this))
+        {
+            RegistryChanged?.Invoke();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (activeTargets.Remove(this))
+        {
+            RegistryChanged?.Invoke();
+        }
+    }
+
     public void SetVisible(bool value)
     {
         visible = value;
+        RegistryChanged?.Invoke();
     }
 
     public void SetMarkerType(RadarMarkerType type)
     {
         markerType = type;
+        RegistryChanged?.Invoke();
     }
 
     public void SetMarkerVisual(Sprite sprite, Color color, float scale = 1f)
@@ -77,6 +121,24 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
         markerSprite = sprite;
         markerColor = color;
         markerScale = Mathf.Max(0.1f, scale);
+        RegistryChanged?.Invoke();
+    }
+
+    public void SetMapDiscovered(bool value)
+    {
+        if (mapDiscovered == value)
+        {
+            return;
+        }
+
+        mapDiscovered = value;
+        RegistryChanged?.Invoke();
+    }
+
+    public void SetShowOnMap(bool value)
+    {
+        showOnMap = value;
+        RegistryChanged?.Invoke();
     }
 
     public RadarScanResult OnRadarScanned(RadarScanContext context)
@@ -87,7 +149,9 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
         }
 
         lastScannedTime = Time.time;
+        mapDiscovered = true;
         HandleEnemyScanReaction(context);
+        RegistryChanged?.Invoke();
         return RadarScanResult.Detected;
     }
 
@@ -98,17 +162,7 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
 
     private void HandleEnemyScanReaction(RadarScanContext context)
     {
-        if (enemyAI == null)
-        {
-            return;
-        }
-
-        if (!IsEnemyLikeMarker())
-        {
-            return;
-        }
-
-        if (enemyAI.CurrentState == EnemyState.Dead)
+        if (enemyAI == null || !IsEnemyLikeMarker() || enemyAI.CurrentState == EnemyState.Dead)
         {
             return;
         }
@@ -140,7 +194,6 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
 
     private bool IsEnemyLikeMarker()
     {
-        return markerType == RadarMarkerType.Enemy ||
-               markerType == RadarMarkerType.Boss;
+        return markerType == RadarMarkerType.Enemy || markerType == RadarMarkerType.Boss;
     }
 }

@@ -513,9 +513,12 @@ MonoBehaviour:
   markerType: 4
   markerTransform: {fileID: 3486426835848565797}
   visible: 1
-  markerSprite: {fileID: 0}
+  markerSprite: {fileID: 21300000, guid: 49b2bca3a3f8d7a48bbc281b2a42304c, type: 3}
   markerColor: {r: 1, g: 1, b: 1, a: 1}
   markerScale: 1
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 1
   alertOnMachineGunScan: 0
@@ -535,7 +538,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rewardDefinition: {fileID: 11400000, guid: f247da96b6e747bbbbf6332f0cd0225b, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
-  healPickupPrefab: {fileID: 3676966635386126382, guid: a7f1f0c9c5ee96c4ea79449c8394d7a9, type: 3}
+  legacyHealPickupPrefab: {fileID: 3676966635386126382, guid: a7f1f0c9c5ee96c4ea79449c8394d7a9, type: 3}
   fallbackReinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}
   reinforcementPickupPrefab: {fileID: 5731060007047836178, guid: 68a782fdd93f485418b72f76aa265798, type: 3}
   reinforcementMinScatterRadius: 0.35
@@ -562,6 +565,7 @@ MonoBehaviour:
   minScatterSpeed: 1
   maxScatterSpeed: 2.6
   angleJitter: 15
+  runtimeCurrencyMultiplier: 1
   logMissingPrefab: 1
 --- !u!1 &5642906520485921349
 GameObject:

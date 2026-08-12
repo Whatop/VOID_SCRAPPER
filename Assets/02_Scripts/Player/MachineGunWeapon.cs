@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public enum MachineGunShotSide
@@ -16,25 +17,58 @@ public class MachineGunWeapon : PlayerWeaponBase
     [SerializeField] private float fallbackFireInterval = 0.10f;
     [SerializeField] private int fallbackProjectileCount = 1;
     [SerializeField] private float fallbackSpreadAngle = 6f;
-    [SerializeField] private int fallbackPierceCount = 0;
+    [SerializeField] private int fallbackPierceCount;
 
     [Header("Machine Gun Fire Points")]
     [SerializeField] private Transform leftFirePoint;
     [SerializeField] private Transform rightFirePoint;
     [SerializeField] private bool startFromLeft = true;
 
+    [Header("Optional Heat")]
+    [SerializeField] private bool useHeatSystem = true;
+    [Min(1f)]
+    [SerializeField] private float maxHeat = 100f;
+    [Min(0f)]
+    [SerializeField] private float heatPerShot = 4f;
+    [Min(0f)]
+    [SerializeField] private float coolingStartDelay = 0.25f;
+    [Min(0f)]
+    [SerializeField] private float coolingPerSecond = 55f;
+    [Range(0f, 1f)]
+    [SerializeField] private float overheatRecoveryRatio = 0.35f;
+    [SerializeField] private bool resetHeatOnEquip = true;
+
     private float fireTimer;
     private float nextFireSoundTime;
     private bool nextShotLeft;
     private MachineGunShotSide lastShotSide = MachineGunShotSide.Center;
+    private float currentHeat;
+    private float lastShotTime = -999f;
+    private bool overheated;
 
     public MachineGunShotSide LastShotSide => lastShotSide;
+    public bool UsesHeatSystem => useHeatSystem;
+    public float CurrentHeat => currentHeat;
+    public float MaxHeat => Mathf.Max(1f, maxHeat);
+    public float HeatRatio => useHeatSystem ? Mathf.Clamp01(currentHeat / MaxHeat) : 0f;
+    public bool IsOverheated => useHeatSystem && overheated;
+
+    public event Action<float, float, bool> HeatChanged;
 
     public override void OnEquip()
     {
         fireTimer = 0f;
         nextFireSoundTime = 0f;
         ResetFirePointSide();
+
+        if (resetHeatOnEquip)
+        {
+            ResetHeat();
+        }
+        else
+        {
+            NotifyHeatChanged();
+        }
     }
 
     public override void OnUnequip()
@@ -42,11 +76,14 @@ public class MachineGunWeapon : PlayerWeaponBase
         fireTimer = 0f;
         nextFireSoundTime = 0f;
         ResetFirePointSide();
+        NotifyHeatChanged();
     }
 
     public override void TickWeapon(WeaponFireInput input, float deltaTime)
     {
-        if (!input.Held)
+        UpdateHeat(deltaTime);
+
+        if (!input.Held || IsOverheated)
         {
             fireTimer = 0f;
             return;
@@ -59,12 +96,23 @@ public class MachineGunWeapon : PlayerWeaponBase
             return;
         }
 
-        TryFire();
+        if (TryFire())
+        {
+            AddHeat(heatPerShot);
+        }
 
         fireTimer = GetFireInterval(fallbackFireInterval);
     }
 
-    private void TryFire()
+    public void ResetHeat()
+    {
+        currentHeat = 0f;
+        overheated = false;
+        lastShotTime = -999f;
+        NotifyHeatChanged();
+    }
+
+    private bool TryFire()
     {
         Vector2 baseDirection = GetAimDirection();
 
@@ -82,7 +130,7 @@ public class MachineGunWeapon : PlayerWeaponBase
 
         for (int i = 0; i < projectileCount; i++)
         {
-            float randomAngle = Random.Range(-spreadAngle * 0.5f, spreadAngle * 0.5f);
+            float randomAngle = UnityEngine.Random.Range(-spreadAngle * 0.5f, spreadAngle * 0.5f);
             Vector2 shotDirection = RotateVector(baseDirection, randomAngle);
 
             bool fired = SpawnProjectileFrom(
@@ -99,7 +147,7 @@ public class MachineGunWeapon : PlayerWeaponBase
 
         if (!firedAny)
         {
-            return;
+            return false;
         }
 
         SpawnMuzzleEffectFrom(selectedFirePoint, baseDirection);
@@ -113,9 +161,60 @@ public class MachineGunWeapon : PlayerWeaponBase
 
         lastShotSide = shotSide;
         AdvanceFirePointSide();
+        lastShotTime = Time.time;
 
         RegisterAttack();
         NotifyFired();
+        return true;
+    }
+
+    private void UpdateHeat(float deltaTime)
+    {
+        if (!useHeatSystem || currentHeat <= 0f)
+        {
+            return;
+        }
+
+        if (Time.time - lastShotTime < Mathf.Max(0f, coolingStartDelay))
+        {
+            return;
+        }
+
+        float previous = currentHeat;
+        currentHeat = Mathf.Max(0f, currentHeat - Mathf.Max(0f, coolingPerSecond) * Mathf.Max(0f, deltaTime));
+
+        if (overheated && currentHeat <= MaxHeat * Mathf.Clamp01(overheatRecoveryRatio))
+        {
+            overheated = false;
+        }
+
+        if (!Mathf.Approximately(previous, currentHeat))
+        {
+            NotifyHeatChanged();
+        }
+    }
+
+    private void AddHeat(float amount)
+    {
+        if (!useHeatSystem || amount <= 0f)
+        {
+            return;
+        }
+
+        currentHeat = Mathf.Clamp(currentHeat + amount, 0f, MaxHeat);
+
+        if (currentHeat >= MaxHeat - 0.001f)
+        {
+            overheated = true;
+            currentHeat = MaxHeat;
+        }
+
+        NotifyHeatChanged();
+    }
+
+    private void NotifyHeatChanged()
+    {
+        HeatChanged?.Invoke(currentHeat, MaxHeat, IsOverheated);
     }
 
     private Transform GetCurrentFirePoint(out MachineGunShotSide shotSide)

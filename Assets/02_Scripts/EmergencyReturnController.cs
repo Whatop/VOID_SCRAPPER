@@ -1,22 +1,9 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 
 [DisallowMultipleComponent]
 public class EmergencyReturnController : MonoBehaviour
 {
-    [Header("Legacy Direct Input")]
-    [SerializeField] private bool allowDirectInput;
-
-    [Header("Input Actions Optional")]
-    [SerializeField] private InputActionAsset inputActions;
-    [SerializeField] private string actionMapName = "Player";
-    [SerializeField] private string emergencyReturnActionName = "EmergencyReturn";
-
-    [Header("Fallback Key")]
-    [SerializeField] private Key fallbackKey = Key.F;
-
     [Header("References")]
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerCombatState combatState;
@@ -31,26 +18,21 @@ public class EmergencyReturnController : MonoBehaviour
     [SerializeField] private bool cancelOnMovement = true;
     [SerializeField] private float movementCancelDistance = 0.15f;
     [SerializeField] private bool blockDuringBossBattle = true;
-
-    [Header("Complete")]
-    [Tooltip("Ѹ  100%   F  Żմϴ.   100%  Żմϴ.")]
+    [Tooltip("홀드 입력을 쓰는 경우 게이지가 가득 찬 뒤 버튼을 놓아야 복귀합니다.")]
     [SerializeField] private bool completeOnReleaseAfterGaugeFull = true;
 
     [Header("Messages")]
-    [SerializeField] private string readyMessage = "Ż غ Ϸ. F  Żմϴ.";
-    [SerializeField] private string canceledMessage = "Ż ҵǾϴ.";
-    [SerializeField] private string noRunMessage = "  Ž簡 ϴ.";
-    [SerializeField] private string combatMessage = " ߿ Ż  ϴ.";
-    [SerializeField] private string bossBattleMessage = " ߿ Ż  ϴ.";
-    [SerializeField] private string pausedMessage = "UI  ִ ȿ Ż  ϴ.";
-    [SerializeField] private string movementCancelMessage = "̵ؼ Ż ҵǾϴ.";
-    [SerializeField] private string alreadyReturningMessage = "̹ Ż Դϴ.";
+    [SerializeField] private string preparingMessage = "긴급복귀 준비 중...";
+    [SerializeField] private string readyMessage = "복귀 준비 완료. 버튼을 놓으면 귀환합니다.";
+    [SerializeField] private string canceledMessage = "긴급복귀가 취소되었습니다.";
+    [SerializeField] private string noRunMessage = "진행 중인 탐사가 없습니다.";
+    [SerializeField] private string combatMessage = "전투 중에는 긴급복귀할 수 없습니다.";
+    [SerializeField] private string bossBattleMessage = "보스전 중에는 긴급복귀할 수 없습니다.";
+    [SerializeField] private string pausedMessage = "메뉴가 열린 동안에는 긴급복귀할 수 없습니다.";
+    [SerializeField] private string movementCancelMessage = "이동하여 긴급복귀가 취소되었습니다.";
+    [SerializeField] private string alreadyReturningMessage = "이미 귀환 연출이 진행 중입니다.";
 
-    private InputAction emergencyReturnAction;
     private Coroutine returnRoutine;
-    private bool useExternalReleaseKey;
-    private Key externalReleaseKey;
-
     private bool isPreparing;
     private bool holdRequired;
     private bool gaugeFilled;
@@ -72,57 +54,18 @@ public class EmergencyReturnController : MonoBehaviour
         CacheReferences();
     }
 
-    private void OnEnable()
-    {
-        BindInput();
-    }
-
     private void OnDisable()
     {
-        if (emergencyReturnAction != null)
-        {
-            emergencyReturnAction.Disable();
-        }
-
         CancelEmergencyReturn(false, null);
     }
 
-    private void Update()
-    {
-        if (!allowDirectInput)
-        {
-            return;
-        }
-
-        if (isPreparing)
-        {
-            return;
-        }
-
-        if (WasEmergencyReturnPressedThisFrame())
-        {
-            TryStartByHoldKey();
-        }
-    }
-
+    /// <summary>
+    /// 외부 입력 컨트롤러가 홀드 시작 시 호출합니다.
+    /// 입력 자체는 PlayerReinforcementController가 단독 관리합니다.
+    /// </summary>
     public bool TryStartByHoldKey()
     {
         return TryStartEmergencyReturn(true);
-    }
-
-    public bool TryStartByExternalHoldKey(Key holdKey)
-    {
-        useExternalReleaseKey = true;
-        externalReleaseKey = holdKey;
-
-        bool started = TryStartEmergencyReturn(true);
-
-        if (!started)
-        {
-            useExternalReleaseKey = false;
-        }
-
-        return started;
     }
 
     public bool TryStartFromMenu()
@@ -137,15 +80,12 @@ public class EmergencyReturnController : MonoBehaviour
             return false;
         }
 
+        CacheReferences();
+
         if (!CanStart(out string reason))
         {
             ShowWarning(reason);
-
-            if (gaugeUI != null)
-            {
-                gaugeUI.Hide();
-            }
-
+            gaugeUI?.Hide();
             return false;
         }
 
@@ -160,20 +100,35 @@ public class EmergencyReturnController : MonoBehaviour
         }
 
         float duration = GetPrepareDuration();
+        gaugeUI?.ShowPreparing(0f, duration);
 
-        if (gaugeUI != null)
+        if (gaugeUI == null)
         {
-            gaugeUI.ShowPreparing(0f, duration);
-        }
-        else
-        {
-            //  UI  ׽Ʈ  ּ ǵ .
-            ShowWarning("Ż غ ...");
+            ShowWarning(preparingMessage);
         }
 
         returnRoutine = StartCoroutine(PrepareRoutine());
-
         return true;
+    }
+
+    /// <summary>
+    /// 외부 입력 컨트롤러가 홀드 버튼을 놓은 프레임에 호출합니다.
+    /// </summary>
+    public void NotifyHoldReleased()
+    {
+        if (!isPreparing || !holdRequired)
+        {
+            return;
+        }
+
+        if (gaugeFilled)
+        {
+            CompleteEmergencyReturn();
+        }
+        else
+        {
+            CancelEmergencyReturn(true, canceledMessage);
+        }
     }
 
     public void CancelEmergencyReturnByButton()
@@ -195,43 +150,17 @@ public class EmergencyReturnController : MonoBehaviour
                 yield break;
             }
 
-            bool releasedThisFrame = holdRequired && WasEmergencyReturnReleasedThisFrame();
-
             timer += Time.unscaledDeltaTime;
-
             float ratio = Mathf.Clamp01(timer / duration);
             float remaining = Mathf.Max(0f, duration - timer);
-
-            if (gaugeUI != null)
-            {
-                gaugeUI.ShowPreparing(ratio, remaining);
-            }
-
-            if (releasedThisFrame)
-            {
-                if (timer >= duration)
-                {
-                    gaugeFilled = true;
-                    CompleteEmergencyReturn();
-                }
-                else
-                {
-                    CancelEmergencyReturn(true, canceledMessage);
-                }
-
-                yield break;
-            }
-
+            gaugeUI?.ShowPreparing(ratio, remaining);
             yield return null;
         }
 
         gaugeFilled = true;
+        gaugeUI?.ShowReady(readyMessage);
 
-        if (gaugeUI != null)
-        {
-            gaugeUI.ShowReady(readyMessage);
-        }
-        else
+        if (gaugeUI == null)
         {
             ShowWarning(readyMessage);
         }
@@ -251,17 +180,7 @@ public class EmergencyReturnController : MonoBehaviour
                 yield break;
             }
 
-            if (gaugeUI != null)
-            {
-                gaugeUI.ShowReady(readyMessage);
-            }
-
-            if (WasEmergencyReturnReleasedThisFrame())
-            {
-                CompleteEmergencyReturn();
-                yield break;
-            }
-
+            gaugeUI?.ShowReady(readyMessage);
             yield return null;
         }
     }
@@ -313,61 +232,23 @@ public class EmergencyReturnController : MonoBehaviour
 
     private bool CanContinue(out string reason)
     {
-        reason = string.Empty;
-
-        if (exitSequence != null && exitSequence.IsPlaying)
+        if (!CanStart(out reason))
         {
-            reason = alreadyReturningMessage;
             return false;
         }
 
-        if (GameplayPauseManager.IsPaused)
+        if (!cancelOnMovement)
         {
-            reason = pausedMessage;
-            return false;
+            return true;
         }
 
-        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
+        float movedDistance = Vector2.Distance(prepareStartPosition, transform.position);
+
+        if (movedDistance > movementCancelDistance ||
+            (playerController != null && playerController.IsMoving))
         {
-            reason = noRunMessage;
+            reason = movementCancelMessage;
             return false;
-        }
-
-        if (blockDuringBossBattle &&
-            GameStateManager.Instance != null &&
-            GameStateManager.Instance.CurrentState == GameState.BossBattle)
-        {
-            reason = bossBattleMessage;
-            return false;
-        }
-
-        if (playerHealth != null && playerHealth.IsDead)
-        {
-            reason = noRunMessage;
-            return false;
-        }
-
-        if (combatState != null && !combatState.IsOutOfCombat())
-        {
-            reason = combatMessage;
-            return false;
-        }
-
-        if (cancelOnMovement)
-        {
-            float movedDistance = Vector2.Distance(prepareStartPosition, transform.position);
-
-            if (movedDistance > movementCancelDistance)
-            {
-                reason = movementCancelMessage;
-                return false;
-            }
-
-            if (playerController != null && playerController.IsMoving)
-            {
-                reason = movementCancelMessage;
-                return false;
-            }
         }
 
         return true;
@@ -375,21 +256,18 @@ public class EmergencyReturnController : MonoBehaviour
 
     private void CompleteEmergencyReturn()
     {
+        if (!isPreparing)
+        {
+            return;
+        }
+
         isPreparing = false;
         holdRequired = false;
         gaugeFilled = false;
-        useExternalReleaseKey = false;
         returnRoutine = null;
+        gaugeUI?.Hide();
 
-        if (gaugeUI != null)
-        {
-            gaugeUI.Hide();
-        }
-
-        if (GameplayPauseManager.Instance != null)
-        {
-            GameplayPauseManager.Instance.ResetAllPauses();
-        }
+        GameplayPauseManager.Instance?.ResetAllPauses();
 
         if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
         {
@@ -412,33 +290,19 @@ public class EmergencyReturnController : MonoBehaviour
 
     private void CancelEmergencyReturn(bool showMessage, string message)
     {
-        if (!isPreparing)
-        {
-            if (gaugeUI != null)
-            {
-                gaugeUI.Hide();
-            }
-
-            return;
-        }
-
-        isPreparing = false;
-        holdRequired = false;
-        gaugeFilled = false;
-        useExternalReleaseKey = false;
-
         if (returnRoutine != null)
         {
             StopCoroutine(returnRoutine);
             returnRoutine = null;
         }
 
-        if (gaugeUI != null)
-        {
-            gaugeUI.Hide();
-        }
+        bool wasPreparing = isPreparing;
+        isPreparing = false;
+        holdRequired = false;
+        gaugeFilled = false;
+        gaugeUI?.Hide();
 
-        if (showMessage && !string.IsNullOrWhiteSpace(message))
+        if (wasPreparing && showMessage && !string.IsNullOrWhiteSpace(message))
         {
             ShowWarning(message);
         }
@@ -446,12 +310,9 @@ public class EmergencyReturnController : MonoBehaviour
 
     private float GetPrepareDuration()
     {
-        if (balanceConfig != null)
-        {
-            return Mathf.Max(0.01f, balanceConfig.EmergencyReturnPrepareTime);
-        }
-
-        return Mathf.Max(0.01f, prepareDuration);
+        return balanceConfig != null
+            ? Mathf.Max(0.01f, balanceConfig.EmergencyReturnPrepareTime)
+            : Mathf.Max(0.01f, prepareDuration);
     }
 
     private void CacheReferences()
@@ -485,71 +346,6 @@ public class EmergencyReturnController : MonoBehaviour
         {
             gaugeUI = FindFirstObjectByType<EmergencyReturnGaugeUI>(FindObjectsInactive.Include);
         }
-    }
-
-    private void BindInput()
-    {
-        if (inputActions == null)
-        {
-            return;
-        }
-
-        InputActionMap actionMap = inputActions.FindActionMap(actionMapName, false);
-
-        if (actionMap == null)
-        {
-            return;
-        }
-
-        emergencyReturnAction = actionMap.FindAction(emergencyReturnActionName, false);
-
-        if (emergencyReturnAction != null)
-        {
-            emergencyReturnAction.Enable();
-        }
-    }
-
-    private bool WasEmergencyReturnPressedThisFrame()
-    {
-        if (emergencyReturnAction != null && emergencyReturnAction.WasPressedThisFrame())
-        {
-            return true;
-        }
-
-        if (Keyboard.current == null)
-        {
-            return false;
-        }
-
-        KeyControl key = Keyboard.current[fallbackKey];
-        return key != null && key.wasPressedThisFrame;
-    }
-
-    private bool WasEmergencyReturnReleasedThisFrame()
-    {
-        if (useExternalReleaseKey)
-        {
-            if (Keyboard.current == null)
-            {
-                return false;
-            }
-
-            KeyControl externalKey = Keyboard.current[externalReleaseKey];
-            return externalKey != null && externalKey.wasReleasedThisFrame;
-        }
-
-        if (emergencyReturnAction != null && emergencyReturnAction.WasReleasedThisFrame())
-        {
-            return true;
-        }
-
-        if (Keyboard.current == null)
-        {
-            return false;
-        }
-
-        KeyControl key = Keyboard.current[fallbackKey];
-        return key != null && key.wasReleasedThisFrame;
     }
 
     private void ShowWarning(string message)

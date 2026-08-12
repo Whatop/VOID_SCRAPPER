@@ -207,7 +207,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rewardDefinition: {fileID: 11400000, guid: d2c045ea2f82ffe4a8784c62046d6e08, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
-  healPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
+  legacyHealPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
   fallbackReinforcementCatalog: {fileID: 0}
   reinforcementPickupPrefab: {fileID: 0}
   reinforcementMinScatterRadius: 0.35
@@ -234,6 +234,7 @@ MonoBehaviour:
   minScatterSpeed: 1.2
   maxScatterSpeed: 3.2
   angleJitter: 15
+  runtimeCurrencyMultiplier: 1
   logMissingPrefab: 1
 --- !u!114 &1761812676681879149
 MonoBehaviour:
@@ -272,6 +273,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyHealth: {fileID: 2632113334545552604}
   rewardDropper: {fileID: 0}
+  campaignDefinition: {fileID: 11400000, guid: 81a700d18502403b9cb3725cb1b3cafc, type: 2}
+  completeFinalBossAsVictory: 1
   returnBeaconPrefab: {fileID: 790382445115629925, guid: 01366ec2ea978ea4fb283152e5de9f91, type: 3}
   wormholePortalPrefab: {fileID: 5883112289178939255, guid: 2c801ff46de81cc4dadbbc5c54a9625d, type: 3}
   useBossDeathPosition: 1
@@ -286,7 +289,6 @@ MonoBehaviour:
   deepZoneAdditionalCoreShards: 1
   forceWorldPickupOnly: 1
   fallbackToDirectCoreGrant: 0
-  grantDeepZoneAdditionalCoreDirectly: 1
   grantSelectableBossReward: 1
   bossRewardChoiceCount: 3
   bossRewardCapsulePrefab: {fileID: 836675783878838890, guid: 49de27477305b04449089acc93c26e73, type: 3}
@@ -369,6 +371,11 @@ MonoBehaviour:
   chargeProjectileSpeedOverride: 24
   chargeProjectileRangeOverride: 22
   chargeProjectileScaleMultiplier: 3
+  chargeProjectileDestroysLargeMeteor: 1
+  bossProjectilesDestroySmallMeteor: 1
+  bossProjectilesDestroySupplyContainer: 1
+  bossProjectilesDestroyHighValueWreck: 1
+  bossProjectilesDestroyDestroyedHull: 0
   chargeAimLineColor: {r: 1, g: 0.4492032, b: 0, a: 0.8}
   chargeAimLineWidth: 0.06
   chargeAimLineLength: 24

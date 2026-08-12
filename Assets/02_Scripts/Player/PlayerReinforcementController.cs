@@ -100,6 +100,11 @@ public class PlayerReinforcementController : MonoBehaviour
         {
             TryUseCurrent();
         }
+
+        if (WasUseReleased())
+        {
+            emergencyReturnController?.NotifyHoldReleased();
+        }
     }
 
     public bool Equip(ReinforcementDefinition definition, int overrideCharges = -1, bool updateRunContext = true)
@@ -267,7 +272,7 @@ public class PlayerReinforcementController : MonoBehaviour
                 return false;
             }
 
-            ConsumeChargeAfterSuccessfulUse();
+            // 긴급복귀 앵커는 홀드 서비스다. 취소될 수 있으므로 시작 시 충전/사용 이벤트를 소비하지 않는다.
             return true;
         }
 
@@ -434,29 +439,19 @@ public class PlayerReinforcementController : MonoBehaviour
 
     private void BindInput()
     {
-        if (inputActions == null)
-        {
-            return;
-        }
-
-        InputActionMap actionMap = inputActions.FindActionMap(actionMapName, false);
-        if (actionMap == null)
-        {
-            return;
-        }
-
-        useAction = actionMap.FindAction(useActionName, false);
-        if (useAction != null)
-        {
-            useAction.Enable();
-        }
+        useAction = InputBindingUtility.ResolveAction(
+            inputActions,
+            actionMapName,
+            useActionName
+        );
+        useAction?.Enable();
     }
 
     private bool WasUsePressed()
     {
-        if (useAction != null && useAction.WasPressedThisFrame())
+        if (useAction != null)
         {
-            return true;
+            return useAction.WasPressedThisFrame();
         }
 
         if (!allowKeyboardFallback || Keyboard.current == null)
@@ -466,6 +461,22 @@ public class PlayerReinforcementController : MonoBehaviour
 
         KeyControl keyControl = Keyboard.current[fallbackKey];
         return keyControl != null && keyControl.wasPressedThisFrame;
+    }
+
+    private bool WasUseReleased()
+    {
+        if (useAction != null)
+        {
+            return useAction.WasReleasedThisFrame();
+        }
+
+        if (!allowKeyboardFallback || Keyboard.current == null)
+        {
+            return false;
+        }
+
+        KeyControl keyControl = Keyboard.current[fallbackKey];
+        return keyControl != null && keyControl.wasReleasedThisFrame;
     }
 
     private void UpdateRecharge(float deltaTime)
@@ -609,7 +620,7 @@ public class PlayerReinforcementController : MonoBehaviour
             return false;
         }
 
-        return emergencyReturnController.TryStartByExternalHoldKey(fallbackKey);
+        return emergencyReturnController.TryStartByHoldKey();
     }
 
     private void ApplyArmor(float amount)
@@ -644,13 +655,6 @@ public class PlayerReinforcementController : MonoBehaviour
 
             if (hit == null)
             {
-                continue;
-            }
-
-            ShopProjectile shopProjectile = hit.GetComponentInParent<ShopProjectile>();
-            if (shopProjectile != null)
-            {
-                shopProjectile.ReleaseSelf();
                 continue;
             }
 

@@ -82,23 +82,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     [SerializeField] private float hostileDetectRange = 18f;
     [SerializeField] private string playerTag = "Player";
 
-    [Header("Hostile Attack")]
-    [SerializeField] private GameObject shopProjectilePrefab;
-    [SerializeField] private Transform firePoint;
-    [SerializeField] private float attackInterval = 1.5f;
-    [SerializeField] private int pelletCount = 5;
-    [SerializeField] private float spreadAngle = 70f;
-    [SerializeField] private float projectileSpeed = 9f;
-    [SerializeField] private float projectileDamage = 2f;
-    [SerializeField] private float projectileLifetime = 4f;
-
-    [Header("Security Drone")]
-    [SerializeField] private GameObject[] securityDronePrefabs;
-    [SerializeField] private int dronesOnCombatStart = 2;
-    [SerializeField] private float droneSummonInterval = 8f;
-    [SerializeField] private int maxActiveDrones = 4;
-    [SerializeField] private float droneSpawnRadius = 2.5f;
-
     [Header("Death Reward")]
     [SerializeField] private int minRewardCredits = 10;
     [SerializeField] private int maxRewardCredits = 25;
@@ -123,17 +106,21 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     private float currentBodyHp;
     private int spentCredits;
     private bool combatStarted;
-    private float attackTimer;
-    private float droneSummonTimer;
     private Transform targetPlayer;
     private Coroutine warningRoutine;
 
     private readonly Collider2D[] projectileBuffer = new Collider2D[128];
     private readonly Collider2D[] knockbackBuffer = new Collider2D[96];
-    private readonly List<GameObject> activeDrones = new List<GameObject>();
 
+    [Header("Maintenance Field Drop")]
     [SerializeField] private ReinforcementPickup reinforcementPickupPrefab;
     [SerializeField] private Transform reinforcementDropPoint;
+    [Min(0.1f)]
+    [SerializeField] private float fallbackReinforcementDropDistance = 1.25f;
+    [SerializeField] private bool createVisibleFallbackPickupWhenPrefabMissing = true;
+    [SerializeField] private string fallbackPickupLayerName = "Interactable";
+    [SerializeField] private string fallbackPickupSortingLayerName = "Default";
+    [SerializeField] private int fallbackPickupSortingOrder = 20;
 
  
     public string DisplayName => displayName;
@@ -178,11 +165,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         collidersToDisableOnDeath = GetComponentsInChildren<Collider2D>(true);
         renderersToDisableOnDeath = GetComponentsInChildren<Renderer>(true);
-
-        if (firePoint == null)
-        {
-            firePoint = transform;
-        }
     }
 
     private void Awake()
@@ -225,11 +207,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         if (renderersToDisableOnDeath == null || renderersToDisableOnDeath.Length == 0)
         {
             renderersToDisableOnDeath = GetComponentsInChildren<Renderer>(true);
-        }
-
-        if (firePoint == null)
-        {
-            firePoint = transform;
         }
     }
 
@@ -275,6 +252,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
         UpdateHostileState();
     }
+
     public bool TryDropReinforcementToField(ReinforcementDefinition definition)
     {
         return TryDropReinforcementToField(definition, -1);
@@ -287,41 +265,108 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
             return false;
         }
 
-        Vector3 dropPosition = reinforcementDropPoint != null
-            ? reinforcementDropPoint.position
-            : transform.position + Vector3.down;
-
-        ReinforcementPickup pickup = null;
-
-        if (reinforcementPickupPrefab != null)
-        {
-            pickup = Instantiate(reinforcementPickupPrefab, dropPosition, Quaternion.identity);
-        }
-        else
-        {
-            GameObject pickupObject = new GameObject($"ReinforcementPickup_{definition.EquipmentId}");
-            pickupObject.transform.position = dropPosition;
-
-            CircleCollider2D collider = pickupObject.AddComponent<CircleCollider2D>();
-            collider.isTrigger = true;
-            collider.radius = 0.45f;
-
-            Rigidbody2D rigidbody2D = pickupObject.AddComponent<Rigidbody2D>();
-            rigidbody2D.gravityScale = 0f;
-            rigidbody2D.bodyType = RigidbodyType2D.Kinematic;
-
-            pickupObject.AddComponent<SpriteRenderer>();
-            pickup = pickupObject.AddComponent<ReinforcementPickup>();
-        }
+        Vector3 dropPosition = ResolveReinforcementDropPosition();
+        ReinforcementPickup pickup = reinforcementPickupPrefab != null
+            ? Instantiate(reinforcementPickupPrefab, dropPosition, Quaternion.identity)
+            : CreateFallbackReinforcementPickup(definition, dropPosition);
 
         if (pickup == null)
         {
+            Debug.LogWarning(
+                $"[{name}] ReinforcementPickup 프리팹이 없고 fallback 생성도 비활성화되어 필드 드랍에 실패했습니다.",
+                this
+            );
             return false;
         }
 
-        pickup.Initialize(definition, charges, 0.5f);
+        GameObject pickupObject = pickup.gameObject;
+        pickupObject.transform.SetPositionAndRotation(dropPosition, Quaternion.identity);
+
+        if (!pickupObject.activeSelf)
+        {
+            pickupObject.SetActive(true);
+        }
+
+        pickup.Initialize(definition, charges, 0.35f);
+        AudioManager.PlayAt(SoundEventIds.ReinforcementDrop, dropPosition);
         return true;
     }
+
+    private Vector3 ResolveReinforcementDropPosition()
+    {
+        if (reinforcementDropPoint != null)
+        {
+            return reinforcementDropPoint.position;
+        }
+
+        GameObject playerObject = FindPlayerObject();
+
+        if (playerObject == null)
+        {
+            return transform.position + Vector3.down * Mathf.Max(0.1f, fallbackReinforcementDropDistance);
+        }
+
+        Vector2 direction = (Vector2)playerObject.transform.position - (Vector2)transform.position;
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Vector2.down;
+        }
+
+        return playerObject.transform.position +
+               (Vector3)(direction.normalized * Mathf.Max(0.1f, fallbackReinforcementDropDistance));
+    }
+
+    private ReinforcementPickup CreateFallbackReinforcementPickup(
+        ReinforcementDefinition definition,
+        Vector3 position)
+    {
+        if (!createVisibleFallbackPickupWhenPrefabMissing)
+        {
+            return null;
+        }
+
+        GameObject pickupObject = new GameObject($"ReinforcementPickup_{definition.EquipmentId}");
+        pickupObject.transform.position = position;
+
+        int interactableLayer = LayerMask.NameToLayer(fallbackPickupLayerName);
+        if (interactableLayer >= 0)
+        {
+            pickupObject.layer = interactableLayer;
+        }
+
+        CircleCollider2D collider = pickupObject.AddComponent<CircleCollider2D>();
+        collider.isTrigger = true;
+        collider.radius = 0.5f;
+
+        Rigidbody2D rigidbody2D = pickupObject.AddComponent<Rigidbody2D>();
+        rigidbody2D.gravityScale = 0f;
+        rigidbody2D.bodyType = RigidbodyType2D.Kinematic;
+        rigidbody2D.simulated = true;
+
+        GameObject iconObject = new GameObject("Icon");
+        iconObject.transform.SetParent(pickupObject.transform, false);
+        iconObject.layer = pickupObject.layer;
+
+        SpriteRenderer iconRenderer = iconObject.AddComponent<SpriteRenderer>();
+        iconRenderer.sprite = definition.Icon;
+        iconRenderer.color = Color.white;
+        iconRenderer.sortingLayerName = fallbackPickupSortingLayerName;
+        iconRenderer.sortingOrder = fallbackPickupSortingOrder;
+
+        ReinforcementPickup pickup = pickupObject.AddComponent<ReinforcementPickup>();
+
+        if (definition.Icon == null)
+        {
+            Debug.LogWarning(
+                $"[{name}] {definition.DisplayName} 아이콘이 비어 있어 fallback 필드 드랍이 보이지 않을 수 있습니다.",
+                definition
+            );
+        }
+
+        return pickup;
+    }
+
     public static void SyncGlobalHostilityFromRun()
     {
         bool hostileFromRun = ShopRunBridge.IsShopHostileThisRun();
@@ -388,8 +433,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         currentBodyHp = maxBodyHp;
         spentCredits = 0;
         combatStarted = false;
-        attackTimer = 0f;
-        droneSummonTimer = 0f;
         targetPlayer = null;
 
         SetWarningVisual(false);
@@ -653,174 +696,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         StateChanged?.Invoke(this);
     }
 
-    private void FireShotgunPattern()
-    {
-        if (shopProjectilePrefab == null || targetPlayer == null)
-        {
-            return;
-        }
-
-        Vector2 origin = firePoint != null ? firePoint.position : transform.position;
-        Vector2 baseDirection = ((Vector2)targetPlayer.position - origin).normalized;
-
-        if (baseDirection.sqrMagnitude <= 0.001f)
-        {
-            baseDirection = transform.up;
-        }
-
-        int count = Mathf.Max(1, pelletCount);
-        float totalAngle = Mathf.Max(0f, spreadAngle);
-        float step = count <= 1 ? 0f : totalAngle / (count - 1);
-        float startAngle = -totalAngle * 0.5f;
-
-        AudioManager.PlayAt(SoundEventIds.ShopShotgunFire, origin);
-
-        for (int i = 0; i < count; i++)
-        {
-            float angle = startAngle + (step * i);
-            Vector2 direction = Rotate(baseDirection, angle);
-            SpawnProjectile(origin, direction);
-        }
-    }
-
-    private void SpawnProjectile(Vector2 position, Vector2 direction)
-    {
-        GameObject projectile;
-
-        if (PoolManager.Instance != null)
-        {
-            projectile = PoolManager.Instance.Get(shopProjectilePrefab, position, Quaternion.identity);
-        }
-        else
-        {
-            projectile = Instantiate(shopProjectilePrefab, position, Quaternion.identity);
-        }
-
-        if (projectile == null)
-        {
-            return;
-        }
-
-        ShopProjectile shopProjectile = projectile.GetComponent<ShopProjectile>();
-
-        if (shopProjectile != null)
-        {
-            shopProjectile.Initialize(direction, projectileSpeed, projectileDamage, projectileLifetime);
-        }
-    }
-
-    private void TrySummonSecurityDrones(int count)
-    {
-        if (securityDronePrefabs == null || securityDronePrefabs.Length == 0)
-        {
-            return;
-        }
-
-        CleanupDroneList();
-
-        int summonCount = Mathf.Max(0, count);
-
-        for (int i = 0; i < summonCount; i++)
-        {
-            if (activeDrones.Count >= maxActiveDrones)
-            {
-                return;
-            }
-
-            GameObject prefab = GetRandomDronePrefab();
-
-            if (prefab == null)
-            {
-                continue;
-            }
-
-            Vector2 direction = Rotate(Vector2.up, UnityEngine.Random.Range(0f, 360f));
-            Vector3 position = transform.position + (Vector3)(direction * droneSpawnRadius);
-
-            GameObject drone;
-
-            if (PoolManager.Instance != null)
-            {
-                drone = PoolManager.Instance.Get(prefab, position, Quaternion.identity);
-            }
-            else
-            {
-                drone = Instantiate(prefab, position, Quaternion.identity);
-            }
-
-            if (drone == null)
-            {
-                continue;
-            }
-
-            activeDrones.Add(drone);
-
-            EnemyBaseAI droneAI = TrySetDroneTarget(drone);
-            bool arrivalStarted = EnemyArrivalSpawnUtility.BeginArrival(
-                drone,
-                position,
-                targetPlayer,
-                true,
-                transform.position
-            );
-
-            AudioManager.PlayAt(SoundEventIds.SecurityDroneSpawn, position, 0.75f);
-
-            if (!arrivalStarted && droneAI != null && targetPlayer != null)
-            {
-                droneAI.ApplyRadarAlert(transform.position);
-            }
-        }
-    }
-
-    private GameObject GetRandomDronePrefab()
-    {
-        if (securityDronePrefabs == null || securityDronePrefabs.Length == 0)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < 16; i++)
-        {
-            GameObject prefab = securityDronePrefabs[UnityEngine.Random.Range(0, securityDronePrefabs.Length)];
-
-            if (prefab != null)
-            {
-                return prefab;
-            }
-        }
-
-        return null;
-    }
-
-    private EnemyBaseAI TrySetDroneTarget(GameObject drone)
-    {
-        if (drone == null)
-        {
-            return null;
-        }
-
-        EnemyBaseAI enemyAI = drone.GetComponentInChildren<EnemyBaseAI>(true);
-
-        if (enemyAI != null && targetPlayer != null)
-        {
-            enemyAI.SetTarget(targetPlayer);
-        }
-
-        return enemyAI;
-    }
-
-    private void CleanupDroneList()
-    {
-        for (int i = activeDrones.Count - 1; i >= 0; i--)
-        {
-            if (activeDrones[i] == null || !activeDrones[i].activeInHierarchy)
-            {
-                activeDrones.RemoveAt(i);
-            }
-        }
-    }
-
     public void ForceHostileFromSecuritySabotage(FieldBaseSecurityNode disabledNode)
     {
         string sourceName = disabledNode != null ? disabledNode.NodeName : "전력 장치";
@@ -1009,14 +884,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
             if (hit == null)
             {
-                continue;
-            }
-
-            ShopProjectile shopProjectile = hit.GetComponentInParent<ShopProjectile>();
-
-            if (shopProjectile != null)
-            {
-                shopProjectile.ReleaseSelf();
                 continue;
             }
 
@@ -1332,17 +1199,6 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         return playerHealth != null ? playerHealth.gameObject : null;
     }
 
-    private static Vector2 Rotate(Vector2 vector, float angle)
-    {
-        float rad = angle * Mathf.Deg2Rad;
-        float cos = Mathf.Cos(rad);
-        float sin = Mathf.Sin(rad);
-
-        return new Vector2(
-            vector.x * cos - vector.y * sin,
-            vector.x * sin + vector.y * cos
-        ).normalized;
-    }
 
     private void OnDrawGizmosSelected()
     {

@@ -33,6 +33,12 @@ public class GungeonStyleCamera2D : MonoBehaviour
     [SerializeField] private Rigidbody2D playerRb;
     [SerializeField] private float moveBiasStrength = 0.08f;
     [SerializeField] private float maxMoveBias = 0.15f;
+    [Min(0f)]
+    [SerializeField] private float moveBiasAcceleration = 10f;
+    [Min(0f)]
+    [SerializeField] private float moveBiasDeceleration = 5.5f;
+    [Min(0f)]
+    [SerializeField] private float moveBiasVelocityDeadZone = 0.08f;
 
     [Header("Camera Shake")]
     [SerializeField] private bool enableCameraShake = true;
@@ -43,10 +49,14 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     [Header("Pixel Perfect Stabilization")]
     [SerializeField] private bool snapOffsetToPixelGrid = true;
+    [SerializeField] private bool snapOnlyWhenSettled = true;
+    [Min(0f)]
+    [SerializeField] private float pixelSnapSettleDistance = 0.015f;
     [SerializeField] private int assetsPixelsPerUnit = 32;
 
     private CinemachineFollow follow;
     private Vector3 currentOffset;
+    private Vector2 currentMoveBias;
     private float runtimeAimOffsetMultiplier = 1f;
     private float runtimeMouseDistanceMultiplier = 1f;
 
@@ -84,6 +94,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
     private void OnDisable()
     {
         cinematicFocusActive = false;
+        currentMoveBias = Vector2.zero;
 
         if (Instance == this)
         {
@@ -135,7 +146,12 @@ public class GungeonStyleCamera2D : MonoBehaviour
         Vector2 shakeOffset = EvaluateShakeOffset();
         Vector3 outputOffset = currentOffset + new Vector3(shakeOffset.x, shakeOffset.y, 0f);
 
-        if (snapOffsetToPixelGrid)
+        bool offsetSettled = (currentOffset - targetOffset).sqrMagnitude <=
+                             pixelSnapSettleDistance * pixelSnapSettleDistance;
+        bool canSnap = snapOffsetToPixelGrid &&
+                       (!snapOnlyWhenSettled || (offsetSettled && shakeRemaining <= 0f));
+
+        if (canSnap)
         {
             outputOffset.x = SnapToPixelGrid(outputOffset.x);
             outputOffset.y = SnapToPixelGrid(outputOffset.y);
@@ -165,6 +181,12 @@ public class GungeonStyleCamera2D : MonoBehaviour
     public void AddShake(float amplitude, float duration)
     {
         if (!enableCameraShake || amplitude <= 0f || duration <= 0f)
+        {
+            return;
+        }
+
+        amplitude *= GameSettingsRuntime.CameraShakeMultiplier;
+        if (amplitude <= 0.0001f)
         {
             return;
         }
@@ -292,20 +314,40 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     private Vector2 GetMoveBiasOffset()
     {
-        if (playerRb == null)
+        Vector2 targetBias = Vector2.zero;
+
+        if (playerRb != null)
         {
-            return Vector2.zero;
+            Vector2 velocity = playerRb.linearVelocity;
+            float deadZone = Mathf.Max(0f, moveBiasVelocityDeadZone);
+
+            if (velocity.sqrMagnitude > deadZone * deadZone)
+            {
+                Vector2 bias = velocity.normalized * moveBiasStrength;
+                targetBias = Vector2.ClampMagnitude(bias, maxMoveBias);
+            }
         }
 
-        Vector2 velocity = playerRb.linearVelocity;
+        bool increasing = targetBias.sqrMagnitude > currentMoveBias.sqrMagnitude;
+        float smoothSpeed = increasing
+            ? Mathf.Max(0f, moveBiasAcceleration)
+            : Mathf.Max(0f, moveBiasDeceleration);
 
-        if (velocity.sqrMagnitude <= 0.001f)
+        if (smoothSpeed <= 0f)
         {
-            return Vector2.zero;
+            currentMoveBias = targetBias;
+            return currentMoveBias;
         }
 
-        Vector2 bias = velocity.normalized * moveBiasStrength;
-        return Vector2.ClampMagnitude(bias, maxMoveBias);
+        float t = 1f - Mathf.Exp(-smoothSpeed * Time.unscaledDeltaTime);
+        currentMoveBias = Vector2.Lerp(currentMoveBias, targetBias, t);
+
+        if (targetBias == Vector2.zero && currentMoveBias.sqrMagnitude <= 0.000001f)
+        {
+            currentMoveBias = Vector2.zero;
+        }
+
+        return currentMoveBias;
     }
 
     private Vector2 EvaluateShakeOffset()

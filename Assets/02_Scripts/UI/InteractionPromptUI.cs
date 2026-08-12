@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -27,8 +28,24 @@ public class InteractionPromptUI : MonoBehaviour
     [SerializeField] private Camera uiCamera;
 
     [Header("Display")]
-    [SerializeField] private string prefix = "E";
+    [SerializeField] private string prefix = "F";
     [SerializeField] private string fallbackPrompt = "상호작용";
+
+    [Header("Dynamic Input Labels")]
+    [SerializeField] private InputActionAsset inputActions;
+    [SerializeField] private string playerActionMapName = "Player";
+    [SerializeField] private string interactActionName = "Interact";
+    [SerializeField] private string dismantleActionName = "Dismantle";
+
+    [Header("Field Loot Detail Card Optional")]
+    [SerializeField] private GameObject lootDetailRoot;
+    [SerializeField] private Image lootIconImage;
+    [SerializeField] private TextMeshProUGUI lootNameText;
+    [SerializeField] private TextMeshProUGUI lootCategoryText;
+    [SerializeField] private TextMeshProUGUI lootRarityText;
+    [SerializeField] private TextMeshProUGUI lootDescriptionText;
+    [SerializeField] private TextMeshProUGUI lootPrimaryActionText;
+    [SerializeField] private TextMeshProUGUI lootDismantleActionText;
 
     [Header("Auto Anchor")]
     [Tooltip("켜면 대상의 SpriteRenderer/Renderer/Collider2D 크기를 보고 자동으로 위쪽 중앙에 프롬프트를 띄웁니다.")]
@@ -109,7 +126,9 @@ public class InteractionPromptUI : MonoBehaviour
             playerInteractor = FindFirstObjectByType<PlayerInteractor>();
         }
 
+        ResolveInputActions();
         SetVisible(false);
+        SetLootDetailVisible(false);
         SetProgressVisible(false, 0f);
     }
 
@@ -132,6 +151,7 @@ public class InteractionPromptUI : MonoBehaviour
         CoreObject.ActivationProgressChanged += HandleCoreActivationProgressChanged;
         ReinforcementPickup.DismantleProgressChanged += HandleReinforcementDismantleProgressChanged;
         TraitPickup.DismantleProgressChanged += HandleTraitDismantleProgressChanged;
+        InputSystem.onActionChange += HandleInputActionChange;
     }
 
     private void OnDisable()
@@ -145,11 +165,13 @@ public class InteractionPromptUI : MonoBehaviour
         CoreObject.ActivationProgressChanged -= HandleCoreActivationProgressChanged;
         ReinforcementPickup.DismantleProgressChanged -= HandleReinforcementDismantleProgressChanged;
         TraitPickup.DismantleProgressChanged -= HandleTraitDismantleProgressChanged;
+        InputSystem.onActionChange -= HandleInputActionChange;
 
         forcedCoreTarget = null;
         forcedProgressTarget = null;
         ClearTarget();
         SetVisible(false);
+        SetLootDetailVisible(false);
         SetProgressVisible(false, 0f);
     }
 
@@ -410,7 +432,27 @@ public class InteractionPromptUI : MonoBehaviour
 
     private void RefreshPromptText(IInteractable target)
     {
-        if (promptText == null || target == null)
+        if (target == null)
+        {
+            SetLootDetailVisible(false);
+            return;
+        }
+
+        if (target is ReinforcementPickup reinforcementPickup)
+        {
+            RefreshReinforcementDetail(reinforcementPickup);
+            return;
+        }
+
+        if (target is TraitPickup traitPickup)
+        {
+            RefreshTraitDetail(traitPickup);
+            return;
+        }
+
+        SetLootDetailVisible(false);
+
+        if (promptText == null)
         {
             return;
         }
@@ -418,14 +460,179 @@ public class InteractionPromptUI : MonoBehaviour
         string interactionText = string.IsNullOrWhiteSpace(target.InteractionText)
             ? fallbackPrompt
             : target.InteractionText;
+        promptText.text = $"[{ResolveInteractKeyText()}] {interactionText}";
+    }
 
-        if (target is ReinforcementPickup || target is TraitPickup)
+    private void RefreshReinforcementDetail(ReinforcementPickup pickup)
+    {
+        ReinforcementDefinition definition = pickup != null ? pickup.ReinforcementDefinition : null;
+
+        if (definition == null)
         {
-            promptText.text = interactionText;
+            SetLootDetailVisible(false);
             return;
         }
 
-        promptText.text = $"{prefix}  {interactionText}";
+        SetLootDetailVisible(true);
+        SetLootIcon(definition.Icon);
+        SetText(lootNameText, definition.DisplayName);
+        SetText(lootCategoryText, definition.GetUseTypeText());
+        SetText(lootRarityText, definition.GetRarityText(), definition.GetRarityColor());
+        SetText(lootDescriptionText, BuildLootDescription(definition.Description, definition.BuildEffectSummary()));
+        SetText(lootPrimaryActionText, $"[{ResolveInteractKeyText()}] 교체/획득");
+        SetText(lootDismantleActionText, $"[{ResolveDismantleKeyText()} 유지] 분해");
+
+        if (promptText != null)
+        {
+            promptText.text = string.Empty;
+        }
+    }
+
+    private void RefreshTraitDetail(TraitPickup pickup)
+    {
+        TraitDefinition definition = pickup != null ? pickup.TraitDefinition : null;
+
+        if (definition == null)
+        {
+            SetLootDetailVisible(false);
+            return;
+        }
+
+        int currentLevel = RunRuntimeTraitStore.Instance != null
+            ? RunRuntimeTraitStore.Instance.GetLevel(definition.TraitId)
+            : 0;
+        string levelText = currentLevel > 0
+            ? $"{definition.GetCategoryText()} · Lv.{currentLevel}/{definition.MaxLevel}"
+            : definition.GetCategoryText();
+
+        SetLootDetailVisible(true);
+        SetLootIcon(definition.Icon);
+        SetText(lootNameText, definition.DisplayName);
+        SetText(lootCategoryText, levelText);
+        SetText(lootRarityText, definition.GetRarityText(), definition.GetRarityColor());
+        SetText(lootDescriptionText, definition.Description);
+        SetText(lootPrimaryActionText, $"[{ResolveInteractKeyText()}] {(currentLevel > 0 ? "강화" : "획득")}");
+        SetText(lootDismantleActionText, $"[{ResolveDismantleKeyText()} 유지] 분해");
+
+        if (promptText != null)
+        {
+            promptText.text = string.Empty;
+        }
+    }
+
+    private void ResolveInputActions()
+    {
+        if (inputActions != null)
+        {
+            return;
+        }
+
+        if (playerInteractor == null)
+        {
+            playerInteractor = FindFirstObjectByType<PlayerInteractor>();
+        }
+
+        if (playerInteractor != null && playerInteractor.InputActions != null)
+        {
+            inputActions = playerInteractor.InputActions;
+            playerActionMapName = playerInteractor.ActionMapName;
+            interactActionName = playerInteractor.InteractActionName;
+            InputBindingPersistence.LoadOnce(inputActions);
+            return;
+        }
+
+        PlayerController2D controller = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
+
+        if (controller != null && controller.InputActions != null)
+        {
+            inputActions = controller.InputActions;
+            playerActionMapName = controller.ActionMapName;
+            InputBindingPersistence.LoadOnce(inputActions);
+        }
+    }
+
+    private void HandleInputActionChange(object changedObject, InputActionChange change)
+    {
+        if (change != InputActionChange.BoundControlsChanged || currentTarget == null)
+        {
+            return;
+        }
+
+        RefreshPromptText(currentTarget);
+    }
+
+    private string ResolveInteractKeyText()
+    {
+        ResolveInputActions();
+        return InputBindingUtility.GetDisplayString(
+            inputActions,
+            playerActionMapName,
+            interactActionName,
+            string.IsNullOrWhiteSpace(prefix) ? "F" : prefix
+        );
+    }
+
+    private string ResolveDismantleKeyText()
+    {
+        ResolveInputActions();
+        return InputBindingUtility.GetDisplayString(
+            inputActions,
+            playerActionMapName,
+            dismantleActionName,
+            "G"
+        );
+    }
+
+    private static string BuildLootDescription(string description, string effectSummary)
+    {
+        if (string.IsNullOrWhiteSpace(effectSummary))
+        {
+            return description;
+        }
+
+        if (string.IsNullOrWhiteSpace(description) || description.Contains(effectSummary))
+        {
+            return string.IsNullOrWhiteSpace(description) ? effectSummary : description;
+        }
+
+        return $"{description}\n{effectSummary}";
+    }
+
+    private void SetLootIcon(Sprite sprite)
+    {
+        if (lootIconImage == null)
+        {
+            return;
+        }
+
+        lootIconImage.sprite = sprite;
+        lootIconImage.enabled = sprite != null;
+        lootIconImage.preserveAspect = true;
+    }
+
+    private void SetLootDetailVisible(bool visible)
+    {
+        if (lootDetailRoot != null && lootDetailRoot.activeSelf != visible)
+        {
+            lootDetailRoot.SetActive(visible);
+        }
+    }
+
+    private static void SetText(TextMeshProUGUI target, string value)
+    {
+        if (target != null)
+        {
+            target.text = value ?? string.Empty;
+        }
+    }
+
+    private static void SetText(TextMeshProUGUI target, string value, Color color)
+    {
+        if (target != null)
+        {
+            target.text = value ?? string.Empty;
+            target.color = color;
+        }
     }
 
     private void FollowTarget()
@@ -700,6 +907,7 @@ public class InteractionPromptUI : MonoBehaviour
 
     private void ClearTarget()
     {
+        SetLootDetailVisible(false);
         currentTarget = null;
         currentTargetComponent = null;
         currentTargetTransform = null;
@@ -708,6 +916,11 @@ public class InteractionPromptUI : MonoBehaviour
 
     public void SetVisible(bool visible)
     {
+        if (!visible)
+        {
+            SetLootDetailVisible(false);
+        }
+
         if (rootObject != null && !rootObject.activeSelf)
         {
             rootObject.SetActive(true);

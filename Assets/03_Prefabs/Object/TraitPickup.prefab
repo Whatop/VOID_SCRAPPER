@@ -262,6 +262,10 @@ MonoBehaviour:
   bubbleRenderer: {fileID: 8447119736772496800}
   fallbackSprite: {fileID: 0}
   traitBubbleColor: {r: 0.35, g: 0.75, b: 1, a: 1}
+  inputActions: {fileID: -944628639613478452, guid: 99f22a85a3f432e418ee7d4a8d4a77ce, type: 3}
+  playerActionMapName: Player
+  interactActionName: Interact
+  dismantleActionName: Dismantle
   acquireText: "\uD68D\uB4DD"
   acquireBlockedText: "\uBCF4\uC720\uC911"
   dismantleText: "\uBD84\uD574"

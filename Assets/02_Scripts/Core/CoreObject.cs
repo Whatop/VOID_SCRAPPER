@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public class CoreObject : MonoBehaviour, IInteractable
@@ -44,12 +45,21 @@ public class CoreObject : MonoBehaviour, IInteractable
     [SerializeField] private float alertRadius = 18f;
     [SerializeField] private LayerMask enemyLayer;
 
-    [Header("Objective Gate")]
-    [Tooltip("고가치 목표 신호를 모으기 전에는 코어를 사용할 수 없습니다.")]
+    [Header("Objective / Location Reveal")]
+    [Tooltip("기존 프리팹 호환 필드입니다. 켜져 있으면 코어 추적 신호 시스템을 사용합니다.")]
     [SerializeField] private bool requireObjectiveSignals = true;
+    [Tooltip("켜면 신호 2개는 코어 사용 해금이 아니라 지도/레이더 위치 공개 조건으로만 사용합니다.")]
+    [SerializeField] private bool objectiveSignalsRevealLocationOnly = true;
+    [Tooltip("코어 위치 공개 전 월드 외형을 숨깁니다. 직접 근접 발견 시 즉시 나타납니다.")]
     [SerializeField] private bool hideUntilCoreRevealed = true;
     [SerializeField] private bool failOpenWithoutActiveRun = true;
     [SerializeField] private string lockedInteractionText = "코어 추적 신호가 부족합니다";
+
+    [Header("Direct Core Discovery")]
+    [SerializeField] private bool allowDirectWorldDiscovery = true;
+    [SerializeField, Min(0.1f)] private float directDiscoveryRadius = 5f;
+    [SerializeField] private bool showDirectDiscoveryMessage = true;
+    [SerializeField] private string directDiscoveryMessage = "구획 제어 코어를 발견했습니다.";
 
     [Header("State")]
     [Tooltip("활성화 후 방전된 코어 외형을 남깁니다. 켜져 있으면 기존 Destroy/Hide 옵션보다 우선합니다.")]
@@ -71,10 +81,15 @@ public class CoreObject : MonoBehaviour, IInteractable
     private GameObject spawnedBoss;
 
     private ExpeditionObjectiveDirector objectiveDirector;
+    private Transform directDiscoveryPlayer;
+    private bool directLocationDiscovered;
     private Collider2D[] objectiveGateColliders;
     private Renderer[] objectiveGateRenderers;
     private bool[] objectiveGateColliderStates;
     private bool[] objectiveGateRendererStates;
+
+    public bool IsLocationRevealed => IsCoreLocationRevealed();
+    public bool IsInteractionUnlocked => IsObjectiveGateSatisfied();
 
     public string InteractionText
     {
@@ -136,6 +151,11 @@ public class CoreObject : MonoBehaviour, IInteractable
     {
         BindObjectiveDirector();
         ApplyObjectiveGateState();
+    }
+
+    private void Update()
+    {
+        TryDirectWorldDiscovery();
     }
 
     private void OnDisable()
@@ -246,7 +266,7 @@ public class CoreObject : MonoBehaviour, IInteractable
 
                 if (radarTarget != null)
                 {
-                    radarTarget.SetVisible(true);
+                    radarTarget.SetVisible(IsCoreLocationRevealed());
                 }
 
                 ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
@@ -643,12 +663,13 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     private void HandleCoreRevealed()
     {
+        MarkCoreLocationDiscovered(false);
         ApplyObjectiveGateState();
     }
 
     private bool IsObjectiveGateSatisfied()
     {
-        if (!requireObjectiveSignals)
+        if (!requireObjectiveSignals || objectiveSignalsRevealLocationOnly)
         {
             return true;
         }
@@ -666,6 +687,77 @@ public class CoreObject : MonoBehaviour, IInteractable
         return objectiveDirector != null && objectiveDirector.CoreRevealed;
     }
 
+    private bool IsCoreLocationRevealed()
+    {
+        if (!requireObjectiveSignals)
+        {
+            return true;
+        }
+
+        if (directLocationDiscovered)
+        {
+            return true;
+        }
+
+        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
+        {
+            return failOpenWithoutActiveRun;
+        }
+
+        if (objectiveDirector == null)
+        {
+            objectiveDirector = ExpeditionObjectiveDirector.Instance;
+        }
+
+        return objectiveDirector != null && objectiveDirector.CoreRevealed;
+    }
+
+    private void TryDirectWorldDiscovery()
+    {
+        if (!Application.isPlaying || activated || directLocationDiscovered || !allowDirectWorldDiscovery)
+        {
+            return;
+        }
+
+        if (directDiscoveryPlayer == null)
+        {
+            PlayerController2D playerController = FindFirstObjectByType<PlayerController2D>();
+            directDiscoveryPlayer = playerController != null ? playerController.transform : null;
+        }
+
+        if (directDiscoveryPlayer == null)
+        {
+            return;
+        }
+
+        float radius = Mathf.Max(0.1f, directDiscoveryRadius);
+        if (((Vector2)directDiscoveryPlayer.position - (Vector2)transform.position).sqrMagnitude <= radius * radius)
+        {
+            MarkCoreLocationDiscovered(true);
+        }
+    }
+
+    public void MarkCoreLocationDiscovered(bool notifyPlayer = true)
+    {
+        bool wasRevealed = IsCoreLocationRevealed();
+        directLocationDiscovered = true;
+
+        if (radarTarget != null)
+        {
+            radarTarget.SetMapDiscovered(true);
+            MapDiscoveryController.Instance?.DiscoverTarget(radarTarget, true);
+        }
+
+        ApplyObjectiveGateState();
+
+        if (!wasRevealed && notifyPlayer && showDirectDiscoveryMessage)
+        {
+            ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+            hud?.ShowWarning(directDiscoveryMessage);
+            AudioManager.Play(SoundEventIds.UiUnlock);
+        }
+    }
+
     private void ApplyObjectiveGateState()
     {
         if (activated)
@@ -673,7 +765,8 @@ public class CoreObject : MonoBehaviour, IInteractable
             return;
         }
 
-        bool available = IsObjectiveGateSatisfied();
+        bool interactionAvailable = IsObjectiveGateSatisfied();
+        bool locationRevealed = IsCoreLocationRevealed();
 
         if (objectiveGateColliders == null || objectiveGateRendererStates == null)
         {
@@ -691,12 +784,12 @@ public class CoreObject : MonoBehaviour, IInteractable
                     bool original = objectiveGateColliderStates != null && i < objectiveGateColliderStates.Length
                         ? objectiveGateColliderStates[i]
                         : true;
-                    target.enabled = available && original;
+                    target.enabled = interactionAvailable && original;
                 }
             }
         }
 
-        if (hideUntilCoreRevealed && objectiveGateRenderers != null)
+        if (objectiveGateRenderers != null)
         {
             for (int i = 0; i < objectiveGateRenderers.Length; i++)
             {
@@ -707,14 +800,20 @@ public class CoreObject : MonoBehaviour, IInteractable
                     bool original = objectiveGateRendererStates != null && i < objectiveGateRendererStates.Length
                         ? objectiveGateRendererStates[i]
                         : true;
-                    target.enabled = available && original;
+                    target.enabled = (!hideUntilCoreRevealed || locationRevealed) && original;
                 }
             }
         }
 
         if (radarTarget != null)
         {
-            radarTarget.SetVisible(available);
+            radarTarget.SetVisible(locationRevealed);
+
+            if (locationRevealed)
+            {
+                radarTarget.SetMapDiscovered(true);
+                MapDiscoveryController.Instance?.DiscoverTarget(radarTarget, false);
+            }
         }
     }
 

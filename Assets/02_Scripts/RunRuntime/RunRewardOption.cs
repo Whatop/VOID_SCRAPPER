@@ -684,25 +684,15 @@ public static class RunRewardChoiceApplier
             return new RunRewardChoiceResult(false, option, 0);
         }
 
-        RunRuntimeTraitStore store = RunRuntimeTraitStore.Instance;
-        int previousLevel = store.GetLevel(trait.TraitId);
-        int newLevel = store.AddOrUpgrade(trait);
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
 
-        if (newLevel <= previousLevel)
+        if (!RunTraitAcquisitionService.TryAcquire(
+                trait,
+                playerObject,
+                out int previousLevel,
+                out int newLevel))
         {
             return new RunRewardChoiceResult(false, option, previousLevel);
-        }
-
-        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
-        {
-            RunManager.Instance.CurrentRun.AddTrait(trait.TraitId);
-        }
-
-        RunTraitEffectApplier applier = UnityEngine.Object.FindFirstObjectByType<RunTraitEffectApplier>();
-
-        if (applier != null)
-        {
-            applier.ApplyTraitLevel(trait, newLevel);
         }
 
         AudioManager.Play(SoundEventIds.TraitSelect);

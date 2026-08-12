@@ -37,12 +37,14 @@ public class Bullet : MonoBehaviour
     [SerializeField] private bool assignProjectileLayerByOwner = true;
     [SerializeField] private string playerProjectileLayerName = "PlayerProjectile";
     [SerializeField] private string enemyProjectileLayerName = "EnemyProjectile";
-    [Tooltip("전용 ShopProjectile 레이어를 만들지 않으면 PlayerProjectile을 사용하세요. 적과 충돌하고 플레이어와는 충돌하지 않는 설정을 재사용합니다.")]
+    [Tooltip("상점 방어탄 전용 레이어가 없다면 PlayerProjectile을 사용합니다. 적과 충돌하고 플레이어와는 충돌하지 않는 설정을 재사용합니다.")]
     [SerializeField] private string shopDefenseProjectileLayerName = "PlayerProjectile";
     [SerializeField] private bool applyOwnerLayerToColliderChildren = true;
 
-    [Header("Impact VFX")]
+    [Header("Fallback Impact VFX")]
+    [Tooltip("ProjectileDefinition에 Impact VFX가 없을 때만 사용하는 기존 프리팹용 fallback입니다.")]
     [SerializeField] private GameObject impactEffectPrefab;
+    [Min(0.01f)]
     [SerializeField] private float impactEffectLifeTime = 0.18f;
     [SerializeField] private bool rotateImpactEffectToBullet = true;
 
@@ -84,6 +86,11 @@ public class Bullet : MonoBehaviour
     private int radialSplitCount;
     private float radialSplitAngleOffset;
     private bool releaseParentOnSplit;
+
+    private GameObject runtimeImpactEffectPrefab;
+    private float runtimeImpactEffectLifeTime;
+    private bool runtimeRotateImpactEffect;
+    private Vector2 impactPosition;
 
     private readonly HashSet<int> damagedTargets = new HashSet<int>();
 
@@ -220,6 +227,16 @@ public class Bullet : MonoBehaviour
             useHoming = projectileDefinition.UseHoming;
             homingAngle = projectileDefinition.HomingAngle;
             homingRange = projectileDefinition.HomingRange;
+
+            runtimeImpactEffectPrefab = projectileDefinition.ImpactEffectPrefab != null
+                ? projectileDefinition.ImpactEffectPrefab
+                : impactEffectPrefab;
+            runtimeImpactEffectLifeTime = projectileDefinition.ImpactEffectPrefab != null
+                ? projectileDefinition.ImpactEffectLifeTime
+                : Mathf.Max(0.01f, impactEffectLifeTime);
+            runtimeRotateImpactEffect = projectileDefinition.ImpactEffectPrefab != null
+                ? projectileDefinition.RotateImpactEffectToProjectile
+                : rotateImpactEffectToBullet;
         }
         else
         {
@@ -232,6 +249,10 @@ public class Bullet : MonoBehaviour
             useHoming = false;
             homingAngle = 0f;
             homingRange = 0f;
+
+            runtimeImpactEffectPrefab = impactEffectPrefab;
+            runtimeImpactEffectLifeTime = Mathf.Max(0.01f, impactEffectLifeTime);
+            runtimeRotateImpactEffect = rotateImpactEffectToBullet;
         }
 
         if (damageOverride >= 0f)
@@ -351,6 +372,12 @@ public class Bullet : MonoBehaviour
         destroyHighValueWreckOnHit = false;
         destroyDestroyedHullOnHit = false;
         harvestObjectDamageMultiplier = 1f;
+
+        runtimeImpactEffectPrefab = impactEffectPrefab;
+        runtimeImpactEffectLifeTime = Mathf.Max(0.01f, impactEffectLifeTime);
+        runtimeRotateImpactEffect = rotateImpactEffectToBullet;
+        impactPosition = transform.position;
+
         damagedTargets.Clear();
         ClearSpecialMotion();
 
@@ -550,6 +577,7 @@ public class Bullet : MonoBehaviour
         }
 
         Vector2 hitPoint = ResolveHitPoint(other);
+        impactPosition = hitPoint;
 
         if (owner == ProjectileOwner.Player || owner == ProjectileOwner.ShopDefense)
         {
@@ -593,6 +621,14 @@ public class Bullet : MonoBehaviour
 
                 return;
             }
+        }
+
+        FieldBaseLaserGate laserGate = other.GetComponentInParent<FieldBaseLaserGate>();
+
+        if (laserGate != null && laserGate.ShouldBlockProjectile(owner))
+        {
+            ReleaseSelf(true);
+            return;
         }
 
         if (ShouldBlockAsWorldSolid(other))
@@ -934,6 +970,7 @@ public class Bullet : MonoBehaviour
             : Mathf.CeilToInt(damage);
 
         meteorObstacle.TakeDamage(meteorDamage, hitPoint, moveDirection);
+        SpawnImpactEffect();
 
         if (remainingPierceCount > 0)
         {
@@ -941,7 +978,7 @@ public class Bullet : MonoBehaviour
             return;
         }
 
-        ReleaseSelf(true);
+        ReleaseSelf(false);
     }
 
     private bool TryApplyDamageToTarget(Component targetComponent, Action<float> damageAction)
@@ -960,6 +997,7 @@ public class Bullet : MonoBehaviour
 
         damagedTargets.Add(targetId);
         damageAction.Invoke(damage);
+        SpawnImpactEffect();
 
         if (remainingPierceCount > 0)
         {
@@ -967,37 +1005,40 @@ public class Bullet : MonoBehaviour
             return true;
         }
 
-        ReleaseSelf(true);
+        ReleaseSelf(false);
         return true;
     }
 
     private void SpawnImpactEffect()
     {
-        if (impactEffectPrefab == null)
+        if (runtimeImpactEffectPrefab == null)
         {
             return;
         }
 
-        Quaternion rotation = rotateImpactEffectToBullet
+        Quaternion rotation = runtimeRotateImpactEffect
             ? transform.rotation
             : Quaternion.identity;
 
+        Vector3 spawnPosition = impactPosition;
         GameObject effect = PoolManager.Instance != null
-            ? PoolManager.Instance.Get(impactEffectPrefab, transform.position, rotation)
-            : Instantiate(impactEffectPrefab, transform.position, rotation);
+            ? PoolManager.Instance.Get(runtimeImpactEffectPrefab, spawnPosition, rotation)
+            : Instantiate(runtimeImpactEffectPrefab, spawnPosition, rotation);
 
         if (effect == null)
         {
             return;
         }
 
+        float effectLifeTime = Mathf.Max(0.01f, runtimeImpactEffectLifeTime);
+
         if (PoolManager.Instance != null)
         {
-            PoolManager.Instance.ReleaseAfter(effect, impactEffectLifeTime);
+            PoolManager.Instance.ReleaseAfter(effect, effectLifeTime);
         }
         else
         {
-            Destroy(effect, impactEffectLifeTime);
+            Destroy(effect, effectLifeTime);
         }
     }
 

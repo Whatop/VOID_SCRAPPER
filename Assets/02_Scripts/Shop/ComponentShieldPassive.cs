@@ -135,13 +135,6 @@ public class ComponentShieldPassive : MonoBehaviour
                 continue;
             }
 
-            ShopProjectile shopProjectile = hit.GetComponentInParent<ShopProjectile>();
-            if (shopProjectile != null)
-            {
-                shopProjectile.ReleaseSelf();
-                continue;
-            }
-
             Bullet bullet = hit.GetComponentInParent<Bullet>();
             if (bullet != null && bullet.Owner == ProjectileOwner.Enemy)
             {

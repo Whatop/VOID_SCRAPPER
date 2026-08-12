@@ -108,7 +108,7 @@ public class RunTraitEffectApplier : MonoBehaviour
 
         if (logAppliedTraits)
         {
-            Debug.Log($" Ư : {trait.DisplayName} Lv{level}", this);
+            Debug.Log($"특성 효과 적용: {trait.DisplayName} Lv{level}", this);
         }
     }
 
@@ -340,7 +340,7 @@ public class RunTraitEffectApplier : MonoBehaviour
             case TraitEffectType.ChargeSightBonusPercent:
             case TraitEffectType.ChargedProjectileSizePercent:
             case TraitEffectType.RemovePierceDamageFalloff:
-                Debug.LogWarning($" Ÿ    Ư ȿԴϴ: {effectType}", this);
+                Debug.LogWarning($"현재 콘텐츠에서 사용하지 않는 예약 특성 효과입니다: {effectType}", this);
                 break;
         }
     }

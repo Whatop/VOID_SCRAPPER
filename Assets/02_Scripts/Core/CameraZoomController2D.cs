@@ -33,6 +33,8 @@ public class CameraZoomController2D : MonoBehaviour
     private bool pixelPerfectScanDone;
     private bool pixelPerfectOverridden;
     private bool cinematicTransitionActive;
+    private int cinematicZoomHoldCount;
+    private float cinematicZoomHoldMultiplier = 1f;
 
     public float BaseOrthographicSize => baseOrthographicSize;
     public float TargetZoomMultiplier => targetZoomMultiplier;
@@ -41,6 +43,7 @@ public class CameraZoomController2D : MonoBehaviour
         ? 1f
         : ResolveCurrentOrthographicSize() / baseOrthographicSize;
     public bool IsCinematicTransitionActive => cinematicTransitionActive;
+    public bool IsCinematicZoomHeld => cinematicZoomHoldCount > 0;
     public bool IsAtBaseZoom => Mathf.Abs(CurrentZoomMultiplier - 1f) <= Mathf.Max(0.0001f, baseZoomTolerance);
 
     public bool HasCinemachineCamera
@@ -74,6 +77,11 @@ public class CameraZoomController2D : MonoBehaviour
 
         ResolveReferences();
 
+        if (IsCinematicZoomHeld)
+        {
+            targetZoomMultiplier = cinematicZoomHoldMultiplier;
+        }
+
         float currentMultiplier = CurrentZoomMultiplier;
         bool zoomedOut =
             cinematicTransitionActive ||
@@ -100,12 +108,16 @@ public class CameraZoomController2D : MonoBehaviour
     private void OnDisable()
     {
         cinematicTransitionActive = false;
+        cinematicZoomHoldCount = 0;
+        cinematicZoomHoldMultiplier = 1f;
         RestorePixelPerfectComponents();
     }
 
     private void OnDestroy()
     {
         cinematicTransitionActive = false;
+        cinematicZoomHoldCount = 0;
+        cinematicZoomHoldMultiplier = 1f;
         RestorePixelPerfectComponents();
     }
 
@@ -132,6 +144,13 @@ public class CameraZoomController2D : MonoBehaviour
     {
         ResolveReferences();
 
+        if (IsCinematicZoomHeld)
+        {
+            targetZoomMultiplier = cinematicZoomHoldMultiplier;
+            ApplyZoom(true);
+            return;
+        }
+
         targetZoomMultiplier = Mathf.Max(0.1f, multiplier);
 
         if (targetZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold) ||
@@ -157,6 +176,13 @@ public class CameraZoomController2D : MonoBehaviour
 
     public void ResetZoom(bool immediate)
     {
+        if (IsCinematicZoomHeld)
+        {
+            targetZoomMultiplier = cinematicZoomHoldMultiplier;
+            ApplyZoom(true);
+            return;
+        }
+
         targetZoomMultiplier = 1f;
         ApplyZoom(immediate);
 
@@ -164,6 +190,71 @@ public class CameraZoomController2D : MonoBehaviour
         {
             RestorePixelPerfectComponents();
         }
+    }
+
+
+    /// <summary>
+    /// 보스 인트로처럼 여러 시스템이 같은 카메라 줌을 공유할 때 외부 ResetZoom 호출로
+    /// 줌이 갑자기 원상복귀하지 않도록 현재 배율을 잠급니다.
+    /// </summary>
+    public void BeginCinematicZoomHold(float multiplier)
+    {
+        cinematicZoomHoldCount++;
+        cinematicZoomHoldMultiplier = Mathf.Max(0.1f, multiplier);
+        targetZoomMultiplier = cinematicZoomHoldMultiplier;
+        cinematicTransitionActive = false;
+
+        if (cinematicZoomHoldMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold))
+        {
+            DisablePixelPerfectComponents();
+        }
+
+        ApplyZoom(true);
+    }
+
+    public void EndCinematicZoomHold(bool keepCurrentZoom = true)
+    {
+        if (cinematicZoomHoldCount <= 0)
+        {
+            return;
+        }
+
+        cinematicZoomHoldCount--;
+
+        if (cinematicZoomHoldCount > 0)
+        {
+            return;
+        }
+
+        if (keepCurrentZoom)
+        {
+            targetZoomMultiplier = CurrentZoomMultiplier;
+        }
+        else
+        {
+            targetZoomMultiplier = 1f;
+            ApplyZoom(true);
+        }
+
+        TryRestorePixelPerfectAtBase();
+    }
+
+    public void ClearCinematicZoomHold(bool restoreBaseZoom)
+    {
+        cinematicZoomHoldCount = 0;
+        cinematicZoomHoldMultiplier = 1f;
+
+        if (restoreBaseZoom)
+        {
+            targetZoomMultiplier = 1f;
+            ApplyZoom(true);
+        }
+        else
+        {
+            targetZoomMultiplier = CurrentZoomMultiplier;
+        }
+
+        TryRestorePixelPerfectAtBase();
     }
 
     public IEnumerator AnimateZoomMultiplier(
@@ -234,9 +325,14 @@ public class CameraZoomController2D : MonoBehaviour
     {
         cinematicTransitionActive = false;
 
-        if (restoreBaseZoom)
+        if (restoreBaseZoom && !IsCinematicZoomHeld)
         {
             targetZoomMultiplier = 1f;
+            ApplyZoom(true);
+        }
+        else if (IsCinematicZoomHeld)
+        {
+            targetZoomMultiplier = cinematicZoomHoldMultiplier;
             ApplyZoom(true);
         }
 

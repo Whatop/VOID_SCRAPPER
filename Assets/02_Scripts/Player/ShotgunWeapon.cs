@@ -11,6 +11,14 @@ public class ShotgunWeapon : PlayerWeaponBase
     [SerializeField] private float fallbackSpreadAngle = 40f;
     [SerializeField] private int fallbackPierceCount = 0;
 
+    [Header("Player Spread Feel")]
+    [SerializeField] private bool useCenterWeightedSpread = true;
+    [Range(1f, 3f)]
+    [SerializeField] private float centerWeightExponent = 1.55f;
+    [Min(0f)]
+    [SerializeField] private float randomAngleJitter = 1.25f;
+    [SerializeField] private Vector2 projectileSpeedMultiplierRange = new Vector2(0.96f, 1.04f);
+
     private float nextFireTime;
 
     public override void OnEquip()
@@ -45,20 +53,21 @@ public class ShotgunWeapon : PlayerWeaponBase
         float baseRange = GetProjectileRange(fallbackRange);
         int basePierce = GetProjectilePierceCount(fallbackPierceCount);
 
-        float startAngle = -spreadAngle * 0.5f;
-        float angleStep = projectileCount > 1 ? spreadAngle / (projectileCount - 1) : 0f;
-
         bool firedAny = false;
 
         for (int i = 0; i < projectileCount; i++)
         {
-            float currentAngle = startAngle + (angleStep * i);
+            float currentAngle = ResolvePelletAngle(i, projectileCount, spreadAngle);
             Vector2 shotDirection = RotateVector(baseDirection, currentAngle);
+            float speedMultiplier = Random.Range(
+                Mathf.Min(projectileSpeedMultiplierRange.x, projectileSpeedMultiplierRange.y),
+                Mathf.Max(projectileSpeedMultiplierRange.x, projectileSpeedMultiplierRange.y)
+            );
 
             bool fired = SpawnProjectile(
                 shotDirection,
                 baseDamage,
-                baseSpeed,
+                baseSpeed * speedMultiplier,
                 baseRange,
                 basePierce
             );
@@ -77,5 +86,23 @@ public class ShotgunWeapon : PlayerWeaponBase
         RegisterAttack();
         NotifyFired();
         nextFireTime = Time.time + GetFireInterval(fallbackFireInterval);
+    }
+
+
+    private float ResolvePelletAngle(int index, int pelletCount, float spreadAngle)
+    {
+        if (pelletCount <= 1)
+        {
+            return Random.Range(-randomAngleJitter, randomAngleJitter);
+        }
+
+        float normalized = (index + 0.5f) / pelletCount;
+        float centered = normalized * 2f - 1f;
+        float distribution = useCenterWeightedSpread
+            ? Mathf.Sign(centered) * Mathf.Pow(Mathf.Abs(centered), Mathf.Max(1f, centerWeightExponent))
+            : centered;
+
+        float baseAngle = distribution * spreadAngle * 0.5f;
+        return baseAngle + Random.Range(-randomAngleJitter, randomAngleJitter);
     }
 }

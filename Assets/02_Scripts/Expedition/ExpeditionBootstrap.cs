@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ExpeditionBootstrap : MonoBehaviour
@@ -9,14 +9,14 @@ public class ExpeditionBootstrap : MonoBehaviour
     [SerializeField] private PlayerRuntimeStatApplier statApplier;
     [SerializeField] private PlayerReinforcementController reinforcementController;
 
-    [Header("Catalog - Settlement  SO ")]
+    [Header("Catalog - Settlement ScriptableObjects")]
     [SerializeField] private List<ShipDefinition> shipDefinitions = new List<ShipDefinition>();
     [SerializeField] private List<BuildingDefinition> buildingDefinitions = new List<BuildingDefinition>();
 
     [Header("Trait Catalog")]
     [SerializeField] private TraitCatalog traitCatalog;
 
-    [Tooltip(" ν TraitDefinition Ʈ   ")]
+    [Tooltip("켜면 Inspector에 연결한 TraitDefinition 목록도 함께 사용합니다.")]
     [SerializeField] private bool includeInspectorTraitDefinitions = true;
 
     [SerializeField] private List<TraitDefinition> traitDefinitions = new List<TraitDefinition>();
@@ -42,7 +42,7 @@ public class ExpeditionBootstrap : MonoBehaviour
     [SerializeField] private bool setGameStateToExpedition = true;
     [SerializeField] private bool logBootstrapResult = true;
 
-    [Header("Debug - Expedition  ܵ ")]
+    [Header("Debug - Expedition 단독 실행")]
     [SerializeField] private bool createDebugRunWhenMissing = true;
     [SerializeField] private WeaponTreeType debugWeaponTree = WeaponTreeType.MachineGun;
     [SerializeField] private string debugShipId = "basic_ship";
@@ -73,7 +73,7 @@ public class ExpeditionBootstrap : MonoBehaviour
 
         if (statApplier == null)
         {
-            Debug.LogError("PlayerRuntimeStatApplier ã ߽ϴ. Expedition  Player  Ȯϼ.", this);
+            Debug.LogError("PlayerRuntimeStatApplier를 찾지 못했습니다. Expedition 씬의 Player 구성을 확인하세요.", this);
             return;
         }
 
@@ -118,7 +118,7 @@ public class ExpeditionBootstrap : MonoBehaviour
                 : "None";
 
             Debug.Log(
-                $"Expedition Bootstrap Ϸ / Weapon: {weaponText}, Ship: {shipText}, " +
+                $"Expedition Bootstrap 완료 / Weapon: {weaponText}, Ship: {shipText}, " +
                 $"Depth: {depthText}, SeaRegion: {seaRegionText}, Traits: {runtimeTraits.Count}, Reinforcement: {reinforcementText}",
                 this
             );

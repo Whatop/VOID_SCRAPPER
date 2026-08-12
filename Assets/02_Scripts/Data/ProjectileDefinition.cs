@@ -16,6 +16,12 @@ public class ProjectileDefinition : ScriptableObject
     [SerializeField] private float range = 8f;
     [SerializeField] private float lifeTime = 2f;
 
+    [Header("Impact VFX")]
+    [SerializeField] private GameObject impactEffectPrefab;
+    [Min(0.01f)]
+    [SerializeField] private float impactEffectLifeTime = 0.18f;
+    [SerializeField] private bool rotateImpactEffectToProjectile = true;
+
     [Header("Advanced")]
     [SerializeField] private int pierceCount;
     [SerializeField] private bool useHoming;
@@ -30,6 +36,10 @@ public class ProjectileDefinition : ScriptableObject
     public float Speed => speed;
     public float Range => range;
     public float LifeTime => lifeTime;
+
+    public GameObject ImpactEffectPrefab => impactEffectPrefab;
+    public float ImpactEffectLifeTime => Mathf.Max(0.01f, impactEffectLifeTime);
+    public bool RotateImpactEffectToProjectile => rotateImpactEffectToProjectile;
 
     public int PierceCount => pierceCount;
     public bool UseHoming => useHoming;

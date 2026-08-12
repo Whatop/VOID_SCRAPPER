@@ -210,7 +210,7 @@ public abstract class PlayerWeaponBase : MonoBehaviour
 
         if (projectilePrefab == null)
         {
-            Debug.LogWarning($"{name}: Projectile Prefab  ʾҽϴ.", this);
+            Debug.LogWarning($"{name}: Projectile Prefab이 연결되지 않았습니다.", this);
             return false;
         }
 
@@ -238,7 +238,7 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         Bullet bullet = projectileObject.GetComponent<Bullet>();
         if (bullet == null)
         {
-            Debug.LogWarning($"{projectileObject.name} Bullet Ʈ ϴ.", projectileObject);
+            Debug.LogWarning($"{projectileObject.name} 루트에 Bullet 컴포넌트가 없습니다.", projectileObject);
 
             if (PoolManager.Instance != null)
             {

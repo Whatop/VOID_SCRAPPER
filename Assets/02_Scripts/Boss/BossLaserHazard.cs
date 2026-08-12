@@ -231,6 +231,34 @@ public class BossLaserHazard : MonoBehaviour
         playerHealth.TakeDamage(damage);
     }
 
+    public void Deactivate()
+    {
+        if (!gameObject.activeSelf)
+        {
+            return;
+        }
+
+        if (lifetimeRoutine != null)
+        {
+            StopCoroutine(lifetimeRoutine);
+            lifetimeRoutine = null;
+        }
+
+        initialized = false;
+
+        if (boxCollider != null)
+        {
+            boxCollider.enabled = false;
+        }
+
+        if (lineRenderer != null)
+        {
+            lineRenderer.enabled = false;
+        }
+
+        ReleaseOrDestroy();
+    }
+
     private void ReleaseOrDestroy()
     {
         if (PoolManager.Instance != null)

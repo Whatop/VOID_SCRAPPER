@@ -11,13 +11,9 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     [Header("References")]
     [SerializeField] private RewardDropper rewardDropper;
 
-    [Header("Hit Effect")]
-    [SerializeField] private GameObject hitEffectPrefab;
-    [SerializeField] private float hitEffectDuration = 0.12f;
-    [SerializeField] private bool useProceduralHitEffectWhenPrefabMissing = true;
-    [SerializeField] private float hitEffectIntensity = 0.9f;
-
     [Header("Camera Shake")]
+    [Tooltip("ProjectileDefinition의 Hit VFX와 함께 짧은 공용 스파크/섬광을 추가합니다.")]
+    [SerializeField] private bool addProceduralHitFeedback = true;
     [SerializeField] private float hitShakeAmplitude = 0.04f;
     [SerializeField] private float hitShakeDuration = 0.065f;
     [SerializeField] private float deathShakeAmplitude = 0.11f;
@@ -29,6 +25,12 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     [SerializeField] private float knockbackDuration = 0.14f;
     [SerializeField] private float knockbackDistanceMultiplier = 1f;
     [SerializeField] private bool clearVelocityDuringKnockback = true;
+
+    [Header("Death Effect")]
+    [SerializeField] private GameObject deathEffectPrefab;
+    [Min(0.01f)]
+    [SerializeField] private float deathEffectLifeTime = 0.45f;
+    [SerializeField] private bool useProceduralDeathEffectWhenPrefabMissing = true;
 
     [Header("Death")]
     [SerializeField] private bool dropRewardOnDeath = true;
@@ -43,6 +45,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
     private Rigidbody2D rb;
     private bool isBoss;
+    private BossPatternController bossPatternController;
     private Coroutine releaseRoutine;
     private Coroutine knockbackRoutine;
 
@@ -65,7 +68,8 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        isBoss = GetComponent<BossPatternController>() != null;
+        bossPatternController = GetComponent<BossPatternController>();
+        isBoss = bossPatternController != null;
 
         if (rewardDropper == null)
         {
@@ -180,6 +184,12 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         }
 
         if (damage <= 0f)
+        {
+            return;
+        }
+
+        if (bossPatternController != null &&
+            bossPatternController.TryAbsorbIncomingDamage(damage, hitPoint, incomingDirection))
         {
             return;
         }
@@ -316,36 +326,39 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
     private void PlayHitFeedback(float damage, Vector2 position, Vector2 incomingDirection)
     {
-        bool customEffectSpawned = SpawnHitEffect(position);
         float typeMultiplier = isBoss ? Mathf.Max(1f, bossFeedbackMultiplier) : 1f;
         float damageScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, damage) / 2f), 0.65f, 1.75f);
 
+        // 피격 VFX는 ProjectileDefinition/Bullet이 공격 종류별로 생성한다.
+        // Health는 카메라 흔들림만 담당해 중복 Hit 이펙트를 방지한다.
         CombatFeedbackManager.PlayHit(
             position,
             incomingDirection,
             isBoss ? CombatFeedbackKind.Boss : CombatFeedbackKind.Enemy,
-            hitEffectIntensity * damageScale * typeMultiplier,
+            Mathf.Clamp(damageScale * typeMultiplier, 0.8f, 2.2f),
             hitShakeAmplitude * damageScale * typeMultiplier,
             hitShakeDuration,
-            useProceduralHitEffectWhenPrefabMissing && !customEffectSpawned
+            addProceduralHitFeedback
         );
     }
 
-    private bool SpawnHitEffect(Vector2 position)
+    private bool SpawnDeathEffect()
     {
-        if (hitEffectPrefab == null)
+        if (deathEffectPrefab == null)
         {
             return false;
         }
 
+        float lifeTime = Mathf.Max(0.01f, deathEffectLifeTime);
+
         if (PoolManager.Instance != null)
         {
-            PoolManager.Instance.SpawnAutoRelease(hitEffectPrefab, position, hitEffectDuration);
+            PoolManager.Instance.SpawnAutoRelease(deathEffectPrefab, transform.position, lifeTime);
         }
         else
         {
-            GameObject effect = Instantiate(hitEffectPrefab, position, Quaternion.identity);
-            Destroy(effect, hitEffectDuration);
+            GameObject effect = Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
+            Destroy(effect, lifeTime);
         }
 
         return true;
@@ -367,13 +380,15 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         }
 
         float typeMultiplier = isBoss ? Mathf.Max(1f, bossFeedbackMultiplier) : 1f;
+        bool deathEffectSpawned = SpawnDeathEffect();
+
         CombatFeedbackManager.PlayBreak(
             transform.position,
             isBoss ? CombatFeedbackKind.Boss : CombatFeedbackKind.Enemy,
             1.15f * typeMultiplier,
             deathShakeAmplitude * typeMultiplier,
             deathShakeDuration * (isBoss ? 1.35f : 1f),
-            true
+            useProceduralDeathEffectWhenPrefabMissing && !deathEffectSpawned
         );
 
         if (knockbackRoutine != null)

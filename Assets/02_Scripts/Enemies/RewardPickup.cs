@@ -550,7 +550,7 @@ public class RewardPickup : MonoBehaviour
     {
         if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
         {
-            Debug.LogWarning("RunManager  RewardPickup.", this);
+            Debug.LogWarning("진행 중인 탐사가 없어 RewardPickup 재화를 지급하지 못했습니다.", this);
             return false;
         }
 
@@ -589,7 +589,7 @@ public class RewardPickup : MonoBehaviour
 
         if (playerHealth == null)
         {
-            Debug.LogWarning("RewardPickup PlayerHealth ã ߽ϴ.", this);
+            Debug.LogWarning("RewardPickup이 PlayerHealth를 찾지 못했습니다.", this);
             return;
         }
 
