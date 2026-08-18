@@ -1,9 +1,10 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class RunTraitChoiceButtonUI : MonoBehaviour
+public class RunTraitChoiceButtonUI : MonoBehaviour, IPointerClickHandler
 {
     [Header("References")]
     [SerializeField] private Button button;
@@ -20,6 +21,8 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
     private RunRewardOption rewardOption;
     private Action<TraitDefinition> selectedCallback;
     private Action<RunRewardOption> rewardSelectedCallback;
+    private Button boundButton;
+    private int lastHandledClickFrame = -1;
 
     private void Reset()
     {
@@ -30,21 +33,21 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+        ConfigureTypography();
+        BindClick();
     }
 
     private void OnEnable()
     {
-        if (button != null)
-        {
-            button.onClick.AddListener(HandleClicked);
-        }
+        BindClick();
     }
 
-    private void OnDisable()
+    private void OnDestroy()
     {
-        if (button != null)
+        if (boundButton != null)
         {
-            button.onClick.RemoveListener(HandleClicked);
+            boundButton.onClick.RemoveListener(HandleClicked);
+            boundButton = null;
         }
     }
 
@@ -93,6 +96,8 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
         {
             button.interactable = true;
         }
+
+        BindClick();
     }
 
     public void SetupReward(
@@ -130,7 +135,7 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
             {
                 levelText.text = currentLevel > 0
                     ? $"Lv {currentLevel} → {nextLevel}"
-                    : $"NEW · Lv {nextLevel}";
+                    : $"신규 · Lv {nextLevel}";
             }
 
             if (effectText != null)
@@ -156,6 +161,8 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
         {
             button.interactable = true;
         }
+
+        BindClick();
     }
 
     public void Clear()
@@ -167,7 +174,42 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
         SetVisible(false);
     }
 
+    public void SetInteractable(bool interactable)
+    {
+        if (button != null)
+        {
+            button.interactable = interactable && rewardOption != null;
+        }
+    }
+
     private void HandleClicked()
+    {
+        if (lastHandledClickFrame == Time.frameCount)
+        {
+            return;
+        }
+
+        lastHandledClickFrame = Time.frameCount;
+        InvokeSelection();
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Left)
+        {
+            return;
+        }
+
+        if (lastHandledClickFrame == Time.frameCount)
+        {
+            return;
+        }
+
+        lastHandledClickFrame = Time.frameCount;
+        InvokeSelection();
+    }
+
+    private void InvokeSelection()
     {
         if (rewardOption != null && rewardSelectedCallback != null)
         {
@@ -239,5 +281,54 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
         {
             button = GetComponent<Button>();
         }
+    }
+
+    private void BindClick()
+    {
+        CacheReferences();
+
+        if (button == null)
+        {
+            return;
+        }
+
+        if (boundButton != null && boundButton != button)
+        {
+            boundButton.onClick.RemoveListener(HandleClicked);
+        }
+
+        boundButton = button;
+        boundButton.onClick.RemoveListener(HandleClicked);
+        boundButton.onClick.AddListener(HandleClicked);
+    }
+
+    private void ConfigureTypography()
+    {
+        ConfigureText(titleText, 9f, 6f, false, TextOverflowModes.Ellipsis);
+        ConfigureText(categoryText, 6f, 5f, false, TextOverflowModes.Ellipsis);
+        ConfigureText(descriptionText, 6.5f, 5f, true, TextOverflowModes.Ellipsis);
+        ConfigureText(levelText, 6f, 5f, false, TextOverflowModes.Ellipsis);
+        ConfigureText(effectText, 6f, 5f, true, TextOverflowModes.Ellipsis);
+    }
+
+    private static void ConfigureText(
+        TextMeshProUGUI text,
+        float maximumSize,
+        float minimumSize,
+        bool wrap,
+        TextOverflowModes overflow)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.fontSize = maximumSize;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = minimumSize;
+        text.fontSizeMax = maximumSize;
+        text.textWrappingMode = wrap ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+        text.overflowMode = overflow;
+        text.raycastTarget = false;
     }
 }

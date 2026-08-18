@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_guard_drone"
   displayName: "\ud638\uc704 \ub4dc\ub860"
-  description: "\ucda9\uc804\uc2dd \ubc29\uc5b4 \uc7a5\ube44\ub2e4. \ud0c4\ub9c9 \uc81c\uac70\uc640 \uc9e7\uc740 \ubb34\uc801\uc744 \ub3d9\uc2dc\uc5d0 \uc81c\uacf5\ud55c\ub2e4."
+  description: "\ud638\uc704 \ub4dc\ub860\uc744 4\ucd08 \ub3d9\uc548 \ud638\ucd9c\ud55c\ub2e4. \ubc30\uce58 \uc21c\uac04 \ubc18\uacbd 4\uc758 \uc801 \ud0c4\ud658\uc744 \uc81c\uac70\ud558\uace0, \uae30\uccb4 \uc8fc\ubcc0\uc744 \uacf5\uc804\ud558\uba70 \uc811\ucd09\ud558\ub294 \uc801 \ud0c4\ud658\uc744 \uc694\uaca9\ud55c\ub2e4."
   icon: {fileID: 21300000, guid: 53be7cb77ccec8a2259457581aeb009a, type: 3}
   rarity: 2
   rarityPriceMultiplier: 0
@@ -27,7 +27,7 @@ MonoBehaviour:
   canAppearAsRandomDrop: 1
   maxCharges: 1
   startWithFullCharges: 1
-  rechargeSeconds: 30
+  rechargeSeconds: 25
   effects:
   - effectType: 3
     value: 1
@@ -38,12 +38,16 @@ MonoBehaviour:
       m_Bits: 0
     prefab: {fileID: 0}
     prefabLifetime: 1
-  - effectType: 2
-    value: 2
+  - effectType: 10
+    value: 0
     radius: 0
     duration: 0
     targetLayer:
       serializedVersion: 2
       m_Bits: 0
-    prefab: {fileID: 0}
-    prefabLifetime: 1
+    prefab: {fileID: 100000, guid: 593dda0e2b054155b91e7a0da3a02516, type: 3}
+    prefabLifetime: 4
+    spawnedTurretAttackIntervalMultiplier: 1
+    spawnedTurretDamageMultiplier: 1
+    spawnedTurretTauntDuration: 0
+    spawnedTurretMaxTauntTargets: 0

@@ -42,6 +42,12 @@ public class PlayerArmor : MonoBehaviour
         Changed?.Invoke(currentArmor, maxArmor);
     }
 
+    public void RestoreCurrentArmor(float value)
+    {
+        currentArmor = Mathf.Clamp(value, 0f, maxArmor);
+        Changed?.Invoke(currentArmor, maxArmor);
+    }
+
     public void AddArmor(float amount)
     {
         if (amount <= 0f)

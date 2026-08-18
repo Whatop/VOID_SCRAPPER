@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[DefaultExecutionOrder(10000)]
 [DisallowMultipleComponent]
 [RequireComponent(typeof(RectTransform))]
 public class WorldGaugeFollower : MonoBehaviour
@@ -26,6 +27,9 @@ public class WorldGaugeFollower : MonoBehaviour
     [SerializeField] private bool hideWhenBehindCamera = true;
     [SerializeField] private bool startHidden = true;
     [SerializeField] private bool forceBottomCenterPivot = true;
+    [SerializeField] private bool stabilizeForPixelPerfectCamera = true;
+    [SerializeField, Min(1)] private int assetsPixelsPerUnit = 32;
+    [SerializeField] private bool snapToCanvasPixelGrid = true;
 
     private RectTransform rectTransform;
     private RectTransform canvasRectTransform;
@@ -34,6 +38,8 @@ public class WorldGaugeFollower : MonoBehaviour
     private InteractionPromptAnchor targetAnchor;
 
     private bool visibleRequested;
+    private bool presentationDirty;
+    private int lastPresentationFrame = -1;
 
     private void Reset()
     {
@@ -60,8 +66,31 @@ public class WorldGaugeFollower : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        Canvas.preWillRenderCanvases += HandlePreWillRenderCanvases;
+        presentationDirty = true;
+    }
+
+    private void OnDisable()
+    {
+        Canvas.preWillRenderCanvases -= HandlePreWillRenderCanvases;
+    }
+
     private void LateUpdate()
     {
+        presentationDirty = true;
+    }
+
+    private void HandlePreWillRenderCanvases()
+    {
+        if (!presentationDirty || lastPresentationFrame == Time.frameCount)
+        {
+            return;
+        }
+
+        presentationDirty = false;
+        lastPresentationFrame = Time.frameCount;
         Follow();
     }
 
@@ -190,7 +219,7 @@ public class WorldGaugeFollower : MonoBehaviour
         }
 
         Vector3 targetWorldPosition = ResolveTargetWorldPosition();
-        Vector3 screenPosition = worldCamera.WorldToScreenPoint(targetWorldPosition);
+        Vector3 screenPosition = ProjectWorldToScreen(targetWorldPosition);
 
         if (hideWhenBehindCamera && screenPosition.z < 0f)
         {
@@ -213,8 +242,51 @@ public class WorldGaugeFollower : MonoBehaviour
             return;
         }
 
+        if (snapToCanvasPixelGrid)
+        {
+            localPoint.x = Mathf.Round(localPoint.x);
+            localPoint.y = Mathf.Round(localPoint.y);
+        }
+
         rectTransform.anchoredPosition = localPoint;
         ApplyVisible(true);
+    }
+
+    private Vector3 ProjectWorldToScreen(Vector3 worldPosition)
+    {
+        if (!stabilizeForPixelPerfectCamera || !worldCamera.orthographic)
+        {
+            return worldCamera.WorldToScreenPoint(worldPosition);
+        }
+
+        Transform cameraTransform = worldCamera.transform;
+        Vector3 cameraPosition = cameraTransform.position;
+
+        if (assetsPixelsPerUnit > 0)
+        {
+            float pixelUnit = 1f / assetsPixelsPerUnit;
+            cameraPosition.x = Mathf.Round(cameraPosition.x / pixelUnit) * pixelUnit;
+            cameraPosition.y = Mathf.Round(cameraPosition.y / pixelUnit) * pixelUnit;
+        }
+
+        Vector3 cameraLocal = Quaternion.Inverse(cameraTransform.rotation) * (worldPosition - cameraPosition);
+        Rect pixelRect = worldCamera.pixelRect;
+
+        if (pixelRect.width <= 0f || pixelRect.height <= 0f)
+        {
+            return worldCamera.WorldToScreenPoint(worldPosition);
+        }
+
+        float halfHeight = Mathf.Max(0.0001f, worldCamera.orthographicSize);
+        float halfWidth = halfHeight * (pixelRect.width / pixelRect.height);
+        float normalizedX = (cameraLocal.x / (halfWidth * 2f)) + 0.5f;
+        float normalizedY = (cameraLocal.y / (halfHeight * 2f)) + 0.5f;
+
+        return new Vector3(
+            pixelRect.xMin + normalizedX * pixelRect.width,
+            pixelRect.yMin + normalizedY * pixelRect.height,
+            cameraLocal.z
+        );
     }
 
     private Vector3 ResolveTargetWorldPosition()

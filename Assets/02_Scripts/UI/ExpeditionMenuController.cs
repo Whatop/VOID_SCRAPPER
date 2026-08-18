@@ -36,6 +36,9 @@ public sealed class ExpeditionMenuController : MonoBehaviour
     [SerializeField] private ExpeditionMapPanelUI mapPanel;
     [SerializeField] private PlayerBuildStatusPanelUI inventoryPanel;
 
+    [Header("Radar Cancellation")]
+    [SerializeField] private PlayerRadarScanner radarScanner;
+
     [Header("Pause / Cursor")]
     [SerializeField] private bool pauseWhileOpen = true;
     [SerializeField] private bool blockOpenWhileAnotherPauseActive = true;
@@ -155,6 +158,12 @@ public sealed class ExpeditionMenuController : MonoBehaviour
             isOpen = true;
             StoreAndApplyCursorState();
             SetMenuVisual(true);
+
+            // Keep an already-open radar alive, but render the menu above it.
+            if (menuRoot != null)
+            {
+                menuRoot.transform.SetAsLastSibling();
+            }
 
             if (pauseWhileOpen)
             {
@@ -291,6 +300,11 @@ public sealed class ExpeditionMenuController : MonoBehaviour
             inventoryTabButton.interactable = showMap;
         }
 
+        if (closeButton != null)
+        {
+            closeButton.gameObject.SetActive(!showMap);
+        }
+
         if (playSound)
         {
             AudioManager.Play(SoundEventIds.UiClick);
@@ -301,6 +315,7 @@ public sealed class ExpeditionMenuController : MonoBehaviour
 
     private void BindInput()
     {
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
         mapAction = InputBindingUtility.ResolveAction(
             inputActions,
             playerActionMapName,
@@ -429,5 +444,13 @@ public sealed class ExpeditionMenuController : MonoBehaviour
         Cursor.visible = previousCursorVisible;
         Cursor.lockState = previousCursorLockMode;
         cursorStateStored = false;
+    }
+
+    private void ResolveRadarScanner()
+    {
+        if (radarScanner == null)
+        {
+            radarScanner = FindFirstObjectByType<PlayerRadarScanner>();
+        }
     }
 }

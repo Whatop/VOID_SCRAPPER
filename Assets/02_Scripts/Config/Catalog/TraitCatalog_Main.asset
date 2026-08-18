@@ -48,6 +48,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f8f1f00578a54cf68dd5e9c21e09d7ca, type: 2}
   - {fileID: 11400000, guid: 8a90bbc85a004cd9848966bc9e11ba4f, type: 2}
   - {fileID: 11400000, guid: 342e755d04144548842b8695a374cc91, type: 2}
+  - {fileID: 11400000, guid: 7c42e6f1a9b84d35a1120e5c9f3b6d8a, type: 2}
   - {fileID: 11400000, guid: 090e22ea38de469294be624a328350a9, type: 2}
   - {fileID: 11400000, guid: 9fd43e061fb44b2aa8a28846ab505196, type: 2}
   - {fileID: 11400000, guid: 1bac2d3b0ea044259044aa21b4ae3425, type: 2}
@@ -56,5 +57,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 80a0b306777f4d5dbdf22410ee776ae9, type: 2}
   - {fileID: 11400000, guid: 40cb441cdce840269674f4c1e05bd059, type: 2}
   - {fileID: 11400000, guid: f89b358378054ceea4df47e352eec0b4, type: 2}
+  - {fileID: 11400000, guid: 15ce193d060a4b7f9716883d046b9fad, type: 2}
+  - {fileID: 11400000, guid: 2acdf8b0594e4b7b9ebaae09a8860b6a, type: 2}
+  - {fileID: 11400000, guid: 7a31c9e24b7d4f50a6e18d3c92f0b846, type: 2}
+  - {fileID: 11400000, guid: c71e967e039c45a8a57e45a05bc76288, type: 2}
+  - {fileID: 11400000, guid: ad0bc609aa514cce9576a52a4a3d1c86, type: 2}
+  - {fileID: 11400000, guid: 3e7675688b934daea049bb2866af6c88, type: 2}
   includeResourcesTraits: 0
   resourcesPath: TraitDefinition

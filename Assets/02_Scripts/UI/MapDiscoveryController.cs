@@ -273,6 +273,20 @@ public sealed class MapDiscoveryController : MonoBehaviour
         );
     }
 
+    public Vector2 NormalizedToWorld(Vector2 normalizedPosition)
+    {
+        EnsureInitialized();
+        normalizedPosition = new Vector2(
+            Mathf.Clamp01(normalizedPosition.x),
+            Mathf.Clamp01(normalizedPosition.y)
+        );
+
+        return new Vector2(
+            Mathf.Lerp(mapBounds.min.x, mapBounds.max.x, normalizedPosition.x),
+            Mathf.Lerp(mapBounds.min.y, mapBounds.max.y, normalizedPosition.y)
+        );
+    }
+
     private void HandleMapGenerated(ExpeditionMapGenerator generator)
     {
         if (generator == null)

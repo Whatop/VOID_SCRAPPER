@@ -12,7 +12,10 @@ public enum GameState
 
     // Campaign extension. Appended to preserve existing serialized enum values.
     SettlementDefense,
-    FinalBossBattle
+    FinalBossBattle,
+
+    // Tutorial extension. Appended to preserve existing serialized enum values.
+    Tutorial
 }
 
 public enum RunEndReason
@@ -88,7 +91,10 @@ public enum CurrencyType
     Credits,
     ScrapParts,
     CoreShards,
-    TuningChips
+    TuningChips,
+
+    // Sector 1 optional permanent-growth cargo. Appended for serialized enum safety.
+    StabilizedAlloy
 }
 
 public enum BuildingType
@@ -108,7 +114,8 @@ public enum RadarMarkerType
     Event,
     Boss,
     Core,
-    ReturnBeacon
+    ReturnBeacon,
+    EnemyBase
 }
 
 public enum EnemyType

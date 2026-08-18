@@ -22,6 +22,7 @@ public class RunTraitEffectApplier : MonoBehaviour
     [SerializeField] private bool logAppliedTraits;
 
     private readonly List<TraitDefinition> resolvedTraits = new List<TraitDefinition>();
+    private bool storedTraitsApplied;
 
     private void Awake()
     {
@@ -33,8 +34,20 @@ public class RunTraitEffectApplier : MonoBehaviour
         ApplyAllStoredTraits();
     }
 
+    private void OnDisable()
+    {
+        PlayerPeriodicReflector2D.SetSourceEnabled(gameObject, this, false);
+        PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, false);
+        PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, false);
+    }
+
     public void ApplyAllStoredTraits()
     {
+        if (storedTraitsApplied)
+        {
+            return;
+        }
+
         CacheReferences();
 
         RunRuntimeTraitStore store = RunRuntimeTraitStore.Instance;
@@ -43,6 +56,8 @@ public class RunTraitEffectApplier : MonoBehaviour
         {
             return;
         }
+
+        storedTraitsApplied = true;
 
         ResolveTraitDefinitions();
 
@@ -257,6 +272,10 @@ public class RunTraitEffectApplier : MonoBehaviour
                 }
                 break;
 
+            case TraitEffectType.RemovePierceDamageFalloff:
+                weaponModifiers?.AddPierceDamageFalloffRemoval(Mathf.Max(1, Mathf.RoundToInt(value)));
+                break;
+
             case TraitEffectType.FireRatePercent:
                 if (weaponModifiers != null)
                 {
@@ -334,12 +353,42 @@ public class RunTraitEffectApplier : MonoBehaviour
                 GetBossPassiveController()?.ConfigurePhaseAfterimage(Mathf.RoundToInt(value));
                 break;
 
+            case TraitEffectType.SniperSemiAutoMode:
+                weaponModifiers?.AddSniperSemiAutoMode(Mathf.Max(1, Mathf.RoundToInt(value)));
+                break;
+
+            case TraitEffectType.ShotgunCloseRangeDamagePercent:
+                weaponModifiers?.AddShotgunCloseRangeDamagePercent(value);
+                break;
+
+            case TraitEffectType.MachineGunTerminalGuidance:
+                weaponModifiers?.AddMachineGunTerminalGuidance(
+                    Mathf.Max(1, Mathf.RoundToInt(value))
+                );
+                break;
+
+            case TraitEffectType.PeriodicReflectiveShield:
+                PlayerPeriodicReflector2D.SetSourceEnabled(
+                    gameObject,
+                    this,
+                    true,
+                    Mathf.Max(0.05f, value)
+                );
+                break;
+
+            case TraitEffectType.MachineGunDashMissileSalvo:
+                PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, true);
+                break;
+
+            case TraitEffectType.SniperDashEchoShot:
+                PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, true);
+                break;
+
             case TraitEffectType.CloseRangeDamageReductionPercent:
             case TraitEffectType.DashDamageReductionPercent:
             case TraitEffectType.CloseRangeSuppressionPercent:
             case TraitEffectType.ChargeSightBonusPercent:
             case TraitEffectType.ChargedProjectileSizePercent:
-            case TraitEffectType.RemovePierceDamageFalloff:
                 Debug.LogWarning($"현재 콘텐츠에서 사용하지 않는 예약 특성 효과입니다: {effectType}", this);
                 break;
         }
@@ -444,6 +493,10 @@ public class RunTraitEffectApplier : MonoBehaviour
                 weaponModifiers?.AddHomingRange(-value);
                 break;
 
+            case TraitEffectType.RemovePierceDamageFalloff:
+                weaponModifiers?.AddPierceDamageFalloffRemoval(-Mathf.Max(1, Mathf.RoundToInt(value)));
+                break;
+
             case TraitEffectType.FireRatePercent:
                 if (weaponModifiers != null)
                 {
@@ -497,12 +550,37 @@ public class RunTraitEffectApplier : MonoBehaviour
                 GetBossPassiveController()?.ConfigurePhaseAfterimage(Mathf.Max(0, Mathf.RoundToInt(value) - 1));
                 break;
 
+            case TraitEffectType.SniperSemiAutoMode:
+                weaponModifiers?.AddSniperSemiAutoMode(-Mathf.Max(1, Mathf.RoundToInt(value)));
+                break;
+
+            case TraitEffectType.ShotgunCloseRangeDamagePercent:
+                weaponModifiers?.AddShotgunCloseRangeDamagePercent(-value);
+                break;
+
+            case TraitEffectType.MachineGunTerminalGuidance:
+                weaponModifiers?.AddMachineGunTerminalGuidance(
+                    -Mathf.Max(1, Mathf.RoundToInt(value))
+                );
+                break;
+
+            case TraitEffectType.PeriodicReflectiveShield:
+                PlayerPeriodicReflector2D.SetSourceEnabled(gameObject, this, false);
+                break;
+
+            case TraitEffectType.MachineGunDashMissileSalvo:
+                PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, false);
+                break;
+
+            case TraitEffectType.SniperDashEchoShot:
+                PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, false);
+                break;
+
             case TraitEffectType.CloseRangeDamageReductionPercent:
             case TraitEffectType.DashDamageReductionPercent:
             case TraitEffectType.CloseRangeSuppressionPercent:
             case TraitEffectType.ChargeSightBonusPercent:
             case TraitEffectType.ChargedProjectileSizePercent:
-            case TraitEffectType.RemovePierceDamageFalloff:
                 Debug.LogWarning($"필드 드랍 역적용이 구현되지 않은 특성 효과입니다: {effectType}", this);
                 break;
         }

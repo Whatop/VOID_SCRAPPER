@@ -94,6 +94,7 @@ public class PlayerInteractor : MonoBehaviour
 
     private void BindInput()
     {
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
         interactAction = InputBindingUtility.ResolveAction(
             inputActions,
             actionMapName,

@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerHealth : MonoBehaviour, IDamageable
@@ -12,9 +13,15 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [SerializeField] private PlayerArmor armor;
     [SerializeField] private ComponentShieldPassive componentShield;
 
+    [Header("Hit Feedback")]
+    [SerializeField] private SpriteHitFlash2D spriteHitFlash;
+    [SerializeField] private bool autoCreateSpriteHitFlash = true;
+    [FormerlySerializedAs("addProceduralHitFeedback")]
+    [SerializeField] private bool useProceduralHitFeedback;
+    [Min(0.1f)]
+    [SerializeField] private float proceduralHitIntensity = 1.15f;
+
     [Header("Camera Shake")]
-    [Tooltip("ProjectileDefinition의 Hit VFX와 함께 짧은 공용 스파크/섬광을 추가합니다.")]
-    [SerializeField] private bool addProceduralHitFeedback = true;
     [SerializeField] private float hitShakeAmplitude = 0.17f;
     [SerializeField] private float hitShakeDuration = 0.14f;
     [SerializeField] private float deathShakeAmplitude = 0.34f;
@@ -50,6 +57,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     public event Action<float, float> Damaged;
     public event Action<float, float> Healed;
+    public event Action<float, float> Changed;
     public event Action Died;
 
     private void Awake()
@@ -66,6 +74,16 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         if (componentShield == null)
         {
             componentShield = GetComponent<ComponentShieldPassive>();
+        }
+
+        if (spriteHitFlash == null)
+        {
+            spriteHitFlash = GetComponent<SpriteHitFlash2D>();
+        }
+
+        if (spriteHitFlash == null && autoCreateSpriteHitFlash)
+        {
+            spriteHitFlash = gameObject.AddComponent<SpriteHitFlash2D>();
         }
     }
 
@@ -105,6 +123,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         }
 
         Healed?.Invoke(currentHp, maxHp);
+        Changed?.Invoke(currentHp, maxHp);
     }
 
     public void SetMaxHp(float newMaxHp, bool refill)
@@ -120,7 +139,12 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             currentHp = Mathf.Clamp(currentHp, 0f, maxHp);
         }
 
-        Healed?.Invoke(currentHp, maxHp);
+        if (refill)
+        {
+            Healed?.Invoke(currentHp, maxHp);
+        }
+
+        Changed?.Invoke(currentHp, maxHp);
     }
 
     public void AddMaxHp(float amount, bool healAddedAmount)
@@ -139,8 +163,14 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         else
         {
             currentHp = Mathf.Clamp(currentHp, 0f, maxHp);
-            Healed?.Invoke(currentHp, maxHp);
+            Changed?.Invoke(currentHp, maxHp);
         }
+    }
+
+    public void RestoreCurrentHp(float value)
+    {
+        currentHp = Mathf.Clamp(value, 0f, maxHp);
+        Changed?.Invoke(currentHp, maxHp);
     }
 
     public void TakeDamage(float damage)
@@ -205,6 +235,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         currentHp = Mathf.Max(0f, currentHp - remainingDamage);
         Damaged?.Invoke(currentHp, maxHp);
+        Changed?.Invoke(currentHp, maxHp);
 
         if (currentHp <= 0f)
         {
@@ -226,6 +257,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         currentHp = Mathf.Min(maxHp, currentHp + amount);
         Healed?.Invoke(currentHp, maxHp);
+        Changed?.Invoke(currentHp, maxHp);
     }
 
     public void AddInvincibleTime(float duration)
@@ -242,16 +274,16 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         float damageScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, damage) / 2f), 0.8f, 1.8f);
 
-        // 피격 VFX는 적 Bullet 또는 근접 공격 컨트롤러가 생성한다.
-        // Health는 카메라 흔들림만 담당한다.
+        spriteHitFlash?.Play(damageScale);
+
         CombatFeedbackManager.PlayHit(
             position,
             incomingDirection,
             CombatFeedbackKind.Player,
-            damageScale,
+            Mathf.Clamp(proceduralHitIntensity * damageScale, 0.6f, 2.2f),
             hitShakeAmplitude * damageScale,
             hitShakeDuration,
-            addProceduralHitFeedback
+            useProceduralHitFeedback
         );
     }
 
@@ -318,6 +350,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             deathShakeDuration,
             useProceduralDeathEffectWhenPrefabMissing && !deathEffectSpawned
         );
+
+        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        {
+            GameAudioLoopController.BeginRunEndMusicTransition();
+        }
 
         Died?.Invoke();
 

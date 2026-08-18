@@ -398,6 +398,11 @@ public class ShopStockController : MonoBehaviour
             return;
         }
 
+        if (!RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
+        {
+            return;
+        }
+
         int runtimeLevel = RunRuntimeTraitStore.Instance.GetLevel(trait.TraitId);
 
         if (runtimeLevel >= trait.MaxLevel)
@@ -482,6 +487,11 @@ public class ShopStockController : MonoBehaviour
         WeaponTreeType selectedTree = ShopRunBridge.GetSelectedWeaponTree(WeaponTreeType.MachineGun);
 
         if (!trait.IsAvailableFor(selectedTree))
+        {
+            return false;
+        }
+
+        if (!RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
         {
             return false;
         }

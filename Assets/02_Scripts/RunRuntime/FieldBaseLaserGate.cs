@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -13,10 +14,12 @@ public class FieldBaseLaserGate : MonoBehaviour
     [SerializeField] private Collider2D triggerZone;
     [Tooltip("끄면 레이저 시각과 전력 상태는 유지되지만 플레이어를 밀어내지 않습니다.")]
     [SerializeField] private bool pushPlayerWhenClosed = true;
-    [SerializeField] private bool blockPlayerProjectilesWhenClosed = true;
-    [SerializeField] private bool blockEnemyProjectilesWhenClosed;
-    [SerializeField] private bool blockShopDefenseProjectilesWhenClosed = true;
     [SerializeField] private float pushOutDistance = 0.35f;
+
+    [Header("Projectile Blocking")]
+    [SerializeField] private bool blockPlayerProjectilesWhenClosed = true;
+    [SerializeField] private bool blockEnemyProjectilesWhenClosed = true;
+    [SerializeField] private bool blockShopDefenseProjectilesWhenClosed = true;
     [SerializeField] private float warningCooldown = 0.75f;
     [SerializeField] private string blockedWarning = "레이저 차단막이 활성화되어 있다.";
 
@@ -44,6 +47,8 @@ public class FieldBaseLaserGate : MonoBehaviour
     [Header("Visual")]
     [SerializeField] private GameObject[] closedVisuals;
     [SerializeField] private GameObject[] openVisuals;
+
+    private readonly Dictionary<int, float> playerBlockingSides = new Dictionary<int, float>(2);
 
     private bool isOpen;
     private float lastWarningTime = -999f;
@@ -120,14 +125,13 @@ public class FieldBaseLaserGate : MonoBehaviour
     public void SetGateOpen(bool open, bool immediate = false)
     {
         isOpen = open;
+
+        if (isOpen)
+        {
+            playerBlockingSides.Clear();
+        }
         SetObjectsActive(closedVisuals, !isOpen);
         SetObjectsActive(openVisuals, isOpen);
-
-        if (triggerZone != null)
-        {
-            triggerZone.enabled = !isOpen;
-        }
-
         UpdateLaserVisual();
 
         if (!immediate)
@@ -141,34 +145,204 @@ public class FieldBaseLaserGate : MonoBehaviour
         pushPlayerWhenClosed = enabled;
     }
 
+    private void OnDisable()
+    {
+        playerBlockingSides.Clear();
+    }
+
     private void OnTriggerEnter2D(Collider2D other)
     {
-        TryBlockPlayer(other);
+        PlayerController2D player = ResolveBlockedPlayer(other);
+        if (player != null)
+        {
+            CapturePlayerBlockingSide(player);
+        }
+
+        HandleClosedGateOverlap(other, player);
     }
 
     private void OnTriggerStay2D(Collider2D other)
     {
-        TryBlockPlayer(other);
+        HandleClosedGateOverlap(other, null);
     }
 
-    private void TryBlockPlayer(Collider2D other)
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        PlayerController2D player = other != null
+            ? other.GetComponentInParent<PlayerController2D>()
+            : null;
+
+        if (player != null)
+        {
+            playerBlockingSides.Remove(player.GetInstanceID());
+        }
+    }
+
+    private void HandleClosedGateOverlap(Collider2D other, PlayerController2D resolvedPlayer)
+    {
+        PlayerController2D player = resolvedPlayer != null
+            ? resolvedPlayer
+            : ResolveBlockedPlayer(other);
+
+        if (player == null)
+        {
+            return;
+        }
+
+        int playerId = player.GetInstanceID();
+        if (!playerBlockingSides.ContainsKey(playerId))
+        {
+            CapturePlayerBlockingSide(player);
+        }
+
+        if (!TryPushPlayerFromBeam(player, other))
+        {
+            PushPlayerFromTriggerFallback(player);
+        }
+
+        if (Time.time - lastWarningTime >= warningCooldown)
+        {
+            lastWarningTime = Time.time;
+            ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+            if (hud != null)
+            {
+                hud.ShowWarning(blockedWarning);
+            }
+
+            AudioManager.PlayAt(SoundEventIds.ActionDenied, transform.position, 0.8f);
+        }
+    }
+
+    private PlayerController2D ResolveBlockedPlayer(Collider2D other)
     {
         if (isOpen || !pushPlayerWhenClosed || other == null)
         {
-            return;
+            return null;
         }
 
         if (allowEnemiesWhenClosed && other.GetComponentInParent<EnemyHealth>() != null)
         {
-            return;
+            return null;
         }
 
         if (allowNpcWhenClosed && other.GetComponentInParent<FieldNpcObjective>() != null)
         {
+            return null;
+        }
+
+        return other.GetComponentInParent<PlayerController2D>();
+    }
+
+    private void CapturePlayerBlockingSide(PlayerController2D player)
+    {
+        if (player == null || beamStartPoint == null || beamEndPoint == null)
+        {
             return;
         }
 
-        PlayerController2D player = other.GetComponentInParent<PlayerController2D>();
+        Vector2 start = beamStartPoint.position;
+        Vector2 end = beamEndPoint.position;
+        Vector2 line = end - start;
+
+        if (line.sqrMagnitude <= 0.0001f)
+        {
+            return;
+        }
+
+        Vector2 normal = new Vector2(-line.y, line.x).normalized;
+        float signedDistance = Vector2.Dot((Vector2)player.transform.position - start, normal);
+        float side;
+
+        if (Mathf.Abs(signedDistance) > 0.001f)
+        {
+            side = Mathf.Sign(signedDistance);
+        }
+        else
+        {
+            Rigidbody2D playerRb = player.GetComponent<Rigidbody2D>();
+            float normalVelocity = playerRb != null
+                ? Vector2.Dot(playerRb.linearVelocity, normal)
+                : 0f;
+
+            side = normalVelocity < 0f ? 1f : -1f;
+        }
+
+        playerBlockingSides[player.GetInstanceID()] = side;
+    }
+
+    private bool TryPushPlayerFromBeam(PlayerController2D player, Collider2D playerCollider)
+    {
+        if (player == null || beamStartPoint == null || beamEndPoint == null)
+        {
+            return false;
+        }
+
+        Vector2 start = beamStartPoint.position;
+        Vector2 end = beamEndPoint.position;
+        Vector2 line = end - start;
+        float lineSqrLength = line.sqrMagnitude;
+
+        if (lineSqrLength <= 0.0001f)
+        {
+            return false;
+        }
+
+        int playerId = player.GetInstanceID();
+        if (!playerBlockingSides.TryGetValue(playerId, out float side))
+        {
+            CapturePlayerBlockingSide(player);
+            playerBlockingSides.TryGetValue(playerId, out side);
+        }
+
+        if (Mathf.Abs(side) < 0.5f)
+        {
+            side = 1f;
+        }
+
+        Vector2 playerPosition = player.transform.position;
+        float segmentT = Mathf.Clamp01(Vector2.Dot(playerPosition - start, line) / lineSqrLength);
+        Vector2 closestOnBeam = start + line * segmentT;
+        Vector2 normal = new Vector2(-line.y, line.x).normalized * Mathf.Sign(side);
+
+        float playerExtent = 0.25f;
+        if (playerCollider != null)
+        {
+            Vector2 extents = playerCollider.bounds.extents;
+            playerExtent = Mathf.Max(
+                0.05f,
+                Mathf.Abs(normal.x) * extents.x + Mathf.Abs(normal.y) * extents.y
+            );
+        }
+
+        float requiredSeparation = Mathf.Max(0.05f, laserWidth * 0.5f) +
+                                   playerExtent +
+                                   Mathf.Max(0.05f, pushOutDistance);
+        Vector2 correctedPosition = closestOnBeam + normal * requiredSeparation;
+        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
+
+        if (rb != null)
+        {
+            Vector2 velocity = rb.linearVelocity;
+            float inwardVelocity = Vector2.Dot(velocity, normal);
+
+            if (inwardVelocity < 0f)
+            {
+                velocity -= normal * inwardVelocity;
+            }
+
+            rb.position = correctedPosition;
+            rb.linearVelocity = velocity;
+        }
+        else
+        {
+            player.transform.position = correctedPosition;
+        }
+
+        return true;
+    }
+
+    private void PushPlayerFromTriggerFallback(PlayerController2D player)
+    {
         if (player == null)
         {
             return;
@@ -176,22 +350,14 @@ public class FieldBaseLaserGate : MonoBehaviour
 
         Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
         Vector2 origin = player.transform.position;
-        Vector2 closest = triggerZone != null ? triggerZone.ClosestPoint(origin) : (Vector2)transform.position;
+        Vector2 closest = triggerZone != null
+            ? triggerZone.ClosestPoint(origin)
+            : (Vector2)transform.position;
         Vector2 pushDirection = origin - closest;
 
         if (pushDirection.sqrMagnitude <= 0.0001f)
         {
-            Vector2 beamDirection = ((Vector2)(beamEndPoint != null ? beamEndPoint.position : transform.position)
-                - (Vector2)(beamStartPoint != null ? beamStartPoint.position : transform.position)).normalized;
-
-            Vector2 normal = beamDirection.sqrMagnitude > 0.001f
-                ? new Vector2(-beamDirection.y, beamDirection.x)
-                : (Vector2)transform.up;
-
-            Vector2 velocity = rb != null ? rb.linearVelocity : Vector2.zero;
-            pushDirection = velocity.sqrMagnitude > 0.001f && Vector2.Dot(normal, velocity) > 0f
-                ? -normal
-                : normal;
+            pushDirection = transform.up;
         }
 
         pushDirection.Normalize();
@@ -206,16 +372,6 @@ public class FieldBaseLaserGate : MonoBehaviour
         {
             player.transform.position = correctedPosition;
         }
-
-        if (Time.time - lastWarningTime < warningCooldown)
-        {
-            return;
-        }
-
-        lastWarningTime = Time.time;
-        ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
-        hud?.ShowWarning(blockedWarning);
-        AudioManager.PlayAt(SoundEventIds.ActionDenied, transform.position, 0.8f);
     }
 
     private void EnsureLineRenderer()

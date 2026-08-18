@@ -15,6 +15,7 @@ public class BossLaserHazard : MonoBehaviour
     private float damage;
     private float damageInterval;
     private bool initialized;
+    private bool damageEnabled;
     private Coroutine lifetimeRoutine;
 
     private void Awake()
@@ -32,6 +33,17 @@ public class BossLaserHazard : MonoBehaviour
 
         lastDamageTimes.Clear();
         initialized = false;
+        damageEnabled = false;
+
+        if (boxCollider != null)
+        {
+            boxCollider.enabled = false;
+        }
+
+        if (lineRenderer != null)
+        {
+            lineRenderer.enabled = false;
+        }
     }
 
     public void InitializeBetween(
@@ -44,7 +56,8 @@ public class BossLaserHazard : MonoBehaviour
         Material lineMaterial,
         Color lineColor,
         string sortingLayerName,
-        int sortingOrder)
+        int sortingOrder,
+        float recoveryDuration = 0f)
     {
         Vector2 delta = end - start;
         float length = delta.magnitude;
@@ -69,7 +82,8 @@ public class BossLaserHazard : MonoBehaviour
             lineMaterial,
             lineColor,
             sortingLayerName,
-            sortingOrder
+            sortingOrder,
+            recoveryDuration
         );
     }
 
@@ -84,7 +98,8 @@ public class BossLaserHazard : MonoBehaviour
         Material lineMaterial,
         Color lineColor,
         string sortingLayerName,
-        int sortingOrder)
+        int sortingOrder,
+        float recoveryDuration = 0f)
     {
         EnsureComponents();
 
@@ -105,10 +120,11 @@ public class BossLaserHazard : MonoBehaviour
         transform.SetPositionAndRotation(center, Quaternion.Euler(0f, 0f, angle));
 
         ConfigureRigidbody();
-        ConfigureCollider(length, width);
         ConfigureLineRenderer(length, width, lineMaterial, lineColor, sortingLayerName, sortingOrder);
 
         lastDamageTimes.Clear();
+        damageEnabled = true;
+        ConfigureCollider(length, width);
         initialized = true;
 
         if (lifetimeRoutine != null)
@@ -116,7 +132,7 @@ public class BossLaserHazard : MonoBehaviour
             StopCoroutine(lifetimeRoutine);
         }
 
-        lifetimeRoutine = StartCoroutine(LifetimeRoutine(duration));
+        lifetimeRoutine = StartCoroutine(LifetimeRoutine(duration, recoveryDuration));
     }
 
     private void ConfigureRigidbody()
@@ -186,9 +202,38 @@ public class BossLaserHazard : MonoBehaviour
         }
     }
 
-    private IEnumerator LifetimeRoutine(float duration)
+    private IEnumerator LifetimeRoutine(float duration, float recoveryDuration)
     {
         yield return new WaitForSeconds(Mathf.Max(0.05f, duration));
+
+        damageEnabled = false;
+        if (boxCollider != null)
+        {
+            boxCollider.enabled = false;
+        }
+
+        float recovery = Mathf.Max(0f, recoveryDuration);
+        if (recovery > 0f && lineRenderer != null && lineRenderer.enabled)
+        {
+            float startWidth = lineRenderer.startWidth;
+            Color startColor = lineRenderer.startColor;
+            float timer = 0f;
+
+            while (timer < recovery)
+            {
+                timer += Time.deltaTime;
+                float t = Mathf.Clamp01(timer / recovery);
+                float width = Mathf.Lerp(startWidth, startWidth * 0.2f, t);
+                Color color = startColor;
+                color.a = Mathf.Lerp(startColor.a, 0f, t);
+                lineRenderer.startWidth = width;
+                lineRenderer.endWidth = width;
+                lineRenderer.startColor = color;
+                lineRenderer.endColor = color;
+                yield return null;
+            }
+        }
+
         lifetimeRoutine = null;
         ReleaseOrDestroy();
     }
@@ -205,7 +250,7 @@ public class BossLaserHazard : MonoBehaviour
 
     private void TryDamage(Collider2D other)
     {
-        if (!initialized || other == null)
+        if (!initialized || !damageEnabled || other == null)
         {
             return;
         }
@@ -245,6 +290,7 @@ public class BossLaserHazard : MonoBehaviour
         }
 
         initialized = false;
+        damageEnabled = false;
 
         if (boxCollider != null)
         {

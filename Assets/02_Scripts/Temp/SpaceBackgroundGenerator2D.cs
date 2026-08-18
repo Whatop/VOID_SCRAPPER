@@ -352,7 +352,13 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     private void LateUpdate()
     {
-        UpdateLayerPositions();
+        // When render-time synchronization is enabled, the camera callbacks below
+        // are the single presentation sample. Updating here as well can sample the
+        // pre-Cinemachine camera and produce a one-frame planet/starfield pop.
+        if (!syncBeforeCameraRender)
+        {
+            UpdateLayerPositions();
+        }
 
         if (cameraZoomTransitionActive)
         {
@@ -1364,6 +1370,8 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
         float pixelStep = 1f / Mathf.Max(1, assetsPixelsPerUnit);
         Vector3 cameraPosition = targetCamera.transform.position;
+        cameraPosition.x = Mathf.Round(cameraPosition.x / pixelStep) * pixelStep;
+        cameraPosition.y = Mathf.Round(cameraPosition.y / pixelStep) * pixelStep;
 
         float relativeX = worldPosition.x - cameraPosition.x;
         float relativeY = worldPosition.y - cameraPosition.y;

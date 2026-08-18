@@ -67,6 +67,22 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
     [SerializeField] private bool setPlayerAsEnemyTarget = true;
     [SerializeField] private string playerTag = "Player";
 
+    [Header("Reinforcement Arrival Presentation")]
+    [SerializeField] private bool useReinforcementArrival = true;
+    [Min(0f)]
+    [SerializeField] private float reinforcementWarningTime = 0.8f;
+    [Min(0.01f)]
+    [SerializeField] private float reinforcementTravelTime = 0.32f;
+    [Min(0f)]
+    [SerializeField] private float reinforcementReadyDelay = 0.25f;
+    [Min(0.1f)]
+    [SerializeField] private float reinforcementOffscreenEntryDistance = 10.5f;
+    [Min(0.05f)]
+    [SerializeField] private float reinforcementArrivalMarkerRadius = 0.85f;
+    [Min(0.05f)]
+    [SerializeField] private float reinforcementSpawnClearance = 0.55f;
+    [SerializeField] private LayerMask reinforcementDestinationBlockingLayers;
+
     [Header("Projectile Interaction")]
     [SerializeField] private bool takeDamageFromPlayerProjectiles = true;
     [SerializeField] private bool takeDamageFromEnemyProjectiles;
@@ -84,6 +100,7 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
     private float currentHp;
     private bool isDead;
     private Coroutine releaseRoutine;
+    private readonly Collider2D[] reinforcementDestinationBuffer = new Collider2D[24];
 
     public HarvestObjectKind ObjectKind => objectKind;
     public float CurrentHp => currentHp;
@@ -93,6 +110,7 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
     public bool BlocksProjectileWhenDamageIgnored => blockProjectileWhenDamageIgnored;
     public bool TakesDamageFromPlayerProjectiles => takeDamageFromPlayerProjectiles;
     public bool TakesDamageFromEnemyProjectiles => takeDamageFromEnemyProjectiles;
+    public RadarTarget RadarTarget => radarTarget;
 
     public event Action<HarvestObjectHealth, float, float> HealthChanged;
     public event Action<HarvestObjectHealth> Damaged;
@@ -480,6 +498,10 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
         int count = UnityEngine.Random.Range(minCount, maxCount + 1);
 
         Transform player = FindPlayerTransform();
+        ExpeditionMapGenerator mapGenerator = FindFirstObjectByType<ExpeditionMapGenerator>();
+        Bounds mapBounds = mapGenerator != null ? mapGenerator.MapBounds : default;
+        bool hasMapBounds = mapBounds.size.x > 0.01f && mapBounds.size.y > 0.01f;
+        EnemyArrivalSpawnSettings arrivalSettings = BuildReinforcementArrivalSettings();
 
         for (int i = 0; i < count; i++)
         {
@@ -489,8 +511,16 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
                 continue;
             }
 
-            Vector2 direction = GetSpawnDirection(i, count);
-            Vector3 position = transform.position + (Vector3)(direction * reinforcementSpawnRadius);
+            if (!TryResolveReinforcementDestination(
+                    i,
+                    count,
+                    mapBounds,
+                    hasMapBounds,
+                    out Vector2 position))
+            {
+                continue;
+            }
+
             GameObject spawned = SpawnObject(prefab, position, Quaternion.identity);
 
             if (spawned == null)
@@ -506,9 +536,142 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
                     enemyAI.SetTarget(player);
                 }
 
-                enemyAI.ApplyRadarAlert(transform.position);
+                bool arrivalStarted = EnemyArrivalSpawnUtility.BeginArrival(
+                    spawned,
+                    position,
+                    player,
+                    setPlayerAsEnemyTarget,
+                    transform.position,
+                    arrivalSettings
+                );
+
+                if (!arrivalStarted)
+                {
+                    enemyAI.ApplyRadarAlert(transform.position);
+                }
             }
         }
+    }
+
+    private EnemyArrivalSpawnSettings BuildReinforcementArrivalSettings()
+    {
+        return new EnemyArrivalSpawnSettings
+        {
+            Enabled = useReinforcementArrival,
+            CreateFallbackMarker = true,
+            CreateFallbackLandingBurst = true,
+            WarningTime = reinforcementWarningTime,
+            TravelTime = reinforcementTravelTime,
+            ReadyDelay = reinforcementReadyDelay,
+            OffscreenEntryDistance = reinforcementOffscreenEntryDistance,
+            PreferOffscreenEntry = true,
+            MarkerRadius = reinforcementArrivalMarkerRadius,
+            MarkerColor = new Color(1f, 0.05f, 0.03f, 0.9f),
+            UseAfterimages = true,
+            AfterimageInterval = 0.055f,
+            AfterimageLifetime = 0.22f,
+            AfterimageColor = new Color(1f, 0.18f, 0.12f, 0.35f),
+            AfterimageSortingOrderOffset = -1,
+            DisableCollidersDuringArrival = true
+        };
+    }
+
+    private bool TryResolveReinforcementDestination(
+        int index,
+        int totalCount,
+        Bounds mapBounds,
+        bool hasMapBounds,
+        out Vector2 destination)
+    {
+        const int maxAttempts = 16;
+        float baseAngle = totalCount <= 1
+            ? UnityEngine.Random.Range(0f, 360f)
+            : (360f / totalCount) * index + UnityEngine.Random.Range(-18f, 18f);
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            float angle = baseAngle + attempt * (360f / maxAttempts);
+            float radians = angle * Mathf.Deg2Rad;
+            Vector2 direction = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
+            float radiusOffset = (attempt % 3) * 0.2f;
+            Vector2 candidate = (Vector2)transform.position +
+                                direction * (reinforcementSpawnRadius + radiusOffset);
+
+            if (IsValidReinforcementDestination(candidate, mapBounds, hasMapBounds))
+            {
+                destination = candidate;
+                return true;
+            }
+        }
+
+        destination = default;
+        return false;
+    }
+
+    private bool IsValidReinforcementDestination(
+        Vector2 candidate,
+        Bounds mapBounds,
+        bool hasMapBounds)
+    {
+        float clearance = Mathf.Max(0.05f, reinforcementSpawnClearance);
+
+        if (hasMapBounds)
+        {
+            float minX = mapBounds.min.x + clearance;
+            float maxX = mapBounds.max.x - clearance;
+            float minY = mapBounds.min.y + clearance;
+            float maxY = mapBounds.max.y - clearance;
+
+            if (candidate.x < minX || candidate.x > maxX ||
+                candidate.y < minY || candidate.y > maxY)
+            {
+                return false;
+            }
+        }
+
+        int mask = reinforcementDestinationBlockingLayers.value != 0
+            ? reinforcementDestinationBlockingLayers.value
+            : LayerMask.GetMask(
+                "Default",
+                "Player",
+                "Enemy",
+                "Meteor",
+                "HarvestObject",
+                "Shop",
+                "WorldSolid"
+            );
+
+        ContactFilter2D contactFilter = new ContactFilter2D();
+        contactFilter.SetLayerMask(mask);
+        contactFilter.useTriggers = true;
+        int hitCount = Physics2D.OverlapCircle(
+            candidate,
+            clearance,
+            contactFilter,
+            reinforcementDestinationBuffer
+        );
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider2D hit = reinforcementDestinationBuffer[i];
+            reinforcementDestinationBuffer[i] = null;
+
+            if (hit == null || hit.isTrigger)
+            {
+                continue;
+            }
+
+            Transform hitTransform = hit.transform;
+
+            if (hitTransform == transform || hitTransform.IsChildOf(transform))
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     private GameObject GetRandomReinforcementPrefab()
@@ -528,19 +691,6 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
         }
 
         return null;
-    }
-
-    private Vector2 GetSpawnDirection(int index, int totalCount)
-    {
-        if (totalCount <= 1)
-        {
-            Vector2 random = UnityEngine.Random.insideUnitCircle;
-            return random.sqrMagnitude > 0.001f ? random.normalized : Vector2.up;
-        }
-
-        float angle = (360f / totalCount) * index + UnityEngine.Random.Range(-25f, 25f);
-        float radian = angle * Mathf.Deg2Rad;
-        return new Vector2(Mathf.Cos(radian), Mathf.Sin(radian)).normalized;
     }
 
     private Transform FindPlayerTransform()

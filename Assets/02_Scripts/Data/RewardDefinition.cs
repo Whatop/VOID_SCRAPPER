@@ -364,7 +364,12 @@ public class RewardDefinition : ScriptableObject
             return;
         }
 
-        if (!trait.CanAppearAsShopTrait)
+        if (!trait.CanAppearAsRandomDropTrait)
+        {
+            return;
+        }
+
+        if (!RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
         {
             return;
         }

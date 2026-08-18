@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public enum LaserGuardianAnchor
@@ -19,9 +20,15 @@ public class LaserGuardianDrone : MonoBehaviour
 
     [Header("Visual")]
     [SerializeField] private SpriteRenderer spriteRenderer;
+    [Tooltip("경고 펄스 때 크기만 바꿀 비주얼 루트입니다. 비우면 SpriteRenderer Transform을 사용합니다.")]
+    [SerializeField] private Transform warningPulseScaleTarget;
 
     [Header("Runtime")]
     [SerializeField] private int runtimeIndex;
+
+    private Coroutine warningPulseRoutine;
+    private Vector3 basePulseScale;
+    private Color runtimeBaseTint = Color.white;
 
     public int RuntimeIndex => runtimeIndex;
     public Transform UpLaserAnchor => upLaserAnchor != null ? upLaserAnchor : transform;
@@ -51,6 +58,37 @@ public class LaserGuardianDrone : MonoBehaviour
         {
             CreateMissingAnchors();
         }
+
+        if (warningPulseScaleTarget == null)
+        {
+            warningPulseScaleTarget = spriteRenderer != null
+                ? spriteRenderer.transform
+                : transform;
+        }
+
+        basePulseScale = warningPulseScaleTarget.localScale;
+        runtimeBaseTint = spriteRenderer != null ? spriteRenderer.color : Color.white;
+    }
+
+    private void OnDisable()
+    {
+        if (warningPulseRoutine != null)
+        {
+            StopCoroutine(warningPulseRoutine);
+            warningPulseRoutine = null;
+        }
+
+        if (warningPulseScaleTarget != null)
+        {
+            warningPulseScaleTarget.localScale = basePulseScale == Vector3.zero
+                ? Vector3.one
+                : basePulseScale;
+        }
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = runtimeBaseTint;
+        }
     }
 
     public void SetRuntimeIndex(int index)
@@ -72,10 +110,85 @@ public class LaserGuardianDrone : MonoBehaviour
 
     public void SetTint(Color color)
     {
+        runtimeBaseTint = color;
+
         if (spriteRenderer != null)
         {
             spriteRenderer.color = color;
         }
+    }
+
+    public void PlayWarningPulse(Color warningColor, float duration, float scaleMultiplier = 1.12f)
+    {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        if (warningPulseRoutine != null)
+        {
+            StopCoroutine(warningPulseRoutine);
+        }
+
+        warningPulseRoutine = StartCoroutine(WarningPulseRoutine(
+            warningColor,
+            Mathf.Max(0.05f, duration),
+            Mathf.Max(1f, scaleMultiplier)
+        ));
+    }
+
+    private IEnumerator WarningPulseRoutine(Color warningColor, float duration, float scaleMultiplier)
+    {
+        Transform scaleTarget = warningPulseScaleTarget != null
+            ? warningPulseScaleTarget
+            : transform;
+        Vector3 startScale = basePulseScale == Vector3.zero
+            ? scaleTarget.localScale
+            : basePulseScale;
+        Color startColor = runtimeBaseTint;
+        float halfDuration = duration * 0.5f;
+        float timer = 0f;
+
+        while (timer < halfDuration)
+        {
+            timer += Time.deltaTime;
+            float t = Mathf.Clamp01(timer / Mathf.Max(0.01f, halfDuration));
+            float eased = Mathf.SmoothStep(0f, 1f, t);
+            scaleTarget.localScale = Vector3.Lerp(startScale, startScale * scaleMultiplier, eased);
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = Color.Lerp(startColor, warningColor, eased);
+            }
+
+            yield return null;
+        }
+
+        timer = 0f;
+
+        while (timer < halfDuration)
+        {
+            timer += Time.deltaTime;
+            float t = Mathf.Clamp01(timer / Mathf.Max(0.01f, halfDuration));
+            float eased = Mathf.SmoothStep(0f, 1f, t);
+            scaleTarget.localScale = Vector3.Lerp(startScale * scaleMultiplier, startScale, eased);
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = Color.Lerp(warningColor, startColor, eased);
+            }
+
+            yield return null;
+        }
+
+        scaleTarget.localScale = startScale;
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = startColor;
+        }
+
+        warningPulseRoutine = null;
     }
 
     public void SetVisible(bool visible)

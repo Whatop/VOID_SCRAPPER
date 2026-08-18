@@ -13,12 +13,14 @@ public class EnemyCargoHold : MonoBehaviour
     [SerializeField] private int creditsWeight = 1;
     [SerializeField] private int scrapWeight = 1;
     [SerializeField] private int coreShardWeight = 12;
+    [SerializeField] private int stabilizedAlloyWeight = 2;
 
     [Header("Allowed Currency")]
     [SerializeField] private bool allowExperience;
     [SerializeField] private bool allowCredits = true;
     [SerializeField] private bool allowScrap = true;
     [SerializeField] private bool allowCoreShards = true;
+    [SerializeField] private bool allowStabilizedAlloy = true;
 
     [Header("Drop")]
     [SerializeField] private bool dropCargoOnDeath = true;
@@ -29,6 +31,7 @@ public class EnemyCargoHold : MonoBehaviour
     [SerializeField] private int credits;
     [SerializeField] private int scrapParts;
     [SerializeField] private int coreShards;
+    [SerializeField] private int stabilizedAlloy;
 
     private EnemyHealth health;
     private bool suppressNextDeathDrop;
@@ -38,11 +41,12 @@ public class EnemyCargoHold : MonoBehaviour
         experience * GetWeight(CurrencyType.Experience) +
         credits * GetWeight(CurrencyType.Credits) +
         scrapParts * GetWeight(CurrencyType.ScrapParts) +
-        coreShards * GetWeight(CurrencyType.CoreShards);
+        coreShards * GetWeight(CurrencyType.CoreShards) +
+        stabilizedAlloy * GetWeight(CurrencyType.StabilizedAlloy);
 
     public int RemainingCapacity => Mathf.Max(0, Capacity - UsedCapacity);
     public float FillRatio => Capacity <= 0 ? 0f : Mathf.Clamp01((float)UsedCapacity / Capacity);
-    public bool HasCargo => experience > 0 || credits > 0 || scrapParts > 0 || coreShards > 0;
+    public bool HasCargo => experience > 0 || credits > 0 || scrapParts > 0 || coreShards > 0 || stabilizedAlloy > 0;
     public bool IsFull => RemainingCapacity <= 0;
 
     public event Action<EnemyCargoHold> CargoChanged;
@@ -90,6 +94,7 @@ public class EnemyCargoHold : MonoBehaviour
         allowCredits = canTakeCredits;
         allowScrap = canTakeScrap;
         allowCoreShards = canTakeCoreShards;
+        allowStabilizedAlloy = canTakeScrap;
         CargoChanged?.Invoke(this);
     }
 
@@ -166,6 +171,10 @@ public class EnemyCargoHold : MonoBehaviour
             case CurrencyType.CoreShards:
                 coreShards += accepted;
                 break;
+
+            case CurrencyType.StabilizedAlloy:
+                stabilizedAlloy += accepted;
+                break;
         }
 
         CargoChanged?.Invoke(this);
@@ -179,6 +188,7 @@ public class EnemyCargoHold : MonoBehaviour
             CurrencyType.Credits => credits,
             CurrencyType.ScrapParts => scrapParts,
             CurrencyType.CoreShards => coreShards,
+            CurrencyType.StabilizedAlloy => stabilizedAlloy,
             _ => 0
         };
     }
@@ -218,6 +228,11 @@ public class EnemyCargoHold : MonoBehaviour
                 coreShards -= removed;
                 break;
 
+            case CurrencyType.StabilizedAlloy:
+                removed = Mathf.Min(amount, stabilizedAlloy);
+                stabilizedAlloy -= removed;
+                break;
+
             default:
                 return 0;
         }
@@ -252,6 +267,7 @@ public class EnemyCargoHold : MonoBehaviour
         rewardDropper.DropCurrencyRewardAt(origin, CurrencyType.Credits, credits);
         rewardDropper.DropCurrencyRewardAt(origin, CurrencyType.ScrapParts, scrapParts);
         rewardDropper.DropCurrencyRewardAt(origin, CurrencyType.CoreShards, coreShards);
+        rewardDropper.DropCurrencyRewardAt(origin, CurrencyType.StabilizedAlloy, stabilizedAlloy);
 
         ResetCargo();
     }
@@ -268,6 +284,7 @@ public class EnemyCargoHold : MonoBehaviour
         credits = 0;
         scrapParts = 0;
         coreShards = 0;
+        stabilizedAlloy = 0;
         CargoChanged?.Invoke(this);
     }
 
@@ -311,6 +328,7 @@ public class EnemyCargoHold : MonoBehaviour
             CurrencyType.Credits => allowCredits,
             CurrencyType.ScrapParts => allowScrap,
             CurrencyType.CoreShards => allowCoreShards,
+            CurrencyType.StabilizedAlloy => allowStabilizedAlloy,
             _ => false
         };
     }
@@ -323,6 +341,7 @@ public class EnemyCargoHold : MonoBehaviour
             CurrencyType.Credits => Mathf.Max(1, creditsWeight),
             CurrencyType.ScrapParts => Mathf.Max(1, scrapWeight),
             CurrencyType.CoreShards => Mathf.Max(1, coreShardWeight),
+            CurrencyType.StabilizedAlloy => Mathf.Max(1, stabilizedAlloyWeight),
             _ => 1
         };
     }

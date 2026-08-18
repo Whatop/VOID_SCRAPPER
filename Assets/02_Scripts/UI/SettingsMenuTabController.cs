@@ -49,6 +49,24 @@ public class SettingsMenuTabController : MonoBehaviour
         }
     }
 
+    public void Configure(GameObject[] roots, Button[] buttons, int initialTabIndex = 0)
+    {
+        UnbindButtons();
+        tabRoots = roots ?? new GameObject[0];
+        tabButtons = buttons ?? new Button[0];
+        defaultTabIndex = Mathf.Clamp(
+            initialTabIndex,
+            0,
+            Mathf.Max(0, tabRoots.Length - 1)
+        );
+
+        if (isActiveAndEnabled)
+        {
+            BindButtons();
+            ShowTab(defaultTabIndex);
+        }
+    }
+
     private void BindButtons()
     {
         UnbindButtons();

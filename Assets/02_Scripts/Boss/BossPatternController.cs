@@ -92,6 +92,12 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private Color laserTelegraphColor = new Color(1f, 1f, 1f, 0.35f);
     [SerializeField] private Color laserActiveColor = Color.white;
     [SerializeField] private float laserTelegraphWidth = 0.12f;
+    [Header("Phase 2 Section Laser Readability")]
+    [SerializeField] private float phase2SectionLaserPreviewTime = 0.75f;
+    [SerializeField] private float phase2SectionLaserLockTime = 0.2f;
+    [SerializeField] private Color phase2LaserLockColor = new Color(1f, 0.82f, 0.25f, 0.95f);
+    [SerializeField] private float phase2LaserLockWidthMultiplier = 1.35f;
+    [SerializeField] private float phase2SectionLaserRecoveryTime = 0.16f;
     [SerializeField] private string lineSortingLayerName = "Default";
     [SerializeField] private int lineSortingOrder = 35;
 
@@ -203,6 +209,11 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private float boundaryWallDamageInterval = 0.5f;
     [SerializeField] private Color phase1BoundaryLaserColor = Color.white;
     [SerializeField] private Color phase2BoundaryLaserColor = new Color(0.55f, 0.55f, 0.75f, 1f);
+    [Range(0.05f, 1f)]
+    [SerializeField] private float phase2GameplayBoundaryVisualAlpha = 0.35f;
+    [SerializeField] private bool useRegularPhase2HexVisual = true;
+    [SerializeField] private Color phase2RegularHexVisualColor = new Color(0.65f, 0.65f, 0.9f, 0.82f);
+    [SerializeField] private float phase2RegularHexVisualWidth = 0.16f;
     [SerializeField] private string boundaryWallLayerName = "Default";
     [SerializeField] private int boundaryLaserSortingOrder = 30;
 
@@ -219,7 +230,8 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private float phase2HexagonShoulderYRatio = 0.5f;
 
     [Header("Phase 2 - Opposite Pair Rotating Lasers")]
-    [SerializeField] private float phase2HexagonLaserWarmup = 0.35f;
+    [Tooltip("회전 레이저의 최종 형상이 고정되어 밝아지는 LOCK 시간입니다. 이 동안 피해는 없습니다.")]
+    [SerializeField] private float phase2HexagonLaserWarmup = 0.2f;
     [SerializeField] private int phase2RotatingLaserRepeatCount = 3;
     [SerializeField] private float phase2RotatingLaserOneSlotAngle = 60f;
     [SerializeField] private float phase2RotatingLaserStepDuration = 1.6f;
@@ -235,11 +247,8 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private bool phase2BoundaryLasersFollowManagers = true;
     [SerializeField] private bool usePhase2HexagonTelegraph = true;
     [SerializeField] private float phase2HexagonTelegraphTime = 0.65f;
-    [SerializeField] private float phase2HexagonTelegraphWidth = 0.18f;
-    [Min(0f)]
-    [SerializeField] private float phase2HexagonCastMotionTime = 0.22f;
-    [Min(1f)]
-    [SerializeField] private float phase2HexagonCastScale = 1.12f;
+    [SerializeField] private float phase2HexagonTelegraphWidth = 0.16f;
+    [SerializeField] private float phase2HexagonLaserRecoveryTime = 0.18f;
     [Header("Debug")]
     [SerializeField] private bool logPattern;
 
@@ -305,6 +314,10 @@ public class BossPatternController : MonoBehaviour
     private GameObject phase2RuntimeShieldObject;
     private LineRenderer phase2RuntimeShieldLine;
     private Material phase2RuntimeShieldMaterial;
+    private GameObject phase2RegularHexVisualObject;
+    private LineRenderer phase2RegularHexVisualLine;
+    private Material phase2RegularHexVisualMaterial;
+    private float phase2RegularHexVisualRotation;
     private BossCinematicLetterboxUI phase2LetterboxUi;
 
     private bool phase2PlayerLockActive;
@@ -366,6 +379,7 @@ public class BossPatternController : MonoBehaviour
         phase2ShieldDamageEnabled = false;
         phase2ShieldHp = 0f;
         phase2ShieldMaxHpRuntime = 0f;
+        phase2RegularHexVisualRotation = 0f;
         nextPatternIndex = 0;
         nextPhase2RotatingLaserUsePurple = firstPhase2RotatingLaserColor == Phase2RotatingLaserColor.Purple;
         arenaCenter = ResolveArenaCenter();
@@ -434,6 +448,7 @@ public class BossPatternController : MonoBehaviour
         RestorePhase2PlayerInput();
         RestorePhase2Presentation(true);
         SetPhase2ShieldVisualVisible(false);
+        SetRegularPhase2HexVisualVisible(false);
 
         if (rb != null)
         {
@@ -447,6 +462,19 @@ public class BossPatternController : MonoBehaviour
         {
             Destroy(phase2RuntimeShieldMaterial);
             phase2RuntimeShieldMaterial = null;
+        }
+
+        if (phase2RegularHexVisualObject != null)
+        {
+            Destroy(phase2RegularHexVisualObject);
+            phase2RegularHexVisualObject = null;
+            phase2RegularHexVisualLine = null;
+        }
+
+        if (phase2RegularHexVisualMaterial != null)
+        {
+            Destroy(phase2RegularHexVisualMaterial);
+            phase2RegularHexVisualMaterial = null;
         }
     }
 
@@ -650,6 +678,7 @@ public class BossPatternController : MonoBehaviour
         int count = Mathf.Max(1, laserLineCount);
 
         Vector2[] directions = new Vector2[count];
+        GameObject[] telegraphObjects = new GameObject[count];
 
         for (int i = 0; i < count; i++)
         {
@@ -671,15 +700,31 @@ public class BossPatternController : MonoBehaviour
 
             if (telegraph != null)
             {
+                telegraphObjects[i] = telegraph;
                 transientVisualObjects.Add(telegraph);
             }
         }
 
         AudioManager.PlayAt(SoundEventIds.BossLaserWarning, center);
 
-        if (laserTelegraphTime > 0f)
+        float previewTime = phase2
+            ? Mathf.Max(0f, phase2SectionLaserPreviewTime)
+            : Mathf.Max(0f, laserTelegraphTime);
+
+        if (previewTime > 0f)
         {
-            yield return new WaitForSeconds(laserTelegraphTime);
+            yield return new WaitForSeconds(previewTime);
+        }
+
+        if (phase2 && phase2SectionLaserLockTime > 0f)
+        {
+            SetLineObjectsPresentation(
+                telegraphObjects,
+                phase2LaserLockColor,
+                laserTelegraphWidth * Mathf.Max(1f, phase2LaserLockWidthMultiplier)
+            );
+
+            yield return new WaitForSeconds(phase2SectionLaserLockTime);
         }
 
         ClearTransientVisualObjects();
@@ -699,7 +744,8 @@ public class BossPatternController : MonoBehaviour
                 scaledDamage,
                 laserWidth,
                 laserActiveColor,
-                laserDamageInterval
+                laserDamageInterval,
+                phase2 ? phase2SectionLaserRecoveryTime : 0f
             );
         }
     }
@@ -897,24 +943,38 @@ public class BossPatternController : MonoBehaviour
             ? 1f
             : -1f;
 
-        AudioManager.PlayAt(SoundEventIds.BossLaserWarning, arenaCenter);
+        float telegraphDuration = Mathf.Max(0.55f, phase2HexagonTelegraphTime);
+        LineRenderer[] oppositePairTelegraphs = null;
 
-        if (phase2HexagonCastMotionTime > 0f)
+        if (usePhase2HexagonTelegraph && telegraphDuration > 0f)
         {
-            yield return PlayHexagonManagerCastMotionRoutine(slots);
-        }
-
-        if (phase2HexagonTelegraphTime > 0f)
-        {
-            AddOppositePairTelegraphs(slots, laserColor);
-            yield return new WaitForSeconds(phase2HexagonTelegraphTime);
-            ClearTransientVisualObjects();
+            AudioManager.PlayAt(SoundEventIds.BossLaserWarning, arenaCenter);
+            oppositePairTelegraphs = AddOppositePairTelegraphs(slots, laserColor);
+            yield return PlayHexagonDirectionPreviewRoutine(
+                slots,
+                laserColor,
+                rotationDirection,
+                telegraphDuration
+            );
         }
 
         if (phase2HexagonLaserWarmup > 0f)
         {
+            Color lockColor = Color.Lerp(laserColor, Color.white, 0.55f);
+            lockColor.a = 0.98f;
+            SetLineRenderersPresentation(
+                oppositePairTelegraphs,
+                lockColor,
+                Mathf.Max(
+                    phase2HexagonTelegraphWidth * 1.6f,
+                    phase2HexagonLaserWidth * 0.42f
+                )
+            );
+            PlayHexagonManagerWarningPulse(slots, lockColor, phase2HexagonLaserWarmup);
             yield return new WaitForSeconds(phase2HexagonLaserWarmup);
         }
+
+        ClearTransientVisualObjects();
 
         DeactivateRotatingLasers();
 
@@ -959,52 +1019,15 @@ public class BossPatternController : MonoBehaviour
             }
         }
 
+        BeginRotatingLaserRecovery(activeRotatingLasers);
+
+        if (phase2HexagonLaserRecoveryTime > 0f)
+        {
+            yield return new WaitForSeconds(phase2HexagonLaserRecoveryTime);
+        }
+
         DeactivateRotatingLasers();
         RebuildBoundaryLasersAsPhase2Hexagon();
-    }
-
-    private IEnumerator PlayHexagonManagerCastMotionRoutine(LaserGuardianDrone[] slots)
-    {
-        if (!AreHexagonSlotsValid(slots))
-        {
-            yield break;
-        }
-
-        float duration = Mathf.Max(0.01f, phase2HexagonCastMotionTime);
-        Vector3[] baseScales = new Vector3[slots.Length];
-
-        for (int i = 0; i < slots.Length; i++)
-        {
-            baseScales[i] = slots[i] != null ? slots[i].transform.localScale : Vector3.one;
-        }
-
-        float timer = 0f;
-
-        while (timer < duration)
-        {
-            timer += Time.deltaTime;
-            float t = Mathf.Clamp01(timer / duration);
-            float pulse = Mathf.Sin(t * Mathf.PI);
-            float scaleMultiplier = Mathf.Lerp(1f, Mathf.Max(1f, phase2HexagonCastScale), pulse);
-
-            for (int i = 0; i < slots.Length; i++)
-            {
-                if (slots[i] != null)
-                {
-                    slots[i].transform.localScale = baseScales[i] * scaleMultiplier;
-                }
-            }
-
-            yield return null;
-        }
-
-        for (int i = 0; i < slots.Length; i++)
-        {
-            if (slots[i] != null)
-            {
-                slots[i].transform.localScale = baseScales[i];
-            }
-        }
     }
 
     private Phase2RotatingLaserColor ResolveNextPhase2RotatingLaserColor()
@@ -1025,16 +1048,156 @@ public class BossPatternController : MonoBehaviour
         return selectedColor;
     }
 
-    private void AddOppositePairTelegraphs(LaserGuardianDrone[] slots, Color laserColor)
+    private void PlayHexagonManagerWarningPulse(
+        LaserGuardianDrone[] slots,
+        Color warningColor,
+        float duration)
     {
-        if (!AreHexagonSlotsValid(slots))
+        if (slots == null)
         {
             return;
         }
 
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (slots[i] != null)
+            {
+                slots[i].PlayWarningPulse(warningColor, duration, 1.12f);
+            }
+        }
+    }
+
+    private IEnumerator PlayHexagonDirectionPreviewRoutine(
+        LaserGuardianDrone[] slots,
+        Color warningColor,
+        float rotationDirection,
+        float duration)
+    {
+        if (!AreHexagonSlotsValid(slots))
+        {
+            yield break;
+        }
+
+        const int markerCount = 3;
+        const float markerLength = 0.75f;
+        const float markerHeadWidth = 0.2f;
+        const float markerTailWidth = 0.045f;
+
+        GameObject[] markerObjects = new GameObject[markerCount];
+        LineRenderer[] markerLines = new LineRenderer[markerCount];
+        Color markerColor = Color.Lerp(warningColor, Color.white, 0.35f);
+        markerColor.a = 0.9f;
+
+        for (int i = 0; i < markerCount; i++)
+        {
+            GameObject markerObject = CreateLineObject(
+                $"Boss_Phase2_RotationDirection_{i + 1:D2}",
+                arenaCenter,
+                Vector2.up,
+                markerLength,
+                markerHeadWidth,
+                markerColor,
+                true
+            );
+
+            if (markerObject == null)
+            {
+                continue;
+            }
+
+            LineRenderer markerLine = markerObject.GetComponent<LineRenderer>();
+            if (markerLine != null)
+            {
+                markerLine.startWidth = markerTailWidth;
+                markerLine.endWidth = markerHeadWidth;
+                markerLine.sortingOrder = lineSortingOrder + 1;
+            }
+
+            markerObjects[i] = markerObject;
+            markerLines[i] = markerLine;
+            transientVisualObjects.Add(markerObject);
+        }
+
+        duration = Mathf.Max(0.05f, duration);
+        float directionSign = rotationDirection >= 0f ? 1f : -1f;
+        float pulseInterval = duration / 6f;
+        int lastPulseStep = -1;
+        float timer = 0f;
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;
+            float normalized = Mathf.Clamp01(timer / duration);
+            float perimeterAdvance = normalized * 2f * directionSign;
+
+            for (int i = 0; i < markerCount; i++)
+            {
+                if (markerObjects[i] == null || markerLines[i] == null)
+                {
+                    continue;
+                }
+
+                float pathPosition = i * 2f + perimeterAdvance;
+                Vector2 position = EvaluateHexagonPerimeter(slots, pathPosition);
+                Vector2 nextPosition = EvaluateHexagonPerimeter(
+                    slots,
+                    pathPosition + directionSign * 0.04f
+                );
+                Vector2 direction = nextPosition - position;
+
+                UpdateLineObject(
+                    markerObjects[i],
+                    markerLines[i],
+                    position,
+                    direction,
+                    markerLength
+                );
+            }
+
+            int pulseStep = Mathf.Min(5, Mathf.FloorToInt(timer / Mathf.Max(0.01f, pulseInterval)));
+            if (pulseStep != lastPulseStep)
+            {
+                lastPulseStep = pulseStep;
+                int slotIndex = directionSign > 0f
+                    ? pulseStep
+                    : (6 - pulseStep) % 6;
+                slots[slotIndex].PlayWarningPulse(
+                    markerColor,
+                    Mathf.Max(0.06f, pulseInterval * 0.85f),
+                    1.1f
+                );
+            }
+
+            yield return null;
+        }
+    }
+
+    private static Vector2 EvaluateHexagonPerimeter(LaserGuardianDrone[] slots, float pathPosition)
+    {
+        float wrapped = Mathf.Repeat(pathPosition, 6f);
+        int startIndex = Mathf.FloorToInt(wrapped) % 6;
+        int endIndex = (startIndex + 1) % 6;
+        float t = wrapped - Mathf.Floor(wrapped);
+
+        return Vector2.Lerp(
+            slots[startIndex].transform.position,
+            slots[endIndex].transform.position,
+            t
+        );
+    }
+
+    private LineRenderer[] AddOppositePairTelegraphs(LaserGuardianDrone[] slots, Color laserColor)
+    {
+        if (!AreHexagonSlotsValid(slots))
+        {
+            return null;
+        }
+
+        LineRenderer[] telegraphs = new LineRenderer[3];
+
         for (int i = 0; i < 3; i++)
         {
-            AddTransientTelegraphBetween(
+            telegraphs[i] = AddTransientTelegraphBetween(
                 $"Boss_Phase2_OppositeLaser_Telegraph_{i + 1}",
                 slots[i].transform.position,
                 slots[i + 3].transform.position,
@@ -1042,6 +1205,8 @@ public class BossPatternController : MonoBehaviour
                 phase2HexagonTelegraphWidth
             );
         }
+
+        return telegraphs;
     }
 
     private List<BossDynamicLaserBeam> CreateOppositePairDynamicLasers(
@@ -1105,6 +1270,23 @@ public class BossPatternController : MonoBehaviour
         activeLasers.Clear();
     }
 
+    private void BeginRotatingLaserRecovery(List<BossDynamicLaserBeam> activeLasers)
+    {
+        if (activeLasers == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < activeLasers.Count; i++)
+        {
+            BossDynamicLaserBeam activeLaser = activeLasers[i];
+            if (activeLaser != null)
+            {
+                activeLaser.BeginRecovery(phase2HexagonLaserRecoveryTime, 0.24f);
+            }
+        }
+    }
+
     private IEnumerator RotateHexagonManagerShipsOneSlotRoutine(
         LaserGuardianDrone[] slots,
         float directionSign,
@@ -1135,6 +1317,7 @@ public class BossPatternController : MonoBehaviour
         }
 
         float targetAngle = directionSign * Mathf.Abs(phase2RotatingLaserOneSlotAngle);
+        float regularVisualStartRotation = phase2RegularHexVisualRotation;
         float timer = 0f;
 
         while (timer < duration)
@@ -1147,11 +1330,14 @@ public class BossPatternController : MonoBehaviour
             timer += Time.deltaTime;
             float t = Mathf.Clamp01(timer / duration);
             float eased = Mathf.SmoothStep(0f, 1f, t);
-            ApplyHexagonManagerRotation(slots, startOffsets, startRotations, targetAngle * eased);
+            float currentAngle = targetAngle * eased;
+            ApplyHexagonManagerRotation(slots, startOffsets, startRotations, currentAngle);
+            SetRegularPhase2HexVisualRotation(regularVisualStartRotation + currentAngle);
             yield return null;
         }
 
         ApplyHexagonManagerRotation(slots, startOffsets, startRotations, targetAngle);
+        SetRegularPhase2HexVisualRotation(regularVisualStartRotation + targetAngle);
     }
 
     private void ApplyHexagonManagerRotation(
@@ -1455,7 +1641,8 @@ public class BossPatternController : MonoBehaviour
             projectileDefinition,
             damage,
             speedOverride,
-            rangeOverride
+            rangeOverride,
+            projectileSource: gameObject
         );
         bullet.ConfigureBossWorldImpact(
             destroyLargeMeteorOnHit,
@@ -1474,7 +1661,8 @@ public class BossPatternController : MonoBehaviour
         float damage,
         float width,
         Color color,
-        float damageCooldown)
+        float damageCooldown,
+        float recoveryDuration)
     {
         BossLaserHazard hazard = CreateLaserHazard(center);
 
@@ -1494,7 +1682,8 @@ public class BossPatternController : MonoBehaviour
             lineMaterial,
             color,
             lineSortingLayerName,
-            lineSortingOrder
+            lineSortingOrder,
+            recoveryDuration
         );
 
         if (!activePatternLaserHazards.Contains(hazard))
@@ -1644,6 +1833,12 @@ public class BossPatternController : MonoBehaviour
 
         DestroyBoundaryLaserWalls();
 
+        Color gameplayBoundaryColor = phase2BoundaryLaserColor;
+        if (useRegularPhase2HexVisual)
+        {
+            gameplayBoundaryColor.a *= Mathf.Clamp01(phase2GameplayBoundaryVisualAlpha);
+        }
+
         for (int i = 0; i < 6; i++)
         {
             LaserGuardianDrone first = slots[i];
@@ -1653,12 +1848,111 @@ public class BossPatternController : MonoBehaviour
                 $"BossBoundaryLaser_Phase2_Hexagon_{i + 1:D2}",
                 first,
                 second,
-                phase2BoundaryLaserColor
+                gameplayBoundaryColor
             );
         }
 
+        EnsureRegularPhase2HexVisual();
+
         phase1BoundaryLasersActive = true;
         phase2BoundaryRebuilt = true;
+    }
+
+    private void EnsureRegularPhase2HexVisual()
+    {
+        if (!useRegularPhase2HexVisual)
+        {
+            SetRegularPhase2HexVisualVisible(false);
+            return;
+        }
+
+        if (phase2RegularHexVisualObject == null)
+        {
+            phase2RegularHexVisualObject = new GameObject("Boss_Phase2_RegularHex_Visual");
+            phase2RegularHexVisualLine = phase2RegularHexVisualObject.AddComponent<LineRenderer>();
+            phase2RegularHexVisualLine.useWorldSpace = false;
+            phase2RegularHexVisualLine.loop = true;
+            phase2RegularHexVisualLine.positionCount = 6;
+            phase2RegularHexVisualLine.numCapVertices = 0;
+            phase2RegularHexVisualLine.numCornerVertices = 1;
+            phase2RegularHexVisualLine.textureMode = LineTextureMode.Stretch;
+            phase2RegularHexVisualLine.sortingLayerName = lineSortingLayerName;
+            phase2RegularHexVisualLine.sortingOrder = boundaryLaserSortingOrder + 1;
+        }
+
+        if (phase2RegularHexVisualLine == null)
+        {
+            phase2RegularHexVisualLine = phase2RegularHexVisualObject.GetComponent<LineRenderer>();
+        }
+
+        if (phase2RegularHexVisualLine == null)
+        {
+            return;
+        }
+
+        Material material = lineMaterial;
+        if (material == null)
+        {
+            if (phase2RegularHexVisualMaterial == null)
+            {
+                Shader shader = Shader.Find("Sprites/Default");
+                if (shader != null)
+                {
+                    phase2RegularHexVisualMaterial = new Material(shader)
+                    {
+                        name = "Runtime Boss Phase2 Regular Hex Material",
+                        hideFlags = HideFlags.HideAndDontSave
+                    };
+                }
+            }
+
+            material = phase2RegularHexVisualMaterial;
+        }
+
+        if (material != null)
+        {
+            phase2RegularHexVisualLine.sharedMaterial = material;
+        }
+
+        float radius = Mathf.Max(0.1f, GetEffectiveHalfExtents().y);
+        float horizontal = radius * 0.8660254f;
+        float shoulderY = radius * 0.5f;
+
+        phase2RegularHexVisualLine.SetPosition(0, new Vector3(0f, radius, 0f));
+        phase2RegularHexVisualLine.SetPosition(1, new Vector3(-horizontal, shoulderY, 0f));
+        phase2RegularHexVisualLine.SetPosition(2, new Vector3(-horizontal, -shoulderY, 0f));
+        phase2RegularHexVisualLine.SetPosition(3, new Vector3(0f, -radius, 0f));
+        phase2RegularHexVisualLine.SetPosition(4, new Vector3(horizontal, -shoulderY, 0f));
+        phase2RegularHexVisualLine.SetPosition(5, new Vector3(horizontal, shoulderY, 0f));
+        phase2RegularHexVisualLine.startWidth = Mathf.Max(0.04f, phase2RegularHexVisualWidth);
+        phase2RegularHexVisualLine.endWidth = Mathf.Max(0.04f, phase2RegularHexVisualWidth);
+        phase2RegularHexVisualLine.startColor = phase2RegularHexVisualColor;
+        phase2RegularHexVisualLine.endColor = phase2RegularHexVisualColor;
+
+        phase2RegularHexVisualObject.transform.position = arenaCenter;
+        SetRegularPhase2HexVisualRotation(phase2RegularHexVisualRotation);
+        phase2RegularHexVisualObject.SetActive(true);
+    }
+
+    private void SetRegularPhase2HexVisualRotation(float rotation)
+    {
+        phase2RegularHexVisualRotation = Mathf.Repeat(rotation, 360f);
+
+        if (phase2RegularHexVisualObject != null)
+        {
+            phase2RegularHexVisualObject.transform.SetPositionAndRotation(
+                arenaCenter,
+                Quaternion.Euler(0f, 0f, phase2RegularHexVisualRotation)
+            );
+        }
+    }
+
+    private void SetRegularPhase2HexVisualVisible(bool visible)
+    {
+        if (phase2RegularHexVisualObject != null)
+        {
+            phase2RegularHexVisualObject.SetActive(visible);
+        }
     }
 
     private void CreateBoundaryWallBetweenDrones(
@@ -1698,11 +1992,8 @@ public class BossPatternController : MonoBehaviour
             wall = wallObject.AddComponent<BossArenaLaserWall>();
         }
 
-        bool shouldFollowManagers = phase2 || phase2BoundaryLasersFollowManagers;
-
-        if (shouldFollowManagers)
+        if (phase2BoundaryLasersFollowManagers)
         {
-            // 2페이즈에서는 관리기체 이동에 맞춰 외곽 레이저 벽도 항상 추종한다.
             wall.InitializeFollowBetween(
                 firstDrone.transform,
                 secondDrone.transform,
@@ -1914,7 +2205,7 @@ public class BossPatternController : MonoBehaviour
         return finalPosition + direction.normalized * Mathf.Max(0f, extraDistance);
     }
 
-    private void AddTransientTelegraphBetween(
+    private LineRenderer AddTransientTelegraphBetween(
         string objectName,
         Vector2 start,
         Vector2 end,
@@ -1926,7 +2217,7 @@ public class BossPatternController : MonoBehaviour
 
         if (length <= 0.001f)
         {
-            return;
+            return null;
         }
 
         GameObject telegraph = CreateLineObject(
@@ -1942,7 +2233,10 @@ public class BossPatternController : MonoBehaviour
         if (telegraph != null)
         {
             transientVisualObjects.Add(telegraph);
+            return telegraph.GetComponent<LineRenderer>();
         }
+
+        return null;
     }
 
     private void UpdateMovement(float deltaTime)
@@ -2950,6 +3244,61 @@ public class BossPatternController : MonoBehaviour
         }
     }
 
+    private static void SetLineObjectsPresentation(
+        GameObject[] lineObjects,
+        Color color,
+        float width)
+    {
+        if (lineObjects == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < lineObjects.Length; i++)
+        {
+            GameObject lineObject = lineObjects[i];
+            if (lineObject == null)
+            {
+                continue;
+            }
+
+            SetLineRendererPresentation(lineObject.GetComponent<LineRenderer>(), color, width);
+        }
+    }
+
+    private static void SetLineRenderersPresentation(
+        LineRenderer[] lineRenderers,
+        Color color,
+        float width)
+    {
+        if (lineRenderers == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < lineRenderers.Length; i++)
+        {
+            SetLineRendererPresentation(lineRenderers[i], color, width);
+        }
+    }
+
+    private static void SetLineRendererPresentation(
+        LineRenderer lineRenderer,
+        Color color,
+        float width)
+    {
+        if (lineRenderer == null)
+        {
+            return;
+        }
+
+        float safeWidth = Mathf.Max(0.001f, width);
+        lineRenderer.startWidth = safeWidth;
+        lineRenderer.endWidth = safeWidth;
+        lineRenderer.startColor = color;
+        lineRenderer.endColor = color;
+    }
+
     private void ConfigureLineRenderer(
         LineRenderer lineRenderer,
         float width,
@@ -2993,6 +3342,7 @@ public class BossPatternController : MonoBehaviour
 
             if (target != null)
             {
+                target.SetActive(false);
                 Destroy(target);
             }
         }
@@ -3059,6 +3409,7 @@ public class BossPatternController : MonoBehaviour
 
         boundaryLaserWalls.Clear();
         phase1BoundaryLasersActive = false;
+        SetRegularPhase2HexVisualVisible(false);
     }
 
     private void DisableLegacyEnemyControllersIfNeeded()

@@ -148,6 +148,34 @@ public class InputRebindButtonUI : MonoBehaviour
         );
     }
 
+    public void Configure(
+        InputActionAsset actions,
+        string mapName,
+        string targetActionName,
+        string targetBindingGroup,
+        int bindingIndex,
+        Button targetRebindButton,
+        Button targetResetButton,
+        TextMeshProUGUI targetBindingText,
+        string unresolvedText = "Unassigned",
+        string rebindWaitingText = "Press a key...")
+    {
+        CancelRebind();
+        inputActions = actions;
+        actionMapName = mapName;
+        actionName = targetActionName;
+        bindingGroup = targetBindingGroup;
+        preferredBindingIndex = bindingIndex;
+        rebindButton = targetRebindButton;
+        resetButton = targetResetButton;
+        bindingText = targetBindingText;
+        fallbackText = unresolvedText;
+        waitingText = rebindWaitingText;
+        InputBindingPersistence.LoadOnce(inputActions);
+        ResolveAction();
+        RefreshLabel();
+    }
+
     private void ResolveAction()
     {
         activeAction = InputBindingUtility.ResolveAction(inputActions, actionMapName, actionName);

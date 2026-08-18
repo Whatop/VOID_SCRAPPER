@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -40,7 +41,7 @@ public class PlayerRadarScanner : MonoBehaviour
     [SerializeField] private float sniperLingerTime = 6f;
 
     [Header("Warning Messages")]
-    [SerializeField] private string holdNotEnoughMessage = "Q를 1초 동안 눌러야 레이더 스캔이 가능합니다.";
+    [SerializeField] private string holdNotEnoughMessage = "{0}를 길게 눌러 스캔할 수 있습니다.";
     [SerializeField] private string noTargetMessage = "탐지된 대상이 없습니다.";
 
     [Header("Debug")]
@@ -49,12 +50,27 @@ public class PlayerRadarScanner : MonoBehaviour
     private InputAction radarAction;
     private bool isHolding;
     private bool isRadarOpen;
+    private bool hasNormalRadarPresentation;
     private float holdTimer;
     private float lastScanTime = -999f;
+    private float lastNormalScanRadius;
 
     private readonly Collider2D[] scanBuffer = new Collider2D[256];
     private readonly List<RadarTarget> scannedTargets = new List<RadarTarget>(128);
     private readonly HashSet<RadarTarget> scannedSet = new HashSet<RadarTarget>();
+    private readonly List<RadarTarget> displayedTargets = new List<RadarTarget>(128);
+    private readonly HashSet<RadarTarget> displayedSet = new HashSet<RadarTarget>();
+    private readonly HashSet<RadarTarget> temporaryPulseSet = new HashSet<RadarTarget>();
+    private readonly Dictionary<UnityEngine.Object, TemporaryRevealState> temporaryRevealStates =
+        new Dictionary<UnityEngine.Object, TemporaryRevealState>(2);
+    private readonly List<UnityEngine.Object> expiredRevealSources = new List<UnityEngine.Object>(2);
+    private Coroutine temporaryRevealRoutine;
+
+    private sealed class TemporaryRevealState
+    {
+        public float expiresAt;
+        public float radius;
+    }
 
     public bool IsHolding => isHolding;
     public bool IsRadarOpen => isRadarOpen;
@@ -85,7 +101,7 @@ public class PlayerRadarScanner : MonoBehaviour
         BindInput();
         objectiveDirector ??= ExpeditionObjectiveDirector.Instance;
 
-        if (objectiveDirector != null)
+        if (includeGloballyRevealedCore && objectiveDirector != null)
         {
             objectiveDirector.CoreRevealedEvent += HandleCoreGloballyRevealed;
         }
@@ -100,6 +116,7 @@ public class PlayerRadarScanner : MonoBehaviour
 
         radarAction?.Disable();
         CancelHold();
+        ClearAllTemporaryReveals();
         CloseRadar();
     }
 
@@ -140,6 +157,7 @@ public class PlayerRadarScanner : MonoBehaviour
 
     private void BindInput()
     {
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
         radarAction = InputBindingUtility.ResolveAction(inputActions, actionMapName, radarActionName);
         radarAction?.Enable();
     }
@@ -245,7 +263,7 @@ public class PlayerRadarScanner : MonoBehaviour
                 return;
             }
 
-            ShowWarning(holdNotEnoughMessage);
+            ShowWarning(ResolveHoldNotEnoughMessage());
             return;
         }
 
@@ -264,6 +282,20 @@ public class PlayerRadarScanner : MonoBehaviour
         }
 
         radarVFX?.CancelCharge();
+    }
+
+    private string ResolveHoldNotEnoughMessage()
+    {
+        string radarKey = InputBindingUtility.GetDisplayString(
+            inputActions,
+            actionMapName,
+            radarActionName,
+            radarFallbackKey.ToString()
+        );
+
+        return string.IsNullOrWhiteSpace(holdNotEnoughMessage)
+            ? radarKey
+            : string.Format(holdNotEnoughMessage, radarKey);
     }
 
     public bool TryScan()
@@ -286,6 +318,8 @@ public class PlayerRadarScanner : MonoBehaviour
         }
 
         ScanTargets(effectiveRadius);
+        lastNormalScanRadius = effectiveRadius;
+        hasNormalRadarPresentation = scannedTargets.Count > 0;
 
         mapDiscoveryController ??= MapDiscoveryController.Instance;
         mapDiscoveryController?.RegisterRadarScan(transform.position, effectiveRadius, scannedTargets);
@@ -296,12 +330,92 @@ public class PlayerRadarScanner : MonoBehaviour
         if (scannedTargets.Count == 0)
         {
             ShowWarning(noTargetMessage);
-            CloseRadar();
+
+            if (HasActiveTemporaryReveals())
+            {
+                RefreshRadarPresentation();
+            }
+            else
+            {
+                CloseRadar();
+            }
+
             return true;
         }
 
         OpenRadar(effectiveRadius);
         return true;
+    }
+
+    public int RevealTargetsTemporarily(UnityEngine.Object source, float radius, float duration)
+    {
+        if (!isActiveAndEnabled ||
+            source == null ||
+            duration <= 0f ||
+            playerHealth != null && playerHealth.IsDead)
+        {
+            return 0;
+        }
+
+        float effectiveRadius = radius > 0f ? radius : ResolveEffectiveScanRadius();
+        Vector2 origin = transform.position;
+        temporaryPulseSet.Clear();
+        int revealedCount = 0;
+        int count = Physics2D.OverlapCircleNonAlloc(
+            origin,
+            effectiveRadius,
+            scanBuffer,
+            radarTargetLayer
+        );
+
+        for (int i = 0; i < count; i++)
+        {
+            RadarTarget target = scanBuffer[i] != null
+                ? scanBuffer[i].GetComponentInParent<RadarTarget>()
+                : null;
+
+            if (target == null || !temporaryPulseSet.Add(target) || !target.IsRadarVisible)
+            {
+                continue;
+            }
+
+            if (target.SetTemporaryReveal(source, duration))
+            {
+                revealedCount++;
+            }
+        }
+
+        if (revealedCount <= 0)
+        {
+            radarVFX?.PlayPulse(effectiveRadius);
+            return 0;
+        }
+
+        float requestedExpiration = Time.time + duration;
+
+        if (!temporaryRevealStates.TryGetValue(source, out TemporaryRevealState state))
+        {
+            state = new TemporaryRevealState();
+            temporaryRevealStates.Add(source, state);
+        }
+
+        state.expiresAt = Mathf.Max(state.expiresAt, requestedExpiration);
+        state.radius = Mathf.Max(state.radius, effectiveRadius);
+
+        radarVFX?.PlayPulse(effectiveRadius);
+        OpenRadar(effectiveRadius);
+
+        if (temporaryRevealRoutine == null)
+        {
+            temporaryRevealRoutine = StartCoroutine(TemporaryRevealLifecycleRoutine());
+        }
+
+        return revealedCount;
+    }
+
+    public void PlayTacticalPulse(float radius)
+    {
+        radarVFX?.PlayPulse(radius > 0f ? radius : ResolveEffectiveScanRadius());
     }
 
     private void ScanTargets(float effectiveRadius)
@@ -363,10 +477,12 @@ public class PlayerRadarScanner : MonoBehaviour
 
     private void OpenRadar(float effectiveRadius)
     {
+        BuildDisplayedTargets();
+
         if (radarHUD != null)
         {
-            radarHUD.SetScanRadius(effectiveRadius);
-            radarHUD.SetTargets(scannedTargets, transform);
+            radarHUD.SetScanRadius(ResolveDisplayedRadius(effectiveRadius));
+            radarHUD.SetTargets(displayedTargets, transform);
         }
 
         if (!isRadarOpen)
@@ -384,13 +500,30 @@ public class PlayerRadarScanner : MonoBehaviour
             return;
         }
 
-        radarHUD?.Clear();
-        radarPanelAnimator?.Close();
+        // Unity scene shutdown can destroy either UI object before this player
+        // component. Use Unity's overloaded null check instead of ?. so a stale
+        // native object is not invoked while leaving Tutorial/Expedition.
+        if (radarHUD != null)
+        {
+            radarHUD.Clear();
+        }
+
+        if (radarPanelAnimator != null)
+        {
+            radarPanelAnimator.Close();
+        }
+
         isRadarOpen = false;
+        hasNormalRadarPresentation = false;
     }
 
     private void HandleCoreGloballyRevealed()
     {
+        if (!includeGloballyRevealedCore)
+        {
+            return;
+        }
+
         mapDiscoveryController ??= MapDiscoveryController.Instance;
         bool changed = false;
 
@@ -414,8 +547,167 @@ public class PlayerRadarScanner : MonoBehaviour
 
         if (changed && isRadarOpen && radarHUD != null)
         {
-            radarHUD.SetTargets(scannedTargets, transform);
+            RefreshRadarPresentation();
         }
+    }
+
+    private IEnumerator TemporaryRevealLifecycleRoutine()
+    {
+        while (temporaryRevealStates.Count > 0)
+        {
+            float nextExpiration = FindNextTemporaryRevealExpiration();
+            float delay = Mathf.Max(0.05f, nextExpiration - Time.time);
+            yield return new WaitForSeconds(delay);
+
+            PruneExpiredTemporaryReveals();
+
+            if (!isRadarOpen)
+            {
+                continue;
+            }
+
+            BuildDisplayedTargets();
+
+            if (displayedTargets.Count == 0 && !hasNormalRadarPresentation)
+            {
+                CloseRadar();
+            }
+            else
+            {
+                RefreshRadarPresentation();
+            }
+        }
+
+        temporaryRevealRoutine = null;
+    }
+
+    private void PruneExpiredTemporaryReveals()
+    {
+        float now = Time.time;
+        expiredRevealSources.Clear();
+
+        foreach (KeyValuePair<UnityEngine.Object, TemporaryRevealState> pair in temporaryRevealStates)
+        {
+            if (pair.Key == null || pair.Value == null || pair.Value.expiresAt <= now)
+            {
+                expiredRevealSources.Add(pair.Key);
+            }
+        }
+
+        for (int i = 0; i < expiredRevealSources.Count; i++)
+        {
+            UnityEngine.Object source = expiredRevealSources[i];
+
+            foreach (RadarTarget target in RadarTarget.ActiveTargets)
+            {
+                if (target != null)
+                {
+                    target.ClearTemporaryReveal(source);
+                }
+            }
+
+            temporaryRevealStates.Remove(source);
+        }
+    }
+
+    private void ClearAllTemporaryReveals()
+    {
+        if (temporaryRevealRoutine != null)
+        {
+            StopCoroutine(temporaryRevealRoutine);
+            temporaryRevealRoutine = null;
+        }
+
+        foreach (UnityEngine.Object source in temporaryRevealStates.Keys)
+        {
+            foreach (RadarTarget target in RadarTarget.ActiveTargets)
+            {
+                if (target != null)
+                {
+                    target.ClearTemporaryReveal(source);
+                }
+            }
+        }
+
+        temporaryRevealStates.Clear();
+        expiredRevealSources.Clear();
+    }
+
+    private bool HasActiveTemporaryReveals()
+    {
+        PruneExpiredTemporaryReveals();
+        return temporaryRevealStates.Count > 0;
+    }
+
+    private float FindNextTemporaryRevealExpiration()
+    {
+        float nextExpiration = float.MaxValue;
+
+        foreach (TemporaryRevealState state in temporaryRevealStates.Values)
+        {
+            if (state != null)
+            {
+                nextExpiration = Mathf.Min(nextExpiration, state.expiresAt);
+            }
+        }
+
+        return nextExpiration == float.MaxValue ? Time.time : nextExpiration;
+    }
+
+    private void BuildDisplayedTargets()
+    {
+        displayedTargets.Clear();
+        displayedSet.Clear();
+
+        if (hasNormalRadarPresentation)
+        {
+            for (int i = 0; i < scannedTargets.Count; i++)
+            {
+                RadarTarget target = scannedTargets[i];
+
+                if (target != null && target.IsRadarVisible && displayedSet.Add(target))
+                {
+                    displayedTargets.Add(target);
+                }
+            }
+        }
+
+        foreach (RadarTarget target in RadarTarget.ActiveTargets)
+        {
+            if (target != null && target.IsTemporarilyRevealed && displayedSet.Add(target))
+            {
+                displayedTargets.Add(target);
+            }
+        }
+    }
+
+    private void RefreshRadarPresentation()
+    {
+        if (!isRadarOpen || radarHUD == null)
+        {
+            return;
+        }
+
+        BuildDisplayedTargets();
+        radarHUD.SetScanRadius(ResolveDisplayedRadius(lastNormalScanRadius));
+        radarHUD.SetTargets(displayedTargets, transform);
+    }
+
+    private float ResolveDisplayedRadius(float fallbackRadius)
+    {
+        float radius = hasNormalRadarPresentation
+            ? Mathf.Max(0.1f, lastNormalScanRadius)
+            : Mathf.Max(0.1f, fallbackRadius);
+
+        foreach (TemporaryRevealState state in temporaryRevealStates.Values)
+        {
+            if (state != null && state.expiresAt > Time.time)
+            {
+                radius = Mathf.Max(radius, state.radius);
+            }
+        }
+
+        return radius;
     }
 
     private float ResolveEffectiveScanRadius()
@@ -448,11 +740,19 @@ public class PlayerRadarScanner : MonoBehaviour
 
         if (expeditionHUD != null)
         {
-            expeditionHUD.ShowWarning(message);
+            expeditionHUD.ShowCommunication(
+                ShipCommunicationChannel.Radar,
+                message,
+                ShipCommunicationSeverity.Warning
+            );
             return;
         }
 
-        FindFirstObjectByType<WarningMessageUI>()?.ShowMessage(message);
+        FindFirstObjectByType<WarningMessageUI>()?.ShowCommunication(
+            ShipCommunicationChannel.Radar,
+            message,
+            ShipCommunicationSeverity.Warning
+        );
     }
 
     private void OnDrawGizmosSelected()

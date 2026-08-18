@@ -39,19 +39,30 @@ public sealed class MapBoundaryParticleVisual2D : MonoBehaviour
     [SerializeField] private Color idleLineColor = new Color(1f, 0.02f, 0.02f, 0.12f);
     [SerializeField] private Color pressuredLineColor = new Color(1f, 0.08f, 0.04f, 0.6f);
 
+    [Header("Outer Hazard Haze")]
+    [SerializeField] private bool createOuterHaze = true;
+    [Min(0.5f)]
+    [SerializeField] private float outerHazeWidth = 3f;
+    [SerializeField] private Color idleHazeColor = new Color(0.45f, 0.01f, 0.01f, 0.16f);
+    [SerializeField] private Color pressuredHazeColor = new Color(0.75f, 0.02f, 0.01f, 0.3f);
+
     [Header("Rendering")]
     [SerializeField] private string sortingLayerName = "Default";
     [SerializeField] private int particleSortingOrder = -20;
     [SerializeField] private int lineSortingOrder = -19;
+    [SerializeField] private int hazeSortingOrder = -21;
 
     [Header("Runtime")]
     [SerializeField] private bool rebuildOnEnable = true;
     [SerializeField] private bool logRebuild;
 
     private readonly List<ParticleSystem> particleSystems = new List<ParticleSystem>(4);
+    private readonly List<SpriteRenderer> hazeRenderers = new List<SpriteRenderer>(4);
     private LineRenderer barrierLine;
     private Material particleMaterial;
     private Material lineMaterial;
+    private Texture2D hazeTexture;
+    private Sprite hazeSprite;
     private float lastPressure = -1f;
 
     private void Reset()
@@ -85,6 +96,16 @@ public sealed class MapBoundaryParticleVisual2D : MonoBehaviour
         if (lineMaterial != null)
         {
             Destroy(lineMaterial);
+        }
+
+        if (hazeSprite != null)
+        {
+            Destroy(hazeSprite);
+        }
+
+        if (hazeTexture != null)
+        {
+            Destroy(hazeTexture);
         }
     }
 
@@ -147,6 +168,12 @@ public sealed class MapBoundaryParticleVisual2D : MonoBehaviour
         if (createBarrierLine)
         {
             CreateBarrierLine(center, halfWidth, halfHeight);
+        }
+
+        if (createOuterHaze)
+        {
+            EnsureHazeSprite();
+            CreateOuterHaze(center, halfWidth, halfHeight);
         }
 
         lastPressure = -1f;
@@ -214,6 +241,7 @@ public sealed class MapBoundaryParticleVisual2D : MonoBehaviour
     private void ClearGeneratedVisuals()
     {
         particleSystems.Clear();
+        hazeRenderers.Clear();
         barrierLine = null;
 
         if (generatedRoot == null)
@@ -401,6 +429,70 @@ public sealed class MapBoundaryParticleVisual2D : MonoBehaviour
         }
     }
 
+    private void EnsureHazeSprite()
+    {
+        if (hazeSprite != null)
+        {
+            return;
+        }
+
+        const int textureWidth = 32;
+        hazeTexture = new Texture2D(textureWidth, 1, TextureFormat.RGBA32, false)
+        {
+            name = "Runtime_MapBoundaryHaze",
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+
+        for (int x = 0; x < textureWidth; x++)
+        {
+            float normalized = x / (textureWidth - 1f);
+            float alpha = 1f - Mathf.SmoothStep(0f, 1f, normalized);
+            hazeTexture.SetPixel(x, 0, new Color(1f, 1f, 1f, alpha));
+        }
+
+        hazeTexture.Apply(false, false);
+        hazeSprite = Sprite.Create(
+            hazeTexture,
+            new Rect(0f, 0f, textureWidth, 1f),
+            new Vector2(0.5f, 0.5f),
+            1f
+        );
+        hazeSprite.name = "Runtime_MapBoundaryHazeSprite";
+    }
+
+    private void CreateOuterHaze(Vector2 center, float halfWidth, float halfHeight)
+    {
+        float width = Mathf.Max(0.5f, outerHazeWidth);
+        float horizontalLength = halfWidth * 2f + width * 2f;
+        float verticalLength = halfHeight * 2f + width * 2f;
+
+        CreateHazeStrip("Boundary_HazeRight", center + Vector2.right * (halfWidth + width * 0.5f), width, verticalLength, 0f);
+        CreateHazeStrip("Boundary_HazeLeft", center + Vector2.left * (halfWidth + width * 0.5f), width, verticalLength, 180f);
+        CreateHazeStrip("Boundary_HazeTop", center + Vector2.up * (halfHeight + width * 0.5f), width, horizontalLength, 90f);
+        CreateHazeStrip("Boundary_HazeBottom", center + Vector2.down * (halfHeight + width * 0.5f), width, horizontalLength, -90f);
+    }
+
+    private void CreateHazeStrip(string objectName, Vector2 center, float width, float length, float angle)
+    {
+        GameObject hazeObject = new GameObject(objectName);
+        hazeObject.transform.SetParent(generatedRoot, false);
+        hazeObject.transform.position = new Vector3(center.x, center.y, transform.position.z);
+        hazeObject.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+
+        SpriteRenderer hazeRenderer = hazeObject.AddComponent<SpriteRenderer>();
+        hazeRenderer.sprite = hazeSprite;
+        hazeRenderer.color = idleHazeColor;
+        hazeRenderer.sortingLayerName = sortingLayerName;
+        hazeRenderer.sortingOrder = hazeSortingOrder;
+        hazeObject.transform.localScale = new Vector3(
+            width / Mathf.Max(0.001f, hazeSprite.bounds.size.x),
+            length / Mathf.Max(0.001f, hazeSprite.bounds.size.y),
+            1f
+        );
+        hazeRenderers.Add(hazeRenderer);
+    }
+
     private void ApplyPressureVisual(float pressure)
     {
         pressure = Mathf.Clamp01(pressure);
@@ -424,6 +516,15 @@ public sealed class MapBoundaryParticleVisual2D : MonoBehaviour
         {
             barrierLine.startColor = targetLineColor;
             barrierLine.endColor = targetLineColor;
+        }
+
+        Color targetHazeColor = Color.Lerp(idleHazeColor, pressuredHazeColor, pressure);
+        for (int i = 0; i < hazeRenderers.Count; i++)
+        {
+            if (hazeRenderers[i] != null)
+            {
+                hazeRenderers[i].color = targetHazeColor;
+            }
         }
     }
 }

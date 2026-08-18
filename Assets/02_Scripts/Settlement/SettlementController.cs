@@ -429,20 +429,16 @@ public class SettlementController : MonoBehaviour
 
         StringBuilder builder = new StringBuilder();
 
-        builder.AppendLine(ship.Description);
-        builder.AppendLine();
-
         bool unlocked = IsShipUnlocked(ship);
 
         if (!unlocked)
         {
-            builder.AppendLine("개발 필요:");
-            builder.AppendLine(FormatCost(ship.RequiredScrapParts, ship.RequiredCoreShards));
+            builder.AppendLine(ship.Description);
+            builder.AppendLine();
+            builder.AppendLine($"개발 비용  {FormatCost(ship.RequiredScrapParts, ship.RequiredCoreShards)}");
 
             if (!IsShipPrerequisiteMet(ship))
             {
-                builder.AppendLine();
-                builder.AppendLine("해금 조건:");
                 builder.AppendLine(string.IsNullOrWhiteSpace(ship.RequiredUnlockFlag)
                     ? "미충족 조건 있음"
                     : $"필요 조건: {ship.RequiredUnlockFlag}");
@@ -451,17 +447,12 @@ public class SettlementController : MonoBehaviour
             return builder.ToString();
         }
 
-        builder.AppendLine("기본 능력:");
-        builder.AppendLine($"체력 {ship.MaxHp}");
-        builder.AppendLine($"이동속도 {FormatSignedPercent(ship.MoveSpeedBonusPercent)}");
-        builder.AppendLine($"대쉬 거리 {FormatSignedNumber(ship.DashDistanceBonus)}");
-        builder.AppendLine($"대쉬 쿨다운 {FormatSignedCooldownReduction(ship.DashCooldownReduction)}");
+        builder.AppendLine($"무장  {GetWeaponDisplayName(ship.DefaultWeaponTree)}");
+        builder.AppendLine($"HP  {ship.MaxHp}    적재  {ship.CargoCapacity}");
+        builder.AppendLine($"이동  {FormatSignedPercent(ship.MoveSpeedBonusPercent)}    대시  {FormatSignedNumber(ship.DashDistanceBonus)}");
         builder.AppendLine();
-
-        builder.AppendLine("패시브:");
+        builder.AppendLine("기체 특성");
         builder.AppendLine(string.IsNullOrWhiteSpace(ship.PassiveDescription) ? "추가 패시브 없음." : ship.PassiveDescription);
-        builder.AppendLine();
-
 
         return builder.ToString();
     }
@@ -510,6 +501,53 @@ public class SettlementController : MonoBehaviour
         }
 
         return PermanentProgress.Instance.GetBuildingLevel(buildingType);
+    }
+
+    public int GetSectorTechnologyLevel(string technologyId)
+    {
+        return PermanentProgress.Instance != null
+            ? PermanentProgress.Instance.GetSectorTechnologyLevel(technologyId)
+            : 0;
+    }
+
+    public bool CanUpgradeSectorTechnology(string technologyId)
+    {
+        return PermanentProgress.Instance != null &&
+               PermanentProgress.Instance.CanUpgradeSectorTechnology(technologyId);
+    }
+
+    public bool TryUpgradeSectorTechnology(string technologyId)
+    {
+        PermanentProgress progress = PermanentProgress.Instance;
+        if (progress == null)
+        {
+            SetMessage("PermanentProgress가 없어 지역 기술을 강화할 수 없습니다.");
+            return false;
+        }
+
+        if (!SectorTechnologyCatalog.TryGet(technologyId, out SectorTechnologyDefinition definition))
+        {
+            SetMessage("지역 기술 데이터를 찾을 수 없습니다.");
+            return false;
+        }
+
+        int currentLevel = progress.GetSectorTechnologyLevel(technologyId);
+        if (currentLevel >= definition.MaxLevel)
+        {
+            SetMessage($"{definition.DisplayName}은 이미 최대 단계입니다.");
+            return false;
+        }
+
+        int cost = definition.GetUpgradeCost(currentLevel + 1);
+        if (!progress.TryUpgradeSectorTechnology(technologyId))
+        {
+            SetMessage($"안정화 합금이 부족합니다. 필요: {cost}");
+            return false;
+        }
+
+        SaveProgress();
+        SetMessage($"{definition.DisplayName} 강화 완료. Lv {currentLevel} → {currentLevel + 1}");
+        return true;
     }
 
     public int GetBuildingMaxLevel(BuildingType buildingType)
@@ -1191,6 +1229,11 @@ public class SettlementController : MonoBehaviour
             return false;
         }
 
+        if (!RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
+        {
+            return false;
+        }
+
         if (!requireSelectedWeaponForWeaponSpecificTraits)
         {
             return true;
@@ -1271,6 +1314,12 @@ public class SettlementController : MonoBehaviour
             TraitEffectType.HomingAngleBonus => $"유도 각도 +{effect.Value:0.#}°",
             TraitEffectType.HomingRangeBonus => $"유도 거리 +{effect.Value:0.##}",
             TraitEffectType.FireRatePercent => $"연사력 {value}",
+            TraitEffectType.SniperSemiAutoMode => "세미오토 레이저 모드 해금",
+            TraitEffectType.ShotgunCloseRangeDamagePercent => $"샷건 초근거리 피해 최대 +{effect.Value:0.#}%",
+            TraitEffectType.MachineGunTerminalGuidance => "기관총 종말 유도 활성화",
+            TraitEffectType.PeriodicReflectiveShield => $"반사 방벽 재충전 {effect.Value:0.#}초",
+            TraitEffectType.MachineGunDashMissileSalvo => "대쉬 시 추격 미사일 3발 사출",
+            TraitEffectType.SniperDashEchoShot => "대쉬 위치에서 다음 저격 사격을 40% 위력으로 복제",
             _ => $"{effect.EffectType} {effect.Value:0.##}"
         };
     }

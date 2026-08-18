@@ -19,6 +19,8 @@ MonoBehaviour:
     amount: 8
   - currencyType: 2
     amount: 2
+  - currencyType: 5
+    amount: 1
   randomRewards: []
   healDropChance: 0.2
   healAmount: 1

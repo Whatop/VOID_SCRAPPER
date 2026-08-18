@@ -23,7 +23,9 @@ public class BossDynamicLaserBeam : MonoBehaviour
     private float damage;
     private float damageInterval;
     private bool initialized;
+    private bool damageEnabled;
     private Coroutine lifetimeRoutine;
+    private Coroutine recoveryRoutine;
 
     private void Awake()
     {
@@ -54,10 +56,27 @@ public class BossDynamicLaserBeam : MonoBehaviour
             lifetimeRoutine = null;
         }
 
+        if (recoveryRoutine != null)
+        {
+            StopCoroutine(recoveryRoutine);
+            recoveryRoutine = null;
+        }
+
         lastDamageTimes.Clear();
         initialized = false;
+        damageEnabled = false;
         startTarget = null;
         endTarget = null;
+
+        if (boxCollider != null)
+        {
+            boxCollider.enabled = false;
+        }
+
+        if (lineRenderer != null)
+        {
+            lineRenderer.enabled = false;
+        }
     }
 
     public void Initialize(
@@ -92,6 +111,7 @@ public class BossDynamicLaserBeam : MonoBehaviour
 
         ConfigureRigidbody();
         ConfigureLineRenderer();
+        damageEnabled = true;
         UpdateGeometry(startTarget.position, endTarget.position);
 
         lastDamageTimes.Clear();
@@ -102,17 +122,30 @@ public class BossDynamicLaserBeam : MonoBehaviour
             StopCoroutine(lifetimeRoutine);
         }
 
+        if (recoveryRoutine != null)
+        {
+            StopCoroutine(recoveryRoutine);
+            recoveryRoutine = null;
+        }
+
         lifetimeRoutine = StartCoroutine(LifetimeRoutine(duration));
     }
 
     public void Deactivate()
     {
         initialized = false;
+        damageEnabled = false;
 
         if (lifetimeRoutine != null)
         {
             StopCoroutine(lifetimeRoutine);
             lifetimeRoutine = null;
+        }
+
+        if (recoveryRoutine != null)
+        {
+            StopCoroutine(recoveryRoutine);
+            recoveryRoutine = null;
         }
 
         if (PoolManager.Instance != null)
@@ -123,6 +156,61 @@ public class BossDynamicLaserBeam : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+
+    public void BeginRecovery(float duration, float widthMultiplier)
+    {
+        initialized = false;
+        damageEnabled = false;
+
+        if (lifetimeRoutine != null)
+        {
+            StopCoroutine(lifetimeRoutine);
+            lifetimeRoutine = null;
+        }
+
+        if (boxCollider != null)
+        {
+            boxCollider.enabled = false;
+        }
+
+        if (lineRenderer == null)
+        {
+            return;
+        }
+
+        if (recoveryRoutine != null)
+        {
+            StopCoroutine(recoveryRoutine);
+        }
+
+        recoveryRoutine = StartCoroutine(RecoveryRoutine(
+            Mathf.Max(0.01f, duration),
+            Mathf.Clamp(widthMultiplier, 0.05f, 1f)
+        ));
+    }
+
+    private IEnumerator RecoveryRoutine(float duration, float widthMultiplier)
+    {
+        float startWidth = lineRenderer.startWidth;
+        Color startColor = lineRenderer.startColor;
+        float timer = 0f;
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;
+            float t = Mathf.Clamp01(timer / duration);
+            float recoveryWidth = Mathf.Lerp(startWidth, startWidth * widthMultiplier, t);
+            Color recoveryColor = startColor;
+            recoveryColor.a = Mathf.Lerp(startColor.a, 0f, t);
+            lineRenderer.startWidth = recoveryWidth;
+            lineRenderer.endWidth = recoveryWidth;
+            lineRenderer.startColor = recoveryColor;
+            lineRenderer.endColor = recoveryColor;
+            yield return null;
+        }
+
+        recoveryRoutine = null;
     }
 
     private IEnumerator LifetimeRoutine(float duration)
@@ -197,7 +285,7 @@ public class BossDynamicLaserBeam : MonoBehaviour
 
         if (boxCollider != null)
         {
-            boxCollider.enabled = true;
+            boxCollider.enabled = damageEnabled;
             boxCollider.isTrigger = true;
             boxCollider.offset = Vector2.zero;
             boxCollider.size = new Vector2(length, width);
@@ -224,7 +312,7 @@ public class BossDynamicLaserBeam : MonoBehaviour
 
     private void TryDamage(Collider2D other)
     {
-        if (!initialized || other == null)
+        if (!initialized || !damageEnabled || other == null)
         {
             return;
         }

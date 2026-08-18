@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -39,15 +40,28 @@ public class ReinforcementSlotUI : MonoBehaviour
     [SerializeField] private Color emptyIconColor = new Color(0.35f, 0.35f, 0.35f, 0.45f);
 
     [Header("Icon Recharge Fill")]
-    [Tooltip("아이콘과 같은 Sprite를 사용하는 Filled Image입니다. Fill Method는 Inspector에서 Radial 360 또는 Vertical로 설정합니다.")]
+    [Tooltip("기존 아이콘과 같은 Sprite를 사용하는 Filled Image입니다. 충전량만큼 아이콘이 아래에서 위로 차오릅니다.")]
     [SerializeField] private Image iconRechargeFillImage;
-    [SerializeField] private bool useIconFillAsPrimaryCooldownVisual = true;
-    [SerializeField] private bool syncRechargeFillSpriteToIcon = true;
+    [FormerlySerializedAs("useIconFillAsPrimaryCooldownVisual")]
+    [SerializeField] private bool useIconRechargeFill = true;
+    [SerializeField] private bool hideLegacyGaugeWhenUsingIconFill = true;
+    [SerializeField] private Image.FillMethod iconFillMethod = Image.FillMethod.Horizontal;
+    [SerializeField] private int iconFillOrigin = (int)Image.OriginHorizontal.Left;
+    [SerializeField] private bool iconFillClockwise = true;
+
+    [Header("Active Duration")]
+    [SerializeField] private Image activeDurationFillImage;
+    [SerializeField] private Color activeDurationColor = new Color(0.35f, 0.9f, 1f, 0.55f);
+
+    [Header("Ready Feedback")]
+    [SerializeField] private GameObject readyGlowRoot;
+    [SerializeField] private Image readyGlowImage;
+    [SerializeField] private Color readyGlowColor = new Color(0.65f, 0.95f, 1f, 0.2f);
 
     [Header("Icon Text")]
     [SerializeField] private TextMeshProUGUI chargeText;
     [SerializeField] private TextMeshProUGUI keyText;
-    [SerializeField] private string chargeTextFormat = "{0}/{1}";
+    [SerializeField] private string chargeTextFormat = "{0}";
     [SerializeField] private bool hideChargeTextWhenSingleCharge = true;
 
     [Header("Disabled Overlay")]
@@ -139,6 +153,8 @@ public class ReinforcementSlotUI : MonoBehaviour
         SetDisabledOverlay(false);
         SetGaugeVisible(false);
         SetGaugeRatio(0f, false, false);
+        SetActiveDuration(false, 0f);
+        SetReadyGlow(false);
         SetChargeText(0, 0);
     }
 
@@ -149,7 +165,9 @@ public class ReinforcementSlotUI : MonoBehaviour
         float rechargeRatio,
         float totalChargeRatio,
         bool isRecharging,
-        bool canUse)
+        bool canUse,
+        bool hasActiveDuration,
+        float activeDurationRatio)
     {
         if (definition == null)
         {
@@ -176,12 +194,15 @@ public class ReinforcementSlotUI : MonoBehaviour
         SetActive(emptyRoot, false);
         SetActive(readyRoot, canUse);
         SetActive(rechargingRoot, isRecharging && !canUse);
-        SetActive(unavailableRoot, unavailable);
+        SetActive(unavailableRoot, unavailable && !isRecharging);
 
         Sprite icon = definition.Icon != null ? definition.Icon : defaultIcon;
 
         SetIcon(icon, canUse ? readyIconColor : disabledIconColor);
-        SetDisabledOverlay(unavailable);
+        SetDisabledOverlay(unavailable && !isRecharging);
+        SetReadyGlow(canUse);
+        SetActiveDuration(hasActiveDuration, activeDurationRatio);
+        SetChargeText(currentCharges, maxCharges);
 
         SetGaugeVisible(shouldShowGauge);
 
@@ -201,8 +222,6 @@ public class ReinforcementSlotUI : MonoBehaviour
                 isRecharging || (!hasAnyCharge && definition.UsesRecharge)
             );
         }
-
-        SetChargeText(currentCharges, maxCharges);
     }
 
     public void RefreshFrom(PlayerReinforcementController controller)
@@ -222,6 +241,16 @@ public class ReinforcementSlotUI : MonoBehaviour
             controller.RechargeRatio
         );
 
+        bool hasActiveDuration = controller.TryGetActiveTimedStatus(
+            definition.EquipmentId,
+            out _,
+            out float activeRemainingSeconds,
+            out float activeDurationSeconds
+        );
+        float activeDurationRatio = hasActiveDuration
+            ? Mathf.Clamp01(activeRemainingSeconds / activeDurationSeconds)
+            : 0f;
+
         SetState(
             definition,
             controller.CurrentCharges,
@@ -229,7 +258,9 @@ public class ReinforcementSlotUI : MonoBehaviour
             controller.RechargeRatio,
             totalChargeRatio,
             controller.IsRecharging,
-            controller.CanUseCurrent()
+            controller.CanUseCurrent(),
+            hasActiveDuration,
+            activeDurationRatio
         );
     }
 
@@ -316,11 +347,44 @@ public class ReinforcementSlotUI : MonoBehaviour
             rechargeFillImage = rechargeSlider.fillRect.GetComponent<Image>();
         }
 
-        if (iconRechargeFillImage != null)
+        ConfigureIconRechargeFill();
+        ConfigureActiveDurationFill();
+
+        if (readyGlowImage != null)
         {
-            iconRechargeFillImage.raycastTarget = false;
-            iconRechargeFillImage.preserveAspect = true;
+            readyGlowImage.raycastTarget = false;
+            readyGlowImage.preserveAspect = true;
         }
+    }
+
+    private void ConfigureActiveDurationFill()
+    {
+        if (activeDurationFillImage == null)
+        {
+            return;
+        }
+
+        activeDurationFillImage.type = Image.Type.Filled;
+        activeDurationFillImage.fillMethod = Image.FillMethod.Radial360;
+        activeDurationFillImage.fillOrigin = (int)Image.Origin360.Top;
+        activeDurationFillImage.fillClockwise = true;
+        activeDurationFillImage.preserveAspect = true;
+        activeDurationFillImage.raycastTarget = false;
+    }
+
+    private void ConfigureIconRechargeFill()
+    {
+        if (iconRechargeFillImage == null)
+        {
+            return;
+        }
+
+        iconRechargeFillImage.type = Image.Type.Filled;
+        iconRechargeFillImage.fillMethod = iconFillMethod;
+        iconRechargeFillImage.fillOrigin = Mathf.Max(0, iconFillOrigin);
+        iconRechargeFillImage.fillClockwise = iconFillClockwise;
+        iconRechargeFillImage.preserveAspect = true;
+        iconRechargeFillImage.raycastTarget = false;
     }
 
     private void SetIcon(Sprite icon, Color color)
@@ -335,9 +399,23 @@ public class ReinforcementSlotUI : MonoBehaviour
         iconImage.color = color;
         iconImage.preserveAspect = true;
 
-        if (iconRechargeFillImage != null && syncRechargeFillSpriteToIcon)
+        if (iconRechargeFillImage != null)
         {
             iconRechargeFillImage.sprite = icon;
+            iconRechargeFillImage.preserveAspect = true;
+        }
+
+        if (activeDurationFillImage != null)
+        {
+            activeDurationFillImage.sprite = icon;
+            activeDurationFillImage.preserveAspect = true;
+        }
+
+        if (readyGlowImage != null)
+        {
+            readyGlowImage.sprite = icon;
+            readyGlowImage.color = readyGlowColor;
+            readyGlowImage.preserveAspect = true;
         }
     }
 
@@ -354,7 +432,8 @@ public class ReinforcementSlotUI : MonoBehaviour
 
     private void SetGaugeVisible(bool visible)
     {
-        bool showLegacyGauge = visible && !useIconFillAsPrimaryCooldownVisual;
+        bool showIconFill = visible && useIconRechargeFill && iconRechargeFillImage != null;
+        bool showLegacyGauge = visible && !(showIconFill && hideLegacyGaugeWhenUsingIconFill);
 
         if (rechargeGaugeRoot != null && rechargeGaugeRoot.activeSelf != showLegacyGauge)
         {
@@ -378,7 +457,7 @@ public class ReinforcementSlotUI : MonoBehaviour
 
         if (iconRechargeFillImage != null)
         {
-            iconRechargeFillImage.enabled = visible;
+            iconRechargeFillImage.enabled = showIconFill && iconRechargeFillImage.sprite != null;
         }
     }
 
@@ -408,11 +487,11 @@ public class ReinforcementSlotUI : MonoBehaviour
         {
             iconRechargeFillImage.fillAmount = ratio;
             iconRechargeFillImage.color = gaugeColor;
+        }
 
-            if (syncRechargeFillSpriteToIcon && iconImage != null)
-            {
-                iconRechargeFillImage.sprite = iconImage.sprite;
-            }
+        if (iconImage != null && useIconRechargeFill && iconRechargeFillImage != null && iconRechargeFillImage.enabled)
+        {
+            iconImage.color = disabledIconColor;
         }
 
         if (rechargeGauge != null)
@@ -427,6 +506,29 @@ public class ReinforcementSlotUI : MonoBehaviour
         if (keyText != null)
         {
             keyText.text = string.IsNullOrWhiteSpace(label) ? string.Empty : label;
+        }
+    }
+
+    private void SetActiveDuration(bool visible, float ratio)
+    {
+        if (activeDurationFillImage == null)
+        {
+            return;
+        }
+
+        activeDurationFillImage.enabled = visible && activeDurationFillImage.sprite != null;
+        activeDurationFillImage.fillAmount = Mathf.Clamp01(ratio);
+        activeDurationFillImage.color = activeDurationColor;
+    }
+
+    private void SetReadyGlow(bool visible)
+    {
+        SetActive(readyGlowRoot, visible);
+
+        if (readyGlowImage != null)
+        {
+            readyGlowImage.enabled = visible && readyGlowImage.sprite != null;
+            readyGlowImage.color = readyGlowColor;
         }
     }
 

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_mg_guidance_drone"
   displayName: "\uc720\ub3c4 \ubcf4\uc870 \ub4dc\ub860"
-  description: "\uae30\uad00\ucd1d \uae30\uccb4 \uc804\uc6a9. \ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \ud0c4\ub9c9 \uc720\uc9c0\uc6a9 \ud654\ub825 \ubc84\ud504\ub85c \ub3d9\uc791\ud55c\ub2e4."
+  description: "기관총 기체 전용. 유도 보조 드론이 10초 동안 동행하며 공격력을 20% 높인다."
   icon: {fileID: 21300000, guid: 62174c90fbc8f0b4ae4b90971ce63b44, type: 3}
   rarity: 2
   rarityPriceMultiplier: 0
@@ -38,3 +38,12 @@ MonoBehaviour:
       m_Bits: 0
     prefab: {fileID: 0}
     prefabLifetime: 1
+  - effectType: 10
+    value: 0
+    radius: 0
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 100000, guid: 593dda0e2b054155b91e7a0da3a02516, type: 3}
+    prefabLifetime: 10

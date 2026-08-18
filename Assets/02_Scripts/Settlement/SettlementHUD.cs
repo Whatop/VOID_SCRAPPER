@@ -1,4 +1,5 @@
 ﻿using System;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -57,6 +58,9 @@ public class SettlementHUD : MonoBehaviour
 
     [Header("Resources")]
     [SerializeField] private TextMeshProUGUI currencyText;
+    [SerializeField] private Image scrapCurrencyIcon;
+    [SerializeField] private Image coreCurrencyIcon;
+    [SerializeField] private Color alloyCurrencyColor = new Color(0.72f, 0.92f, 1f, 1f);
 
     [Header("Main Panel - Ship")]
     [SerializeField] private Image shipPreviewImage;
@@ -65,6 +69,15 @@ public class SettlementHUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI shipActionButtonLabelText;
     [SerializeField] private TextMeshProUGUI selectedShipText;
     [SerializeField] private TextMeshProUGUI selectedWeaponText;
+
+    [Header("Main Panel - Curse Preview")]
+    [SerializeField] private TraitDefinition pixelCurseTrait;
+    [SerializeField] private Sprite cursedPreviewSprite;
+    [SerializeField] private Color machineGunAccentColor = new Color(0.25f, 1f, 0.42f, 0.52f);
+    [SerializeField] private Color shotgunAccentColor = new Color(1f, 0.48f, 0.12f, 0.52f);
+    [SerializeField] private Color sniperAccentColor = new Color(0.25f, 0.68f, 1f, 0.52f);
+    [SerializeField] private Color curseEdgeColor = new Color(0.72f, 0.24f, 1f, 0.52f);
+    [SerializeField] private Color curseGhostColor = new Color(0.72f, 0.24f, 1f, 0.28f);
 
     [Header("Main Panel - Ship Page Indicators")]
     [Tooltip("기체 선택 원. ShipDefinitions 순서와 동일하게 배치.")]
@@ -121,6 +134,15 @@ public class SettlementHUD : MonoBehaviour
     [Header("Messages")]
     [SerializeField] private TextMeshProUGUI messageText;
 
+    private readonly TextMeshProUGUI[] resourceValueTexts = new TextMeshProUGUI[3];
+    private RectTransform resourceStripRoot;
+    private Image curseBaseImage;
+    private Image curseAccentImage;
+    private Image curseEdgeImage;
+    private Image curseGhostImage;
+    private Sequence cursePreviewSequence;
+    private ShipDefinition previewedCurseShip;
+
     private void Awake()
     {
         if (settlementController == null)
@@ -129,6 +151,9 @@ public class SettlementHUD : MonoBehaviour
         }
 
         InitializePreviewImages();
+        BuildResourceStrip();
+        BuildCursePreviewLayers();
+        ConfigureTextPresentation();
     }
 
     private void OnEnable()
@@ -146,6 +171,8 @@ public class SettlementHUD : MonoBehaviour
 
     private void OnDisable()
     {
+        StopCursePreviewTween();
+
         if (settlementController != null)
         {
             settlementController.Changed -= Refresh;
@@ -170,8 +197,9 @@ public class SettlementHUD : MonoBehaviour
         PermanentProgress progress = PermanentProgress.Instance;
         int scrap = progress != null ? progress.ScrapParts : 0;
         int core = progress != null ? progress.CoreShards : 0;
+        int stabilizedAlloy = progress != null ? progress.StabilizedAlloy : 0;
 
-        SetCurrency(scrap, core);
+        SetCurrency(scrap, core, stabilizedAlloy);
         SetSelectedWeapon(settlementController.GetWeaponDisplayName(settlementController.SelectedWeaponTree));
         SetSelectedShip(GetSelectedShipLabel());
         SetMessage(settlementController.LastMessage);
@@ -187,10 +215,17 @@ public class SettlementHUD : MonoBehaviour
         );
     }
 
-    public void SetCurrency(int scrapParts, int coreShards)
+    public void SetCurrency(int scrapParts, int coreShards, int stabilizedAlloy)
     {
-        string text = $"스크랩 부품 {scrapParts}\n코어 조각 {coreShards}";
-        SetText(currencyText, text);
+        if (resourceStripRoot != null)
+        {
+            SetText(resourceValueTexts[0], $"스크랩 {scrapParts}");
+            SetText(resourceValueTexts[1], $"코어 {coreShards}");
+            SetText(resourceValueTexts[2], $"합금 {stabilizedAlloy}");
+            return;
+        }
+
+        SetText(currencyText, $"스크랩 {scrapParts}   코어 {coreShards}   합금 {stabilizedAlloy}");
     }
 
     public void SetSelectedWeapon(string weaponName)
@@ -220,7 +255,7 @@ public class SettlementHUD : MonoBehaviour
 
     public void SetShipPreviewState(Sprite sprite, int selectedIndex, int totalCount)
     {
-        SetShipPreview(sprite);
+        RefreshShipPreview(sprite);
         RefreshIndicators(shipIndicatorImages, selectedIndex, totalCount);
     }
 
@@ -255,9 +290,9 @@ public class SettlementHUD : MonoBehaviour
         SetText(repairTitleText, viewData.Title);
         SetText(repairDescriptionText, viewData.BodyText);
         SetText(repairCurrentStageText, viewData.CurrentStageText);
-        SetText(repairCurrentEffectText, viewData.CurrentEffectText);
+        SetText(repairCurrentEffectText, $"현재  {viewData.CurrentEffectText}");
         SetText(repairNextStageText, viewData.NextStageText);
-        SetText(repairNextEffectText, viewData.NextEffectText);
+        SetText(repairNextEffectText, $"다음  {viewData.NextEffectText}");
         SetText(repairRequiredCurrencyText, viewData.RequiredCurrencyText);
         SetText(repairActionButtonLabelText, actionLabel);
         SetRepairCostIconVisuals(viewData);
@@ -317,6 +352,291 @@ public class SettlementHUD : MonoBehaviour
         InitializeRepairCostIconImage(ref repairCoreShardCostIconImage, repairCoreShardCostIconRoot, repairCoreShardCostIconSprite);
     }
 
+    private void BuildResourceStrip()
+    {
+        if (currencyText == null || currencyText.transform.parent == null)
+        {
+            return;
+        }
+
+        RectTransform parent = currencyText.transform.parent as RectTransform;
+        GameObject stripObject = new GameObject("ResourceStrip", typeof(RectTransform));
+        stripObject.layer = currencyText.gameObject.layer;
+        resourceStripRoot = stripObject.GetComponent<RectTransform>();
+        resourceStripRoot.SetParent(parent, false);
+        resourceStripRoot.anchorMin = Vector2.zero;
+        resourceStripRoot.anchorMax = Vector2.one;
+        resourceStripRoot.offsetMin = new Vector2(6f, 2f);
+        resourceStripRoot.offsetMax = new Vector2(-6f, -2f);
+
+        CreateResourceChip(0, "스크랩", scrapCurrencyIcon, new Color(0.92f, 0.78f, 0.42f, 1f));
+        CreateResourceChip(1, "코어", coreCurrencyIcon, new Color(1f, 0.73f, 0.26f, 1f));
+        CreateResourceChip(2, "합금", scrapCurrencyIcon, alloyCurrencyColor);
+
+        currencyText.gameObject.SetActive(false);
+        SetImageActive(scrapCurrencyIcon, false);
+        SetImageActive(coreCurrencyIcon, false);
+    }
+
+    private void CreateResourceChip(int index, string label, Image sourceIcon, Color accentColor)
+    {
+        GameObject chipObject = new GameObject($"{label}Resource", typeof(RectTransform), typeof(Image));
+        chipObject.layer = resourceStripRoot.gameObject.layer;
+        RectTransform chipRect = chipObject.GetComponent<RectTransform>();
+        chipRect.SetParent(resourceStripRoot, false);
+        chipRect.anchorMin = new Vector2(index / 3f, 0f);
+        chipRect.anchorMax = new Vector2((index + 1f) / 3f, 1f);
+        chipRect.offsetMin = new Vector2(2f, 0f);
+        chipRect.offsetMax = new Vector2(-2f, 0f);
+
+        Image chipBackground = chipObject.GetComponent<Image>();
+        chipBackground.color = new Color(0.035f, 0.075f, 0.1f, 0.88f);
+        chipBackground.raycastTarget = false;
+
+        GameObject iconObject = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        iconObject.layer = chipObject.layer;
+        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
+        iconRect.SetParent(chipRect, false);
+        iconRect.anchorMin = new Vector2(0f, 0.5f);
+        iconRect.anchorMax = new Vector2(0f, 0.5f);
+        iconRect.pivot = new Vector2(0f, 0.5f);
+        iconRect.anchoredPosition = new Vector2(5f, 0f);
+        iconRect.sizeDelta = new Vector2(9f, 9f);
+        Image iconImage = iconObject.GetComponent<Image>();
+        iconImage.sprite = sourceIcon != null ? sourceIcon.sprite : null;
+        iconImage.color = accentColor;
+        iconImage.preserveAspect = true;
+        iconImage.raycastTarget = false;
+
+        TextMeshProUGUI valueText = Instantiate(currencyText, chipRect);
+        valueText.name = "Value";
+        valueText.gameObject.SetActive(true);
+        valueText.text = "0";
+        valueText.enableAutoSizing = true;
+        valueText.fontSizeMin = 5.5f;
+        valueText.fontSizeMax = 7f;
+        valueText.fontSize = 7f;
+        valueText.textWrappingMode = TextWrappingModes.NoWrap;
+        valueText.overflowMode = TextOverflowModes.Overflow;
+        valueText.alignment = TextAlignmentOptions.MidlineLeft;
+        valueText.raycastTarget = false;
+        RectTransform valueRect = valueText.rectTransform;
+        valueRect.anchorMin = Vector2.zero;
+        valueRect.anchorMax = Vector2.one;
+        valueRect.offsetMin = new Vector2(17f, 0f);
+        valueRect.offsetMax = new Vector2(-2f, 0f);
+        resourceValueTexts[index] = valueText;
+    }
+
+    private void BuildCursePreviewLayers()
+    {
+        if (shipPreviewImage == null)
+        {
+            return;
+        }
+
+        curseGhostImage = CreatePreviewLayer("CurseGhost", curseGhostColor, 0);
+        curseEdgeImage = CreatePreviewLayer("CurseEdge", curseEdgeColor, 1);
+        curseBaseImage = CreatePreviewLayer("CurseBase", Color.white, 2);
+        curseAccentImage = CreatePreviewLayer("WeaponAccent", machineGunAccentColor, 3);
+
+        curseGhostImage.rectTransform.anchoredPosition = new Vector2(-3f, 2f);
+        curseEdgeImage.rectTransform.sizeDelta = new Vector2(62f, 62f);
+        curseEdgeImage.rectTransform.localScale = Vector3.one;
+        SetCursePreviewActive(false);
+    }
+
+    private Image CreatePreviewLayer(string layerName, Color color, int siblingIndex)
+    {
+        GameObject layerObject = new GameObject(layerName, typeof(RectTransform), typeof(Image));
+        layerObject.layer = shipPreviewImage.gameObject.layer;
+        RectTransform rect = layerObject.GetComponent<RectTransform>();
+        rect.SetParent(shipPreviewImage.rectTransform, false);
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(54f, 54f);
+        rect.SetSiblingIndex(siblingIndex);
+
+        Image image = layerObject.GetComponent<Image>();
+        image.color = color;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private void RefreshShipPreview(Sprite normalSprite)
+    {
+        bool isCursed = PermanentProgress.Instance != null &&
+                        pixelCurseTrait != null &&
+                        PermanentProgress.Instance.HasPersistentStoryTrait(pixelCurseTrait);
+
+        if (!isCursed || cursedPreviewSprite == null || curseBaseImage == null)
+        {
+            previewedCurseShip = null;
+            SetCursePreviewActive(false);
+            SetShipPreview(normalSprite);
+            return;
+        }
+
+        ShipDefinition previewShip = settlementController != null
+            ? settlementController.PreviewShip
+            : null;
+        if (previewedCurseShip != previewShip)
+        {
+            StopCursePreviewTween();
+            previewedCurseShip = previewShip;
+        }
+
+        shipPreviewImage.sprite = null;
+        shipPreviewImage.enabled = false;
+        SetCurseLayerSprite(curseGhostImage);
+        SetCurseLayerSprite(curseEdgeImage);
+        SetCurseLayerSprite(curseBaseImage);
+        SetCurseLayerSprite(curseAccentImage);
+
+        WeaponTreeType weaponTree = previewShip != null
+            ? previewShip.DefaultWeaponTree
+            : WeaponTreeType.MachineGun;
+        curseAccentImage.color = ResolveWeaponAccentColor(weaponTree);
+        SetCursePreviewActive(true);
+        StartCursePreviewTween();
+    }
+
+    private void SetCurseLayerSprite(Image target)
+    {
+        if (target != null)
+        {
+            target.sprite = cursedPreviewSprite;
+        }
+    }
+
+    private void SetCursePreviewActive(bool active)
+    {
+        SetImageActive(curseGhostImage, active);
+        SetImageActive(curseEdgeImage, active);
+        SetImageActive(curseBaseImage, active);
+        SetImageActive(curseAccentImage, active);
+
+        if (!active)
+        {
+            StopCursePreviewTween();
+        }
+    }
+
+    private void StartCursePreviewTween()
+    {
+        if (cursePreviewSequence != null || curseGhostImage == null || curseEdgeImage == null ||
+            shipPreviewImage == null || !shipPreviewImage.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        RectTransform ghostRect = curseGhostImage.rectTransform;
+        ghostRect.anchoredPosition = new Vector2(-3f, 2f);
+        curseGhostImage.color = curseGhostColor;
+        curseEdgeImage.color = curseEdgeColor;
+
+        Sequence sequence = DOTween.Sequence();
+        cursePreviewSequence = sequence;
+        sequence
+            .SetUpdate(true)
+            .AppendInterval(2.1f)
+            .Append(ghostRect.DOAnchorPos(new Vector2(3f, -2f), 0.08f, true).SetEase(Ease.OutQuad))
+            .Join(curseGhostImage.DOFade(0.5f, 0.08f))
+            .Join(curseEdgeImage.DOFade(0.78f, 0.08f))
+            .Append(ghostRect.DOAnchorPos(new Vector2(-3f, 2f), 0.12f, true).SetEase(Ease.OutCubic))
+            .Join(curseGhostImage.DOFade(curseGhostColor.a, 0.12f))
+            .Join(curseEdgeImage.DOFade(curseEdgeColor.a, 0.12f))
+            .SetLoops(-1, LoopType.Restart)
+            .SetLink(shipPreviewImage.gameObject, LinkBehaviour.KillOnDisable)
+            .OnKill(() =>
+            {
+                if (cursePreviewSequence == sequence)
+                {
+                    cursePreviewSequence = null;
+                }
+            });
+    }
+
+    private void StopCursePreviewTween()
+    {
+        cursePreviewSequence?.Kill();
+        cursePreviewSequence = null;
+
+        if (curseGhostImage != null)
+        {
+            curseGhostImage.rectTransform.anchoredPosition = new Vector2(-3f, 2f);
+            curseGhostImage.color = curseGhostColor;
+        }
+
+        if (curseEdgeImage != null)
+        {
+            curseEdgeImage.color = curseEdgeColor;
+        }
+    }
+
+    private Color ResolveWeaponAccentColor(WeaponTreeType weaponTree)
+    {
+        return weaponTree switch
+        {
+            WeaponTreeType.Shotgun => shotgunAccentColor,
+            WeaponTreeType.Sniper => sniperAccentColor,
+            _ => machineGunAccentColor
+        };
+    }
+
+    private static void SetImageActive(Image image, bool active)
+    {
+        if (image != null)
+        {
+            image.gameObject.SetActive(active);
+        }
+    }
+
+    private void ConfigureTextPresentation()
+    {
+        ConfigureText(shipTitleText, 11f, 9f, 12f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+        ConfigureText(shipBodyText, 7f, 5.5f, 7.5f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
+        ConfigureText(shipActionButtonLabelText, 7.5f, 6f, 8f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+        ConfigureText(repairTitleText, 11f, 9f, 12f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+        ConfigureText(repairDescriptionText, 6.5f, 5.5f, 7f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
+        ConfigureText(repairCurrentStageText, 7.5f, 6f, 8f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+        ConfigureText(repairCurrentEffectText, 7f, 5.5f, 7.5f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
+        ConfigureText(repairNextStageText, 7.5f, 6f, 8f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+        ConfigureText(repairNextEffectText, 7f, 5.5f, 7.5f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
+        ConfigureText(repairRequiredCurrencyText, 7f, 5.5f, 7.5f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
+        ConfigureText(messageText, 6.5f, 5.5f, 7f, TextWrappingModes.NoWrap, TextOverflowModes.Truncate);
+
+        if (repairRequiredCurrencyText != null)
+        {
+            repairRequiredCurrencyText.alignment = TextAlignmentOptions.MidlineLeft;
+        }
+    }
+
+    private static void ConfigureText(
+        TextMeshProUGUI text,
+        float size,
+        float minimum,
+        float maximum,
+        TextWrappingModes wrapping,
+        TextOverflowModes overflow)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.fontSize = size;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = minimum;
+        text.fontSizeMax = maximum;
+        text.textWrappingMode = wrapping;
+        text.overflowMode = overflow;
+        text.raycastTarget = false;
+    }
+
     private Sprite GetBuildingPreviewSprite(BuildingType buildingType, int currentLevel)
     {
         if (buildingPreviewSprites == null)
@@ -344,6 +664,8 @@ public class SettlementHUD : MonoBehaviour
     {
         bool showScrap = viewData != null && !viewData.IsMaxLevel && viewData.RequiredScrapCost > 0;
         bool showCore = viewData != null && !viewData.IsMaxLevel && viewData.RequiredCoreShardCost > 0;
+
+        LayoutRepairCostIcons(showScrap, showCore);
 
         SetRepairCostIconActive(
             repairScrapCostIconRoot,
@@ -387,6 +709,22 @@ public class SettlementHUD : MonoBehaviour
 
             image.enabled = shouldShow && image.sprite != null;
             image.preserveAspect = true;
+            image.raycastTarget = false;
+        }
+    }
+
+    private void LayoutRepairCostIcons(bool showScrap, bool showCore)
+    {
+        bool showBoth = showScrap && showCore;
+        SetCostIconVerticalPosition(repairScrapCostIconRoot, showBoth ? 5f : 0f);
+        SetCostIconVerticalPosition(repairCoreShardCostIconRoot, showBoth ? -5f : 0f);
+    }
+
+    private static void SetCostIconVerticalPosition(GameObject root, float y)
+    {
+        if (root != null && root.transform is RectTransform rect)
+        {
+            rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, y);
         }
     }
 

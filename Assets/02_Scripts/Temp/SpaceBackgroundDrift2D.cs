@@ -7,6 +7,7 @@ public class SpaceBackgroundDrift2D : MonoBehaviour
     [SerializeField] private float distance = 0.1f;
     [SerializeField] private float speed = 0.08f;
     [SerializeField] private float phase;
+    [SerializeField, Min(1)] private int pixelsPerUnit = 32;
 
     private Vector3 startLocalPosition;
     private bool initialized;
@@ -43,6 +44,9 @@ public class SpaceBackgroundDrift2D : MonoBehaviour
         float value = Mathf.Sin((time * speed) + phase);
 
         Vector3 offset = new Vector3(direction.x, direction.y, 0f) * distance * value;
+        float pixelStep = 1f / Mathf.Max(1, pixelsPerUnit);
+        offset.x = Mathf.Round(offset.x / pixelStep) * pixelStep;
+        offset.y = Mathf.Round(offset.y / pixelStep) * pixelStep;
         transform.localPosition = startLocalPosition + offset;
     }
 }

@@ -1,7 +1,53 @@
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 public static class InputBindingUtility
 {
+    public static InputActionAsset ResolvePlayerInputActions(
+        InputActionAsset configuredAsset,
+        Component context = null)
+    {
+        if (configuredAsset != null)
+        {
+            return configuredAsset;
+        }
+
+        PlayerInteractor interactor = context != null
+            ? context.GetComponentInParent<PlayerInteractor>()
+            : null;
+
+        if (interactor == null && context != null)
+        {
+            interactor = context.GetComponentInChildren<PlayerInteractor>(true);
+        }
+
+        if (interactor == null)
+        {
+            interactor = Object.FindFirstObjectByType<PlayerInteractor>(FindObjectsInactive.Include);
+        }
+
+        if (interactor != null && interactor.InputActions != null)
+        {
+            return interactor.InputActions;
+        }
+
+        PlayerController2D controller = context != null
+            ? context.GetComponentInParent<PlayerController2D>()
+            : null;
+
+        if (controller == null && context != null)
+        {
+            controller = context.GetComponentInChildren<PlayerController2D>(true);
+        }
+
+        if (controller == null)
+        {
+            controller = Object.FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
+        }
+
+        return controller != null ? controller.InputActions : null;
+    }
+
     public static InputAction ResolveAction(
         InputActionAsset inputActions,
         string actionMapName,

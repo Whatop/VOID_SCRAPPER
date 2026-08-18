@@ -12,12 +12,20 @@ public class PlayerWeaponModifiers : MonoBehaviour
     [Header("Runtime Bonuses")]
     [SerializeField] private int projectileCountBonus;
     [SerializeField] private int pierceBonus;
+    [SerializeField] private int removePierceDamageFalloffCount;
     [SerializeField] private float homingAngleBonus;
     [SerializeField] private float homingRangeBonus;
+
+    [Header("Machine Gun")]
+    [SerializeField] private int machineGunTerminalGuidanceCount;
+
+    [Header("Shotgun")]
+    [SerializeField] private float shotgunCloseRangeDamagePercent;
 
     [Header("Sniper")]
     [SerializeField] private float chargeTimeMultiplier = 1f;
     [SerializeField] private float chargeDamageMultiplier = 1f;
+    [SerializeField] private int sniperSemiAutoUnlockCount;
 
     public float DamageMultiplier => damageMultiplier;
     public float ProjectileSpeedMultiplier => projectileSpeedMultiplier;
@@ -27,11 +35,15 @@ public class PlayerWeaponModifiers : MonoBehaviour
 
     public int ProjectileCountBonus => projectileCountBonus;
     public int PierceBonus => pierceBonus;
+    public bool RemovePierceDamageFalloff => removePierceDamageFalloffCount > 0;
     public float HomingAngleBonus => homingAngleBonus;
     public float HomingRangeBonus => homingRangeBonus;
+    public bool MachineGunTerminalGuidanceEnabled => machineGunTerminalGuidanceCount > 0;
+    public float ShotgunCloseRangeDamagePercent => Mathf.Max(0f, shotgunCloseRangeDamagePercent);
 
     public float ChargeTimeMultiplier => chargeTimeMultiplier;
     public float ChargeDamageMultiplier => chargeDamageMultiplier;
+    public bool SniperSemiAutoEnabled => sniperSemiAutoUnlockCount > 0;
 
     public void ResetModifiers()
     {
@@ -43,11 +55,15 @@ public class PlayerWeaponModifiers : MonoBehaviour
 
         projectileCountBonus = 0;
         pierceBonus = 0;
+        removePierceDamageFalloffCount = 0;
         homingAngleBonus = 0f;
         homingRangeBonus = 0f;
+        machineGunTerminalGuidanceCount = 0;
+        shotgunCloseRangeDamagePercent = 0f;
 
         chargeTimeMultiplier = 1f;
         chargeDamageMultiplier = 1f;
+        sniperSemiAutoUnlockCount = 0;
     }
 
     public void AddDamagePercent(float percent)
@@ -86,6 +102,11 @@ public class PlayerWeaponModifiers : MonoBehaviour
         pierceBonus += amount;
     }
 
+    public void AddPierceDamageFalloffRemoval(int amount)
+    {
+        removePierceDamageFalloffCount = Mathf.Max(0, removePierceDamageFalloffCount + amount);
+    }
+
     public void AddHomingAngle(float amount)
     {
         homingAngleBonus += amount;
@@ -96,6 +117,19 @@ public class PlayerWeaponModifiers : MonoBehaviour
         homingRangeBonus += amount;
     }
 
+    public void AddMachineGunTerminalGuidance(int amount)
+    {
+        machineGunTerminalGuidanceCount = Mathf.Max(
+            0,
+            machineGunTerminalGuidanceCount + amount
+        );
+    }
+
+    public void AddShotgunCloseRangeDamagePercent(float percent)
+    {
+        shotgunCloseRangeDamagePercent = Mathf.Max(0f, shotgunCloseRangeDamagePercent + percent);
+    }
+
     public void AddChargeSpeedPercent(float percent)
     {
         MultiplyChargeSpeed(PercentToMultiplier(percent));
@@ -104,6 +138,11 @@ public class PlayerWeaponModifiers : MonoBehaviour
     public void AddChargeDamagePercent(float percent)
     {
         MultiplyChargeDamage(PercentToMultiplier(percent));
+    }
+
+    public void AddSniperSemiAutoMode(int amount)
+    {
+        sniperSemiAutoUnlockCount = Mathf.Max(0, sniperSemiAutoUnlockCount + amount);
     }
 
     public void MultiplyDamage(float multiplier)

@@ -12,26 +12,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cc398a4577fa6d498d2135813e8eff2, type: 3}
   m_Name: Scavenger
   m_EditorClassIdentifier: 
-  enemyId: scavenger_raider
+  enemyId: scavenger
   displayName: "약탈자"
   enemyType: 0
   enemyPrefab: {fileID: 0}
   maxHp: 12
-  moveSpeed: 3.6
-  visionRange: 7.5
+  moveSpeed: 3.8
+  visionRange: 8
   attackRange: 5
   projectileDefinition: {fileID: 11400000, guid: a461677f565b052499eb7847e2058dee, type: 2}
-  attackInterval: 1.5
+  attackInterval: 1.8
   projectileCount: 1
-  spreadAngle: 0
+  spreadAngle: 5
   chargeTime: 0
   useSecondaryProjectile: 0
   secondaryProjectileDefinition: {fileID: 0}
   secondaryProjectileCount: 1
   secondarySpreadAngle: 0
-  predictiveShotChance: 0.03
+  rangedAttackPattern: 1
+  burstShotCount: 10
+  burstShotInterval: 0.1
+  burstHalfAngle: 10
+  burstTrackTargetEachShot: 0
+  shakeLateralSpeed: 1.35
+  shakeFrequency: 4.5
+  staggeredVolleyCount: 2
+  staggeredVolleyInterval: 0.25
+  staggeredVolleyAngleOffset: 9
+  staggeredTrackTargetEachVolley: 1
+  splitProjectileDefinition: {fileID: 0}
+  splitProjectileCount: 6
+  splitDelay: 0.95
+  splitAngleOffset: 0
+  removeParentProjectileOnSplit: 1
+  predictiveShotChance: 0
   predictiveMinimumTargetSpeed: 0.5
-  predictiveMaxLeadTime: 0.55
-  predictiveVelocityMultiplier: 1.0
+  predictiveMaxLeadTime: 0.45
+  predictiveVelocityMultiplier: 1
   rewardDefinition: {fileID: 11400000, guid: d2c045ea2f82ffe4a8784c62046d6e08, type: 2}
   radarMarkerType: 0

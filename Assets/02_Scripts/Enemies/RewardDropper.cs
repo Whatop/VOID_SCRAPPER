@@ -72,6 +72,7 @@ public class RewardDropper : MonoBehaviour
     [SerializeField] private int creditsAmountPerShard = 5;
     [SerializeField] private int scrapAmountPerShard = 1;
     [SerializeField] private int coreAmountPerShard = 1;
+    [SerializeField] private int stabilizedAlloyAmountPerShard = 1;
     [SerializeField] private int tuningChipAmountPerShard = 1;
     [SerializeField] private int experienceAmountPerShard = 3;
 
@@ -208,7 +209,7 @@ public class RewardDropper : MonoBehaviour
 
     public bool TryDropCurrencyRewardAt(Vector3 origin, CurrencyType currencyType, int amount)
     {
-        if (amount <= 0 || rewardPickupPrefab == null)
+        if (amount <= 0 || rewardPickupPrefab == null || !IsCurrencyAvailableInCurrentSector(currencyType))
         {
             return false;
         }
@@ -235,9 +236,12 @@ public class RewardDropper : MonoBehaviour
                 continue;
             }
 
+            float currencyMultiplier = reward.CurrencyType == CurrencyType.StabilizedAlloy
+                ? 1f
+                : RuntimeCurrencyMultiplier;
             int multipliedAmount = Mathf.Max(
                 0,
-                Mathf.RoundToInt(reward.Amount * RuntimeCurrencyMultiplier)
+                Mathf.RoundToInt(reward.Amount * currencyMultiplier)
             );
 
             DropCurrency(origin, reward.CurrencyType, multipliedAmount);
@@ -292,7 +296,7 @@ public class RewardDropper : MonoBehaviour
 
     private void DropCurrency(Vector3 origin, CurrencyType currencyType, int amount)
     {
-        if (amount <= 0)
+        if (amount <= 0 || !IsCurrencyAvailableInCurrentSector(currencyType))
         {
             return;
         }
@@ -374,10 +378,23 @@ public class RewardDropper : MonoBehaviour
             CurrencyType.Credits => creditsAmountPerShard,
             CurrencyType.ScrapParts => scrapAmountPerShard,
             CurrencyType.CoreShards => coreAmountPerShard,
+            CurrencyType.StabilizedAlloy => stabilizedAlloyAmountPerShard,
             CurrencyType.TuningChips => tuningChipAmountPerShard,
             CurrencyType.Experience => experienceAmountPerShard,
             _ => compactAmountPerShard
         });
+    }
+
+    private static bool IsCurrencyAvailableInCurrentSector(CurrencyType currencyType)
+    {
+        if (currencyType != CurrencyType.StabilizedAlloy)
+        {
+            return true;
+        }
+
+        return RunManager.Instance != null &&
+               RunManager.Instance.HasActiveRun &&
+               RunManager.Instance.CurrentRun.ExpeditionDepth == ExpeditionDepth.Normal;
     }
 
     private void DropHeal(Vector3 origin, float healAmount)

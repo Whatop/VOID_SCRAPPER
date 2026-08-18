@@ -8,6 +8,7 @@ using UnityEngine.InputSystem.Controls;
 public class ReinforcementPickup : MonoBehaviour, IInteractable
 {
     public static event Action<ReinforcementPickup, float, bool> DismantleProgressChanged;
+    public static event Action<ReinforcementPickup> PresentationChanged;
 
     [Header("Runtime")]
     [SerializeField] private ReinforcementDefinition reinforcementDefinition;
@@ -100,30 +101,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
 
     private void ResolveInputActions()
     {
-        if (inputActions != null)
-        {
-            return;
-        }
-
-        PlayerInteractor interactor = FindFirstObjectByType<PlayerInteractor>(FindObjectsInactive.Include);
-
-        if (interactor != null && interactor.InputActions != null)
-        {
-            inputActions = interactor.InputActions;
-            playerActionMapName = interactor.ActionMapName;
-            interactActionName = interactor.InteractActionName;
-            InputBindingPersistence.LoadOnce(inputActions);
-            return;
-        }
-
-        PlayerController2D controller = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
-
-        if (controller != null && controller.InputActions != null)
-        {
-            inputActions = controller.InputActions;
-            playerActionMapName = controller.ActionMapName;
-            InputBindingPersistence.LoadOnce(inputActions);
-        }
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
     }
 
     private void BindDismantleInput()
@@ -134,7 +112,6 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
             playerActionMapName,
             dismantleActionName
         );
-        dismantleAction?.Enable();
     }
 
     private string ResolveAcquireKeyText()
@@ -207,8 +184,9 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
 
     private void OnDisable()
     {
-        dismantleAction?.Disable();
+        dismantleAction = null;
         RaiseDismantleProgress(0f, false);
+        PresentationChanged?.Invoke(this);
         currentInteractor = null;
         dismantleTimer = 0f;
     }
@@ -246,6 +224,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
         ConfigureCollider();
         ApplyVisual();
         RaiseDismantleProgress(0f, false);
+        PresentationChanged?.Invoke(this);
 
         if (releaseWhenNoItem && reinforcementDefinition == null)
         {
@@ -312,25 +291,12 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
             reinforcementDefinition = null;
             storedCharges = -1;
             ApplyVisual();
+            PresentationChanged?.Invoke(this);
             ReleaseSelf();
         }
     }
 
     private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other == null)
-        {
-            return;
-        }
-
-        PlayerReinforcementController controller = other.GetComponentInParent<PlayerReinforcementController>();
-        if (controller != null)
-        {
-            currentInteractor = controller.gameObject;
-        }
-    }
-
-    private void OnTriggerStay2D(Collider2D other)
     {
         if (other == null)
         {
@@ -450,7 +416,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
         ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
         if (hud != null)
         {
-            hud.ShowWarning($"{reinforcementDefinition.DisplayName} 분해: {dismantleCurrency} +{amount}");
+            hud.ShowWarning($"{reinforcementDefinition.DisplayName} 분해: {GetCurrencyDisplayName(dismantleCurrency)} +{amount}");
         }
 
         AudioManager.PlayAt(SoundEventIds.ReinforcementDrop, transform.position);
@@ -458,7 +424,22 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
         storedCharges = -1;
         ApplyVisual();
         RaiseDismantleProgress(1f, false);
+        PresentationChanged?.Invoke(this);
         ReleaseSelf();
+    }
+
+    private static string GetCurrencyDisplayName(CurrencyType currencyType)
+    {
+        return currencyType switch
+        {
+            CurrencyType.Experience => "경험치",
+            CurrencyType.Credits => "크레딧",
+            CurrencyType.ScrapParts => "스크랩 부품",
+            CurrencyType.CoreShards => "코어 조각",
+            CurrencyType.TuningChips => "튜닝 칩",
+            CurrencyType.StabilizedAlloy => "안정화 합금",
+            _ => currencyType.ToString()
+        };
     }
 
     private void CancelDismantleHold()

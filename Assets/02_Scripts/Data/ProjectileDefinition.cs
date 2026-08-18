@@ -24,6 +24,9 @@ public class ProjectileDefinition : ScriptableObject
 
     [Header("Advanced")]
     [SerializeField] private int pierceCount;
+    [Tooltip("Damage retained after each successful pierced target. 1 keeps full damage.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float pierceDamageRetention = 1f;
     [SerializeField] private bool useHoming;
     [SerializeField] private float homingAngle = 0f;
     [SerializeField] private float homingRange = 0f;
@@ -42,6 +45,9 @@ public class ProjectileDefinition : ScriptableObject
     public bool RotateImpactEffectToProjectile => rotateImpactEffectToProjectile;
 
     public int PierceCount => pierceCount;
+    public float PierceDamageRetention => pierceDamageRetention > 0f
+        ? Mathf.Clamp01(pierceDamageRetention)
+        : 1f;
     public bool UseHoming => useHoming;
     public float HomingAngle => homingAngle;
     public float HomingRange => homingRange;

@@ -19,6 +19,8 @@ MonoBehaviour:
     amount: 10
   - currencyType: 2
     amount: 2
+  - currencyType: 5
+    amount: 1
   randomRewards:
   - currencyType: 3
     minAmount: 0

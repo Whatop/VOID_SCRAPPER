@@ -11,6 +11,8 @@ public class RunManager : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private RunContext currentRun;
 
+    private PlayerRuntimeStatApplier currentPlayerStatApplier;
+
     public RunContext CurrentRun => currentRun;
     public bool HasActiveRun => currentRun != null && currentRun.IsActive;
 
@@ -34,7 +36,13 @@ public class RunManager : MonoBehaviour
 
     private void OnDisable()
     {
+        currentPlayerStatApplier = null;
         UnsubscribeWallet();
+    }
+
+    public void RegisterCurrentPlayer(PlayerRuntimeStatApplier statApplier)
+    {
+        currentPlayerStatApplier = statApplier;
     }
 
     public void SetBalanceConfig(GameBalanceConfig config)
@@ -77,6 +85,7 @@ public class RunManager : MonoBehaviour
         }
 
         UnsubscribeWallet();
+        currentPlayerStatApplier = null;
         selectedShipId = ResolveSelectedShipId(selectedShipId);
 
         currentRun = new RunContext(selectedWeaponTree, depth, selectedShipId, seaRegionType);
@@ -285,10 +294,17 @@ public class RunManager : MonoBehaviour
             return false;
         }
 
+        if (!CaptureCurrentPlayerVitals())
+        {
+            Debug.LogError("다음 해역 진입 전에 Player HP/Armor 상태를 저장하지 못했습니다.", this);
+            return false;
+        }
+
         ExpeditionDepth previousDepth = currentRun.ExpeditionDepth;
         SeaRegionType nextSeaRegion = SeaRegionCatalog.GetRandom(currentRun.SeaRegionType);
 
         currentRun.PrepareNextRegion(nextDepth, nextSeaRegion);
+        currentPlayerStatApplier = null;
         RegionChanged?.Invoke(previousDepth, nextDepth);
 
         Debug.Log(
@@ -298,6 +314,22 @@ public class RunManager : MonoBehaviour
         );
 
         LoadExpeditionScene();
+        return true;
+    }
+
+    private bool CaptureCurrentPlayerVitals()
+    {
+        if (!HasActiveRun || currentPlayerStatApplier == null)
+        {
+            return false;
+        }
+
+        if (!currentPlayerStatApplier.TryGetCurrentVitals(out float currentHp, out float currentArmor))
+        {
+            return false;
+        }
+
+        currentRun.CapturePlayerVitals(currentHp, currentArmor);
         return true;
     }
 
@@ -315,6 +347,8 @@ public class RunManager : MonoBehaviour
             return null;
         }
 
+        GameAudioLoopController.BeginRunEndMusicTransition();
+
         RunResultData resultData = CreateRunResult(reason, currentRun);
 
         if (PermanentProgress.Instance != null)
@@ -328,6 +362,7 @@ public class RunManager : MonoBehaviour
         }
 
         currentRun.End();
+        currentPlayerStatApplier = null;
 
         if (GameStateManager.Instance != null)
         {
@@ -356,11 +391,14 @@ public class RunManager : MonoBehaviour
 
         int collectedScrap = wallet.PendingScrapParts;
         int collectedCore = wallet.PendingCoreShards;
+        int collectedAlloy = wallet.PendingStabilizedAlloy;
 
         int committedScrap = 0;
         int committedCore = 0;
+        int committedAlloy = 0;
         int lostScrap = 0;
         int lostCore = 0;
+        int lostAlloy = 0;
         int emergencyCargoLimit = 0;
 
         switch (reason)
@@ -369,6 +407,7 @@ public class RunManager : MonoBehaviour
             case RunEndReason.FinalVictory:
                 committedScrap = collectedScrap;
                 committedCore = collectedCore;
+                committedAlloy = collectedAlloy;
                 break;
 
             case RunEndReason.EmergencyReturn:
@@ -376,10 +415,13 @@ public class RunManager : MonoBehaviour
                     run,
                     collectedScrap,
                     collectedCore,
+                    collectedAlloy,
                     out committedScrap,
                     out committedCore,
+                    out committedAlloy,
                     out lostScrap,
                     out lostCore,
+                    out lostAlloy,
                     out emergencyCargoLimit
                 );
                 break;
@@ -388,21 +430,25 @@ public class RunManager : MonoBehaviour
                 CalculateDeathCommit(
                     collectedScrap,
                     collectedCore,
+                    collectedAlloy,
                     out committedScrap,
                     out committedCore,
+                    out committedAlloy,
                     out lostScrap,
-                    out lostCore
+                    out lostCore,
+                    out lostAlloy
                 );
                 break;
 
             case RunEndReason.DebugAbort:
                 lostScrap = collectedScrap;
                 lostCore = collectedCore;
+                lostAlloy = collectedAlloy;
                 break;
         }
 
-        int collectedCargoLoad = run.CalculateCargoLoad(collectedScrap, collectedCore);
-        int committedCargoLoad = run.CalculateCargoLoad(committedScrap, committedCore);
+        int collectedCargoLoad = run.CalculateCargoLoad(collectedScrap, collectedCore, collectedAlloy);
+        int committedCargoLoad = run.CalculateCargoLoad(committedScrap, committedCore, committedAlloy);
 
         return new RunResultData
         {
@@ -425,10 +471,13 @@ public class RunManager : MonoBehaviour
 
             collectedScrapParts = collectedScrap,
             collectedCoreShards = collectedCore,
+            collectedStabilizedAlloy = collectedAlloy,
             committedScrapParts = committedScrap,
             committedCoreShards = committedCore,
+            committedStabilizedAlloy = committedAlloy,
             lostScrapParts = lostScrap,
             lostCoreShards = lostCore,
+            lostStabilizedAlloy = lostAlloy,
 
             maxCargoCapacity = run.MaxCargoCapacity,
             collectedCargoLoad = collectedCargoLoad,
@@ -441,21 +490,26 @@ public class RunManager : MonoBehaviour
         RunContext run,
         int collectedScrap,
         int collectedCore,
+        int collectedAlloy,
         out int committedScrap,
         out int committedCore,
+        out int committedAlloy,
         out int lostScrap,
         out int lostCore,
+        out int lostAlloy,
         out int cargoLimit)
     {
-        int totalCargoLoad = run.CalculateCargoLoad(collectedScrap, collectedCore);
+        int totalCargoLoad = run.CalculateCargoLoad(collectedScrap, collectedCore, collectedAlloy);
         cargoLimit = Mathf.FloorToInt(run.MaxCargoCapacity * run.EmergencyReturnCapacityRatio);
 
         if (totalCargoLoad <= cargoLimit)
         {
             committedScrap = collectedScrap;
             committedCore = collectedCore;
+            committedAlloy = collectedAlloy;
             lostScrap = 0;
             lostCore = 0;
+            lostAlloy = 0;
             return;
         }
 
@@ -463,8 +517,10 @@ public class RunManager : MonoBehaviour
         {
             committedScrap = 0;
             committedCore = 0;
+            committedAlloy = 0;
             lostScrap = collectedScrap;
             lostCore = collectedCore;
+            lostAlloy = collectedAlloy;
             return;
         }
 
@@ -472,8 +528,9 @@ public class RunManager : MonoBehaviour
 
         committedScrap = Mathf.FloorToInt(collectedScrap * keepRatio);
         committedCore = Mathf.FloorToInt(collectedCore * keepRatio);
+        committedAlloy = Mathf.FloorToInt(collectedAlloy * keepRatio);
 
-        int usedCargo = run.CalculateCargoLoad(committedScrap, committedCore);
+        int usedCargo = run.CalculateCargoLoad(committedScrap, committedCore, committedAlloy);
         int remainingCargo = Mathf.Max(0, cargoLimit - usedCargo);
 
         int remainingCore = collectedCore - committedCore;
@@ -481,28 +538,39 @@ public class RunManager : MonoBehaviour
         committedCore += extraCore;
         remainingCargo -= extraCore * run.CoreShardCargoWeight;
 
+        int remainingAlloy = collectedAlloy - committedAlloy;
+        int extraAlloy = Mathf.Min(remainingAlloy, remainingCargo / run.StabilizedAlloyCargoWeight);
+        committedAlloy += extraAlloy;
+        remainingCargo -= extraAlloy * run.StabilizedAlloyCargoWeight;
+
         int remainingScrap = collectedScrap - committedScrap;
         int extraScrap = Mathf.Min(remainingScrap, remainingCargo / run.ScrapCargoWeight);
         committedScrap += extraScrap;
 
         lostScrap = Mathf.Max(0, collectedScrap - committedScrap);
         lostCore = Mathf.Max(0, collectedCore - committedCore);
+        lostAlloy = Mathf.Max(0, collectedAlloy - committedAlloy);
     }
 
     private void CalculateDeathCommit(
         int collectedScrap,
         int collectedCore,
+        int collectedAlloy,
         out int committedScrap,
         out int committedCore,
+        out int committedAlloy,
         out int lostScrap,
-        out int lostCore)
+        out int lostCore,
+        out int lostAlloy)
     {
         float keepRate = balanceConfig != null ? balanceConfig.DeathScrapKeepRate : 0.5f;
 
         committedScrap = Mathf.FloorToInt(collectedScrap * keepRate);
         committedCore = 0;
+        committedAlloy = Mathf.FloorToInt(collectedAlloy * keepRate);
         lostScrap = Mathf.Max(0, collectedScrap - committedScrap);
         lostCore = collectedCore;
+        lostAlloy = Mathf.Max(0, collectedAlloy - committedAlloy);
     }
 
     private string ResolveSelectedShipId(string requestedShipId)

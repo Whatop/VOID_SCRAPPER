@@ -89,15 +89,18 @@ public class PlayerStealthController : MonoBehaviour
     {
         get
         {
-            float baseDuration = radarScanner != null
-                ? radarScanner.SniperLingerTime
-                : fallbackIntelRevealDuration;
+            if (radarScanner != null)
+            {
+                // PlayerRadarScanner.SniperLingerTime already includes the
+                // runtime Trait bonus. Adding it again here doubled the effect.
+                return Mathf.Max(0.1f, radarScanner.SniperLingerTime);
+            }
 
             float bonus = runtimeBonusState != null
                 ? runtimeBonusState.RadarStealthDurationBonus
                 : 0f;
 
-            return Mathf.Max(0.1f, baseDuration + bonus);
+            return Mathf.Max(0.1f, fallbackIntelRevealDuration + bonus);
         }
     }
 

@@ -1,4 +1,7 @@
+using System;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Audio;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -20,12 +23,20 @@ public class EscSettingsMenuController : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button closeButton;
 
+    [Header("Shared Options Presentation")]
+    [SerializeField] private bool useSharedOptionsPresentation;
+    [SerializeField] private bool useKoreanSharedOptions;
+    [SerializeField] private Button openButton;
+    [SerializeField] private AudioMixer masterAudioMixer;
+    [SerializeField] private TMP_FontAsset uiFont;
+
     [Header("Cursor")]
     [SerializeField] private bool showCursorWhileOpen = true;
     [SerializeField] private bool unlockCursorWhileOpen = true;
 
     private InputAction cancelAction;
     private bool isOpen;
+    private SharedOptionsMenuUI sharedOptionsMenu;
 
     private bool previousCursorVisible;
     private CursorLockMode previousCursorLockMode;
@@ -33,8 +44,15 @@ public class EscSettingsMenuController : MonoBehaviour
 
     public bool IsOpen => isOpen;
 
+    public event Action<bool> OpenStateChanged;
+
     private void Awake()
     {
+        if (useSharedOptionsPresentation)
+        {
+            BuildSharedOptionsMenu();
+        }
+
         if (menuRoot == null)
         {
             menuRoot = gameObject;
@@ -98,7 +116,11 @@ public class EscSettingsMenuController : MonoBehaviour
             menuRoot.SetActive(true);
         }
 
-        if (settingsPanel != null)
+        if (sharedOptionsMenu != null)
+        {
+            sharedOptionsMenu.Open();
+        }
+        else if (settingsPanel != null)
         {
             settingsPanel.Open();
         }
@@ -119,6 +141,8 @@ public class EscSettingsMenuController : MonoBehaviour
         {
             Cursor.lockState = CursorLockMode.None;
         }
+
+        OpenStateChanged?.Invoke(true);
     }
 
     public void Close()
@@ -130,7 +154,11 @@ public class EscSettingsMenuController : MonoBehaviour
 
         isOpen = false;
 
-        if (settingsPanel != null)
+        if (sharedOptionsMenu != null)
+        {
+            sharedOptionsMenu.Close();
+        }
+        else if (settingsPanel != null)
         {
             settingsPanel.Close();
         }
@@ -153,6 +181,7 @@ public class EscSettingsMenuController : MonoBehaviour
         RestoreCursorState();
         AudioManager.Play(SoundEventIds.UiBack);
         GameAudioLoopController.ResumeForCurrentState();
+        OpenStateChanged?.Invoke(false);
     }
 
     public void Toggle()
@@ -169,7 +198,16 @@ public class EscSettingsMenuController : MonoBehaviour
 
     private void HandleEscape()
     {
-        if (GameplayPauseManager.Instance != null && GameplayPauseManager.Instance.TryHandleCancel())
+        GameplayPauseManager pauseManager = GameplayPauseManager.Instance;
+
+        if (pauseManager != null && pauseManager.TryHandleCancel())
+        {
+            return;
+        }
+
+        // A dialogue, cinematic, or another owner may intentionally hold pause
+        // without exposing a cancel action. Never open settings underneath it.
+        if (pauseManager != null && GameplayPauseManager.IsPaused)
         {
             return;
         }
@@ -190,6 +228,7 @@ public class EscSettingsMenuController : MonoBehaviour
         GameState state = GameStateManager.Instance.CurrentState;
 
         return state == GameState.Settlement ||
+               state == GameState.Tutorial ||
                state == GameState.Expedition ||
                state == GameState.BossBattle;
     }
@@ -216,18 +255,37 @@ public class EscSettingsMenuController : MonoBehaviour
 
     private void BindButtons()
     {
-        if (closeButton != null)
+        if (sharedOptionsMenu != null)
+        {
+            sharedOptionsMenu.BackRequested += Close;
+            ConfigureCloseButtonSound(sharedOptionsMenu.BackButton);
+        }
+        else if (closeButton != null)
         {
             ConfigureCloseButtonSound(closeButton);
             closeButton.onClick.AddListener(Close);
+        }
+
+        if (openButton != null)
+        {
+            openButton.onClick.AddListener(Open);
         }
     }
 
     private void UnbindButtons()
     {
-        if (closeButton != null)
+        if (sharedOptionsMenu != null)
+        {
+            sharedOptionsMenu.BackRequested -= Close;
+        }
+        else if (closeButton != null)
         {
             closeButton.onClick.RemoveListener(Close);
+        }
+
+        if (openButton != null)
+        {
+            openButton.onClick.RemoveListener(Open);
         }
     }
 
@@ -279,7 +337,11 @@ public class EscSettingsMenuController : MonoBehaviour
     {
         isOpen = false;
 
-        if (settingsPanel != null)
+        if (sharedOptionsMenu != null)
+        {
+            sharedOptionsMenu.Close();
+        }
+        else if (settingsPanel != null)
         {
             settingsPanel.Close();
         }
@@ -292,5 +354,71 @@ public class EscSettingsMenuController : MonoBehaviour
         {
             menuRoot.SetActive(false);
         }
+    }
+
+    private void BuildSharedOptionsMenu()
+    {
+        GameObject legacyMenuRoot = menuRoot;
+
+        if (legacyMenuRoot != null)
+        {
+            legacyMenuRoot.SetActive(false);
+        }
+
+        if (settingsPanel != null)
+        {
+            settingsPanel.enabled = false;
+        }
+
+        GameObject modalRoot = new GameObject(
+            "SettlementSharedOptionsModal",
+            typeof(RectTransform),
+            typeof(Image)
+        );
+        modalRoot.SetActive(false);
+        modalRoot.transform.SetParent(transform, false);
+        modalRoot.layer = gameObject.layer;
+
+        RectTransform modalRect = modalRoot.GetComponent<RectTransform>();
+        modalRect.anchorMin = Vector2.zero;
+        modalRect.anchorMax = Vector2.one;
+        modalRect.pivot = new Vector2(0.5f, 0.5f);
+        modalRect.anchoredPosition = Vector2.zero;
+        modalRect.sizeDelta = Vector2.zero;
+
+        Image modalBackdrop = modalRoot.GetComponent<Image>();
+        modalBackdrop.color = new Color(0.005f, 0.012f, 0.02f, 0.74f);
+        modalBackdrop.raycastTarget = true;
+
+        GameObject sharedRoot = new GameObject(
+            "SettlementSharedOptions",
+            typeof(RectTransform)
+        );
+        sharedRoot.SetActive(false);
+        sharedRoot.transform.SetParent(modalRoot.transform, false);
+        sharedRoot.layer = gameObject.layer;
+
+        sharedOptionsMenu = sharedRoot.AddComponent<SharedOptionsMenuUI>();
+        sharedOptionsMenu.Configure(
+            inputActions,
+            masterAudioMixer,
+            uiFont,
+            useKoreanSharedOptions,
+            true
+        );
+
+        // SettlementSettingsPanel closes its root from Awake. Because this UI is
+        // built inactive, defering that Awake until the first Open would close
+        // only the options content and leave the modal backdrop visible.
+        // Prime the generated hierarchy now so the first real Open is stable.
+        modalRoot.SetActive(true);
+        sharedRoot.SetActive(true);
+        sharedOptionsMenu.Close();
+        modalRoot.SetActive(false);
+
+        menuRoot = modalRoot;
+        settingsRoot = sharedRoot;
+        settingsPanel = null;
+        closeButton = sharedOptionsMenu.BackButton;
     }
 }

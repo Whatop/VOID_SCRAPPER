@@ -6,6 +6,8 @@ using UnityEngine;
 public class RadarTarget : MonoBehaviour, IRadarScannable
 {
     private static readonly HashSet<RadarTarget> activeTargets = new HashSet<RadarTarget>();
+    private readonly Dictionary<UnityEngine.Object, float> temporaryRevealExpirations =
+        new Dictionary<UnityEngine.Object, float>(2);
 
     [Header("Radar")]
     [SerializeField] private RadarMarkerType markerType = RadarMarkerType.RewardObject;
@@ -45,6 +47,28 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     public RadarMarkerType MarkerType => markerType;
     public Transform RadarTransform => markerTransform != null ? markerTransform : transform;
     public bool IsRadarVisible => visible && isActiveAndEnabled && gameObject.activeInHierarchy;
+    public bool IsTemporarilyRevealed
+    {
+        get
+        {
+            if (!IsRadarVisible)
+            {
+                return false;
+            }
+
+            float now = Time.time;
+
+            foreach (KeyValuePair<UnityEngine.Object, float> reveal in temporaryRevealExpirations)
+            {
+                if (reveal.Key != null && reveal.Value > now)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
 
     public Vector3 WorldPosition => RadarTransform.position;
     public Sprite MarkerSprite => markerSprite;
@@ -84,12 +108,15 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     private void OnEnable()
     {
         lastScannedTime = -999f;
+        temporaryRevealExpirations.Clear();
         activeTargets.Add(this);
         RegistryChanged?.Invoke();
     }
 
     private void OnDisable()
     {
+        temporaryRevealExpirations.Clear();
+
         if (activeTargets.Remove(this))
         {
             RegistryChanged?.Invoke();
@@ -141,6 +168,39 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
         RegistryChanged?.Invoke();
     }
 
+    public bool SetTemporaryReveal(UnityEngine.Object source, float duration)
+    {
+        if (source == null || duration <= 0f || !IsRadarVisible)
+        {
+            return false;
+        }
+
+        float requestedExpiration = Time.time + duration;
+
+        if (temporaryRevealExpirations.TryGetValue(source, out float currentExpiration))
+        {
+            temporaryRevealExpirations[source] = Mathf.Max(currentExpiration, requestedExpiration);
+        }
+        else
+        {
+            temporaryRevealExpirations.Add(source, requestedExpiration);
+        }
+
+        RegistryChanged?.Invoke();
+        return true;
+    }
+
+    public bool ClearTemporaryReveal(UnityEngine.Object source)
+    {
+        if (source == null || !temporaryRevealExpirations.Remove(source))
+        {
+            return false;
+        }
+
+        RegistryChanged?.Invoke();
+        return true;
+    }
+
     public RadarScanResult OnRadarScanned(RadarScanContext context)
     {
         if (!IsRadarVisible)
@@ -172,7 +232,17 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
             case WeaponTreeType.Shotgun:
                 if (allowShotgunTaunt && enemyAI.IsRadarTauntable)
                 {
-                    enemyAI.ApplyRadarTaunt(context.scanOrigin);
+                    PlayerRuntimeBonusState bonusState = context.scannerObject != null
+                        ? context.scannerObject.GetComponent<PlayerRuntimeBonusState>()
+                        : null;
+                    float durationBonus = bonusState != null
+                        ? bonusState.RadarTauntDurationBonus
+                        : 0f;
+                    enemyAI.ApplyRadarTaunt(
+                        context.scannerObject != null ? context.scannerObject : this,
+                        context.scanOrigin,
+                        durationBonus
+                    );
                 }
                 break;
 

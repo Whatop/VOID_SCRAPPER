@@ -1,5 +1,7 @@
+using Action = System.Action;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Unity.Cinemachine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController2D : MonoBehaviour
@@ -16,29 +18,35 @@ public class PlayerController2D : MonoBehaviour
 
     [Header("Rotation Settings")]
     [SerializeField] private float rotationOffset = -90f;
-    [SerializeField] private bool useAimDeadZone = true;
     [Min(0f)]
-    [SerializeField] private float aimDeadZoneEnterPixels = 14f;
+    [SerializeField] private float aimDeadZoneDistance = 0.28f;
     [Min(0f)]
-    [SerializeField] private float aimDeadZoneExitPixels = 20f;
-    [Min(0f)]
-    [SerializeField] private float rotationDegreesPerSecond = 1440f;
+    [SerializeField] private float rotationSmoothSpeed = 28f;
+    [SerializeField] private bool useUnscaledRotationTime = true;
 
     [Header("External Push")]
     [Min(0.02f)]
     [SerializeField] private float defaultExternalPushDuration = 0.22f;
 
+    [Header("Safe Reposition")]
+    [Tooltip("Layers that make a tactical reposition destination invalid. When empty, current project blocking layers are resolved by layer name.")]
+    [SerializeField] private LayerMask repositionBlockingLayers;
+    [Min(0f)]
+    [SerializeField] private float repositionClearancePadding = 0.04f;
+
     private Rigidbody2D rb;
+    private Collider2D bodyCollider;
     private Camera mainCamera;
+    private InputActionMap playerActionMap;
     private InputAction moveAction;
 
     private Vector2 moveInput;
     private Vector2 aimDirection = Vector2.up;
     private float currentRotationZ;
-    private bool aimDeadZoneActive;
 
     private bool controlEnabled = true;
     private bool movementLocked;
+    private bool movementInputActive;
 
     private Vector2 externalPushVelocity;
     private float externalPushTimer;
@@ -46,6 +54,7 @@ public class PlayerController2D : MonoBehaviour
 
     private bool movementVelocityOverrideActive;
     private Vector2 movementVelocityOverride;
+    private readonly Collider2D[] repositionOverlapBuffer = new Collider2D[24];
 
     public InputActionAsset InputActions => inputActions;
     public string ActionMapName => actionMapName;
@@ -57,9 +66,12 @@ public class PlayerController2D : MonoBehaviour
     public bool MovementLocked => movementLocked;
     public bool MovementVelocityOverrideActive => movementVelocityOverrideActive;
 
+    public event Action MovementStarted;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        bodyCollider = GetComponent<Collider2D>();
         mainCamera = Camera.main;
         currentRotationZ = transform.eulerAngles.z;
     }
@@ -71,15 +83,13 @@ public class PlayerController2D : MonoBehaviour
 
     private void OnDisable()
     {
-        if (moveAction != null)
-        {
-            moveAction.Disable();
-        }
+        playerActionMap?.Disable();
 
         externalPushVelocity = Vector2.zero;
         externalPushTimer = 0f;
         movementVelocityOverrideActive = false;
         movementVelocityOverride = Vector2.zero;
+        movementInputActive = false;
 
         if (rb != null)
         {
@@ -100,6 +110,8 @@ public class PlayerController2D : MonoBehaviour
 
     private void BindInput()
     {
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
+
         if (inputActions == null)
         {
             Debug.LogError("InputActionAsset이 연결되지 않았습니다.", this);
@@ -107,15 +119,16 @@ public class PlayerController2D : MonoBehaviour
             return;
         }
 
-        InputActionMap actionMap = inputActions.FindActionMap(actionMapName, false);
-        if (actionMap == null)
+        playerActionMap = inputActions.FindActionMap(actionMapName, false);
+        if (playerActionMap == null)
         {
             Debug.LogError($"Action Map을 찾을 수 없습니다: {actionMapName}", this);
             enabled = false;
             return;
         }
 
-        moveAction = actionMap.FindAction(moveActionName, false);
+        InputBindingPersistence.LoadOnce(inputActions);
+        moveAction = playerActionMap.FindAction(moveActionName, false);
         if (moveAction == null)
         {
             Debug.LogError($"Move Action을 찾을 수 없습니다: {moveActionName}", this);
@@ -123,24 +136,37 @@ public class PlayerController2D : MonoBehaviour
             return;
         }
 
-        moveAction.Enable();
+        playerActionMap.Enable();
     }
 
     private void ReadInput()
     {
         if (GameplayPauseManager.IsPaused)
         {
-            moveInput = Vector2.zero;
+            SetMoveInput(Vector2.zero);
             return;
         }
 
         if (!controlEnabled || moveAction == null)
         {
-            moveInput = Vector2.zero;
+            SetMoveInput(Vector2.zero);
             return;
         }
 
-        moveInput = moveAction.ReadValue<Vector2>().normalized;
+        SetMoveInput(moveAction.ReadValue<Vector2>().normalized);
+    }
+
+    private void SetMoveInput(Vector2 value)
+    {
+        moveInput = value;
+
+        bool isActive = moveInput.sqrMagnitude > 0.001f;
+        if (isActive && !movementInputActive)
+        {
+            MovementStarted?.Invoke();
+        }
+
+        movementInputActive = isActive;
     }
 
     private void MovePlayer()
@@ -189,54 +215,15 @@ public class PlayerController2D : MonoBehaviour
             return;
         }
 
-        if (Mouse.current == null)
+        if (!TryGetAimWorldPosition(out Vector2 mouseWorldPosition))
         {
             return;
         }
 
-        if (mainCamera == null)
-        {
-            mainCamera = Camera.main;
-            if (mainCamera == null)
-            {
-                return;
-            }
-        }
+        Vector2 direction = mouseWorldPosition - (Vector2)transform.position;
+        float deadZone = Mathf.Max(0.001f, aimDeadZoneDistance);
 
-        Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-
-        if (useAimDeadZone)
-        {
-            Vector3 playerScreenPosition3D = mainCamera.WorldToScreenPoint(transform.position);
-            Vector2 playerScreenPosition = new Vector2(playerScreenPosition3D.x, playerScreenPosition3D.y);
-            float screenDistance = Vector2.Distance(mouseScreenPosition, playerScreenPosition);
-            float enterDistance = Mathf.Max(0f, aimDeadZoneEnterPixels);
-            float exitDistance = Mathf.Max(enterDistance, aimDeadZoneExitPixels);
-
-            if (aimDeadZoneActive)
-            {
-                if (screenDistance <= exitDistance)
-                {
-                    return;
-                }
-
-                aimDeadZoneActive = false;
-            }
-            else if (screenDistance <= enterDistance)
-            {
-                aimDeadZoneActive = true;
-                return;
-            }
-        }
-
-        float cameraDepth = Mathf.Abs(mainCamera.transform.position.z - transform.position.z);
-        Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(
-            new Vector3(mouseScreenPosition.x, mouseScreenPosition.y, cameraDepth)
-        );
-        mouseWorldPosition.z = transform.position.z;
-
-        Vector2 direction = mouseWorldPosition - transform.position;
-        if (direction.sqrMagnitude <= 0.0001f)
+        if (direction.sqrMagnitude <= deadZone * deadZone)
         {
             return;
         }
@@ -244,21 +231,43 @@ public class PlayerController2D : MonoBehaviour
         aimDirection = direction.normalized;
 
         float targetRotationZ = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg + rotationOffset;
+        float deltaTime = useUnscaledRotationTime ? Time.unscaledDeltaTime : Time.deltaTime;
 
-        if (rotationDegreesPerSecond <= 0f)
+        if (rotationSmoothSpeed <= 0f || deltaTime <= 0f)
         {
             currentRotationZ = targetRotationZ;
         }
         else
         {
-            currentRotationZ = Mathf.MoveTowardsAngle(
-                currentRotationZ,
-                targetRotationZ,
-                rotationDegreesPerSecond * Time.unscaledDeltaTime
-            );
+            float t = 1f - Mathf.Exp(-rotationSmoothSpeed * deltaTime);
+            currentRotationZ = Mathf.LerpAngle(currentRotationZ, targetRotationZ, t);
         }
 
         transform.rotation = Quaternion.Euler(0f, 0f, currentRotationZ);
+    }
+
+    public bool TryGetAimWorldPosition(out Vector2 worldPosition)
+    {
+        worldPosition = transform.position;
+
+        if (Mouse.current == null)
+        {
+            return false;
+        }
+
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+            if (mainCamera == null)
+            {
+                return false;
+            }
+        }
+
+        Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
+        Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(mouseScreenPosition);
+        worldPosition = new Vector2(mouseWorldPosition.x, mouseWorldPosition.y);
+        return true;
     }
 
     public void SetControlEnabled(bool enabled)
@@ -267,7 +276,7 @@ public class PlayerController2D : MonoBehaviour
 
         if (!controlEnabled)
         {
-            moveInput = Vector2.zero;
+            SetMoveInput(Vector2.zero);
             ClearMovementVelocityOverride();
 
             if (rb != null)
@@ -326,6 +335,100 @@ public class PlayerController2D : MonoBehaviour
         externalPushDuration = Mathf.Max(0.02f, finalDuration);
         externalPushTimer = externalPushDuration;
         externalPushVelocity = direction.normalized * (distance / externalPushDuration);
+    }
+
+    public bool IsRepositionDestinationValid(Vector2 destination)
+    {
+        if (!IsFinite(destination))
+        {
+            return false;
+        }
+
+        int blockingMask = ResolveRepositionBlockingMask();
+        if (blockingMask == 0)
+        {
+            return false;
+        }
+
+        Physics2D.SyncTransforms();
+
+        Vector2 centerOffset = bodyCollider != null
+            ? (Vector2)bodyCollider.bounds.center - (Vector2)transform.position
+            : Vector2.zero;
+        float clearanceRadius = bodyCollider != null
+            ? Mathf.Max(bodyCollider.bounds.extents.x, bodyCollider.bounds.extents.y)
+            : 0.18f;
+        clearanceRadius = Mathf.Max(0.08f, clearanceRadius + repositionClearancePadding);
+
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.SetLayerMask(blockingMask);
+        // Boss walls and some generated blockers are trigger-based, so they must
+        // participate in destination validation as well as solid colliders.
+        filter.useTriggers = true;
+
+        int hitCount = Physics2D.OverlapCircle(
+            destination + centerOffset,
+            clearanceRadius,
+            filter,
+            repositionOverlapBuffer
+        );
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider2D hit = repositionOverlapBuffer[i];
+            repositionOverlapBuffer[i] = null;
+
+            if (hit != null && hit.transform.root != transform.root)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public bool TryRepositionTo(Vector2 destination)
+    {
+        if (rb == null || !IsRepositionDestinationValid(destination))
+        {
+            return false;
+        }
+
+        Vector3 previousPosition = transform.position;
+        Vector3 nextPosition = new Vector3(destination.x, destination.y, previousPosition.z);
+        Vector3 positionDelta = nextPosition - previousPosition;
+
+        SetMoveInput(Vector2.zero);
+        externalPushVelocity = Vector2.zero;
+        externalPushTimer = 0f;
+        ClearMovementVelocityOverride();
+
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.position = destination;
+        transform.position = nextPosition;
+
+        CinemachineCore.OnTargetObjectWarped(transform, positionDelta);
+        Physics2D.SyncTransforms();
+        return true;
+    }
+
+    private int ResolveRepositionBlockingMask()
+    {
+        if (repositionBlockingLayers.value != 0)
+        {
+            return repositionBlockingLayers.value;
+        }
+
+        return LayerMask.GetMask("Meteor", "Shop", "WorldSolid", "BaseLaser");
+    }
+
+    private static bool IsFinite(Vector2 value)
+    {
+        return !float.IsNaN(value.x) &&
+               !float.IsInfinity(value.x) &&
+               !float.IsNaN(value.y) &&
+               !float.IsInfinity(value.y);
     }
 
     public void SetMoveSpeed(float newMoveSpeed)

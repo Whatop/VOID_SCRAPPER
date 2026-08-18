@@ -31,6 +31,17 @@ public class InteractionPromptUI : MonoBehaviour
     [SerializeField] private string prefix = "F";
     [SerializeField] private string fallbackPrompt = "상호작용";
 
+    [Header("Compact Prompt Presentation")]
+    [SerializeField] private bool configureCompactPrompt = true;
+    [SerializeField] private bool useSimplePromptBackground = true;
+    [SerializeField] private Vector2 compactPromptSize = new Vector2(200f, 28f);
+    [SerializeField] private Vector2 compactPromptTextSize = new Vector2(188f, 18f);
+    [SerializeField] private Vector2 compactProgressRootSize = new Vector2(54f, 8f);
+    [SerializeField] private Vector2 compactProgressSliderSize = new Vector2(50f, 6f);
+    [SerializeField, Min(1f)] private float compactPromptFontSize = 8f;
+    [SerializeField, Min(1f)] private float compactPromptMinimumFontSize = 6f;
+    [SerializeField] private Color simplePromptBackgroundColor = new Color(0.02f, 0.04f, 0.07f, 0.82f);
+
     [Header("Dynamic Input Labels")]
     [SerializeField] private InputActionAsset inputActions;
     [SerializeField] private string playerActionMapName = "Player";
@@ -44,8 +55,15 @@ public class InteractionPromptUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI lootCategoryText;
     [SerializeField] private TextMeshProUGUI lootRarityText;
     [SerializeField] private TextMeshProUGUI lootDescriptionText;
+    [SerializeField] private TextMeshProUGUI lootOwnedStateText;
     [SerializeField] private TextMeshProUGUI lootPrimaryActionText;
     [SerializeField] private TextMeshProUGUI lootDismantleActionText;
+    [SerializeField] private GameObject lootCurrentItemRoot;
+    [SerializeField] private Image lootCurrentIconImage;
+    [SerializeField] private TextMeshProUGUI lootCurrentNameText;
+    [SerializeField] private TextMeshProUGUI lootCurrentDescriptionText;
+    [SerializeField] private PlayerReinforcementController reinforcementController;
+    [SerializeField, Min(0f)] private float lootDetailSafeMargin = 8f;
 
     [Header("Auto Anchor")]
     [Tooltip("켜면 대상의 SpriteRenderer/Renderer/Collider2D 크기를 보고 자동으로 위쪽 중앙에 프롬프트를 띄웁니다.")]
@@ -85,8 +103,13 @@ public class InteractionPromptUI : MonoBehaviour
     private RectTransform canvasRectTransform;
     private RectTransform promptTextRectTransform;
     private RectTransform progressRootRectTransform;
+    private RectTransform lootDetailRectTransform;
     private LayoutGroup layoutGroup;
+    private Image simplePromptBackground;
+    private bool compactPromptConfigured;
     private bool lastProgressVisible;
+    private bool wasGameplayPaused;
+    private readonly Vector3[] lootDetailWorldCorners = new Vector3[4];
 
     private IInteractable currentTarget;
     private Component currentTargetComponent;
@@ -95,6 +118,9 @@ public class InteractionPromptUI : MonoBehaviour
 
     private CoreObject forcedCoreTarget;
     private Component forcedProgressTarget;
+    private RunRuntimeTraitStore subscribedTraitStore;
+    private PermanentProgress subscribedPermanentProgress;
+    private PlayerReinforcementController subscribedReinforcementController;
 
     private void Reset()
     {
@@ -120,6 +146,7 @@ public class InteractionPromptUI : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+        ConfigureCompactPromptPresentation();
 
         if (playerInteractor == null)
         {
@@ -135,6 +162,8 @@ public class InteractionPromptUI : MonoBehaviour
     private void OnEnable()
     {
         CacheReferences();
+        ResolveInputActions();
+        InputSystem.onActionChange += HandleInputActionChange;
 
         if (playerInteractor != null)
         {
@@ -150,12 +179,15 @@ public class InteractionPromptUI : MonoBehaviour
 
         CoreObject.ActivationProgressChanged += HandleCoreActivationProgressChanged;
         ReinforcementPickup.DismantleProgressChanged += HandleReinforcementDismantleProgressChanged;
+        ReinforcementPickup.PresentationChanged += HandleReinforcementPresentationChanged;
         TraitPickup.DismantleProgressChanged += HandleTraitDismantleProgressChanged;
-        InputSystem.onActionChange += HandleInputActionChange;
+        TraitPickup.PresentationChanged += HandleTraitPresentationChanged;
     }
 
     private void OnDisable()
     {
+        InputSystem.onActionChange -= HandleInputActionChange;
+
         if (playerInteractor != null)
         {
             playerInteractor.CurrentTargetChanged -= HandleTargetChanged;
@@ -164,24 +196,63 @@ public class InteractionPromptUI : MonoBehaviour
 
         CoreObject.ActivationProgressChanged -= HandleCoreActivationProgressChanged;
         ReinforcementPickup.DismantleProgressChanged -= HandleReinforcementDismantleProgressChanged;
+        ReinforcementPickup.PresentationChanged -= HandleReinforcementPresentationChanged;
         TraitPickup.DismantleProgressChanged -= HandleTraitDismantleProgressChanged;
-        InputSystem.onActionChange -= HandleInputActionChange;
+        TraitPickup.PresentationChanged -= HandleTraitPresentationChanged;
+        UnsubscribeDetailSources();
 
         forcedCoreTarget = null;
         forcedProgressTarget = null;
-        ClearTarget();
-        SetVisible(false);
-        SetLootDetailVisible(false);
-        SetProgressVisible(false, 0f);
+        currentTarget = null;
+        currentTargetComponent = null;
+        currentTargetTransform = null;
+        currentAnchor = null;
+        lastProgressVisible = false;
+
+        // ExpeditionHUD owns structural activation during cinematics. OnDisable
+        // must not call SetActive while that hierarchy is already deactivating.
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+        }
+
+        if (progressCanvasGroup != null)
+        {
+            progressCanvasGroup.alpha = 0f;
+            progressCanvasGroup.interactable = false;
+            progressCanvasGroup.blocksRaycasts = false;
+        }
+
+        if (progressSlider != null)
+        {
+            progressSlider.value = 0f;
+        }
+
+        wasGameplayPaused = false;
     }
 
     private void LateUpdate()
     {
-        if (GameplayPauseManager.IsPaused)
+        bool isGameplayPaused = GameplayPauseManager.IsPaused;
+
+        if (isGameplayPaused)
         {
             SetVisible(false);
             SetProgressVisible(false, 0f);
+            wasGameplayPaused = true;
             return;
+        }
+
+        if (wasGameplayPaused)
+        {
+            wasGameplayPaused = false;
+
+            if (currentTarget != null)
+            {
+                RefreshPromptText(currentTarget);
+            }
         }
 
         if (!followEveryFrame)
@@ -264,6 +335,11 @@ public class InteractionPromptUI : MonoBehaviour
             progressRootRectTransform = progressRoot.transform as RectTransform;
         }
 
+        if (lootDetailRoot != null && lootDetailRectTransform == null)
+        {
+            lootDetailRectTransform = lootDetailRoot.transform as RectTransform;
+        }
+
         UpdatePromptChildLayout(lastProgressVisible);
 
         if (canvas == null)
@@ -295,6 +371,88 @@ public class InteractionPromptUI : MonoBehaviour
         }
 
         rectTransform.pivot = new Vector2(0.5f, 0f);
+    }
+
+    private void ConfigureCompactPromptPresentation()
+    {
+        if (compactPromptConfigured || !configureCompactPrompt)
+        {
+            return;
+        }
+
+        compactPromptConfigured = true;
+
+        if (layoutGroup != null)
+        {
+            layoutGroup.enabled = false;
+        }
+
+        if (rectTransform != null)
+        {
+            rectTransform.sizeDelta = compactPromptSize;
+        }
+
+        textProgressSpacing = 2f;
+        textOnlyYOffset = 0f;
+        progressLocalYOffset = 0f;
+
+        if (promptText != null)
+        {
+            promptText.enableAutoSizing = true;
+            promptText.fontSizeMin = Mathf.Min(compactPromptMinimumFontSize, compactPromptFontSize);
+            promptText.fontSizeMax = Mathf.Max(compactPromptMinimumFontSize, compactPromptFontSize);
+            promptText.textWrappingMode = TextWrappingModes.Normal;
+            promptText.overflowMode = TextOverflowModes.Ellipsis;
+            promptText.maxVisibleLines = 2;
+            promptText.alignment = TextAlignmentOptions.Center;
+            promptText.margin = new Vector4(4f, 1f, 4f, 1f);
+        }
+
+        if (promptTextRectTransform != null)
+        {
+            promptTextRectTransform.anchorMin = new Vector2(0.5f, 0f);
+            promptTextRectTransform.anchorMax = new Vector2(0.5f, 0f);
+            promptTextRectTransform.pivot = new Vector2(0.5f, 0f);
+            promptTextRectTransform.sizeDelta = compactPromptTextSize;
+        }
+
+        if (progressRootRectTransform != null)
+        {
+            progressRootRectTransform.anchorMin = new Vector2(0.5f, 0f);
+            progressRootRectTransform.anchorMax = new Vector2(0.5f, 0f);
+            progressRootRectTransform.pivot = new Vector2(0.5f, 0f);
+            progressRootRectTransform.sizeDelta = compactProgressRootSize;
+        }
+
+        RectTransform progressSliderRectTransform = progressSlider != null
+            ? progressSlider.transform as RectTransform
+            : null;
+
+        if (progressSliderRectTransform != null && progressSliderRectTransform != progressRootRectTransform)
+        {
+            progressSliderRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            progressSliderRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            progressSliderRectTransform.pivot = new Vector2(0.5f, 0.5f);
+            progressSliderRectTransform.anchoredPosition = Vector2.zero;
+            progressSliderRectTransform.sizeDelta = compactProgressSliderSize;
+        }
+
+        if (useSimplePromptBackground)
+        {
+            simplePromptBackground = GetComponent<Image>();
+
+            if (simplePromptBackground == null)
+            {
+                simplePromptBackground = gameObject.AddComponent<Image>();
+            }
+
+            simplePromptBackground.color = simplePromptBackgroundColor;
+            simplePromptBackground.raycastTarget = false;
+            simplePromptBackground.type = Image.Type.Simple;
+            simplePromptBackground.enabled = false;
+        }
+
+        UpdatePromptChildLayout(lastProgressVisible);
     }
 
     private void HandleTargetChanged(IInteractable target)
@@ -376,6 +534,34 @@ public class InteractionPromptUI : MonoBehaviour
         HandleDismantleProgressChanged(pickup, ratio, active);
     }
 
+    private void HandleReinforcementPresentationChanged(ReinforcementPickup pickup)
+    {
+        HandlePickupPresentationChanged(pickup, pickup != null ? pickup.ReinforcementDefinition : null);
+    }
+
+    private void HandleTraitPresentationChanged(TraitPickup pickup)
+    {
+        HandlePickupPresentationChanged(pickup, pickup != null ? pickup.TraitDefinition : null);
+    }
+
+    private void HandlePickupPresentationChanged(Component pickup, Object definition)
+    {
+        if (pickup == null || !ReferenceEquals(currentTargetComponent, pickup))
+        {
+            return;
+        }
+
+        if ((pickup is Behaviour behaviour && !behaviour.isActiveAndEnabled) || definition == null)
+        {
+            ClearTarget();
+            SetVisible(false);
+            SetProgressVisible(false, 0f);
+            return;
+        }
+
+        RefreshPromptText(currentTarget);
+    }
+
     private void HandleDismantleProgressChanged(Component component, float ratio, bool active)
     {
         if (component == null)
@@ -435,22 +621,28 @@ public class InteractionPromptUI : MonoBehaviour
         if (target == null)
         {
             SetLootDetailVisible(false);
+            SetSimplePromptBackgroundVisible(false);
             return;
         }
 
         if (target is ReinforcementPickup reinforcementPickup)
         {
+            SetSimplePromptBackgroundVisible(false);
+            EnsureDetailSourceSubscriptions();
             RefreshReinforcementDetail(reinforcementPickup);
             return;
         }
 
         if (target is TraitPickup traitPickup)
         {
+            SetSimplePromptBackgroundVisible(false);
+            EnsureDetailSourceSubscriptions();
             RefreshTraitDetail(traitPickup);
             return;
         }
 
         SetLootDetailVisible(false);
+        SetSimplePromptBackgroundVisible(true);
 
         if (promptText == null)
         {
@@ -475,17 +667,55 @@ public class InteractionPromptUI : MonoBehaviour
 
         SetLootDetailVisible(true);
         SetLootIcon(definition.Icon);
-        SetText(lootNameText, definition.DisplayName);
+        SetText(lootNameText, LocalizeFieldLootText(definition.DisplayName));
         SetText(lootCategoryText, definition.GetUseTypeText());
         SetText(lootRarityText, definition.GetRarityText(), definition.GetRarityColor());
-        SetText(lootDescriptionText, BuildLootDescription(definition.Description, definition.BuildEffectSummary()));
-        SetText(lootPrimaryActionText, $"[{ResolveInteractKeyText()}] 교체/획득");
-        SetText(lootDismantleActionText, $"[{ResolveDismantleKeyText()} 유지] 분해");
+        int fieldCharges = ResolvePickupCharges(pickup, definition);
+        SetText(
+            lootDescriptionText,
+            BuildLootDescription(
+                definition.Description,
+                BuildReinforcementSummary(definition, fieldCharges)
+            )
+        );
+
+        ReinforcementDefinition currentDefinition = reinforcementController != null
+            ? reinforcementController.EquippedDefinition
+            : null;
+        bool hasCurrentEquipment = currentDefinition != null;
+        SetCurrentItemVisible(hasCurrentEquipment);
+
+        if (hasCurrentEquipment)
+        {
+            SetImage(lootCurrentIconImage, currentDefinition.Icon);
+            SetText(lootCurrentNameText, LocalizeFieldLootText(currentDefinition.DisplayName));
+            SetText(
+                lootCurrentDescriptionText,
+                BuildLootDescription(
+                    currentDefinition.Description,
+                    BuildReinforcementSummary(currentDefinition, reinforcementController.CurrentCharges)
+                )
+            );
+            SetText(lootOwnedStateText, "교체 · 장착 중인 장비는 필드에 남습니다");
+        }
+        else
+        {
+            SetText(lootOwnedStateText, "빈 슬롯 · 장비를 장착합니다");
+        }
+
+        SetText(lootPrimaryActionText, $"[{ResolveInteractKeyText()}] {(hasCurrentEquipment ? "교체" : "장착")}");
+        SetOptionalText(
+            lootDismantleActionText,
+            pickup.CanDismantle,
+            $"[{ResolveDismantleKeyText()}] 길게 눌러 분해"
+        );
 
         if (promptText != null)
         {
             promptText.text = string.Empty;
         }
+
+        RefreshLootDetailLayout();
     }
 
     private void RefreshTraitDetail(TraitPickup pickup)
@@ -498,67 +728,64 @@ public class InteractionPromptUI : MonoBehaviour
             return;
         }
 
-        int currentLevel = RunRuntimeTraitStore.Instance != null
-            ? RunRuntimeTraitStore.Instance.GetLevel(definition.TraitId)
-            : 0;
-        string levelText = currentLevel > 0
-            ? $"{definition.GetCategoryText()} · Lv.{currentLevel}/{definition.MaxLevel}"
-            : definition.GetCategoryText();
+        int currentLevel = definition.IsPersistentStoryTrait && PermanentProgress.Instance != null
+            ? (PermanentProgress.Instance.HasPersistentStoryTrait(definition) ? 1 : 0)
+            : (RunRuntimeTraitStore.Instance != null
+                ? RunRuntimeTraitStore.Instance.GetLevel(definition.TraitId)
+                : 0);
+        int resultingLevel = Mathf.Min(currentLevel + 1, definition.MaxLevel);
+        bool maxed = currentLevel >= definition.MaxLevel;
 
         SetLootDetailVisible(true);
         SetLootIcon(definition.Icon);
-        SetText(lootNameText, definition.DisplayName);
-        SetText(lootCategoryText, levelText);
-        SetText(lootRarityText, definition.GetRarityText(), definition.GetRarityColor());
-        SetText(lootDescriptionText, definition.Description);
-        SetText(lootPrimaryActionText, $"[{ResolveInteractKeyText()}] {(currentLevel > 0 ? "강화" : "획득")}");
-        SetText(lootDismantleActionText, $"[{ResolveDismantleKeyText()} 유지] 분해");
+        SetCurrentItemVisible(false);
+        SetText(lootNameText, LocalizeFieldLootText(definition.DisplayName));
+        SetText(lootCategoryText, definition.GetCategoryText());
+        SetText(
+            lootRarityText,
+            definition.Rarity == TraitRarity.Curse ? "저주" : definition.GetRarityText(),
+            definition.GetRarityColor()
+        );
+        SetText(lootDescriptionText, LocalizeFieldLootText(definition.Description));
+        SetText(lootOwnedStateText, BuildTraitOwnershipState(definition, currentLevel, resultingLevel, maxed));
+        SetText(
+            lootPrimaryActionText,
+            maxed
+                ? "최대 단계"
+                : $"[{ResolveInteractKeyText()}] {(currentLevel > 0 ? "강화" : "획득")}"
+        );
+        SetOptionalText(
+            lootDismantleActionText,
+            pickup.CanDismantle,
+            $"[{ResolveDismantleKeyText()}] 길게 눌러 분해"
+        );
 
         if (promptText != null)
         {
             promptText.text = string.Empty;
         }
+
+        RefreshLootDetailLayout();
     }
 
     private void ResolveInputActions()
     {
-        if (inputActions != null)
-        {
-            return;
-        }
-
-        if (playerInteractor == null)
-        {
-            playerInteractor = FindFirstObjectByType<PlayerInteractor>();
-        }
-
-        if (playerInteractor != null && playerInteractor.InputActions != null)
-        {
-            inputActions = playerInteractor.InputActions;
-            playerActionMapName = playerInteractor.ActionMapName;
-            interactActionName = playerInteractor.InteractActionName;
-            InputBindingPersistence.LoadOnce(inputActions);
-            return;
-        }
-
-        PlayerController2D controller = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
-
-        if (controller != null && controller.InputActions != null)
-        {
-            inputActions = controller.InputActions;
-            playerActionMapName = controller.ActionMapName;
-            InputBindingPersistence.LoadOnce(inputActions);
-        }
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
     }
 
     private void HandleInputActionChange(object changedObject, InputActionChange change)
     {
-        if (change != InputActionChange.BoundControlsChanged || currentTarget == null)
+        if (change != InputActionChange.BoundControlsChanged)
         {
             return;
         }
 
-        RefreshPromptText(currentTarget);
+        ResolveInputActions();
+
+        if (currentTarget != null)
+        {
+            RefreshPromptText(currentTarget);
+        }
     }
 
     private string ResolveInteractKeyText()
@@ -585,6 +812,9 @@ public class InteractionPromptUI : MonoBehaviour
 
     private static string BuildLootDescription(string description, string effectSummary)
     {
+        description = LocalizeFieldLootText(description);
+        effectSummary = LocalizeFieldLootText(effectSummary);
+
         if (string.IsNullOrWhiteSpace(effectSummary))
         {
             return description;
@@ -598,23 +828,310 @@ public class InteractionPromptUI : MonoBehaviour
         return $"{description}\n{effectSummary}";
     }
 
-    private void SetLootIcon(Sprite sprite)
+    private static string BuildReinforcementSummary(ReinforcementDefinition definition, int charges)
     {
-        if (lootIconImage == null)
+        if (definition == null)
         {
-            return;
+            return string.Empty;
         }
 
-        lootIconImage.sprite = sprite;
-        lootIconImage.enabled = sprite != null;
-        lootIconImage.preserveAspect = true;
+        string effectSummary = LocalizeFieldLootText(definition.BuildEffectSummary());
+        string chargeSummary = $"사용 횟수 {Mathf.Clamp(charges, 0, definition.MaxCharges)}/{definition.MaxCharges}";
+
+        if (definition.UsesRecharge)
+        {
+            chargeSummary += $" · 재충전 {definition.RechargeSeconds:0.#}초";
+        }
+
+        return string.IsNullOrWhiteSpace(effectSummary)
+            ? chargeSummary
+            : $"{effectSummary}\n{chargeSummary}";
+    }
+
+    private static string LocalizeFieldLootText(string source)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return source;
+        }
+
+        return source
+            .Replace("Pixel Curse", "픽셀 저주")
+            .Replace("A persistent story corruption bound to the player.", "플레이어에게 결속된 영구적인 이야기 오염입니다.")
+            .Replace("Reinforcement", "지원 장비")
+            .Replace("Armor", "장갑")
+            .Replace("R을 유지해", "지원 장비 입력을 유지해");
+    }
+
+    private static int ResolvePickupCharges(ReinforcementPickup pickup, ReinforcementDefinition definition)
+    {
+        if (pickup == null || definition == null)
+        {
+            return 0;
+        }
+
+        if (pickup.StoredCharges >= 0)
+        {
+            return Mathf.Clamp(pickup.StoredCharges, 0, definition.MaxCharges);
+        }
+
+        return definition.StartWithFullCharges ? definition.MaxCharges : 0;
+    }
+
+    private static string BuildTraitOwnershipState(
+        TraitDefinition definition,
+        int currentLevel,
+        int resultingLevel,
+        bool maxed)
+    {
+        string levelState = maxed
+            ? $"최대 단계 · Lv.{currentLevel}/{definition.MaxLevel}"
+            : currentLevel > 0
+                ? $"Lv.{currentLevel} → Lv.{resultingLevel}/{definition.MaxLevel}"
+                : $"미보유 → Lv.{resultingLevel}/{definition.MaxLevel}";
+
+        if (definition.IsPersistentStoryTrait)
+        {
+            return $"{levelState}\n스토리 특성 · 보호됨";
+        }
+
+        if (!definition.CanFieldDrop && !definition.CanDismantle)
+        {
+            return $"{levelState}\n보호됨 · 드랍/분해 불가";
+        }
+
+        if (!definition.CanFieldDrop)
+        {
+            return $"{levelState}\n보호됨 · 필드 드랍 불가";
+        }
+
+        if (!definition.CanDismantle)
+        {
+            return $"{levelState}\n보호됨 · 분해 불가";
+        }
+
+        return levelState;
+    }
+
+    private void SetLootIcon(Sprite sprite)
+    {
+        SetImage(lootIconImage, sprite);
     }
 
     private void SetLootDetailVisible(bool visible)
     {
+        if (visible)
+        {
+            SetSimplePromptBackgroundVisible(false);
+        }
+
         if (lootDetailRoot != null && lootDetailRoot.activeSelf != visible)
         {
             lootDetailRoot.SetActive(visible);
+        }
+
+        if (!visible)
+        {
+            SetCurrentItemVisible(false);
+        }
+    }
+
+    private void SetSimplePromptBackgroundVisible(bool visible)
+    {
+        if (simplePromptBackground != null)
+        {
+            simplePromptBackground.enabled = visible;
+        }
+    }
+
+    private void RefreshLootDetailLayout()
+    {
+        if (lootDetailRoot == null || !lootDetailRoot.activeInHierarchy)
+        {
+            return;
+        }
+
+        CacheReferences();
+
+        if (lootDetailRectTransform == null || canvasRectTransform == null)
+        {
+            return;
+        }
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(lootDetailRectTransform);
+        ClampLootDetailToCanvas();
+    }
+
+    private void ClampLootDetailToCanvas()
+    {
+        lootDetailRectTransform.GetWorldCorners(lootDetailWorldCorners);
+
+        Vector3 localBottomLeft = canvasRectTransform.InverseTransformPoint(lootDetailWorldCorners[0]);
+        Vector3 localTopRight = canvasRectTransform.InverseTransformPoint(lootDetailWorldCorners[2]);
+        Rect canvasRect = canvasRectTransform.rect;
+        float margin = Mathf.Max(0f, lootDetailSafeMargin);
+        float safeLeft = canvasRect.xMin + margin;
+        float safeRight = canvasRect.xMax - margin;
+        float safeBottom = canvasRect.yMin + margin;
+        float safeTop = canvasRect.yMax - margin;
+        float horizontalOffset = ResolveBoundsOffset(localBottomLeft.x, localTopRight.x, safeLeft, safeRight);
+        float verticalOffset = ResolveBoundsOffset(localBottomLeft.y, localTopRight.y, safeBottom, safeTop);
+
+        if (Mathf.Approximately(horizontalOffset, 0f) && Mathf.Approximately(verticalOffset, 0f))
+        {
+            return;
+        }
+
+        Vector3 canvasLocalOffset = new Vector3(horizontalOffset, verticalOffset, 0f);
+        lootDetailRectTransform.position += canvasRectTransform.TransformVector(canvasLocalOffset);
+    }
+
+    private static float ResolveBoundsOffset(float minimum, float maximum, float safeMinimum, float safeMaximum)
+    {
+        float size = maximum - minimum;
+        float safeSize = safeMaximum - safeMinimum;
+
+        if (size > safeSize)
+        {
+            return ((safeMinimum + safeMaximum) * 0.5f) - ((minimum + maximum) * 0.5f);
+        }
+
+        if (minimum < safeMinimum)
+        {
+            return safeMinimum - minimum;
+        }
+
+        if (maximum > safeMaximum)
+        {
+            return safeMaximum - maximum;
+        }
+
+        return 0f;
+    }
+
+    private void SetCurrentItemVisible(bool visible)
+    {
+        if (lootCurrentItemRoot != null && lootCurrentItemRoot.activeSelf != visible)
+        {
+            lootCurrentItemRoot.SetActive(visible);
+        }
+    }
+
+    private static void SetImage(Image target, Sprite sprite)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        target.sprite = sprite;
+        target.enabled = sprite != null;
+        target.preserveAspect = true;
+    }
+
+    private static void SetOptionalText(TextMeshProUGUI target, bool visible, string value)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        target.text = visible ? value ?? string.Empty : string.Empty;
+
+        if (target.gameObject.activeSelf != visible)
+        {
+            target.gameObject.SetActive(visible);
+        }
+    }
+
+    private void EnsureDetailSourceSubscriptions()
+    {
+        if (reinforcementController == null)
+        {
+            reinforcementController = FindFirstObjectByType<PlayerReinforcementController>();
+        }
+
+        RunRuntimeTraitStore traitStore = RunRuntimeTraitStore.Instance;
+        PermanentProgress permanentProgress = PermanentProgress.Instance;
+
+        if (subscribedReinforcementController != reinforcementController)
+        {
+            if (subscribedReinforcementController != null)
+            {
+                subscribedReinforcementController.EquipmentChanged -= HandleReinforcementEquipmentChanged;
+            }
+
+            subscribedReinforcementController = reinforcementController;
+
+            if (subscribedReinforcementController != null)
+            {
+                subscribedReinforcementController.EquipmentChanged += HandleReinforcementEquipmentChanged;
+            }
+        }
+
+        if (subscribedTraitStore != traitStore)
+        {
+            if (subscribedTraitStore != null)
+            {
+                subscribedTraitStore.Changed -= HandleDetailStateChanged;
+            }
+
+            subscribedTraitStore = traitStore;
+
+            if (subscribedTraitStore != null)
+            {
+                subscribedTraitStore.Changed += HandleDetailStateChanged;
+            }
+        }
+
+        if (subscribedPermanentProgress != permanentProgress)
+        {
+            if (subscribedPermanentProgress != null)
+            {
+                subscribedPermanentProgress.Changed -= HandleDetailStateChanged;
+            }
+
+            subscribedPermanentProgress = permanentProgress;
+
+            if (subscribedPermanentProgress != null)
+            {
+                subscribedPermanentProgress.Changed += HandleDetailStateChanged;
+            }
+        }
+    }
+
+    private void UnsubscribeDetailSources()
+    {
+        if (subscribedReinforcementController != null)
+        {
+            subscribedReinforcementController.EquipmentChanged -= HandleReinforcementEquipmentChanged;
+            subscribedReinforcementController = null;
+        }
+
+        if (subscribedTraitStore != null)
+        {
+            subscribedTraitStore.Changed -= HandleDetailStateChanged;
+            subscribedTraitStore = null;
+        }
+
+        if (subscribedPermanentProgress != null)
+        {
+            subscribedPermanentProgress.Changed -= HandleDetailStateChanged;
+            subscribedPermanentProgress = null;
+        }
+    }
+
+    private void HandleReinforcementEquipmentChanged(ReinforcementDefinition _, int __, int ___)
+    {
+        HandleDetailStateChanged();
+    }
+
+    private void HandleDetailStateChanged()
+    {
+        if (currentTarget is TraitPickup || currentTarget is ReinforcementPickup)
+        {
+            RefreshPromptText(currentTarget);
         }
     }
 
@@ -908,6 +1425,7 @@ public class InteractionPromptUI : MonoBehaviour
     private void ClearTarget()
     {
         SetLootDetailVisible(false);
+        SetSimplePromptBackgroundVisible(false);
         currentTarget = null;
         currentTargetComponent = null;
         currentTargetTransform = null;
@@ -920,10 +1438,11 @@ public class InteractionPromptUI : MonoBehaviour
         {
             SetLootDetailVisible(false);
         }
-
-        if (rootObject != null && !rootObject.activeSelf)
+        else if (lootDetailRoot != null &&
+                 !lootDetailRoot.activeSelf &&
+                 (currentTarget is ReinforcementPickup || currentTarget is TraitPickup))
         {
-            rootObject.SetActive(true);
+            RefreshPromptText(currentTarget);
         }
 
         if (canvasGroup != null)
@@ -934,7 +1453,7 @@ public class InteractionPromptUI : MonoBehaviour
             return;
         }
 
-        if (rootObject != null)
+        if (rootObject != null && rootObject.activeSelf != visible)
         {
             rootObject.SetActive(visible);
         }

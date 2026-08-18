@@ -352,6 +352,11 @@ MonoBehaviour:
   laserTelegraphColor: {r: 0.990566, g: 0.3504361, b: 0.6066252, a: 0.55}
   laserActiveColor: {r: 1, g: 0.019607842, b: 0.62118095, a: 1}
   laserTelegraphWidth: 0.44
+  phase2SectionLaserPreviewTime: 0.75
+  phase2SectionLaserLockTime: 0.2
+  phase2LaserLockColor: {r: 1, g: 0.82, b: 0.25, a: 0.95}
+  phase2LaserLockWidthMultiplier: 1.35
+  phase2SectionLaserRecoveryTime: 0.16
   lineSortingLayerName: Default
   lineSortingOrder: 20
   spreadVolleyCountPhase1: 2
@@ -424,6 +429,10 @@ MonoBehaviour:
   boundaryWallDamageInterval: 0.5
   phase1BoundaryLaserColor: {r: 1, g: 1, b: 1, a: 1}
   phase2BoundaryLaserColor: {r: 0.55, g: 0.55, b: 0.75, a: 1}
+  phase2GameplayBoundaryVisualAlpha: 0.35
+  useRegularPhase2HexVisual: 1
+  phase2RegularHexVisualColor: {r: 0.65, g: 0.65, b: 0.9, a: 0.82}
+  phase2RegularHexVisualWidth: 0.16
   boundaryWallLayerName: Default
   boundaryLaserSortingOrder: 30
   phase2ManagerStartExtraDistance: 4
@@ -454,7 +463,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   phase2HexagonSideXScale: 1
   phase2HexagonShoulderYRatio: 0.5
-  phase2HexagonLaserWarmup: 0.35
+  phase2HexagonLaserWarmup: 0.2
   phase2RotatingLaserRepeatCount: 3
   phase2RotatingLaserOneSlotAngle: 60
   phase2RotatingLaserStepDuration: 2
@@ -468,7 +477,8 @@ MonoBehaviour:
   alternatePhase2RotatingLaserColor: 1
   firstPhase2RotatingLaserColor: 0
   phase2BoundaryLasersFollowManagers: 1
-  usePhase2HexagonTelegraph: 0
-  phase2HexagonTelegraphTime: 0.2
-  phase2HexagonTelegraphWidth: 0.12
+  usePhase2HexagonTelegraph: 1
+  phase2HexagonTelegraphTime: 0.7
+  phase2HexagonTelegraphWidth: 0.22
+  phase2HexagonLaserRecoveryTime: 0.18
   logPattern: 0

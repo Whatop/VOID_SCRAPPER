@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_repair_drone"
   displayName: "\uc218\ub9ac \ub4dc\ub860"
-  description: "\ucda9\uc804\uc2dd \ud68c\ubcf5 \uc7a5\ube44\ub2e4. \uc0ac\uc6a9 \uc2dc HP\ub97c \uc18c\ub7c9 \ud68c\ubcf5\ud55c\ub2e4."
+  description: "수리 드론을 호출해 HP 6을 즉시 회복한다. 드론은 수리 확인 후 복귀한다."
   icon: {fileID: 21300000, guid: e2ee3e9368339a773b9926a63cf4b6dc, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
@@ -37,4 +37,13 @@ MonoBehaviour:
       serializedVersion: 2
       m_Bits: 0
     prefab: {fileID: 0}
+    prefabLifetime: 1
+  - effectType: 10
+    value: 0
+    radius: 0
+    duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 100000, guid: 593dda0e2b054155b91e7a0da3a02516, type: 3}
     prefabLifetime: 1

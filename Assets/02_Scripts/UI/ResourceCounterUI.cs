@@ -86,6 +86,14 @@ public class ResourceCounterUI : MonoBehaviour
         iconImage.enabled = icon != null;
     }
 
+    public void SetIconColor(Color color)
+    {
+        if (iconImage != null)
+        {
+            iconImage.color = color;
+        }
+    }
+
     public void SetDisplayName(string newDisplayName)
     {
         displayName = newDisplayName;

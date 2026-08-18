@@ -12,7 +12,16 @@ public enum TraitRarity
 {
     Common,
     Rare,
-    Special
+    Special,
+
+    // Story debuffs. Appended to preserve serialized rarity values.
+    Curse
+}
+
+public enum TraitStatusPolarity
+{
+    Positive,
+    Negative
 }
 
 public enum TraitShopItemType
@@ -67,7 +76,25 @@ public enum TraitEffectType
     // Campaign boss-exclusive passives. Appended to preserve serialized values.
     SectorBarrierProtocol,
     MatterReconstructorProtocol,
-    PhaseAfterimageProtocol
+    PhaseAfterimageProtocol,
+
+    // Sniper mode-changing trait. Appended to preserve serialized enum values.
+    SniperSemiAutoMode,
+
+    // Shotgun signature trait. Appended to preserve serialized enum values.
+    ShotgunCloseRangeDamagePercent,
+
+    // Machine Gun evolution. Appended to preserve serialized enum values.
+    MachineGunTerminalGuidance,
+
+    // Shared signature mechanic. Appended to preserve serialized enum values.
+    PeriodicReflectiveShield,
+
+    // Machine Gun dash-triggered high-tier mechanic. Appended to preserve serialized enum values.
+    MachineGunDashMissileSalvo,
+
+    // Sniper dash-triggered high-tier mechanic. Appended to preserve serialized enum values.
+    SniperDashEchoShot
 }
 
 [Serializable]
@@ -80,6 +107,17 @@ public class TraitLevelEffect
     public int Level => Mathf.Max(1, level);
     public TraitEffectType EffectType => effectType;
     public float Value => value;
+}
+
+[Serializable]
+public class TraitPrerequisite
+{
+    [SerializeField] private TraitDefinition trait;
+    [Min(1)]
+    [SerializeField] private int requiredLevel = 1;
+
+    public TraitDefinition Trait => trait;
+    public int RequiredLevel => Mathf.Max(1, requiredLevel);
 }
 
 [CreateAssetMenu(menuName = "VOID SCRAPPER/Traits/Trait Definition")]
@@ -106,9 +144,20 @@ public class TraitDefinition : ScriptableObject
     [Tooltip("Trait: 추가 특성으로 노출 / Hidden: 기본 노출 안 함. Legacy 값은 기존 에셋 호환용이며 신규 콘텐츠에 쓰지 않습니다.")]
     [SerializeField] private TraitShopItemType shopItemType = TraitShopItemType.Trait;
 
+    [Header("Story Status")]
+    [Tooltip("Owned through permanent story progression instead of the run Trait store.")]
+    [SerializeField] private bool persistentStoryTrait;
+    [SerializeField] private TraitStatusPolarity statusPolarity = TraitStatusPolarity.Positive;
+    [SerializeField] private bool preventFieldDrop;
+    [SerializeField] private bool preventDismantle;
+
     [Header("Level")]
     [SerializeField] private int maxLevel = 3;
     [SerializeField] private List<TraitLevelEffect> levelEffects = new List<TraitLevelEffect>();
+
+    [Header("Evolution")]
+    [SerializeField] private bool isCapstone;
+    [SerializeField] private List<TraitPrerequisite> prerequisites = new List<TraitPrerequisite>();
 
     public string TraitId => string.IsNullOrWhiteSpace(traitId) ? name : traitId;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? TraitId : displayName;
@@ -120,12 +169,20 @@ public class TraitDefinition : ScriptableObject
     public TraitCategory Category => category;
     public WeaponTreeType WeaponTreeType => weaponTreeType;
     public TraitShopItemType ShopItemType => shopItemType;
+    public TraitStatusPolarity StatusPolarity => statusPolarity;
 
     public int MaxLevel => Mathf.Max(1, maxLevel);
     public IReadOnlyList<TraitLevelEffect> LevelEffects => levelEffects;
+    public bool IsCapstone => isCapstone;
+    public IReadOnlyList<TraitPrerequisite> Prerequisites => prerequisites;
 
-    public bool CanAppearAsShopTrait => shopItemType == TraitShopItemType.Trait;
-    public bool CanAppearAsLevelUpTrait => shopItemType == TraitShopItemType.Trait;
+    public bool IsPersistentStoryTrait => persistentStoryTrait;
+    public bool IsNegativeStatus => statusPolarity == TraitStatusPolarity.Negative;
+    public bool CanFieldDrop => !persistentStoryTrait && !preventFieldDrop;
+    public bool CanDismantle => !persistentStoryTrait && !preventDismantle;
+    public bool CanAppearAsShopTrait => shopItemType == TraitShopItemType.Trait && !persistentStoryTrait;
+    public bool CanAppearAsLevelUpTrait => shopItemType == TraitShopItemType.Trait && !persistentStoryTrait;
+    public bool CanAppearAsRandomDropTrait => shopItemType == TraitShopItemType.Trait && !persistentStoryTrait;
     public bool IsHidden => shopItemType == TraitShopItemType.Hidden;
 
     public bool IsLegacyReinforcementTrait =>
@@ -135,6 +192,11 @@ public class TraitDefinition : ScriptableObject
 
     public string GetRarityText()
     {
+        if (rarity == TraitRarity.Curse)
+        {
+            return "저주";
+        }
+
         return rarity switch
         {
             TraitRarity.Common => "일반",
@@ -146,6 +208,11 @@ public class TraitDefinition : ScriptableObject
 
     public Color GetRarityColor()
     {
+        if (rarity == TraitRarity.Curse)
+        {
+            return new Color(0.65f, 0.2f, 1f, 1f);
+        }
+
         return rarity switch
         {
             TraitRarity.Common => Color.white,
@@ -160,6 +227,7 @@ public class TraitDefinition : ScriptableObject
         TraitRarity.Common => 100f,
         TraitRarity.Rare => 45f,
         TraitRarity.Special => 8f,
+        TraitRarity.Curse => 0f,
         _ => 100f
     };
 

@@ -418,6 +418,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyDefinition: {fileID: 11400000, guid: 322cba11d7774295bec068c7628513ab, type: 2}
+  awarenessIndicatorFont: {fileID: 11400000, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
   player: {fileID: 0}
   playerTag: Player
   visualRoot: {fileID: 1901832124803787684}

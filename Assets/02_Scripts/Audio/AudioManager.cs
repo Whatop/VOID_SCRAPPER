@@ -15,6 +15,8 @@ public class AudioManager : MonoBehaviour
         public float startedAt;
         public bool isWorld;
         public Vector2 worldPosition;
+        public float unscaledVolume;
+        public bool usesUiVolume;
         public float effectiveVolume;
 
         public bool IsPlaying => source != null && source.isPlaying;
@@ -26,6 +28,8 @@ public class AudioManager : MonoBehaviour
             startedAt = 0f;
             isWorld = false;
             worldPosition = Vector2.zero;
+            unscaledVolume = 0f;
+            usesUiVolume = false;
             effectiveVolume = 0f;
         }
     }
@@ -60,6 +64,8 @@ public class AudioManager : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float masterVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float sfxVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float loopVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float ambienceVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float uiVolume = 1f;
 
     [Header("World Audio Defaults")]
     [SerializeField] private float defaultWorldMinDistance = 1.5f;
@@ -91,6 +97,10 @@ public class AudioManager : MonoBehaviour
     private readonly Dictionary<string, float> loopBaseVolumes =
         new Dictionary<string, float>();
     private readonly Dictionary<string, float> loopBasePitches =
+        new Dictionary<string, float>();
+    private readonly Dictionary<string, float> loopUnscaledVolumes =
+        new Dictionary<string, float>();
+    private readonly Dictionary<string, float> loopVolumeModulations =
         new Dictionary<string, float>();
     private readonly Dictionary<string, float> lastOneShotTimes =
         new Dictionary<string, float>();
@@ -173,6 +183,41 @@ public class AudioManager : MonoBehaviour
     public static void StopAllLoops()
     {
         EnsureExists().StopEveryLoop();
+    }
+
+    public static void SetMasterVolume(float value)
+    {
+        AudioManager manager = EnsureExists();
+        manager.masterVolume = Mathf.Clamp01(value);
+        manager.RefreshLiveVolumes();
+    }
+
+    public static void SetMusicVolume(float value)
+    {
+        AudioManager manager = EnsureExists();
+        manager.loopVolume = Mathf.Clamp01(value);
+        manager.RefreshLiveVolumes();
+    }
+
+    public static void SetSfxVolume(float value)
+    {
+        AudioManager manager = EnsureExists();
+        manager.sfxVolume = Mathf.Clamp01(value);
+        manager.RefreshLiveVolumes();
+    }
+
+    public static void SetAmbienceVolume(float value)
+    {
+        AudioManager manager = EnsureExists();
+        manager.ambienceVolume = Mathf.Clamp01(value);
+        manager.RefreshLiveVolumes();
+    }
+
+    public static void SetUiVolume(float value)
+    {
+        AudioManager manager = EnsureExists();
+        manager.uiVolume = Mathf.Clamp01(value);
+        manager.RefreshLiveVolumes();
     }
 
     private void Awake()
@@ -419,12 +464,15 @@ public class AudioManager : MonoBehaviour
                 occluderCount
             );
 
-        float finalVolume =
+        float unscaledVolume =
             definition.Volume *
-            masterVolume *
-            sfxVolume *
             Mathf.Max(0f, volumeScale) *
             occlusionVolume;
+        bool usesUiVolume = IsUiEvent(eventId);
+        float finalVolume =
+            unscaledVolume *
+            masterVolume *
+            (usesUiVolume ? uiVolume : sfxVolume);
 
         PrepareVoiceForReuse(voice);
 
@@ -450,6 +498,8 @@ public class AudioManager : MonoBehaviour
         voice.startedAt = Time.unscaledTime;
         voice.isWorld = profile.isWorld;
         voice.worldPosition = worldPosition;
+        voice.unscaledVolume = unscaledVolume;
+        voice.usesUiVolume = usesUiVolume;
         voice.effectiveVolume = Mathf.Clamp01(finalVolume);
 
         voice.source.loop = false;
@@ -548,15 +598,17 @@ public class AudioManager : MonoBehaviour
         profile.isWorld = false;
         profile.spatialBlend = 0f;
 
+        float unscaledLoopVolume =
+            definition.Volume * Mathf.Max(0f, volumeScale);
+
         ApplyDefinitionToSource(
             source,
             lowPass,
             definition,
             clip,
-            definition.Volume *
+            unscaledLoopVolume *
             masterVolume *
-            loopVolume *
-            Mathf.Max(0f, volumeScale),
+            GetLoopBusVolume(channelName),
             profile,
             0
         );
@@ -574,6 +626,8 @@ public class AudioManager : MonoBehaviour
         );
 
         loopEventIds[channelName] = eventId;
+        loopUnscaledVolumes[channelName] = unscaledLoopVolume;
+        loopVolumeModulations[channelName] = 1f;
         loopBaseVolumes[channelName] = source.volume;
         loopBasePitches[channelName] = source.pitch;
 
@@ -620,6 +674,7 @@ public class AudioManager : MonoBehaviour
             baseVolume *
             Mathf.Max(0f, volumeMultiplier)
         );
+        loopVolumeModulations[channelName] = Mathf.Max(0f, volumeMultiplier);
 
         return true;
     }
@@ -641,6 +696,8 @@ public class AudioManager : MonoBehaviour
         }
 
         loopEventIds.Remove(channelName);
+        loopUnscaledVolumes.Remove(channelName);
+        loopVolumeModulations.Remove(channelName);
         loopBaseVolumes.Remove(channelName);
         loopBasePitches.Remove(channelName);
     }
@@ -659,6 +716,8 @@ public class AudioManager : MonoBehaviour
         }
 
         loopEventIds.Clear();
+        loopUnscaledVolumes.Clear();
+        loopVolumeModulations.Clear();
         loopBaseVolumes.Clear();
         loopBasePitches.Clear();
     }
@@ -1408,6 +1467,62 @@ public class AudioManager : MonoBehaviour
         loopFilters[channelName] = lowPass;
 
         return source;
+    }
+
+    private void RefreshLiveVolumes()
+    {
+        for (int i = 0; i < voices.Count; i++)
+        {
+            PooledVoice voice = voices[i];
+
+            if (voice == null || voice.source == null || !voice.IsPlaying)
+            {
+                continue;
+            }
+
+            float busVolume = voice.usesUiVolume ? uiVolume : sfxVolume;
+            float finalVolume = voice.unscaledVolume * masterVolume * busVolume;
+            voice.effectiveVolume = Mathf.Clamp01(finalVolume);
+            voice.source.volume = voice.effectiveVolume;
+        }
+
+        foreach (KeyValuePair<string, AudioSource> pair in loopSources)
+        {
+            string channelName = pair.Key;
+            AudioSource source = pair.Value;
+
+            if (source == null ||
+                !loopUnscaledVolumes.TryGetValue(channelName, out float unscaledVolume))
+            {
+                continue;
+            }
+
+            float baseVolume = Mathf.Clamp01(
+                unscaledVolume * masterVolume * GetLoopBusVolume(channelName)
+            );
+            float modulation = loopVolumeModulations.TryGetValue(
+                channelName,
+                out float storedModulation)
+                ? storedModulation
+                : 1f;
+
+            loopBaseVolumes[channelName] = baseVolume;
+            source.volume = Mathf.Clamp01(baseVolume * modulation);
+        }
+    }
+
+    private float GetLoopBusVolume(string channelName)
+    {
+        return string.Equals(channelName, "ambience", StringComparison.Ordinal)
+            ? ambienceVolume
+            : loopVolume;
+    }
+
+    private static bool IsUiEvent(string eventId)
+    {
+        string legacyId = SoundEventIds.ToLegacy(eventId);
+        return !string.IsNullOrWhiteSpace(legacyId) &&
+               legacyId.StartsWith("ui_", StringComparison.Ordinal);
     }
 
     private bool IsAutomaticTwoDEvent(

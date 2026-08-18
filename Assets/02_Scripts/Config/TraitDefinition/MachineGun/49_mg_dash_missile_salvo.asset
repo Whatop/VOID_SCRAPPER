@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
+  m_Name: 49_mg_dash_missile_salvo
+  m_EditorClassIdentifier:
+  traitId: mg_dash_missile_salvo
+  displayName: "추격 미사일 사출"
+  description: "기관총 장착 중 대쉬하면 조준 방향으로 추격 미사일 3발을 사출합니다."
+  icon: {fileID: 0}
+  rarity: 2
+  category: 1
+  weaponTreeType: 2
+  shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
+  maxLevel: 1
+  levelEffects:
+  - level: 1
+    effectType: 38
+    value: 1
+  isCapstone: 0
+  prerequisites: []

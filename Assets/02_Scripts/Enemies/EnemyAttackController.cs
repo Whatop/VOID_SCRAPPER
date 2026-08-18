@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class EnemyAttackController : MonoBehaviour
 {
@@ -84,12 +85,18 @@ public class EnemyAttackController : MonoBehaviour
 
     [Header("Charge Aim Line")]
     [SerializeField] private bool showAimLineDuringCharge = true;
-    [Tooltip("켜면 차징 시작 순간의 방향으로 조준선과 발사 방향이 고정됩니다.")]
-    [SerializeField] private bool lockAimDirectionOnChargeStart = true;
+    [Tooltip("켜면 차징 초반에는 대상을 추적하고 마지막 구간에는 조준/발사 방향을 고정합니다.")]
+    [FormerlySerializedAs("lockAimDirectionOnChargeStart")]
+    [SerializeField] private bool trackAimDuringEarlyCharge = true;
+    [Range(0.5f, 0.95f)]
+    [SerializeField] private float chargeAimLockFraction = 0.75f;
     [SerializeField] private LineRenderer aimLineRenderer;
     [SerializeField] private bool autoCreateAimLineRenderer = true;
     [SerializeField] private Color aimLineColor = new Color(1f, 0.05f, 0.05f, 0.85f);
+    [SerializeField] private Color lockedAimLineColor = new Color(1f, 0.82f, 0.18f, 1f);
     [SerializeField] private float aimLineWidth = 0.045f;
+    [Min(1f)]
+    [SerializeField] private float lockedAimLineWidthMultiplier = 1.65f;
     [SerializeField] private float aimLineLength = 12f;
     [Tooltip("벽, 운석 같은 장애물 레이어만 넣으세요. Enemy 레이어를 넣으면 자기 콜라이더에 막힐 수 있습니다.")]
     [SerializeField] private LayerMask aimLineBlockLayer;
@@ -100,9 +107,12 @@ public class EnemyAttackController : MonoBehaviour
 
     private float attackTimer;
     private Coroutine attackRoutine;
+    private float playerDeploymentAttackIntervalMultiplier = 1f;
+    private float playerDeploymentDamageMultiplier = 1f;
 
     private Vector2 lockedChargeDirection = Vector2.up;
     private Vector2 currentChargeDirection = Vector2.up;
+    private bool chargeAimCommitted;
     private bool usePredictiveAimForCurrentAttack;
     private Rigidbody2D currentTargetBody;
 
@@ -110,7 +120,8 @@ public class EnemyAttackController : MonoBehaviour
     public bool IsAttacking => isAttacking;
     public bool IsCharging => isCharging;
     public bool CanAttack => !isAttacking && !isCharging && attackTimer <= 0f;
-    public bool IsAimDirectionLocked => isCharging && lockAimDirectionOnChargeStart;
+    public bool IsAimDirectionLocked => isCharging && chargeAimCommitted;
+    public bool IsCommittedCharge => isCharging && chargeAimCommitted;
     public Vector2 LockedChargeDirection => lockedChargeDirection;
     public Transform FirePoint => ResolveCenterFirePoint();
     public EnemyRangedAttackPattern RangedAttackPattern => rangedAttackPattern;
@@ -210,6 +221,20 @@ public class EnemyAttackController : MonoBehaviour
         ignoreShopSecurityTargets = ignoreShopSecurity;
     }
 
+    public void ConfigurePlayerDeploymentCombat(
+        float attackIntervalMultiplier,
+        float damageMultiplier)
+    {
+        playerDeploymentAttackIntervalMultiplier = Mathf.Max(0.05f, attackIntervalMultiplier);
+        playerDeploymentDamageMultiplier = Mathf.Max(0.05f, damageMultiplier);
+    }
+
+    public void ResetPlayerDeploymentCombat()
+    {
+        playerDeploymentAttackIntervalMultiplier = 1f;
+        playerDeploymentDamageMultiplier = 1f;
+    }
+
 
     /// <summary>
     /// 터렛 전용 발사 위치를 연결합니다.
@@ -257,7 +282,9 @@ public class EnemyAttackController : MonoBehaviour
             isCharging = true;
             lockedChargeDirection = startDirection;
             currentChargeDirection = startDirection;
+            chargeAimCommitted = !trackAimDuringEarlyCharge;
 
+            ApplyAimLineStyle();
             UpdateAimLine(origin, currentChargeDirection);
             ChargeStarted?.Invoke(this);
             AudioManager.PlayAt(SoundEventIds.EnemyChargerAimLoop, transform.position, 0.75f);
@@ -296,6 +323,7 @@ public class EnemyAttackController : MonoBehaviour
 
         isCharging = false;
         isAttacking = false;
+        chargeAimCommitted = false;
         usePredictiveAimForCurrentAttack = false;
         currentTargetBody = null;
 
@@ -414,11 +442,12 @@ public class EnemyAttackController : MonoBehaviour
     private IEnumerator ChargeAndFireRoutine(Transform target)
     {
         float duration = Mathf.Max(0.05f, chargeTime);
+        float lockTime = duration * Mathf.Clamp(chargeAimLockFraction, 0.5f, 0.95f);
         float timer = 0f;
 
         while (timer < duration)
         {
-            if (target == null)
+            if (!IsChargeTargetValid(target))
             {
                 FinishChargeCanceledFromRoutine();
                 yield break;
@@ -426,9 +455,25 @@ public class EnemyAttackController : MonoBehaviour
 
             Vector2 origin = GetFireOrigin();
 
-            currentChargeDirection = lockAimDirectionOnChargeStart
-                ? lockedChargeDirection
-                : GetAimDirection(origin, target, usePredictiveAimForCurrentAttack);
+            if (!chargeAimCommitted)
+            {
+                currentChargeDirection = GetAimDirection(
+                    origin,
+                    target,
+                    usePredictiveAimForCurrentAttack
+                );
+
+                if (timer >= lockTime)
+                {
+                    chargeAimCommitted = true;
+                    lockedChargeDirection = currentChargeDirection;
+                    ApplyAimLineStyle();
+                }
+            }
+            else
+            {
+                currentChargeDirection = lockedChargeDirection;
+            }
 
             UpdateAimLine(origin, currentChargeDirection);
 
@@ -438,6 +483,7 @@ public class EnemyAttackController : MonoBehaviour
 
         HideAimLine();
         isCharging = false;
+        chargeAimCommitted = false;
         ChargeReleased?.Invoke(this);
 
         if (rangedAttackPattern == EnemyRangedAttackPattern.ChargingSplit)
@@ -460,6 +506,7 @@ public class EnemyAttackController : MonoBehaviour
 
         isCharging = false;
         isAttacking = false;
+        chargeAimCommitted = false;
         attackRoutine = null;
         usePredictiveAimForCurrentAttack = false;
         currentTargetBody = null;
@@ -479,9 +526,13 @@ public class EnemyAttackController : MonoBehaviour
 
     private void FinishAttackWithCooldown()
     {
-        attackTimer = Mathf.Max(0.01f, attackInterval);
+        attackTimer = Mathf.Max(
+            0.01f,
+            attackInterval * playerDeploymentAttackIntervalMultiplier
+        );
         isAttacking = false;
         isCharging = false;
+        chargeAimCommitted = false;
         usePredictiveAimForCurrentAttack = false;
         currentTargetBody = null;
         AttackFinished?.Invoke(this);
@@ -718,18 +769,23 @@ public class EnemyAttackController : MonoBehaviour
             return null;
         }
 
+        float damageOverride = Mathf.Approximately(playerDeploymentDamageMultiplier, 1f)
+            ? -1f
+            : definition.Damage * playerDeploymentDamageMultiplier;
+
         bullet.Initialize(
             direction,
             projectileOwner,
             definition,
-            -1f,
+            damageOverride,
             -1f,
             -1f,
             -1,
             0f,
             0f,
             1f,
-            ignoreShopSecurityTargets
+            ignoreShopSecurityTargets,
+            gameObject
         );
 
         return bullet;
@@ -968,6 +1024,25 @@ public class EnemyAttackController : MonoBehaviour
         aimLineRenderer.enabled = false;
     }
 
+    private void ApplyAimLineStyle()
+    {
+        if (aimLineRenderer == null)
+        {
+            return;
+        }
+
+        Color color = chargeAimCommitted ? lockedAimLineColor : aimLineColor;
+        float widthMultiplier = chargeAimCommitted
+            ? Mathf.Max(1f, lockedAimLineWidthMultiplier)
+            : 1f;
+        float width = Mathf.Max(0.001f, aimLineWidth) * widthMultiplier;
+
+        aimLineRenderer.startColor = color;
+        aimLineRenderer.endColor = color;
+        aimLineRenderer.startWidth = width;
+        aimLineRenderer.endWidth = width;
+    }
+
     private void UpdateAimLine(Vector2 origin, Vector2 direction)
     {
         if (!showAimLineDuringCharge)
@@ -1020,6 +1095,17 @@ public class EnemyAttackController : MonoBehaviour
         {
             aimLineRenderer.enabled = false;
         }
+    }
+
+    private static bool IsChargeTargetValid(Transform target)
+    {
+        if (target == null || !target.gameObject.activeInHierarchy)
+        {
+            return false;
+        }
+
+        PlayerHealth playerHealth = target.GetComponentInParent<PlayerHealth>();
+        return playerHealth == null || !playerHealth.IsDead;
     }
 
     private static Vector2 RotateVector(Vector2 vector, float angle)

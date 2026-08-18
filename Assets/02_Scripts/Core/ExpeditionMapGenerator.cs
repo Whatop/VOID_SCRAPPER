@@ -65,7 +65,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [Tooltip("적 기지 전체가 차지하는 예약 크기입니다. 기지 외벽보다 약간 크게 설정하세요.")]
     [SerializeField] private Vector2 fieldBaseReservationSize = new Vector2(28f, 28f);
     [Tooltip("상점 안전 구역까지 포함한 예약 크기입니다.")]
-    [SerializeField] private Vector2 shopZoneReservationSize = new Vector2(20f, 20f);
+    [SerializeField] private Vector2 shopZoneReservationSize = new Vector2(28f, 28f);
     [Min(0f)]
     [SerializeField] private float largeZoneSpacing = 4f;
     [SerializeField] private bool rotateLargeZonesByRightAngles;
@@ -158,9 +158,9 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [SerializeField] private EnemyDefinition eliteChargingDefinition;
 
     [Header("Enemy Role Definitions")]
-    [Tooltip("경쟁 회수정 전용 기체 프리팹이 연결된 EnemyDefinition입니다. 비어 있거나 Prefab이 없으면 Basic Definition을 사용합니다.")]
+    [Tooltip("경쟁 회수정 전용 기체/스탯 Definition. 비어 있으면 Basic Enemy Definition을 사용합니다.")]
     [SerializeField] private EnemyDefinition rivalHarvesterDefinition;
-    [Tooltip("약탈자 전용 기체 프리팹이 연결된 EnemyDefinition입니다. 비어 있거나 Prefab이 없으면 Basic Definition을 사용합니다.")]
+    [Tooltip("약탈자 전용 기체/스탯 Definition. 비어 있으면 Basic Enemy Definition을 사용합니다.")]
     [SerializeField] private EnemyDefinition scavengerDefinition;
 
     [Header("Enemy Role Placement")]
@@ -238,6 +238,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private readonly List<Vector2> importantPositions = new List<Vector2>(16);
     private readonly List<Vector2> harvestClusterAnchors = new List<Vector2>(64);
     private readonly List<HarvestObjectHealth> spawnedHarvestObjects = new List<HarvestObjectHealth>(64);
+    private readonly List<ExpeditionEventObject> spawnedEventObjects = new List<ExpeditionEventObject>(8);
+    private readonly List<CoreObject> spawnedCoreObjects = new List<CoreObject>(2);
     private readonly List<HarvestObjectHealth> spawnedDefenderTargets = new List<HarvestObjectHealth>(16);
     private readonly List<Bounds> reservedPlacementBounds = new List<Bounds>(16);
     private readonly List<FieldBaseController> spawnedFieldBases = new List<FieldBaseController>(4);
@@ -255,6 +257,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
     public Bounds CorePlacementSafeBounds { get; private set; }
     public Vector2 StartPosition => startPosition;
     public SeaRegionDefinition CurrentSeaRegion => currentSeaRegion;
+    public IReadOnlyList<HarvestObjectHealth> SpawnedHarvestObjects => spawnedHarvestObjects;
+    public IReadOnlyList<ExpeditionEventObject> SpawnedEventObjects => spawnedEventObjects;
+    public IReadOnlyList<CoreObject> SpawnedCoreObjects => spawnedCoreObjects;
+    public IReadOnlyList<FieldBaseController> SpawnedFieldBases => spawnedFieldBases;
 
     private void Reset()
     {
@@ -286,6 +292,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
         importantPositions.Clear();
         harvestClusterAnchors.Clear();
         spawnedHarvestObjects.Clear();
+        spawnedEventObjects.Clear();
+        spawnedCoreObjects.Clear();
         spawnedDefenderTargets.Clear();
         reservedPlacementBounds.Clear();
         spawnedFieldBases.Clear();
@@ -1132,15 +1140,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
             );
             shotgunCount -= placedDefenderShotgun;
 
-            EnemyDefinition resolvedRivalDefinition =
-                rivalHarvesterDefinition != null && rivalHarvesterDefinition.EnemyPrefab != null
-                    ? rivalHarvesterDefinition
-                    : basicEnemyDefinition;
-
-            EnemyDefinition resolvedScavengerDefinition =
-                scavengerDefinition != null && scavengerDefinition.EnemyPrefab != null
-                    ? scavengerDefinition
-                    : basicEnemyDefinition;
+            EnemyDefinition resolvedRivalDefinition = rivalHarvesterDefinition != null
+                ? rivalHarvesterDefinition
+                : basicEnemyDefinition;
+            EnemyDefinition resolvedScavengerDefinition = scavengerDefinition != null
+                ? scavengerDefinition
+                : basicEnemyDefinition;
 
             int placedRivals = PlaceRoleEnemyBatch(
                 resolvedRivalDefinition,
@@ -1256,6 +1261,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
             if (spawned == null)
             {
                 continue;
+            }
+
+            CoreObject spawnedCore = spawned.GetComponent<CoreObject>();
+            spawnedCore ??= spawned.GetComponentInChildren<CoreObject>(true);
+            if (spawnedCore != null)
+            {
+                spawnedCoreObjects.Add(spawnedCore);
             }
 
             occupiedPositions.Add(position);
@@ -2352,6 +2364,17 @@ public class ExpeditionMapGenerator : MonoBehaviour
         if (spawned == null)
         {
             return;
+        }
+
+        ExpeditionEventObject eventObject = spawned.GetComponent<ExpeditionEventObject>();
+        if (eventObject == null)
+        {
+            eventObject = spawned.GetComponentInChildren<ExpeditionEventObject>(true);
+        }
+
+        if (eventObject != null && !spawnedEventObjects.Contains(eventObject))
+        {
+            spawnedEventObjects.Add(eventObject);
         }
 
         HarvestObjectHealth harvestObject = spawned.GetComponent<HarvestObjectHealth>();

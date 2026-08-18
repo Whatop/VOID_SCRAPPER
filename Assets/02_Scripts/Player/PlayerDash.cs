@@ -164,37 +164,19 @@ public class PlayerDash : MonoBehaviour
 
     private void BindInput()
     {
-        if (inputActions == null)
-        {
-            return;
-        }
-
-        InputActionMap actionMap = inputActions.FindActionMap(actionMapName, false);
-        if (actionMap == null)
-        {
-            return;
-        }
-
-        dashAction = actionMap.FindAction(dashActionName, false);
-        if (dashAction != null)
-        {
-            dashAction.Enable();
-        }
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
+        dashAction = InputBindingUtility.ResolveAction(inputActions, actionMapName, dashActionName);
+        dashAction?.Enable();
     }
 
     private bool WasDashPressed()
     {
-        if (dashAction != null && dashAction.WasPressedThisFrame())
+        if (dashAction != null)
         {
-            return true;
+            return dashAction.WasPressedThisFrame();
         }
 
-        if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
-        {
-            return true;
-        }
-
-        return false;
+        return Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
     }
 
     public bool TryDash()
@@ -551,6 +533,12 @@ public class PlayerDash : MonoBehaviour
             }
 
             if (hit.attachedRigidbody == rb)
+            {
+                continue;
+            }
+
+            BaseTurretController turret = hit.GetComponentInParent<BaseTurretController>();
+            if (turret != null && turret.IsPlayerAllied)
             {
                 continue;
             }

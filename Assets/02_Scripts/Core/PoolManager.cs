@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Pool;
+using UnityEngine.SceneManagement;
 
 public class PoolManager : MonoBehaviour
 {
@@ -22,6 +23,7 @@ public class PoolManager : MonoBehaviour
     private readonly Dictionary<GameObject, IObjectPool<GameObject>> pools = new Dictionary<GameObject, IObjectPool<GameObject>>();
     private readonly Dictionary<GameObject, GameObject> instanceToPrefab = new Dictionary<GameObject, GameObject>();
     private readonly Dictionary<GameObject, Transform> prefabRoots = new Dictionary<GameObject, Transform>();
+    private readonly List<GameObject> staleInstanceKeys = new List<GameObject>();
 
     private void Awake()
     {
@@ -32,11 +34,22 @@ public class PoolManager : MonoBehaviour
         }
 
         Instance = this;
+        SceneManager.sceneUnloaded += HandleSceneUnloaded;
         BuildConfiguredPools();
 
         if (prewarmOnAwake)
         {
             PrewarmConfiguredPools();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+
+        if (Instance == this)
+        {
+            Instance = null;
         }
     }
 
@@ -189,6 +202,15 @@ public class PoolManager : MonoBehaviour
 
         GameObject instance = pools[prefab].Get();
         instance.transform.SetParent(null);
+
+        Scene activeScene = SceneManager.GetActiveScene();
+
+        if (activeScene.IsValid() &&
+            activeScene.isLoaded &&
+            instance.scene != activeScene)
+        {
+            SceneManager.MoveGameObjectToScene(instance, activeScene);
+        }
         instance.transform.SetPositionAndRotation(position, rotation);
         instance.SetActive(true);
         return instance;
@@ -251,5 +273,25 @@ public class PoolManager : MonoBehaviour
         }
 
         return instance;
+    }
+
+    private void HandleSceneUnloaded(Scene scene)
+    {
+        staleInstanceKeys.Clear();
+
+        foreach (KeyValuePair<GameObject, GameObject> pair in instanceToPrefab)
+        {
+            if (pair.Key == null)
+            {
+                staleInstanceKeys.Add(pair.Key);
+            }
+        }
+
+        for (int i = 0; i < staleInstanceKeys.Count; i++)
+        {
+            instanceToPrefab.Remove(staleInstanceKeys[i]);
+        }
+
+        staleInstanceKeys.Clear();
     }
 }

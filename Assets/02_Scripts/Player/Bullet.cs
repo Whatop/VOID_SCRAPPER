@@ -11,6 +11,36 @@ public enum ProjectileOwner
     ShopDefense = 2
 }
 
+public interface IPlayerOwnedAlly
+{
+    bool IsPlayerOwnedAlly { get; }
+}
+
+public interface IPlayerProjectileHitListener
+{
+    void HandlePlayerProjectileHit(EnemyHealth enemyHealth, EnemyBaseAI enemyAI);
+}
+
+public readonly struct BulletReflectionSnapshot
+{
+    public BulletReflectionSnapshot(
+        Vector2 travelDirection,
+        float damage,
+        float speed,
+        Transform firingSource)
+    {
+        TravelDirection = travelDirection;
+        Damage = damage;
+        Speed = speed;
+        FiringSource = firingSource;
+    }
+
+    public Vector2 TravelDirection { get; }
+    public float Damage { get; }
+    public float Speed { get; }
+    public Transform FiringSource { get; }
+}
+
 [RequireComponent(typeof(Rigidbody2D))]
 public class Bullet : MonoBehaviour
 {
@@ -24,6 +54,21 @@ public class Bullet : MonoBehaviour
     [Header("Homing")]
     [SerializeField] private LayerMask enemyTargetLayer;
     [SerializeField] private LayerMask playerTargetLayer;
+    [Min(0.02f)]
+    [SerializeField] private float homingTargetRefreshInterval = 0.08f;
+
+    [Header("Terminal Guidance Presentation")]
+    [SerializeField] private Color terminalGuidanceProjectileColor = new Color(0.55f, 1f, 0.4f, 1f);
+
+    [Header("Close-Quarters Overpressure Presentation")]
+    [SerializeField] private Transform projectileVisualRoot;
+    [SerializeField] private Color overpressureProjectileColor = new Color(1f, 0.82f, 0.28f, 1f);
+    [Range(1f, 2f)]
+    [SerializeField] private float overpressureMaximumVisualScale = 1.4f;
+    [Min(1f)]
+    [SerializeField] private float overpressureImpactScale = 1.4f;
+    [Min(1f)]
+    [SerializeField] private float pointBlankImpactScale = 1.7f;
 
     [Header("Rotation")]
     [SerializeField] private float rotationOffset = -90f;
@@ -49,6 +94,11 @@ public class Bullet : MonoBehaviour
     [SerializeField] private bool rotateImpactEffectToBullet = true;
 
     private Rigidbody2D rb;
+    private SpriteRenderer projectileRenderer;
+    private TrailRenderer projectileTrail;
+    private Color defaultProjectileColor = Color.white;
+    private Vector3 defaultProjectileRootScale = Vector3.one;
+    private Vector3 defaultProjectileVisualScale = Vector3.one;
 
     private Vector2 moveDirection;
     private Vector2 spawnPosition;
@@ -60,19 +110,35 @@ public class Bullet : MonoBehaviour
     private float damage;
     private float harvestObjectDamageMultiplier = 1f;
 
+    private bool usePlayerEnemyCloseRangeDamage;
+    private float closeRangeMaxBonusMultiplier;
+    private float closeRangeFullBonusDistance;
+    private float closeRangeFalloffEndDistance;
+
     private int remainingPierceCount;
+    private float pierceDamageRetention = 1f;
 
     private bool useHoming;
     private float homingAngle;
     private float homingRange;
+    private Transform homingTarget;
+    private float homingTargetRefreshTimer;
+    private bool allowHomingReacquisition = true;
+    private bool useTerminalGuidance;
+    private float terminalGuidanceRetentionRangeMultiplier = 1f;
+    private float terminalGuidanceCloseSteeringDistance;
+    private readonly Collider2D[] homingTargetBuffer = new Collider2D[64];
 
     private ProjectileOwner owner;
+    private Transform sourceRoot;
+    private IPlayerProjectileHitListener playerProjectileHitListener;
     private bool ignoreShopSecurityTargets;
     private bool destroyLargeMeteorOnHit;
     private bool destroySmallMeteorOnHit;
     private bool destroySupplyContainerOnHit;
     private bool destroyHighValueWreckOnHit;
     private bool destroyDestroyedHullOnHit;
+    private bool reflectionClaimed;
 
     private bool useSineWave;
     private float sineWaveLateralSpeed;
@@ -102,16 +168,40 @@ public class Bullet : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        projectileRenderer = GetComponentInChildren<SpriteRenderer>(true);
+        projectileTrail = GetComponentInChildren<TrailRenderer>(true);
+        defaultProjectileRootScale = transform.localScale;
+
+        if (projectileRenderer != null)
+        {
+            defaultProjectileColor = projectileRenderer.color;
+
+            if (projectileVisualRoot == null && projectileRenderer.transform != transform)
+            {
+                projectileVisualRoot = projectileRenderer.transform;
+            }
+        }
+
+        if (projectileVisualRoot != null)
+        {
+            defaultProjectileVisualScale = projectileVisualRoot.localScale;
+        }
     }
 
     private void OnEnable()
     {
         ResetRuntimeState();
+
+        projectileTrail?.Clear();
     }
 
     private void OnDisable()
     {
         damagedTargets.Clear();
+        homingTarget = null;
+        RestoreProjectilePresentation();
+
+        projectileTrail?.Clear();
 
         if (rb != null)
         {
@@ -157,6 +247,7 @@ public class Bullet : MonoBehaviour
         }
 
         UpdateHoming();
+        UpdateCloseRangeVisual();
         ApplyRotation();
     }
 
@@ -208,9 +299,16 @@ public class Bullet : MonoBehaviour
         float homingAngleBonus = 0f,
         float homingRangeBonus = 0f,
         float harvestDamageMultiplier = 1f,
-        bool ignoreShopSecurity = false)
+        bool ignoreShopSecurity = false,
+        GameObject projectileSource = null,
+        float pierceDamageRetentionOverride = -1f)
     {
         owner = projectileOwner;
+        reflectionClaimed = false;
+        sourceRoot = projectileSource != null ? projectileSource.transform : null;
+        playerProjectileHitListener = sourceRoot != null
+            ? sourceRoot.GetComponent<IPlayerProjectileHitListener>()
+            : null;
         ignoreShopSecurityTargets = ignoreShopSecurity;
         ApplyProjectileLayerByOwner();
         moveDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : Vector2.up;
@@ -223,6 +321,7 @@ public class Bullet : MonoBehaviour
             range = projectileDefinition.Range;
             lifeTime = projectileDefinition.LifeTime;
             remainingPierceCount = projectileDefinition.PierceCount;
+            pierceDamageRetention = projectileDefinition.PierceDamageRetention;
 
             useHoming = projectileDefinition.UseHoming;
             homingAngle = projectileDefinition.HomingAngle;
@@ -245,6 +344,7 @@ public class Bullet : MonoBehaviour
             range = fallbackRange;
             lifeTime = fallbackLifeTime;
             remainingPierceCount = fallbackPierceCount;
+            pierceDamageRetention = 1f;
 
             useHoming = false;
             homingAngle = 0f;
@@ -275,12 +375,20 @@ public class Bullet : MonoBehaviour
             remainingPierceCount = pierceOverride;
         }
 
+        if (pierceDamageRetentionOverride >= 0f)
+        {
+            pierceDamageRetention = Mathf.Clamp01(pierceDamageRetentionOverride);
+        }
+
         homingAngle = Mathf.Max(0f, homingAngle + homingAngleBonus);
         homingRange = Mathf.Max(0f, homingRange + homingRangeBonus);
         harvestObjectDamageMultiplier = Mathf.Max(0.05f, harvestDamageMultiplier);
 
         lifeTimer = Mathf.Max(0.05f, lifeTime);
         damagedTargets.Clear();
+        homingTarget = null;
+        homingTargetRefreshTimer = 0f;
+        allowHomingReacquisition = true;
 
         ClearSpecialMotion();
         ApplyRotation();
@@ -325,9 +433,127 @@ public class Bullet : MonoBehaviour
         ReleaseSelf(spawnImpactEffect);
     }
 
+    public bool TryClaimReflection(out BulletReflectionSnapshot snapshot)
+    {
+        snapshot = default;
+
+        if (owner != ProjectileOwner.Enemy ||
+            reflectionClaimed ||
+            useRadialSplit ||
+            !gameObject.activeInHierarchy)
+        {
+            return false;
+        }
+
+        Vector2 currentVelocity = rb != null ? rb.linearVelocity : Vector2.zero;
+        Vector2 travelDirection = currentVelocity.sqrMagnitude > 0.001f
+            ? currentVelocity.normalized
+            : moveDirection;
+
+        if (travelDirection.sqrMagnitude <= 0.001f)
+        {
+            return false;
+        }
+
+        float currentSpeed = currentVelocity.sqrMagnitude > 0.001f
+            ? currentVelocity.magnitude
+            : speed;
+
+        reflectionClaimed = true;
+        snapshot = new BulletReflectionSnapshot(
+            travelDirection.normalized,
+            Mathf.Max(0f, damage),
+            Mathf.Max(0f, currentSpeed),
+            sourceRoot
+        );
+        return true;
+    }
+
+    public void CancelReflectionClaim()
+    {
+        if (owner == ProjectileOwner.Enemy && gameObject.activeInHierarchy)
+        {
+            reflectionClaimed = false;
+        }
+    }
+
     public void ConfigureMeteorImpact(bool destroyLargeMeteor)
     {
         destroyLargeMeteorOnHit = destroyLargeMeteor;
+    }
+
+    public void ConfigurePlayerEnemyCloseRangeDamage(
+        float maxBonusPercent,
+        float fullBonusDistance,
+        float falloffEndDistance)
+    {
+        closeRangeMaxBonusMultiplier = Mathf.Max(0f, maxBonusPercent) * 0.01f;
+        closeRangeFullBonusDistance = Mathf.Max(0f, fullBonusDistance);
+        closeRangeFalloffEndDistance = Mathf.Max(
+            closeRangeFullBonusDistance,
+            falloffEndDistance
+        );
+        usePlayerEnemyCloseRangeDamage =
+            owner == ProjectileOwner.Player &&
+            closeRangeMaxBonusMultiplier > 0f &&
+            closeRangeFalloffEndDistance > 0f;
+
+        UpdateCloseRangeVisual();
+    }
+
+    public void ConfigureTerminalGuidance(
+        float turnRateBonus,
+        float acquisitionRangeBonus,
+        float retentionRangeMultiplier,
+        float closeSteeringDistance)
+    {
+        if (owner != ProjectileOwner.Player || !useHoming)
+        {
+            return;
+        }
+
+        useTerminalGuidance = true;
+        homingAngle = Mathf.Max(0f, homingAngle + Mathf.Max(0f, turnRateBonus));
+        homingRange = Mathf.Max(0f, homingRange + Mathf.Max(0f, acquisitionRangeBonus));
+        terminalGuidanceRetentionRangeMultiplier = Mathf.Max(1f, retentionRangeMultiplier);
+        terminalGuidanceCloseSteeringDistance = Mathf.Max(0f, closeSteeringDistance);
+        homingTarget = null;
+        homingTargetRefreshTimer = 0f;
+
+        if (projectileRenderer != null)
+        {
+            projectileRenderer.color = terminalGuidanceProjectileColor;
+        }
+    }
+
+    public void ConfigureStandaloneHoming(
+        Transform initialTarget,
+        float turnRateDegreesPerSecond,
+        float acquisitionRange,
+        bool allowReacquisition)
+    {
+        if (owner != ProjectileOwner.Player)
+        {
+            return;
+        }
+
+        useHoming = turnRateDegreesPerSecond > 0f && acquisitionRange > 0f;
+        homingAngle = Mathf.Max(0f, turnRateDegreesPerSecond);
+        homingRange = Mathf.Max(0f, acquisitionRange);
+        homingTarget = initialTarget;
+        homingTargetRefreshTimer = 0f;
+        allowHomingReacquisition = allowReacquisition;
+        useTerminalGuidance = false;
+        terminalGuidanceRetentionRangeMultiplier = 1f;
+        terminalGuidanceCloseSteeringDistance = 0f;
+    }
+
+    public void ConfigureProjectileColor(Color color)
+    {
+        if (projectileRenderer != null)
+        {
+            projectileRenderer.color = color;
+        }
     }
 
     /// <summary>
@@ -359,19 +585,35 @@ public class Bullet : MonoBehaviour
         range = fallbackRange;
         damage = fallbackDamage;
         remainingPierceCount = fallbackPierceCount;
+        pierceDamageRetention = 1f;
 
         useHoming = false;
         homingAngle = 0f;
         homingRange = 0f;
+        homingTarget = null;
+        homingTargetRefreshTimer = 0f;
+        allowHomingReacquisition = true;
+        useTerminalGuidance = false;
+        terminalGuidanceRetentionRangeMultiplier = 1f;
+        terminalGuidanceCloseSteeringDistance = 0f;
+
+        RestoreProjectilePresentation();
 
         owner = ProjectileOwner.Player;
+        sourceRoot = null;
+        playerProjectileHitListener = null;
         ignoreShopSecurityTargets = false;
         destroyLargeMeteorOnHit = false;
         destroySmallMeteorOnHit = false;
         destroySupplyContainerOnHit = false;
         destroyHighValueWreckOnHit = false;
         destroyDestroyedHullOnHit = false;
+        reflectionClaimed = false;
         harvestObjectDamageMultiplier = 1f;
+        usePlayerEnemyCloseRangeDamage = false;
+        closeRangeMaxBonusMultiplier = 0f;
+        closeRangeFullBonusDistance = 0f;
+        closeRangeFalloffEndDistance = 0f;
 
         runtimeImpactEffectPrefab = impactEffectPrefab;
         runtimeImpactEffectLifeTime = Mathf.Max(0.01f, impactEffectLifeTime);
@@ -470,7 +712,8 @@ public class Bullet : MonoBehaviour
                 0f,
                 0f,
                 1f,
-                ignoreShopSecurityTargets
+                ignoreShopSecurityTargets,
+                sourceRoot != null ? sourceRoot.gameObject : null
             );
         }
 
@@ -487,7 +730,25 @@ public class Bullet : MonoBehaviour
             return;
         }
 
-        Transform target = FindNearestHomingTarget();
+        if (!IsHomingTargetValid(homingTarget))
+        {
+            homingTarget = null;
+
+            if (!allowHomingReacquisition)
+            {
+                return;
+            }
+
+            homingTargetRefreshTimer -= Time.deltaTime;
+
+            if (homingTargetRefreshTimer <= 0f)
+            {
+                homingTarget = FindNearestHomingTarget();
+                homingTargetRefreshTimer = Mathf.Max(0.02f, homingTargetRefreshInterval);
+            }
+        }
+
+        Transform target = homingTarget;
 
         if (target == null)
         {
@@ -495,6 +756,16 @@ public class Bullet : MonoBehaviour
         }
 
         Vector2 targetDirection = ((Vector2)target.position - (Vector2)transform.position).normalized;
+
+        if (useTerminalGuidance &&
+            terminalGuidanceCloseSteeringDistance > 0f &&
+            ((Vector2)target.position - (Vector2)transform.position).sqrMagnitude <=
+            terminalGuidanceCloseSteeringDistance * terminalGuidanceCloseSteeringDistance)
+        {
+            moveDirection = targetDirection;
+            return;
+        }
+
         float maxRadiansDelta = homingAngle * Mathf.Deg2Rad * Time.deltaTime;
 
         Vector3 newDirection = Vector3.RotateTowards(
@@ -518,34 +789,125 @@ public class Bullet : MonoBehaviour
             return null;
         }
 
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, homingRange, targetLayer);
+        ContactFilter2D contactFilter = new ContactFilter2D();
+        contactFilter.SetLayerMask(targetLayer);
+        contactFilter.useTriggers = true;
+        int hitCount = Physics2D.OverlapCircle(
+            transform.position,
+            homingRange,
+            contactFilter,
+            homingTargetBuffer
+        );
 
         Transform nearest = null;
         float nearestSqrDistance = float.MaxValue;
 
-        foreach (Collider2D hit in hits)
+        for (int i = 0; i < hitCount; i++)
         {
+            Collider2D hit = homingTargetBuffer[i];
+
             if (hit == null || IsFriendlyCollider(hit))
             {
                 continue;
             }
 
             EnemyHealth enemyHealth = hit.GetComponentInParent<EnemyHealth>();
-            if (ignoreShopSecurityTargets && IsShopSecurityTarget(enemyHealth))
+            if (owner == ProjectileOwner.Player && !IsPlayerHomingTargetEligible(enemyHealth))
             {
                 continue;
             }
 
-            float sqrDistance = ((Vector2)hit.transform.position - (Vector2)transform.position).sqrMagnitude;
+            if ((enemyHealth != null && enemyHealth.IsDead) ||
+                (ignoreShopSecurityTargets && IsShopSecurityTarget(enemyHealth)))
+            {
+                continue;
+            }
+
+            Transform candidate = enemyHealth != null ? enemyHealth.transform : hit.transform;
+            float sqrDistance = ((Vector2)candidate.position - (Vector2)transform.position).sqrMagnitude;
 
             if (sqrDistance < nearestSqrDistance)
             {
                 nearestSqrDistance = sqrDistance;
-                nearest = hit.transform;
+                nearest = candidate;
             }
         }
 
         return nearest;
+    }
+
+    private bool IsHomingTargetValid(Transform target)
+    {
+        if (target == null || !target.gameObject.activeInHierarchy)
+        {
+            return false;
+        }
+
+        float retentionRange = homingRange * (useTerminalGuidance
+            ? terminalGuidanceRetentionRangeMultiplier
+            : 1f);
+
+        if (((Vector2)target.position - (Vector2)transform.position).sqrMagnitude > retentionRange * retentionRange)
+        {
+            return false;
+        }
+
+        EnemyHealth enemyHealth = target.GetComponentInParent<EnemyHealth>();
+
+        if (enemyHealth != null)
+        {
+            if (owner == ProjectileOwner.Player && !IsPlayerHomingTargetEligible(enemyHealth))
+            {
+                return false;
+            }
+
+            if (enemyHealth.IsDead || (ignoreShopSecurityTargets && IsShopSecurityTarget(enemyHealth)))
+            {
+                return false;
+            }
+
+            BaseTurretController turret = enemyHealth.GetComponentInParent<BaseTurretController>();
+            if (turret != null && turret.IsPlayerAllied && owner == ProjectileOwner.Player)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool IsPlayerHomingTargetEligible(EnemyHealth enemyHealth)
+    {
+        if (enemyHealth == null || enemyHealth.IsDead)
+        {
+            return false;
+        }
+
+        BaseTurretController turret = enemyHealth.GetComponentInParent<BaseTurretController>();
+
+        if (turret != null)
+        {
+            if (turret.IsPlayerAllied)
+            {
+                return false;
+            }
+
+            if (turret.IsShopDefense && turret.ShopOwner != null && !turret.ShopOwner.IsHostile)
+            {
+                return false;
+            }
+        }
+
+        EnemyBaseAI enemyAI = enemyHealth.GetComponent<EnemyBaseAI>();
+
+        if (enemyAI != null &&
+            enemyAI.IsShopSecurityUnit &&
+            !ShopRunBridge.IsShopHostileThisRun())
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private void ApplyRotation()
@@ -591,15 +953,27 @@ public class Bullet : MonoBehaviour
                     return;
                 }
 
+                float overpressureStrength = ResolvePlayerEnemyCloseRangeStrength(hitPoint);
+                float closeRangeDamageMultiplier = 1f +
+                                                   closeRangeMaxBonusMultiplier *
+                                                   overpressureStrength;
+                float impactScaleMultiplier = ResolveOverpressureImpactScale(
+                    overpressureStrength
+                );
+
                 bool damaged = TryApplyDamageToTarget(
                     enemyHealth,
-                    value => enemyHealth.TakeDamage(value, hitPoint, moveDirection)
+                    value => enemyHealth.TakeDamage(value, hitPoint, moveDirection),
+                    closeRangeDamageMultiplier,
+                    impactScaleMultiplier
                 );
 
                 if (damaged && owner == ProjectileOwner.Player)
                 {
+                    PlayOverpressureImpactFeedback(hitPoint, overpressureStrength);
                     EnemyBaseAI enemyAI = enemyHealth.GetComponent<EnemyBaseAI>();
                     enemyAI?.NotifyDamagedByPlayer();
+                    playerProjectileHitListener?.HandlePlayerProjectileHit(enemyHealth, enemyAI);
                 }
 
                 return;
@@ -624,7 +998,6 @@ public class Bullet : MonoBehaviour
         }
 
         FieldBaseLaserGate laserGate = other.GetComponentInParent<FieldBaseLaserGate>();
-
         if (laserGate != null && laserGate.ShouldBlockProjectile(owner))
         {
             ReleaseSelf(true);
@@ -846,9 +1219,28 @@ public class Bullet : MonoBehaviour
             return true;
         }
 
+        if (IsSourceCollider(other))
+        {
+            return true;
+        }
+
+        if (owner == ProjectileOwner.Enemy &&
+            other.GetComponentInParent<PlayerPeriodicReflector2D>() != null)
+        {
+            // The outer reflector trigger owns this contact. If reflection fails,
+            // the projectile continues inward and the real Player hurtbox remains authoritative.
+            return true;
+        }
+
         if (owner == ProjectileOwner.Player)
         {
-            return other.GetComponentInParent<PlayerHealth>() != null;
+            if (other.GetComponentInParent<PlayerHealth>() != null)
+            {
+                return true;
+            }
+
+            IPlayerOwnedAlly playerOwnedAlly = other.GetComponentInParent<IPlayerOwnedAlly>();
+            return playerOwnedAlly != null && playerOwnedAlly.IsPlayerOwnedAlly;
         }
 
         if (owner == ProjectileOwner.ShopDefense)
@@ -863,6 +1255,18 @@ public class Bullet : MonoBehaviour
         }
 
         return other.GetComponentInParent<EnemyHealth>() != null;
+    }
+
+    private bool IsSourceCollider(Collider2D other)
+    {
+        if (sourceRoot == null || other == null)
+        {
+            return false;
+        }
+
+        Transform otherTransform = other.transform;
+        return otherTransform == sourceRoot ||
+               otherTransform.IsChildOf(sourceRoot);
     }
 
     private void ApplyProjectileLayerByOwner()
@@ -975,13 +1379,136 @@ public class Bullet : MonoBehaviour
         if (remainingPierceCount > 0)
         {
             remainingPierceCount--;
+            damage *= pierceDamageRetention;
             return;
         }
 
         ReleaseSelf(false);
     }
 
-    private bool TryApplyDamageToTarget(Component targetComponent, Action<float> damageAction)
+    private float ResolvePlayerEnemyCloseRangeStrength(Vector2 hitPoint)
+    {
+        if (!usePlayerEnemyCloseRangeDamage || owner != ProjectileOwner.Player)
+        {
+            return 0f;
+        }
+
+        float traveledDistance = Vector2.Distance(spawnPosition, hitPoint);
+
+        return ResolvePlayerEnemyCloseRangeStrength(traveledDistance);
+    }
+
+    private float ResolvePlayerEnemyCloseRangeStrength(float traveledDistance)
+    {
+        if (!usePlayerEnemyCloseRangeDamage || owner != ProjectileOwner.Player)
+        {
+            return 0f;
+        }
+
+        if (traveledDistance <= closeRangeFullBonusDistance)
+        {
+            return 1f;
+        }
+
+        if (traveledDistance >= closeRangeFalloffEndDistance)
+        {
+            return 0f;
+        }
+
+        float falloffDistance = closeRangeFalloffEndDistance - closeRangeFullBonusDistance;
+
+        if (falloffDistance <= 0.001f)
+        {
+            return 0f;
+        }
+
+        float normalizedFalloff = Mathf.Clamp01(
+            (traveledDistance - closeRangeFullBonusDistance) / falloffDistance
+        );
+        return 1f - normalizedFalloff;
+    }
+
+    private void UpdateCloseRangeVisual()
+    {
+        if (!usePlayerEnemyCloseRangeDamage || projectileRenderer == null)
+        {
+            return;
+        }
+
+        float traveledDistance = Vector2.Distance(spawnPosition, transform.position);
+        float strength = ResolvePlayerEnemyCloseRangeStrength(traveledDistance);
+        projectileRenderer.color = Color.Lerp(
+            defaultProjectileColor,
+            overpressureProjectileColor,
+            strength
+        );
+
+        if (projectileVisualRoot == null || projectileVisualRoot == transform)
+        {
+            return;
+        }
+
+        float visualScale = Mathf.Lerp(
+            1f,
+            Mathf.Max(1f, overpressureMaximumVisualScale),
+            strength
+        );
+        projectileVisualRoot.localScale = defaultProjectileVisualScale * visualScale;
+    }
+
+    private void RestoreProjectilePresentation()
+    {
+        transform.localScale = defaultProjectileRootScale;
+
+        if (projectileRenderer != null)
+        {
+            projectileRenderer.color = defaultProjectileColor;
+        }
+
+        if (projectileVisualRoot != null)
+        {
+            projectileVisualRoot.localScale = defaultProjectileVisualScale;
+        }
+    }
+
+    private float ResolveOverpressureImpactScale(float strength)
+    {
+        if (strength <= 0.001f)
+        {
+            return 1f;
+        }
+
+        if (strength >= 0.85f)
+        {
+            return Mathf.Max(1f, pointBlankImpactScale);
+        }
+
+        return Mathf.Lerp(1f, Mathf.Max(1f, overpressureImpactScale), strength);
+    }
+
+    private void PlayOverpressureImpactFeedback(Vector2 hitPoint, float strength)
+    {
+        if (strength < 0.85f)
+        {
+            return;
+        }
+
+        CombatFeedbackManager.PlayHit(
+            hitPoint,
+            moveDirection,
+            CombatFeedbackKind.Enemy,
+            Mathf.Lerp(0.7f, 1f, strength),
+            0f,
+            0f,
+            true
+        );
+    }
+
+    private bool TryApplyDamageToTarget(
+        Component targetComponent,
+        Action<float> damageAction,
+        float damageMultiplier = 1f,
+        float impactScaleMultiplier = 1f)
     {
         if (targetComponent == null || damageAction == null)
         {
@@ -996,12 +1523,13 @@ public class Bullet : MonoBehaviour
         }
 
         damagedTargets.Add(targetId);
-        damageAction.Invoke(damage);
-        SpawnImpactEffect();
+        damageAction.Invoke(damage * Mathf.Max(0f, damageMultiplier));
+        SpawnImpactEffect(impactScaleMultiplier);
 
         if (remainingPierceCount > 0)
         {
             remainingPierceCount--;
+            damage *= pierceDamageRetention;
             return true;
         }
 
@@ -1009,7 +1537,7 @@ public class Bullet : MonoBehaviour
         return true;
     }
 
-    private void SpawnImpactEffect()
+    private void SpawnImpactEffect(float scaleMultiplier = 1f)
     {
         if (runtimeImpactEffectPrefab == null)
         {
@@ -1029,6 +1557,8 @@ public class Bullet : MonoBehaviour
         {
             return;
         }
+
+        effect.transform.localScale = runtimeImpactEffectPrefab.transform.localScale * Mathf.Max(0.01f, scaleMultiplier);
 
         float effectLifeTime = Mathf.Max(0.01f, runtimeImpactEffectLifeTime);
 

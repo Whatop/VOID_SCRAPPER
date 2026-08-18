@@ -275,6 +275,11 @@ public class RunResultPanelUI : MonoBehaviour
             yield return new WaitForSecondsRealtime(showDelay);
         }
 
+        while (GameAudioLoopController.IsRunEndMusicTransitionPending)
+        {
+            yield return null;
+        }
+
         Show(resultData);
         AudioManager.Play(SoundEventIds.ResultRewardTotal);
         showRoutine = null;
@@ -346,6 +351,14 @@ public class RunResultPanelUI : MonoBehaviour
         builder.AppendLine($"• 완료한 고가치 목표: {resultData.objectiveSignalCount}");
         builder.AppendLine($"• 미사용 튜닝 칩: {resultData.unusedTuningChips}");
         builder.AppendLine($"• 소멸 크레딧: {resultData.remainingCredits}");
+
+        if (resultData.collectedStabilizedAlloy > 0 || resultData.lostStabilizedAlloy > 0)
+        {
+            builder.AppendLine(
+                $"안정화 합금: 획득 {resultData.collectedStabilizedAlloy} / " +
+                $"정산 {resultData.committedStabilizedAlloy} / 손실 {resultData.lostStabilizedAlloy}"
+            );
+        }
 
         switch (resultData.endReason)
         {

@@ -8,6 +8,7 @@ public class ExpeditionBootstrap : MonoBehaviour
     [SerializeField] private string playerTag = "Player";
     [SerializeField] private PlayerRuntimeStatApplier statApplier;
     [SerializeField] private PlayerReinforcementController reinforcementController;
+    [SerializeField] private RunTraitEffectApplier runTraitEffectApplier;
 
     [Header("Catalog - Settlement ScriptableObjects")]
     [SerializeField] private List<ShipDefinition> shipDefinitions = new List<ShipDefinition>();
@@ -81,6 +82,13 @@ public class ExpeditionBootstrap : MonoBehaviour
         PermanentProgress progress = PermanentProgress.Instance;
         IReadOnlyList<TraitDefinition> runtimeTraits = ResolveTraitDefinitions();
         IReadOnlyList<ReinforcementDefinition> runtimeReinforcements = ResolveReinforcementDefinitions();
+        float carriedPlayerHp = 0f;
+        float carriedPlayerArmor = 0f;
+        bool restorePlayerVitals = runContext != null &&
+                                   runContext.TryGetPlayerVitalCarryover(
+                                       out carriedPlayerHp,
+                                       out carriedPlayerArmor
+                                   );
 
         statApplier.Apply(
             runContext,
@@ -88,7 +96,7 @@ public class ExpeditionBootstrap : MonoBehaviour
             shipDefinitions,
             buildingDefinitions,
             runtimeTraits,
-            refillHealthOnApply
+            refillHealthOnApply && !restorePlayerVitals
         );
 
         RestoreReinforcement(runContext, runtimeReinforcements);
@@ -100,6 +108,20 @@ public class ExpeditionBootstrap : MonoBehaviour
                 : debugSeaRegion;
 
             SeaRegionRuntimeApplier.ApplyToPlayer(playerObject, regionType, logBootstrapResult);
+        }
+
+        runTraitEffectApplier?.ApplyAllStoredTraits();
+        playerObject?.GetComponent<PlayerVisualStateController>()?.RefreshVisualState();
+
+        if (restorePlayerVitals)
+        {
+            statApplier.RestoreCurrentVitals(carriedPlayerHp, carriedPlayerArmor);
+            runContext.ClearPlayerVitalCarryover();
+        }
+
+        if (RunManager.Instance != null && runContext != null && runContext.IsActive)
+        {
+            RunManager.Instance.RegisterCurrentPlayer(statApplier);
         }
 
         if (setGameStateToExpedition && GameStateManager.Instance != null)
@@ -171,6 +193,11 @@ public class ExpeditionBootstrap : MonoBehaviour
         if (reinforcementController == null)
         {
             reinforcementController = playerObject.AddComponent<PlayerReinforcementController>();
+        }
+
+        if (runTraitEffectApplier == null)
+        {
+            runTraitEffectApplier = playerObject.GetComponent<RunTraitEffectApplier>();
         }
     }
 

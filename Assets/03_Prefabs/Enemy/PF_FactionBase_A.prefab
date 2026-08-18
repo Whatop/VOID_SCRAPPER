@@ -574,7 +574,7 @@ MonoBehaviour:
   - {fileID: 3782272113136668228}
   - {fileID: 8256623135197141417}
   holdStartedWarning: "\uC804\uB825\uB9DD \uCC28\uB2E8\uC744 \uC2DC\uC791\uD569\uB2C8\uB2E4.
-    \uD53C\uACA9\uB418\uAC70\uB098 E\uB97C \uB193\uC73C\uBA74 \uCDE8\uC18C\uB429\uB2C8\uB2E4."
+    \uD53C\uACA9\uB418\uAC70\uB098 \uC0C1\uD638\uC791\uC6A9 \uC785\uB825\uC744 \uB193\uC73C\uBA74 \uCDE8\uC18C\uB429\uB2C8\uB2E4."
   disabledWarning: "\uAE30\uC9C0 \uC804\uB825\uB9DD\uC744 \uCC28\uB2E8\uD588\uB2E4."
 --- !u!1 &412068410991508646
 GameObject:
@@ -7194,6 +7194,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8074732933343397856}
   - component: {fileID: 8820943452537066168}
+  - component: {fileID: 900000000000000201}
   m_Layer: 0
   m_Name: PF_FactionBase_A
   m_TagString: Untagged
@@ -7237,6 +7238,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   baseDisplayName: "\uC801 \uAE30\uC9C0"
+  radarTarget: {fileID: 900000000000000201}
   captiveNpc: {fileID: 0}
   autoReleaseNpcWhenSecurityOffline: 0
   securityOfflineWarning: "\uAE30\uC9C0 \uBCF4\uC548\uC774 \uD574\uC81C\uB418\uC5C8\uB2E4.
@@ -7312,6 +7314,7 @@ MonoBehaviour:
   - {fileID: 3287451284613895399}
   lockResourceChestsUntilSecurityOffline: 1
   resourceDepositPoint: {fileID: 4231500357352755858}
+  resourceDepositTrigger: {fileID: 900000000000000101}
   resourceDepositArrivalDistance: 0.8
   resourceStorageUnlockedWarning: "\uC790\uC6D0 \uBCF4\uAD00 \uAD6C\uC5ED\uC758 \uC7A0\uAE08\uC774
     \uD574\uC81C\uB418\uC5C8\uB2E4."
@@ -7329,6 +7332,11 @@ MonoBehaviour:
   - {fileID: 4904068979689156928}
   - {fileID: 4795391537530222162}
   baseBoundsCollider: {fileID: 4347493345175611989}
+  spawnDefendersOnStart: 1
+  defenderRuntimeRoot: {fileID: 551248177249474435}
+  useDefenderAnchorRotation: 1
+  baseTurretsAreExterior: 1
+  protectedInteriorInset: 0.75
   portalPrefab: {fileID: 770195100877310136, guid: da4c69155a7bfa7408bf5365bf24428e, type: 3}
   portalSpawnPoint: {fileID: 5447822830555638027}
   shopPortalDestinationPoint: {fileID: 4679091005841410257}
@@ -7341,6 +7349,32 @@ MonoBehaviour:
   portalReadyWarning: "\uC0C1\uC810 \uAD6C\uC5ED \uD3EC\uD0C8\uC774 \uC5F4\uB838\uB2E4."
   portalMissingWarning: "\uD3EC\uD0C8 \uD504\uB9AC\uD339 \uB610\uB294 \uC0DD\uC131
     \uC704\uCE58\uAC00 \uC5F0\uACB0\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+--- !u!114 &900000000000000201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5525987179035081475}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5241710740ea26f448b2b4eac76326f8, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  markerType: 8
+  markerTransform: {fileID: 8074732933343397856}
+  visible: 1
+  markerSprite: {fileID: 0}
+  markerColor: {r: 0.95, g: 0.18, b: 0.16, a: 1}
+  markerScale: 1.15
+  showOnMap: 1
+  mapMarkerLifetime: 0
+  mapDiscovered: 0
+  enemyAI: {fileID: 0}
+  allowShotgunTaunt: 0
+  alertOnMachineGunScan: 0
+  alertOnSniperScan: 0
+  lastScannedTime: -999
 --- !u!1 &5580756593605085127
 GameObject:
   m_ObjectHideFlags: 0
@@ -8229,7 +8263,7 @@ Transform:
   m_GameObject: {fileID: 6149021630914261432}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -7.936, y: -3.35, z: 0}
+  m_LocalPosition: {x: -8.48, y: -2.2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8449,6 +8483,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4231500357352755858}
+  - component: {fileID: 900000000000000101}
   m_Layer: 0
   m_Name: WP_03_StorageFront
   m_TagString: Untagged
@@ -8465,12 +8500,48 @@ Transform:
   m_GameObject: {fileID: 6415772076912391927}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.45, y: -3.02, z: 0}
+  m_LocalPosition: {x: 1.45, y: -2.2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3702096683979637895}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!58 &900000000000000101
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6415772076912391927}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_Radius: 0.75
 --- !u!1 &6421859508299188417
 GameObject:
   m_ObjectHideFlags: 0
@@ -15255,7 +15326,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rewardDefinition: {fileID: 11400000, guid: 261c69d248194ddab54d3a5fe4fe7b61, type: 2}
-  rewardPickupPrefab: {fileID: 0}
+  rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
   legacyHealPickupPrefab: {fileID: 0}
   fallbackReinforcementCatalog: {fileID: 0}
   reinforcementPickupPrefab: {fileID: 0}
@@ -15274,6 +15345,7 @@ MonoBehaviour:
   creditsAmountPerShard: 5
   scrapAmountPerShard: 1
   coreAmountPerShard: 1
+  stabilizedAlloyAmountPerShard: 1
   tuningChipAmountPerShard: 1
   experienceAmountPerShard: 3
   amountPerShard: 5
@@ -15302,10 +15374,12 @@ MonoBehaviour:
   creditsWeight: 1
   scrapWeight: 1
   coreShardWeight: 12
+  stabilizedAlloyWeight: 2
   acceptExperience: 0
   acceptCredits: 1
   acceptScrap: 1
   acceptCoreShards: 1
+  acceptStabilizedAlloy: 1
   scaleRoot: {fileID: 7668377995470468870}
   maxScaleMultiplier: 1.5
   maxRewardMultiplier: 2
@@ -15340,6 +15414,7 @@ MonoBehaviour:
   storedCredits: 0
   storedScrap: 0
   storedCoreShards: 0
+  storedStabilizedAlloy: 0
   currentRewardMultiplier: 1
 --- !u!1 &8699072444213096122
 GameObject:

@@ -78,7 +78,8 @@ public class PlayerCargoController : MonoBehaviour
                 fallbackCapacity,
                 fallbackEmergencyReturnRatio,
                 runContext.ScrapCargoWeight,
-                runContext.CoreShardCargoWeight
+                runContext.CoreShardCargoWeight,
+                runContext.StabilizedAlloyCargoWeight
             );
         }
 

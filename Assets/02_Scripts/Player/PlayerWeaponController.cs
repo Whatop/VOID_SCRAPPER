@@ -173,22 +173,9 @@ public class PlayerWeaponController : MonoBehaviour
 
     private void BindInput()
     {
-        if (inputActions == null)
-        {
-            return;
-        }
-
-        InputActionMap actionMap = inputActions.FindActionMap(actionMapName, false);
-        if (actionMap == null)
-        {
-            return;
-        }
-
-        fireAction = actionMap.FindAction(fireActionName, false);
-        if (fireAction != null)
-        {
-            fireAction.Enable();
-        }
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
+        fireAction = InputBindingUtility.ResolveAction(inputActions, actionMapName, fireActionName);
+        fireAction?.Enable();
     }
 
     private WeaponFireInput ReadFireInput()
@@ -237,8 +224,7 @@ public class PlayerWeaponController : MonoBehaviour
 
         if (requireGameplayState && GameStateManager.Instance != null)
         {
-            return GameStateManager.Instance.CurrentState == GameState.Expedition ||
-                   GameStateManager.Instance.CurrentState == GameState.BossBattle;
+            return GameStateManager.Instance.IsGameplayState();
         }
 
         return true;

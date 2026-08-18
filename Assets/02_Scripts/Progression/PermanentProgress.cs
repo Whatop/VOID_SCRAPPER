@@ -28,13 +28,30 @@ public class TraitLevelState
     }
 }
 
+[Serializable]
+public class SectorTechnologyLevelState
+{
+    public string technologyId;
+    public int level;
+
+    public SectorTechnologyLevelState(string technologyId, int level)
+    {
+        this.technologyId = technologyId;
+        this.level = Mathf.Max(0, level);
+    }
+}
+
 public class PermanentProgress : MonoBehaviour
 {
+    private const string PersistentStoryTraitUnlockPrefix = "story_trait:";
+    private const string TutorialCompletedUnlockFlag = "tutorial_completed";
+
     public static PermanentProgress Instance { get; private set; }
 
     [Header("Permanent Currency")]
     [SerializeField] private int scrapParts;
     [SerializeField] private int coreShards;
+    [SerializeField] private int stabilizedAlloy;
 
     [Header("Permanent Stats")]
     [SerializeField] private int totalRunCount;
@@ -44,8 +61,10 @@ public class PermanentProgress : MonoBehaviour
     [SerializeField] private int bossDefeatCount;
     [SerializeField] private int totalCollectedScrapParts;
     [SerializeField] private int totalCollectedCoreShards;
+    [SerializeField] private int totalCollectedStabilizedAlloy;
     [SerializeField] private int totalCommittedScrapParts;
     [SerializeField] private int totalCommittedCoreShards;
+    [SerializeField] private int totalCommittedStabilizedAlloy;
 
     [Header("Selection")]
     [SerializeField] private WeaponTreeType lastSelectedWeaponTree = WeaponTreeType.MachineGun;
@@ -56,6 +75,9 @@ public class PermanentProgress : MonoBehaviour
 
     [Header("Permanent Trait Levels")]
     [SerializeField] private List<TraitLevelState> traitLevels = new List<TraitLevelState>();
+
+    [Header("Sector Technology Levels")]
+    [SerializeField] private List<SectorTechnologyLevelState> sectorTechnologyLevels = new List<SectorTechnologyLevelState>();
 
     [Header("Disabled Permanent Traits")]
     [SerializeField] private List<string> disabledPermanentTraitIds = new List<string>();
@@ -73,6 +95,7 @@ public class PermanentProgress : MonoBehaviour
 
     public int ScrapParts => scrapParts;
     public int CoreShards => coreShards;
+    public int StabilizedAlloy => stabilizedAlloy;
     public int TotalRunCount => totalRunCount;
     public int SafeReturnCount => safeReturnCount;
     public int EmergencyReturnCount => emergencyReturnCount;
@@ -80,8 +103,10 @@ public class PermanentProgress : MonoBehaviour
     public int BossDefeatCount => bossDefeatCount;
     public int TotalCollectedScrapParts => totalCollectedScrapParts;
     public int TotalCollectedCoreShards => totalCollectedCoreShards;
+    public int TotalCollectedStabilizedAlloy => totalCollectedStabilizedAlloy;
     public int TotalCommittedScrapParts => totalCommittedScrapParts;
     public int TotalCommittedCoreShards => totalCommittedCoreShards;
+    public int TotalCommittedStabilizedAlloy => totalCommittedStabilizedAlloy;
     public WeaponTreeType LastSelectedWeaponTree => lastSelectedWeaponTree;
     public string SelectedShipId => string.IsNullOrWhiteSpace(selectedShipId) ? "basic_ship" : selectedShipId;
 
@@ -99,6 +124,7 @@ public class PermanentProgress : MonoBehaviour
     public bool CanAssembleRouteCore => HasAllRouteCoreParts && CurrentRouteCoreState == RouteCoreState.ReadyToAssemble;
     public bool CanActivateRouteCore => CurrentRouteCoreState == RouteCoreState.Assembled;
     public bool CanLaunchFinalExpedition => CurrentRouteCoreState == RouteCoreState.Activated && settlementDefenseCleared;
+    public bool IsTutorialCompleted => HasUnlockFlag(TutorialCompletedUnlockFlag);
 
     public event Action Changed;
 
@@ -125,6 +151,7 @@ public class PermanentProgress : MonoBehaviour
 
         scrapParts = Mathf.Max(0, saveData.scrapParts);
         coreShards = Mathf.Max(0, saveData.coreShards);
+        stabilizedAlloy = Mathf.Max(0, saveData.stabilizedAlloy);
         totalRunCount = Mathf.Max(0, saveData.totalRunCount);
         safeReturnCount = Mathf.Max(0, saveData.safeReturnCount);
         emergencyReturnCount = Mathf.Max(0, saveData.emergencyReturnCount);
@@ -132,8 +159,10 @@ public class PermanentProgress : MonoBehaviour
         bossDefeatCount = Mathf.Max(0, saveData.bossDefeatCount);
         totalCollectedScrapParts = Mathf.Max(0, saveData.totalCollectedScrapParts);
         totalCollectedCoreShards = Mathf.Max(0, saveData.totalCollectedCoreShards);
+        totalCollectedStabilizedAlloy = Mathf.Max(0, saveData.totalCollectedStabilizedAlloy);
         totalCommittedScrapParts = Mathf.Max(0, saveData.totalCommittedScrapParts);
         totalCommittedCoreShards = Mathf.Max(0, saveData.totalCommittedCoreShards);
+        totalCommittedStabilizedAlloy = Mathf.Max(0, saveData.totalCommittedStabilizedAlloy);
         lastSelectedWeaponTree = saveData.lastSelectedWeaponTree;
         selectedShipId = string.IsNullOrWhiteSpace(saveData.selectedShipId) ? "basic_ship" : saveData.selectedShipId;
 
@@ -154,6 +183,22 @@ public class PermanentProgress : MonoBehaviour
                 if (!string.IsNullOrWhiteSpace(data.traitId))
                 {
                     traitLevels.Add(new TraitLevelState(data.traitId, data.level));
+                }
+            }
+        }
+
+        sectorTechnologyLevels.Clear();
+        if (saveData.sectorTechnologyLevels != null)
+        {
+            for (int i = 0; i < saveData.sectorTechnologyLevels.Count; i++)
+            {
+                SectorTechnologyLevelSaveData data = saveData.sectorTechnologyLevels[i];
+                if (data != null && SectorTechnologyCatalog.TryGet(data.technologyId, out SectorTechnologyDefinition definition))
+                {
+                    sectorTechnologyLevels.Add(new SectorTechnologyLevelState(
+                        definition.Id,
+                        Mathf.Clamp(data.level, 0, definition.MaxLevel)
+                    ));
                 }
             }
         }
@@ -212,6 +257,7 @@ public class PermanentProgress : MonoBehaviour
         {
             scrapParts = scrapParts,
             coreShards = coreShards,
+            stabilizedAlloy = stabilizedAlloy,
             totalRunCount = totalRunCount,
             safeReturnCount = safeReturnCount,
             emergencyReturnCount = emergencyReturnCount,
@@ -219,8 +265,10 @@ public class PermanentProgress : MonoBehaviour
             bossDefeatCount = bossDefeatCount,
             totalCollectedScrapParts = totalCollectedScrapParts,
             totalCollectedCoreShards = totalCollectedCoreShards,
+            totalCollectedStabilizedAlloy = totalCollectedStabilizedAlloy,
             totalCommittedScrapParts = totalCommittedScrapParts,
             totalCommittedCoreShards = totalCommittedCoreShards,
+            totalCommittedStabilizedAlloy = totalCommittedStabilizedAlloy,
             lastSelectedWeaponTree = lastSelectedWeaponTree,
             selectedShipId = SelectedShipId,
             highestUnlockedDepth = highestUnlockedDepth,
@@ -242,6 +290,17 @@ public class PermanentProgress : MonoBehaviour
             }
         }
 
+        foreach (SectorTechnologyLevelState state in sectorTechnologyLevels)
+        {
+            if (!string.IsNullOrWhiteSpace(state.technologyId))
+            {
+                saveData.sectorTechnologyLevels.Add(new SectorTechnologyLevelSaveData(
+                    state.technologyId,
+                    state.level
+                ));
+            }
+        }
+
         foreach (string traitId in disabledPermanentTraitIds)
         {
             if (!string.IsNullOrWhiteSpace(traitId))
@@ -260,6 +319,7 @@ public class PermanentProgress : MonoBehaviour
     {
         scrapParts = 0;
         coreShards = 0;
+        stabilizedAlloy = 0;
         totalRunCount = 0;
         safeReturnCount = 0;
         emergencyReturnCount = 0;
@@ -267,13 +327,16 @@ public class PermanentProgress : MonoBehaviour
         bossDefeatCount = 0;
         totalCollectedScrapParts = 0;
         totalCollectedCoreShards = 0;
+        totalCollectedStabilizedAlloy = 0;
         totalCommittedScrapParts = 0;
         totalCommittedCoreShards = 0;
+        totalCommittedStabilizedAlloy = 0;
         lastSelectedWeaponTree = WeaponTreeType.MachineGun;
         selectedShipId = "basic_ship";
 
         buildingLevels.Clear();
         traitLevels.Clear();
+        sectorTechnologyLevels.Clear();
         disabledPermanentTraitIds.Clear();
         unlockFlags.Clear();
         defeatedCampaignBosses.Clear();
@@ -331,6 +394,10 @@ public class PermanentProgress : MonoBehaviour
                 coreShards += amount;
                 break;
 
+            case CurrencyType.StabilizedAlloy:
+                stabilizedAlloy += amount;
+                break;
+
             default:
                 Debug.LogWarning($"{type}은 영구 재화가 아닙니다.", this);
                 return;
@@ -367,6 +434,67 @@ public class PermanentProgress : MonoBehaviour
     {
         BuildingLevelState state = FindBuildingState(buildingType);
         return state != null ? Mathf.Max(0, state.level) : 0;
+    }
+
+    public int GetSectorTechnologyLevel(string technologyId)
+    {
+        SectorTechnologyLevelState state = FindSectorTechnologyState(technologyId);
+        if (state == null || !SectorTechnologyCatalog.TryGet(technologyId, out SectorTechnologyDefinition definition))
+        {
+            return 0;
+        }
+
+        return Mathf.Clamp(state.level, 0, definition.MaxLevel);
+    }
+
+    public bool CanUpgradeSectorTechnology(string technologyId)
+    {
+        if (!SectorTechnologyCatalog.TryGet(technologyId, out SectorTechnologyDefinition definition))
+        {
+            return false;
+        }
+
+        int currentLevel = GetSectorTechnologyLevel(technologyId);
+        if (currentLevel >= definition.MaxLevel)
+        {
+            return false;
+        }
+
+        int nextCost = definition.GetUpgradeCost(currentLevel + 1);
+        return nextCost > 0 && stabilizedAlloy >= nextCost;
+    }
+
+    public bool TryUpgradeSectorTechnology(string technologyId)
+    {
+        if (!SectorTechnologyCatalog.TryGet(technologyId, out SectorTechnologyDefinition definition))
+        {
+            return false;
+        }
+
+        int currentLevel = GetSectorTechnologyLevel(technologyId);
+        if (currentLevel >= definition.MaxLevel)
+        {
+            return false;
+        }
+
+        int nextLevel = currentLevel + 1;
+        int cost = definition.GetUpgradeCost(nextLevel);
+        if (cost <= 0 || stabilizedAlloy < cost)
+        {
+            return false;
+        }
+
+        SectorTechnologyLevelState state = FindSectorTechnologyState(technologyId);
+        if (state == null)
+        {
+            state = new SectorTechnologyLevelState(definition.Id, currentLevel);
+            sectorTechnologyLevels.Add(state);
+        }
+
+        stabilizedAlloy -= cost;
+        state.level = nextLevel;
+        Changed?.Invoke();
+        return true;
     }
 
     public void SetBuildingLevel(BuildingType buildingType, int level)
@@ -497,6 +625,50 @@ public class PermanentProgress : MonoBehaviour
 
         unlockFlags.Add(flag);
         Changed?.Invoke();
+    }
+
+    public bool TryMarkTutorialCompleted()
+    {
+        if (IsTutorialCompleted)
+        {
+            return false;
+        }
+
+        unlockFlags.Add(TutorialCompletedUnlockFlag);
+        Changed?.Invoke();
+        return true;
+    }
+
+    public bool HasPersistentStoryTrait(TraitDefinition trait)
+    {
+        return trait != null &&
+               trait.IsPersistentStoryTrait &&
+               HasPersistentStoryTrait(trait.TraitId);
+    }
+
+    public bool HasPersistentStoryTrait(string traitId)
+    {
+        return !string.IsNullOrWhiteSpace(traitId) &&
+               HasUnlockFlag(BuildPersistentStoryTraitUnlockFlag(traitId));
+    }
+
+    public bool TryAcquirePersistentStoryTrait(TraitDefinition trait)
+    {
+        if (trait == null || !trait.IsPersistentStoryTrait || string.IsNullOrWhiteSpace(trait.TraitId))
+        {
+            return false;
+        }
+
+        string unlockFlag = BuildPersistentStoryTraitUnlockFlag(trait.TraitId);
+
+        if (HasUnlockFlag(unlockFlag))
+        {
+            return false;
+        }
+
+        unlockFlags.Add(unlockFlag);
+        Changed?.Invoke();
+        return true;
     }
 
     public bool HasDefeatedCampaignBoss(CampaignBossId bossId)
@@ -631,6 +803,7 @@ public class PermanentProgress : MonoBehaviour
 
         AddPermanentCurrency(CurrencyType.ScrapParts, resultData.committedScrapParts);
         AddPermanentCurrency(CurrencyType.CoreShards, resultData.committedCoreShards);
+        AddPermanentCurrency(CurrencyType.StabilizedAlloy, resultData.committedStabilizedAlloy);
         SetLastSelectedWeaponTree(resultData.selectedWeaponTree);
 
         if (!string.IsNullOrWhiteSpace(resultData.selectedShipId))
@@ -668,8 +841,10 @@ public class PermanentProgress : MonoBehaviour
 
         totalCollectedScrapParts += Mathf.Max(0, resultData.collectedScrapParts);
         totalCollectedCoreShards += Mathf.Max(0, resultData.collectedCoreShards);
+        totalCollectedStabilizedAlloy += Mathf.Max(0, resultData.collectedStabilizedAlloy);
         totalCommittedScrapParts += Mathf.Max(0, resultData.committedScrapParts);
         totalCommittedCoreShards += Mathf.Max(0, resultData.committedCoreShards);
+        totalCommittedStabilizedAlloy += Mathf.Max(0, resultData.committedStabilizedAlloy);
     }
 
     private BuildingLevelState FindBuildingState(BuildingType buildingType)
@@ -685,6 +860,30 @@ public class PermanentProgress : MonoBehaviour
         }
 
         return traitLevels.Find(state => state.traitId == traitId);
+    }
+
+    private SectorTechnologyLevelState FindSectorTechnologyState(string technologyId)
+    {
+        if (string.IsNullOrWhiteSpace(technologyId))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < sectorTechnologyLevels.Count; i++)
+        {
+            SectorTechnologyLevelState state = sectorTechnologyLevels[i];
+            if (state != null && state.technologyId == technologyId)
+            {
+                return state;
+            }
+        }
+
+        return null;
+    }
+
+    private static string BuildPersistentStoryTraitUnlockFlag(string traitId)
+    {
+        return $"{PersistentStoryTraitUnlockPrefix}{traitId.Trim()}";
     }
 
     private bool AddDisabledPermanentTraitId(string traitId)

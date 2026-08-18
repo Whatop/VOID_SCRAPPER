@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   projectileId: 01
   displayName: shotgun_bullet
-  projectilePrefab: {fileID: 4939712952834317954, guid: 50b69ab450da83f4793909f48072e7d0, type: 3}
+  projectilePrefab: {fileID: 4939712952834317954, guid: 743aa03d59494304a925c4990c102479, type: 3}
   damage: 1.8
   speed: 12
   range: 8

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class GameBootstrap : MonoBehaviour
@@ -13,7 +14,13 @@ public class GameBootstrap : MonoBehaviour
     [SerializeField] private PermanentProgress permanentProgress;
 
     [Header("Start Flow")]
-    [SerializeField] private bool autoLoadSettlement = true;
+    [SerializeField] private bool autoLoadSettlement;
+
+    public bool IsProgressLoaded { get; private set; }
+    public bool HasUsableProgression =>
+        IsProgressLoaded && saveManager != null && saveManager.HasUsableProgression;
+
+    public event Action ProgressLoaded;
 
     private void Awake()
     {
@@ -116,5 +123,26 @@ public class GameBootstrap : MonoBehaviour
 
         SaveData saveData = saveManager.LoadOrCreate();
         permanentProgress.LoadFromSave(saveData);
+        IsProgressLoaded = true;
+        ProgressLoaded?.Invoke();
+    }
+
+    public bool TryResetProgress()
+    {
+        if (saveManager == null || permanentProgress == null)
+        {
+            Debug.LogError("Cannot start a new game because progression services are unavailable.", this);
+            return false;
+        }
+
+        if (!saveManager.TryResetToDefault(out SaveData freshSave))
+        {
+            return false;
+        }
+
+        permanentProgress.LoadFromSave(freshSave);
+        IsProgressLoaded = true;
+        ProgressLoaded?.Invoke();
+        return true;
     }
 }

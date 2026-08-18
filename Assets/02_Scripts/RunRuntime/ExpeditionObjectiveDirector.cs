@@ -24,6 +24,8 @@ public class ExpeditionObjectiveDirector : MonoBehaviour
 
     [Header("Debug")]
     [SerializeField] private bool logProgress = true;
+    [Tooltip("Legacy run-objective feedback. Expedition Core Tracking owns current Core progress presentation.")]
+    [SerializeField] private bool showLegacyCoreTrackingMessages;
 
     public static ExpeditionObjectiveDirector Instance
     {
@@ -112,10 +114,13 @@ public class ExpeditionObjectiveDirector : MonoBehaviour
         if (!wasRevealed && CoreRevealed)
         {
             CoreRevealedEvent?.Invoke();
-            AudioManager.Play(SoundEventIds.UiUnlock);
-            ShowWarning("코어 추적 완료. 코어 위치가 공개되었습니다.");
+            if (showLegacyCoreTrackingMessages)
+            {
+                AudioManager.Play(SoundEventIds.UiUnlock);
+                ShowWarning("코어 추적 완료. 코어 위치가 공개되었습니다.");
+            }
         }
-        else
+        else if (showLegacyCoreTrackingMessages)
         {
             ShowWarning($"코어 추적 신호 {SignalCount}/{SignalsRequiredToRevealCore}");
         }

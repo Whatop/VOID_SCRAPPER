@@ -114,6 +114,12 @@ public class PlayerRadarVFXController : MonoBehaviour
         SpawnScanPulse();
     }
 
+    public void PlayPulse(float radius)
+    {
+        scanRadius = Mathf.Max(0.1f, radius);
+        SpawnScanPulse();
+    }
+
     public void SetScanRadius(float radius)
     {
         scanRadius = Mathf.Max(0.1f, radius);

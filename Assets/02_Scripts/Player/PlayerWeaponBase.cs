@@ -15,6 +15,41 @@ public readonly struct WeaponFireInput
     }
 }
 
+public readonly struct PlayerProjectileFireSnapshot
+{
+    public PlayerProjectileFireSnapshot(
+        GameObject projectilePrefab,
+        ProjectileDefinition projectileDefinition,
+        Vector2 origin,
+        Vector2 direction,
+        float damage,
+        float speed,
+        float range,
+        int pierceCount,
+        float pierceDamageRetention)
+    {
+        ProjectilePrefab = projectilePrefab;
+        ProjectileDefinition = projectileDefinition;
+        Origin = origin;
+        Direction = direction;
+        Damage = damage;
+        Speed = speed;
+        Range = range;
+        PierceCount = pierceCount;
+        PierceDamageRetention = pierceDamageRetention;
+    }
+
+    public GameObject ProjectilePrefab { get; }
+    public ProjectileDefinition ProjectileDefinition { get; }
+    public Vector2 Origin { get; }
+    public Vector2 Direction { get; }
+    public float Damage { get; }
+    public float Speed { get; }
+    public float Range { get; }
+    public int PierceCount { get; }
+    public float PierceDamageRetention { get; }
+}
+
 public abstract class PlayerWeaponBase : MonoBehaviour
 {
     [Header("Definition")]
@@ -35,6 +70,7 @@ public abstract class PlayerWeaponBase : MonoBehaviour
     protected PlayerCombatState combatState;
     protected PlayerWeaponModifiers weaponModifiers;
     protected PlayerRuntimeBonusState runtimeBonusState;
+    protected PlayerVisualStateController visualStateController;
     protected Transform firePoint;
 
     public WeaponDefinition WeaponDefinition => weaponDefinition;
@@ -61,6 +97,7 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         combatState = state;
         weaponModifiers = modifiers;
         runtimeBonusState = owner != null ? owner.GetComponent<PlayerRuntimeBonusState>() : null;
+        visualStateController = owner != null ? owner.GetComponent<PlayerVisualStateController>() : null;
     }
 
     public virtual void OnEquip()
@@ -94,8 +131,11 @@ public abstract class PlayerWeaponBase : MonoBehaviour
 
     protected GameObject GetProjectilePrefab()
     {
-        ProjectileDefinition projectileDefinition = GetProjectileDefinition();
+        return GetProjectilePrefab(GetProjectileDefinition());
+    }
 
+    protected GameObject GetProjectilePrefab(ProjectileDefinition projectileDefinition)
+    {
         if (projectileDefinition != null && projectileDefinition.ProjectilePrefab != null)
         {
             return projectileDefinition.ProjectilePrefab;
@@ -186,15 +226,74 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         float baseRange,
         int basePierceCount)
     {
-        Transform spawnPoint = firePoint != null ? firePoint : transform;
-
-        return SpawnProjectileFrom(
-            spawnPoint,
+        return SpawnProjectile(
             direction,
             baseDamage,
             baseSpeed,
             baseRange,
-            basePierceCount
+            basePierceCount,
+            out _
+        );
+    }
+
+    protected bool SpawnProjectile(
+        Vector2 direction,
+        float baseDamage,
+        float baseSpeed,
+        float baseRange,
+        int basePierceCount,
+        out PlayerProjectileFireSnapshot snapshot)
+    {
+        return SpawnProjectileWithDefinition(
+            GetProjectileDefinition(),
+            direction,
+            baseDamage,
+            baseSpeed,
+            baseRange,
+            basePierceCount,
+            out snapshot
+        );
+    }
+
+    protected bool SpawnProjectileWithDefinition(
+        ProjectileDefinition projectileDefinition,
+        Vector2 direction,
+        float baseDamage,
+        float baseSpeed,
+        float baseRange,
+        int basePierceCount)
+    {
+        return SpawnProjectileWithDefinition(
+            projectileDefinition,
+            direction,
+            baseDamage,
+            baseSpeed,
+            baseRange,
+            basePierceCount,
+            out _
+        );
+    }
+
+    protected bool SpawnProjectileWithDefinition(
+        ProjectileDefinition projectileDefinition,
+        Vector2 direction,
+        float baseDamage,
+        float baseSpeed,
+        float baseRange,
+        int basePierceCount,
+        out PlayerProjectileFireSnapshot snapshot)
+    {
+        Transform spawnPoint = firePoint != null ? firePoint : transform;
+
+        return SpawnProjectileFromWithDefinition(
+            spawnPoint,
+            projectileDefinition,
+            direction,
+            baseDamage,
+            baseSpeed,
+            baseRange,
+            basePierceCount,
+            out snapshot
         );
     }
 
@@ -206,7 +305,51 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         float baseRange,
         int basePierceCount)
     {
-        GameObject projectilePrefab = GetProjectilePrefab();
+        return SpawnProjectileFromWithDefinition(
+            spawnPoint,
+            GetProjectileDefinition(),
+            direction,
+            baseDamage,
+            baseSpeed,
+            baseRange,
+            basePierceCount,
+            out _
+        );
+    }
+
+    protected bool SpawnProjectileFromWithDefinition(
+        Transform spawnPoint,
+        ProjectileDefinition projectileDefinition,
+        Vector2 direction,
+        float baseDamage,
+        float baseSpeed,
+        float baseRange,
+        int basePierceCount)
+    {
+        return SpawnProjectileFromWithDefinition(
+            spawnPoint,
+            projectileDefinition,
+            direction,
+            baseDamage,
+            baseSpeed,
+            baseRange,
+            basePierceCount,
+            out _
+        );
+    }
+
+    protected bool SpawnProjectileFromWithDefinition(
+        Transform spawnPoint,
+        ProjectileDefinition projectileDefinition,
+        Vector2 direction,
+        float baseDamage,
+        float baseSpeed,
+        float baseRange,
+        int basePierceCount,
+        out PlayerProjectileFireSnapshot snapshot)
+    {
+        snapshot = default;
+        GameObject projectilePrefab = GetProjectilePrefab(projectileDefinition);
 
         if (projectilePrefab == null)
         {
@@ -258,6 +401,9 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         int finalPierceCount = basePierceCount;
         float homingAngleBonus = 0f;
         float homingRangeBonus = 0f;
+        float pierceDamageRetention = projectileDefinition != null
+            ? projectileDefinition.PierceDamageRetention
+            : 1f;
         float harvestDamageMultiplier = runtimeBonusState != null ? runtimeBonusState.HarvestObjectDamageMultiplier : 1f;
 
         if (weaponModifiers != null)
@@ -268,22 +414,51 @@ public abstract class PlayerWeaponBase : MonoBehaviour
             finalPierceCount += weaponModifiers.PierceBonus;
             homingAngleBonus += weaponModifiers.HomingAngleBonus;
             homingRangeBonus += weaponModifiers.HomingRangeBonus;
+
+            if (weaponModifiers.RemovePierceDamageFalloff)
+            {
+                pierceDamageRetention = 1f;
+            }
         }
 
         bullet.Initialize(
             direction,
             ProjectileOwner.Player,
-            GetProjectileDefinition(),
+            projectileDefinition,
             finalDamage,
             finalSpeed,
             finalRange,
             Mathf.Max(0, finalPierceCount),
             homingAngleBonus,
             homingRangeBonus,
-            harvestDamageMultiplier
+            harvestDamageMultiplier,
+            false,
+            gameObject,
+            pierceDamageRetention
+        );
+
+        ConfigureSpawnedProjectile(bullet);
+
+        Vector2 finalDirection = direction.sqrMagnitude > 0.001f
+            ? direction.normalized
+            : Vector2.up;
+        snapshot = new PlayerProjectileFireSnapshot(
+            projectilePrefab,
+            projectileDefinition,
+            spawnPoint.position,
+            finalDirection,
+            finalDamage,
+            finalSpeed,
+            finalRange,
+            Mathf.Max(0, finalPierceCount),
+            pierceDamageRetention
         );
 
         return true;
+    }
+
+    protected virtual void ConfigureSpawnedProjectile(Bullet bullet)
+    {
     }
 
     protected void SpawnMuzzleEffect(Vector2 shotDirection)
@@ -360,6 +535,40 @@ public abstract class PlayerWeaponBase : MonoBehaviour
     protected void NotifyFired(float powerRatio = 1f)
     {
         Fired?.Invoke(this, Mathf.Clamp01(powerRatio));
+    }
+
+    protected void PlaySuccessfulFireFeedback(
+        WeaponTreeType weaponTreeType,
+        Vector2 shotDirection,
+        Transform muzzlePoint = null,
+        float powerRatio = 1f,
+        float aimChokeStrength = 0f,
+        bool amplifyPresentation = false)
+    {
+        if (visualStateController == null && weaponController != null)
+        {
+            visualStateController = weaponController.GetComponent<PlayerVisualStateController>();
+        }
+
+        if (visualStateController == null)
+        {
+            return;
+        }
+
+        Transform source = muzzlePoint != null
+            ? muzzlePoint
+            : firePoint != null
+                ? firePoint
+                : transform;
+
+        visualStateController.PlayWeaponFireFeedback(
+            weaponTreeType,
+            source.position,
+            shotDirection,
+            powerRatio,
+            aimChokeStrength,
+            amplifyPresentation
+        );
     }
 
     protected void NotifyChargeStarted()

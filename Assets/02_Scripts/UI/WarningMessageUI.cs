@@ -2,6 +2,24 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 
+public enum ShipCommunicationChannel
+{
+    Navigation,
+    Cargo,
+    Combat,
+    Radar,
+    Equipment,
+    System
+}
+
+public enum ShipCommunicationSeverity
+{
+    Information,
+    Confirmation,
+    Warning,
+    Danger
+}
+
 [DisallowMultipleComponent]
 public class WarningMessageUI : MonoBehaviour
 {
@@ -12,12 +30,31 @@ public class WarningMessageUI : MonoBehaviour
     [Header("Timing")]
     [SerializeField] private float defaultDuration = 1.4f;
     [SerializeField] private float fadeSpeed = 12f;
+    [SerializeField, Min(0f)] private float repeatSuppressionSeconds = 0.75f;
+
+    [Header("Compact Layout")]
+    [SerializeField, Min(80f)] private float maximumWidth = 220f;
+    [SerializeField, Min(16f)] private float maximumHeight = 32f;
+    [SerializeField, Min(1f)] private float minimumFontSize = 5.5f;
+    [SerializeField, Min(1f)] private float maximumFontSize = 7f;
+
+    [Header("Communication Colors")]
+    [SerializeField] private Color channelColor = new Color(0.58f, 0.86f, 1f, 1f);
+    [SerializeField] private Color informationColor = new Color(0.88f, 0.94f, 1f, 1f);
+    [SerializeField] private Color confirmationColor = new Color(0.42f, 1f, 0.72f, 1f);
+    [SerializeField] private Color warningColor = new Color(1f, 0.78f, 0.24f, 1f);
+    [SerializeField] private Color dangerColor = new Color(1f, 0.32f, 0.26f, 1f);
 
     [Header("Option")]
     [Tooltip("켜두면 오브젝트가 비활성화된 상태에서도 ShowMessage 호출 시 자동으로 다시 활성화합니다.")]
     [SerializeField] private bool reactivateSelfWhenNeeded = true;
 
     private Coroutine routine;
+    private string lastMessageKey;
+    private float lastMessageTime = float.NegativeInfinity;
+    private int currentPriority = -1;
+    private float currentMessageUntil;
+    private bool layoutConfigured;
 
     private void Reset()
     {
@@ -40,6 +77,8 @@ public class WarningMessageUI : MonoBehaviour
     {
         GameSettingsRuntime.Changed -= HandleSettingsChanged;
         routine = null;
+        currentPriority = -1;
+        currentMessageUntil = 0f;
     }
 
     private void HandleSettingsChanged()
@@ -57,7 +96,47 @@ public class WarningMessageUI : MonoBehaviour
 
     public void ShowMessage(string message, float duration)
     {
+        ShowMessageInternal(message, message, duration, (int)ShipCommunicationSeverity.Warning);
+    }
+
+    public void ShowCommunication(
+        ShipCommunicationChannel channel,
+        string message,
+        ShipCommunicationSeverity severity = ShipCommunicationSeverity.Warning)
+    {
+        ShowCommunication(channel, message, severity, defaultDuration);
+    }
+
+    public void ShowCommunication(
+        ShipCommunicationChannel channel,
+        string message,
+        ShipCommunicationSeverity severity,
+        float duration)
+    {
         if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        string messageKey = $"{channel}:{message}";
+        string formattedMessage = BuildCommunicationText(channel, message, severity);
+        ShowMessageInternal(formattedMessage, messageKey, duration, (int)severity);
+    }
+
+    private void ShowMessageInternal(string message, string messageKey, float duration, int priority)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        float now = Time.unscaledTime;
+        if (messageKey == lastMessageKey && now - lastMessageTime < repeatSuppressionSeconds)
+        {
+            return;
+        }
+
+        if (routine != null && now < currentMessageUntil && priority < currentPriority)
         {
             return;
         }
@@ -80,6 +159,10 @@ public class WarningMessageUI : MonoBehaviour
             routine = null;
         }
 
+        lastMessageKey = messageKey;
+        lastMessageTime = now;
+        currentPriority = priority;
+        currentMessageUntil = now + Mathf.Max(0f, duration);
         routine = StartCoroutine(ShowRoutine(message, duration));
     }
 
@@ -100,6 +183,8 @@ public class WarningMessageUI : MonoBehaviour
             routine = null;
         }
 
+        currentPriority = -1;
+        currentMessageUntil = 0f;
         routine = StartCoroutine(HideRoutine());
     }
 
@@ -113,6 +198,8 @@ public class WarningMessageUI : MonoBehaviour
         }
 
         SetCanvasGroup(0f, false);
+        currentPriority = -1;
+        currentMessageUntil = 0f;
 
         // 이 오브젝트 자체는 끄지 않는다. 항상 활성 상태를 유지해야
         // 다음 경고에서 Coroutine을 정상적으로 시작할 수 있다.
@@ -139,6 +226,8 @@ public class WarningMessageUI : MonoBehaviour
         }
 
         routine = null;
+        currentPriority = -1;
+        currentMessageUntil = 0f;
     }
 
     private IEnumerator HideRoutine()
@@ -151,6 +240,43 @@ public class WarningMessageUI : MonoBehaviour
         }
 
         routine = null;
+        currentPriority = -1;
+        currentMessageUntil = 0f;
+    }
+
+    private string BuildCommunicationText(
+        ShipCommunicationChannel channel,
+        string message,
+        ShipCommunicationSeverity severity)
+    {
+        string label = ResolveChannelLabel(channel);
+        string labelHex = ColorUtility.ToHtmlStringRGB(channelColor);
+        string messageHex = ColorUtility.ToHtmlStringRGB(ResolveSeverityColor(severity));
+        return $"<color=#{labelHex}>[{label}]</color> <color=#{messageHex}>{message}</color>";
+    }
+
+    private static string ResolveChannelLabel(ShipCommunicationChannel channel)
+    {
+        return channel switch
+        {
+            ShipCommunicationChannel.Navigation => "항법",
+            ShipCommunicationChannel.Cargo => "화물",
+            ShipCommunicationChannel.Combat => "전투",
+            ShipCommunicationChannel.Radar => "레이더",
+            ShipCommunicationChannel.Equipment => "장비",
+            _ => "시스템"
+        };
+    }
+
+    private Color ResolveSeverityColor(ShipCommunicationSeverity severity)
+    {
+        return severity switch
+        {
+            ShipCommunicationSeverity.Information => informationColor,
+            ShipCommunicationSeverity.Confirmation => confirmationColor,
+            ShipCommunicationSeverity.Danger => dangerColor,
+            _ => warningColor
+        };
     }
 
     private IEnumerator FadeTo(float targetAlpha)
@@ -202,6 +328,28 @@ public class WarningMessageUI : MonoBehaviour
         if (messageText == null)
         {
             messageText = GetComponentInChildren<TextMeshProUGUI>(true);
+        }
+
+        if (messageText != null)
+        {
+            messageText.richText = true;
+            if (!layoutConfigured)
+            {
+                RectTransform textRect = messageText.rectTransform;
+                textRect.sizeDelta = new Vector2(
+                    Mathf.Min(maximumWidth, Mathf.Max(80f, textRect.rect.width)),
+                    maximumHeight
+                );
+                messageText.enableAutoSizing = true;
+                messageText.fontSizeMin = minimumFontSize;
+                messageText.fontSizeMax = maximumFontSize;
+                messageText.textWrappingMode = TextWrappingModes.Normal;
+                messageText.overflowMode = TextOverflowModes.Ellipsis;
+                messageText.maxVisibleLines = 2;
+                messageText.alignment = TextAlignmentOptions.Center;
+                messageText.margin = new Vector4(2f, 1f, 2f, 1f);
+                layoutConfigured = true;
+            }
         }
 
         if (canvasGroup == null)

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
+  m_Name: 46_sg_close_quarters_overpressure
+  m_EditorClassIdentifier: 
+  traitId: sg_close_quarters_overpressure
+  displayName: "근접 과압"
+  description: "샷건 탄환이 가까운 거리에서 적중할수록 더 큰 피해를 줍니다. 초근거리에서 최대 +60% 피해."
+  icon: {fileID: 0}
+  rarity: 2
+  category: 1
+  weaponTreeType: 0
+  shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
+  maxLevel: 1
+  levelEffects:
+  - level: 1
+    effectType: 35
+    value: 60

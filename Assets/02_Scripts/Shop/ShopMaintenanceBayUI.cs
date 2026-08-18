@@ -90,9 +90,62 @@ public class ShopMaintenanceBayUI : MonoBehaviour
             rootCanvas = rootCanvas.rootCanvas;
         }
 
+        ConfigureTypography();
         BindButtons();
         RegisterSlotDragHandlers();
         SetVisible(false);
+    }
+
+    private void ConfigureTypography()
+    {
+        ConfigureName(selectedNameText, 9f);
+        ConfigureBody(selectedTypeText, false, 6f);
+        ConfigureBody(selectedDescriptionText, true, 6.5f);
+        ConfigureName(currentEquippedNameText, 7f);
+        ConfigureBody(currentEquippedTypeText, false, 5.5f);
+        ConfigureName(selectedPreviewNameText, 7f);
+        ConfigureBody(selectedPreviewTypeText, false, 5.5f);
+
+        if (storageSlotNameTexts == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < storageSlotNameTexts.Length; i++)
+        {
+            ConfigureName(storageSlotNameTexts[i], 6f);
+        }
+    }
+
+    private static void ConfigureName(TextMeshProUGUI text, float maximumSize)
+    {
+        ConfigureBody(text, false, maximumSize);
+        if (text == null)
+        {
+            return;
+        }
+
+        RectTransform rect = text.rectTransform;
+        if (Mathf.Approximately(rect.anchorMin.y, rect.anchorMax.y))
+        {
+            rect.sizeDelta = new Vector2(rect.sizeDelta.x, Mathf.Max(12f, rect.sizeDelta.y));
+        }
+    }
+
+    private static void ConfigureBody(TextMeshProUGUI text, bool wrap, float maximumSize)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.fontSize = maximumSize;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 5f;
+        text.fontSizeMax = maximumSize;
+        text.textWrappingMode = wrap ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.raycastTarget = false;
     }
 
     private void OnDestroy()

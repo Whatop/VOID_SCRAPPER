@@ -8,6 +8,7 @@ using UnityEngine.InputSystem.Controls;
 public class TraitPickup : MonoBehaviour, IInteractable
 {
     public static event Action<TraitPickup, float, bool> DismantleProgressChanged;
+    public static event Action<TraitPickup> PresentationChanged;
 
     [Header("Runtime")]
     [SerializeField] private TraitDefinition traitDefinition;
@@ -52,7 +53,10 @@ public class TraitPickup : MonoBehaviour, IInteractable
     private GameObject currentInteractor;
 
     public TraitDefinition TraitDefinition => traitDefinition;
-    public bool CanDismantle => allowDismantle && traitDefinition != null;
+    public bool CanDismantle =>
+        allowDismantle &&
+        traitDefinition != null &&
+        traitDefinition.CanDismantle;
 
     public string InteractionText
     {
@@ -63,13 +67,20 @@ public class TraitPickup : MonoBehaviour, IInteractable
                 return "특성 없음";
             }
 
-            int currentLevel = RunRuntimeTraitStore.Instance.GetLevel(traitDefinition.TraitId);
+            int currentLevel = traitDefinition.IsPersistentStoryTrait && PermanentProgress.Instance != null
+                ? (PermanentProgress.Instance.HasPersistentStoryTrait(traitDefinition) ? 1 : 0)
+                : RunRuntimeTraitStore.Instance.GetLevel(traitDefinition.TraitId);
             bool maxed = currentLevel >= traitDefinition.MaxLevel;
             string primaryAction = maxed
                 ? acquireBlockedText
                 : (currentLevel > 0 ? "강화" : acquireText);
             string title = traitDefinition.DisplayName;
-            string actions = $"[{ResolveAcquireKeyText()}] {primaryAction}    {BuildDismantleActionText()}";
+            string actions = $"[{ResolveAcquireKeyText()}] {primaryAction}";
+
+            if (CanDismantle)
+            {
+                actions += $"    {BuildDismantleActionText()}";
+            }
 
             return useTwoLinePrompt ? $"{title}\n{actions}" : $"{actions}  {title}";
         }
@@ -97,30 +108,7 @@ public class TraitPickup : MonoBehaviour, IInteractable
 
     private void ResolveInputActions()
     {
-        if (inputActions != null)
-        {
-            return;
-        }
-
-        PlayerInteractor interactor = FindFirstObjectByType<PlayerInteractor>(FindObjectsInactive.Include);
-
-        if (interactor != null && interactor.InputActions != null)
-        {
-            inputActions = interactor.InputActions;
-            playerActionMapName = interactor.ActionMapName;
-            interactActionName = interactor.InteractActionName;
-            InputBindingPersistence.LoadOnce(inputActions);
-            return;
-        }
-
-        PlayerController2D controller = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
-
-        if (controller != null && controller.InputActions != null)
-        {
-            inputActions = controller.InputActions;
-            playerActionMapName = controller.ActionMapName;
-            InputBindingPersistence.LoadOnce(inputActions);
-        }
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
     }
 
     private void BindDismantleInput()
@@ -131,7 +119,6 @@ public class TraitPickup : MonoBehaviour, IInteractable
             playerActionMapName,
             dismantleActionName
         );
-        dismantleAction?.Enable();
     }
 
     private string ResolveAcquireKeyText()
@@ -204,8 +191,9 @@ public class TraitPickup : MonoBehaviour, IInteractable
 
     private void OnDisable()
     {
-        dismantleAction?.Disable();
+        dismantleAction = null;
         RaiseDismantleProgress(0f, false);
+        PresentationChanged?.Invoke(this);
         currentInteractor = null;
         dismantleTimer = 0f;
     }
@@ -237,6 +225,7 @@ public class TraitPickup : MonoBehaviour, IInteractable
         ConfigureCollider();
         ApplyVisual();
         RaiseDismantleProgress(0f, false);
+        PresentationChanged?.Invoke(this);
 
         if (releaseWhenNoItem && traitDefinition == null)
         {
@@ -301,24 +290,11 @@ public class TraitPickup : MonoBehaviour, IInteractable
 
         traitDefinition = null;
         ApplyVisual();
+        PresentationChanged?.Invoke(this);
         ReleaseSelf();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other == null)
-        {
-            return;
-        }
-
-        GameObject player = ResolvePlayer(other.gameObject);
-        if (player != null)
-        {
-            currentInteractor = player;
-        }
-    }
-
-    private void OnTriggerStay2D(Collider2D other)
     {
         if (other == null)
         {
@@ -349,7 +325,7 @@ public class TraitPickup : MonoBehaviour, IInteractable
 
     private void UpdateDismantleInput()
     {
-        if (!allowDismantle || traitDefinition == null || currentInteractor == null || GameplayPauseManager.IsPaused)
+        if (!CanDismantle || currentInteractor == null || GameplayPauseManager.IsPaused)
         {
             CancelDismantleHold();
             return;
@@ -426,7 +402,7 @@ public class TraitPickup : MonoBehaviour, IInteractable
 
     private void CompleteDismantle()
     {
-        if (traitDefinition == null)
+        if (!CanDismantle)
         {
             CancelDismantleHold();
             return;
@@ -440,13 +416,28 @@ public class TraitPickup : MonoBehaviour, IInteractable
         ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
         if (hud != null)
         {
-            hud.ShowWarning($"{traitDefinition.DisplayName} 분해: {dismantleCurrency} +{amount}");
+            hud.ShowWarning($"{traitDefinition.DisplayName} 분해: {GetCurrencyDisplayName(dismantleCurrency)} +{amount}");
         }
 
         traitDefinition = null;
         ApplyVisual();
         RaiseDismantleProgress(1f, false);
+        PresentationChanged?.Invoke(this);
         ReleaseSelf();
+    }
+
+    private static string GetCurrencyDisplayName(CurrencyType currencyType)
+    {
+        return currencyType switch
+        {
+            CurrencyType.Experience => "경험치",
+            CurrencyType.Credits => "크레딧",
+            CurrencyType.ScrapParts => "스크랩 부품",
+            CurrencyType.CoreShards => "코어 조각",
+            CurrencyType.TuningChips => "튜닝 칩",
+            CurrencyType.StabilizedAlloy => "안정화 합금",
+            _ => currencyType.ToString()
+        };
     }
 
     private void CancelDismantleHold()

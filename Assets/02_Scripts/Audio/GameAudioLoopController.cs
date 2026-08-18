@@ -20,6 +20,10 @@ public class GameAudioLoopController : MonoBehaviour
     [SerializeField] private float shopMusicCrossfadeDuration = 0.65f;
     [SerializeField] private bool useUnscaledTimeForCrossfade = true;
 
+    [Header("Run End Music Transition")]
+    [Min(0f)]
+    [SerializeField] private float runEndMusicFadeDuration = 0.8f;
+
     private GameState currentState = GameState.Boot;
     private bool hasResolvedState;
     private int shopModeDepth;
@@ -27,11 +31,15 @@ public class GameAudioLoopController : MonoBehaviour
     private bool bossIntroMusicOverride;
 
     private Coroutine shopBlendRoutine;
+    private Coroutine runEndMusicFadeRoutine;
     private float shopBlend;
     private bool shopLoopPrepared;
+    private bool runEndMusicFadeRequested;
 
     public bool IsShopModeActive => shopModeDepth > 0;
     public float ShopBlend => shopBlend;
+    public static bool IsRunEndMusicTransitionPending =>
+        Instance != null && Instance.runEndMusicFadeRequested;
 
     private void Awake()
     {
@@ -146,6 +154,12 @@ public class GameAudioLoopController : MonoBehaviour
         controller.ApplyBySceneName(SceneManager.GetActiveScene().name);
     }
 
+    public static void BeginRunEndMusicTransition()
+    {
+        GameAudioLoopController controller = ResolveInstance();
+        controller?.RequestRunEndMusicFade();
+    }
+
     private static GameAudioLoopController ResolveInstance()
     {
         if (Instance != null)
@@ -243,6 +257,22 @@ public class GameAudioLoopController : MonoBehaviour
 
     private void ApplyCurrentContext()
     {
+        if (runEndMusicFadeRequested)
+        {
+            if (currentState == GameState.RunResult)
+            {
+                AudioManager.StopLoop(AmbienceChannel);
+            }
+
+            if (currentState == GameState.RunResult &&
+                runEndMusicFadeRoutine == null)
+            {
+                CompleteRunEndMusicTransition();
+            }
+
+            return;
+        }
+
         if (environmentPausedForMenu)
         {
             AudioManager.StopLoop(AmbienceChannel);
@@ -349,8 +379,7 @@ public class GameAudioLoopController : MonoBehaviour
 
             case GameState.RunResult:
                 StopAmbience();
-                PlayMusic(SoundEventIds.MusicCombatLoop, musicVolumeScale);
-                AudioManager.SetLoopModulation(MusicChannel, 1f, baseVolume);
+                AudioManager.StopLoop(MusicChannel);
                 break;
 
             case GameState.BossBattle:
@@ -479,6 +508,60 @@ public class GameAudioLoopController : MonoBehaviour
 
         StopCoroutine(shopBlendRoutine);
         shopBlendRoutine = null;
+    }
+
+    private void RequestRunEndMusicFade()
+    {
+        if (runEndMusicFadeRequested)
+        {
+            return;
+        }
+
+        runEndMusicFadeRequested = true;
+        StopShopBlendRoutine();
+        shopModeDepth = 0;
+        shopBlend = 0f;
+        shopLoopPrepared = false;
+        AudioManager.StopLoop(ShopMusicChannel);
+
+        if (runEndMusicFadeDuration <= 0f || !isActiveAndEnabled)
+        {
+            AudioManager.StopLoop(MusicChannel);
+            return;
+        }
+
+        runEndMusicFadeRoutine = StartCoroutine(RunEndMusicFadeRoutine());
+    }
+
+    private IEnumerator RunEndMusicFadeRoutine()
+    {
+        float duration = Mathf.Max(0.01f, runEndMusicFadeDuration);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float smooth = t * t * (3f - (2f * t));
+            AudioManager.SetLoopModulation(MusicChannel, 1f, 1f - smooth);
+            yield return null;
+        }
+
+        AudioManager.StopLoop(MusicChannel);
+        runEndMusicFadeRoutine = null;
+
+        if (currentState == GameState.RunResult)
+        {
+            CompleteRunEndMusicTransition();
+        }
+    }
+
+    private void CompleteRunEndMusicTransition()
+    {
+        runEndMusicFadeRequested = false;
+        environmentPausedForMenu = false;
+        bossIntroMusicOverride = false;
+        ApplyCurrentContext();
     }
 
     private void PlayAmbience(string eventId)

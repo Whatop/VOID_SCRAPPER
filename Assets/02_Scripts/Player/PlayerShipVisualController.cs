@@ -19,12 +19,14 @@ public class PlayerShipVisualController : MonoBehaviour
 
     private ShipDefinition currentShipDefinition;
     private Sprite initialSprite;
+    private Sprite finalBaseSpriteOverride;
     private WeaponTreeType currentWeaponTree = WeaponTreeType.MachineGun;
 
     public SpriteRenderer TargetSpriteRenderer => targetSpriteRenderer;
     public ShipDefinition CurrentShipDefinition => currentShipDefinition != null ? currentShipDefinition : defaultShipDefinition;
     public WeaponTreeType CurrentWeaponTree => currentWeaponTree;
     public Sprite CurrentSprite => targetSpriteRenderer != null ? targetSpriteRenderer.sprite : null;
+    public Sprite FinalBaseSpriteOverride => finalBaseSpriteOverride;
 
     public event Action<WeaponTreeType, Sprite> VisualChanged;
 
@@ -175,6 +177,21 @@ public class PlayerShipVisualController : MonoBehaviour
         ApplyVisual(targetTree);
     }
 
+    public void SetFinalBaseSpriteOverride(Sprite sprite, bool refreshVisual = true)
+    {
+        bool changed = finalBaseSpriteOverride != sprite;
+        finalBaseSpriteOverride = sprite;
+
+        if (refreshVisual &&
+            (changed ||
+             (finalBaseSpriteOverride != null &&
+              targetSpriteRenderer != null &&
+              targetSpriteRenderer.sprite != finalBaseSpriteOverride)))
+        {
+            ApplyCurrentVisual();
+        }
+    }
+
     public void ApplyVisual(WeaponTreeType weaponTreeType)
     {
         CacheReferences();
@@ -192,7 +209,10 @@ public class PlayerShipVisualController : MonoBehaviour
             return;
         }
 
-        Sprite targetSprite = GetSprite(weaponTreeType);
+        Sprite authoredSprite = GetSprite(weaponTreeType);
+        Sprite targetSprite = finalBaseSpriteOverride != null
+            ? finalBaseSpriteOverride
+            : authoredSprite;
 
         if (targetSprite == null)
         {
@@ -209,7 +229,7 @@ public class PlayerShipVisualController : MonoBehaviour
             targetSpriteRenderer.sprite = targetSprite;
         }
 
-        VisualChanged?.Invoke(weaponTreeType, targetSprite);
+        VisualChanged?.Invoke(weaponTreeType, authoredSprite);
     }
 
     public Sprite GetSprite(WeaponTreeType weaponTreeType)

@@ -28,7 +28,7 @@ public class FieldBaseSecurityNode : MonoBehaviour, IDamageable, IHoldInteractab
     [SerializeField] private Collider2D[] collidersToDisable;
 
     [Header("Messages")]
-    [SerializeField] private string holdStartedWarning = "전력망 차단을 시작합니다. 피격되거나 E를 놓으면 취소됩니다.";
+    [SerializeField] private string holdStartedWarning = "전력망 차단을 시작합니다. 피격되거나 상호작용 입력을 놓으면 취소됩니다.";
     [SerializeField] private string disabledWarning = "기지 전력망을 차단했다.";
 
     private float currentHp;

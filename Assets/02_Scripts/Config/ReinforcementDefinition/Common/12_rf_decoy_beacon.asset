@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_decoy_beacon"
   displayName: "\ubbf8\ub07c \ube44\ucf58"
-  description: "\ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \uc8fc\ubcc0 \uc801\uc744 \ubc00\uccd0\ub0b4\ub294 \ubc29\uc5b4 \ud384\uc2a4\ub85c \ub3d9\uc791\ud55c\ub2e4."
+  description: "6\ucd08 \ub3d9\uc548 \ubc18\uacbd 5\uc758 \uc77c\ubc18 \uc801\uc744 \ube44\ucf58 \uc704\uce58\ub85c \uc720\uc778\ud574 \uc7ac\ubc30\uce58\ud560 \uc2dc\uac04\uc744 \ub9cc\ub4e0\ub2e4."
   icon: {fileID: 21300000, guid: 16b6b18eca649bc17caf7aed99ae6e2c, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
@@ -29,12 +29,12 @@ MonoBehaviour:
   startWithFullCharges: 1
   rechargeSeconds: 24
   effects:
-  - effectType: 5
-    value: 2.2
-    radius: 4
-    duration: 0
+  - effectType: 10
+    value: 0
+    radius: 5
+    duration: 6
     targetLayer:
       serializedVersion: 2
       m_Bits: 0
-    prefab: {fileID: 0}
-    prefabLifetime: 1
+    prefab: {fileID: 100000, guid: 9616a09bfb954c7ba625148fda317e3d, type: 3}
+    prefabLifetime: 6

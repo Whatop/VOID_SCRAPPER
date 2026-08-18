@@ -9,6 +9,7 @@ public class EnemyAwarenessIndicator : MonoBehaviour
     [SerializeField] private EnemyVisionSensor visionSensor;
     [SerializeField] private Transform anchor;
     [SerializeField] private TextMeshPro label;
+    [SerializeField] private TMP_FontAsset labelFont;
 
     [Header("Auto Create")]
     [SerializeField] private bool autoCreateLabel = true;
@@ -131,11 +132,11 @@ public class EnemyAwarenessIndicator : MonoBehaviour
         labelObject.layer = gameObject.layer;
 
         label = labelObject.AddComponent<TextMeshPro>();
-        label.font = TMP_Settings.defaultFontAsset;
+        label.font = labelFont != null ? labelFont : TMP_Settings.defaultFontAsset;
         label.fontSize = Mathf.Max(0.1f, fontSize);
         label.fontStyle = FontStyles.Bold;
         label.alignment = TextAlignmentOptions.Center;
-        label.enableWordWrapping = false;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
         label.text = string.Empty;
         Renderer labelRenderer = label.GetComponent<Renderer>();
 
@@ -143,6 +144,15 @@ public class EnemyAwarenessIndicator : MonoBehaviour
         {
             labelRenderer.sortingLayerID = SortingLayer.NameToID(sortingLayerName);
             labelRenderer.sortingOrder = sortingOrder;
+        }
+    }
+
+    public void ConfigureFont(TMP_FontAsset fontAsset)
+    {
+        labelFont = fontAsset;
+        if (label != null && labelFont != null)
+        {
+            label.font = labelFont;
         }
     }
 }

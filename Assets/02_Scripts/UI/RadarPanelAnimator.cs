@@ -5,6 +5,14 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class RadarPanelAnimator : MonoBehaviour
 {
+    private enum PanelState
+    {
+        Closed,
+        Opening,
+        Open,
+        Closing
+    }
+
     [Header("Root")]
     [Tooltip("전체 HUD Canvas가 아니라 RadarPanelRoot만 넣어야 합니다.")]
     [SerializeField] private GameObject panelRoot;
@@ -29,13 +37,17 @@ public class RadarPanelAnimator : MonoBehaviour
     [Tooltip("켜두면 시작 시 레이더만 닫힌 상태로 초기화됩니다. HUD 전체는 건드리지 않습니다.")]
     [SerializeField] private bool closeOnStart = true;
 
-    [Tooltip("비추천. 켜면 닫을 때 panelRoot를 SetActive(false) 합니다. 실수로 전체 Canvas를 넣으면 HUD 전체가 꺼집니다.")]
+    [Tooltip("레거시 옵션입니다. panelRoot가 별도 표시 자식일 때만 비활성화하며 애니메이션 소유자는 항상 활성 상태를 유지합니다.")]
     [SerializeField] private bool deactivatePanelRootWhenClosed = false;
 
     private Coroutine routine;
-    private bool isOpen;
+    private RectTransform panelRectTransform;
+    private Vector2 authoredOpenPosition;
+    private PanelState state = PanelState.Closed;
+    private bool initialized;
+    private bool isDestroying;
 
-    public bool IsOpen => isOpen;
+    public bool IsOpen => state == PanelState.Opening || state == PanelState.Open;
 
     private void Reset()
     {
@@ -45,6 +57,147 @@ public class RadarPanelAnimator : MonoBehaviour
 
     private void Awake()
     {
+        InitializePresentation();
+
+        if (closeOnStart)
+        {
+            CloseImmediate();
+        }
+        else
+        {
+            OpenImmediate();
+        }
+    }
+
+    public void Open()
+    {
+        InitializePresentation();
+
+        if (state == PanelState.Open || state == PanelState.Opening || isDestroying)
+        {
+            return;
+        }
+
+        StopCurrentRoutine();
+
+        if (panelRoot != null)
+        {
+            panelRoot.SetActive(true);
+        }
+
+        RestoreAuthoredPosition();
+
+        if (!isActiveAndEnabled)
+        {
+            ApplyOpenVisuals();
+            return;
+        }
+
+        AudioManager.Play(SoundEventIds.RadarOpen);
+        state = PanelState.Opening;
+        routine = StartCoroutine(OpenRoutine());
+    }
+
+    public void Close()
+    {
+        InitializePresentation();
+
+        if (state == PanelState.Closed || state == PanelState.Closing || isDestroying)
+        {
+            return;
+        }
+
+        StopCurrentRoutine();
+
+        if (!isActiveAndEnabled)
+        {
+            ApplyClosedVisuals(false);
+            return;
+        }
+
+        AudioManager.Play(SoundEventIds.RadarClose);
+        state = PanelState.Closing;
+        routine = StartCoroutine(CloseRoutine());
+    }
+
+    public void Toggle()
+    {
+        if (IsOpen)
+        {
+            Close();
+        }
+        else
+        {
+            Open();
+        }
+    }
+
+    public void OpenImmediate()
+    {
+        InitializePresentation();
+        StopCurrentRoutine();
+
+        if (panelRoot != null)
+        {
+            panelRoot.SetActive(true);
+        }
+
+        ApplyOpenVisuals();
+    }
+
+    public void CloseImmediate()
+    {
+        InitializePresentation();
+        StopCurrentRoutine();
+
+        if (panelRoot != null)
+        {
+            panelRoot.SetActive(true);
+        }
+
+        ApplyClosedVisuals(true);
+    }
+
+    private IEnumerator OpenRoutine()
+    {
+        RestoreAuthoredPosition();
+
+        if (functionalRadarRoot != null)
+        {
+            functionalRadarRoot.SetActive(false);
+        }
+
+        float startAlpha = canvasGroup != null ? canvasGroup.alpha : 0f;
+        yield return FadeCanvasGroup(startAlpha, 1f, fadeDuration);
+        yield return PlayFrames(openFrames);
+
+        ApplyOpenVisuals();
+        routine = null;
+    }
+
+    private IEnumerator CloseRoutine()
+    {
+        if (functionalRadarRoot != null)
+        {
+            functionalRadarRoot.SetActive(false);
+        }
+
+        yield return PlayFrames(closeFrames);
+
+        float startAlpha = canvasGroup != null ? canvasGroup.alpha : 1f;
+        yield return FadeCanvasGroup(startAlpha, 0f, fadeDuration);
+
+        ApplyClosedVisuals(true);
+        routine = null;
+    }
+
+    private void InitializePresentation()
+    {
+        if (initialized || isDestroying)
+        {
+            return;
+        }
+
         if (panelRoot == null)
         {
             panelRoot = gameObject;
@@ -60,75 +213,32 @@ public class RadarPanelAnimator : MonoBehaviour
             canvasGroup = panelRoot.AddComponent<CanvasGroup>();
         }
 
-        if (frameRate <= 0f)
+        frameRate = Mathf.Max(1f, frameRate);
+
+        // Cache the scene-authored position after the Canvas has performed its
+        // initial layout. Each scene keeps its own authored open position.
+        Canvas.ForceUpdateCanvases();
+        panelRectTransform = panelRoot.transform as RectTransform;
+
+        if (panelRectTransform != null)
         {
-            frameRate = 12f;
+            authoredOpenPosition = panelRectTransform.anchoredPosition;
         }
 
-        // 중요:
-        // 레이더 루트는 꺼버리지 말고 항상 Active 상태로 둔다.
-        // 그래야 자기 자신이나 자식 스크립트가 비활성화되지 않는다.
-        if (panelRoot != null)
-        {
-            panelRoot.SetActive(true);
-        }
+        initialized = true;
+    }
 
-        if (closeOnStart)
+    private void RestoreAuthoredPosition()
+    {
+        if (panelRectTransform != null)
         {
-            CloseImmediate();
-        }
-        else
-        {
-            OpenImmediate();
+            panelRectTransform.anchoredPosition = authoredOpenPosition;
         }
     }
 
-    public void Open()
+    private void ApplyOpenVisuals()
     {
-        if (isOpen)
-        {
-            return;
-        }
-
-        AudioManager.Play(SoundEventIds.RadarOpen);
-        StopCurrentRoutine();
-        routine = StartCoroutine(OpenRoutine());
-    }
-
-    public void Close()
-    {
-        if (!isOpen)
-        {
-            CloseImmediate();
-            return;
-        }
-
-        AudioManager.Play(SoundEventIds.RadarClose);
-        StopCurrentRoutine();
-        routine = StartCoroutine(CloseRoutine());
-    }
-
-    public void Toggle()
-    {
-        if (isOpen)
-        {
-            Close();
-        }
-        else
-        {
-            Open();
-        }
-    }
-
-    public void OpenImmediate()
-    {
-        StopCurrentRoutine();
-
-        if (panelRoot != null)
-        {
-            panelRoot.SetActive(true);
-        }
-
+        RestoreAuthoredPosition();
         SetCanvasGroup(1f, true);
 
         if (frameImage != null && openFrames != null && openFrames.Length > 0)
@@ -142,17 +252,12 @@ public class RadarPanelAnimator : MonoBehaviour
             functionalRadarRoot.SetActive(true);
         }
 
-        isOpen = true;
+        state = PanelState.Open;
     }
 
-    public void CloseImmediate()
+    private void ApplyClosedVisuals(bool allowPanelDeactivation)
     {
-        StopCurrentRoutine();
-
-        if (panelRoot != null)
-        {
-            panelRoot.SetActive(true);
-        }
+        RestoreAuthoredPosition();
 
         if (functionalRadarRoot != null)
         {
@@ -174,63 +279,17 @@ public class RadarPanelAnimator : MonoBehaviour
         }
 
         SetCanvasGroup(0f, false);
+        state = PanelState.Closed;
 
-        if (deactivatePanelRootWhenClosed && panelRoot != null)
+        // Never deactivate the GameObject that owns this animator. The legacy
+        // option remains usable only when panelRoot is a separate visible child.
+        if (allowPanelDeactivation &&
+            deactivatePanelRootWhenClosed &&
+            panelRoot != null &&
+            panelRoot != gameObject)
         {
             panelRoot.SetActive(false);
         }
-
-        isOpen = false;
-    }
-
-    private IEnumerator OpenRoutine()
-    {
-        isOpen = true;
-
-        if (panelRoot != null)
-        {
-            panelRoot.SetActive(true);
-        }
-
-        if (functionalRadarRoot != null)
-        {
-            functionalRadarRoot.SetActive(false);
-        }
-
-        yield return FadeCanvasGroup(0f, 1f, fadeDuration);
-
-        yield return PlayFrames(openFrames);
-
-        if (functionalRadarRoot != null)
-        {
-            functionalRadarRoot.SetActive(true);
-        }
-
-        SetCanvasGroup(1f, true);
-        routine = null;
-    }
-
-    private IEnumerator CloseRoutine()
-    {
-        isOpen = false;
-
-        if (functionalRadarRoot != null)
-        {
-            functionalRadarRoot.SetActive(false);
-        }
-
-        yield return PlayFrames(closeFrames);
-
-        yield return FadeCanvasGroup(1f, 0f, fadeDuration);
-
-        SetCanvasGroup(0f, false);
-
-        if (deactivatePanelRootWhenClosed && panelRoot != null)
-        {
-            panelRoot.SetActive(false);
-        }
-
-        routine = null;
     }
 
     private IEnumerator PlayFrames(Sprite[] frames)
@@ -259,7 +318,6 @@ public class RadarPanelAnimator : MonoBehaviour
         }
 
         duration = Mathf.Max(0.001f, duration);
-
         float timer = 0f;
 
         while (timer < duration)
@@ -269,7 +327,6 @@ public class RadarPanelAnimator : MonoBehaviour
             float alpha = Mathf.Lerp(from, to, t);
 
             SetCanvasGroup(alpha, alpha > 0.01f);
-
             yield return null;
         }
 
@@ -284,8 +341,6 @@ public class RadarPanelAnimator : MonoBehaviour
         }
 
         canvasGroup.alpha = Mathf.Clamp01(alpha);
-
-        // 레이더는 HUD 위에 올라오는 정보창이라 열렸을 때만 입력을 막도록 둔다.
         canvasGroup.interactable = visible;
         canvasGroup.blocksRaycasts = visible;
     }
@@ -298,6 +353,22 @@ public class RadarPanelAnimator : MonoBehaviour
         }
 
         StopCoroutine(routine);
+        routine = null;
+    }
+
+    private void OnDisable()
+    {
+        StopCurrentRoutine();
+
+        if (!isDestroying && initialized)
+        {
+            ApplyClosedVisuals(false);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        isDestroying = true;
         routine = null;
     }
 }

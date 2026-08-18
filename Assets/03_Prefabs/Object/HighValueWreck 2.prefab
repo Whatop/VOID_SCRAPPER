@@ -158,7 +158,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f5c1d24303f2414da8525419b99e090, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rewardDefinition: {fileID: 11400000, guid: c25376f45066b7e45a54d9f281a696bf, type: 2}
+  rewardDefinition: {fileID: 11400000, guid: 5928b9119408bd143ba5c624c6de5fdf, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
   legacyHealPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
   fallbackReinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}

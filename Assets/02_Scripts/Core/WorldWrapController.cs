@@ -48,7 +48,7 @@ public class WorldWrapController : MonoBehaviour
     [Header("Warning UI")]
     [SerializeField] private WarningMessageUI warningMessageUI;
     [SerializeField] private bool autoFindWarningMessageUI = true;
-    [SerializeField] private string boundaryWarningMessage = "해역 경계 접근";
+    [SerializeField] private string boundaryWarningMessage = "해역 경계에 접근했습니다.";
     [SerializeField] private float warningMessageDuration = 1.1f;
     [SerializeField] private float warningRepeatCooldown = 2f;
 
@@ -300,8 +300,10 @@ public class WorldWrapController : MonoBehaviour
 
         if (warningMessageUI != null)
         {
-            warningMessageUI.ShowMessage(
+            warningMessageUI.ShowCommunication(
+                ShipCommunicationChannel.Navigation,
                 boundaryWarningMessage,
+                ShipCommunicationSeverity.Warning,
                 Mathf.Max(0.1f, warningMessageDuration)
             );
         }

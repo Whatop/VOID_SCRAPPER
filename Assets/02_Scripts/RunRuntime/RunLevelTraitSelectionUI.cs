@@ -38,6 +38,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
     private Vector2 currentSourcePosition;
     private Action<RunRewardChoiceResult> completionCallback;
     private int tuningChipCostOnSelection;
+    private bool selectionLocked;
 
     public bool IsShowing => showing;
     public TraitCatalog TraitCatalog => traitCatalog;
@@ -46,8 +47,31 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
     private void Awake()
     {
         ResolveReferences();
+        ConfigureTypography();
         ResolveDefinitions();
         HideImmediate();
+    }
+
+    private void ConfigureTypography()
+    {
+        ConfigureText(titleText, 11f, 8f, false);
+        ConfigureText(bodyText, 7f, 5.5f, true);
+    }
+
+    private static void ConfigureText(TextMeshProUGUI text, float maximumSize, float minimumSize, bool wrap)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.fontSize = maximumSize;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = minimumSize;
+        text.fontSizeMax = maximumSize;
+        text.textWrappingMode = wrap ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.raycastTarget = false;
     }
 
     private void Start()
@@ -64,6 +88,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         }
 
         showing = false;
+        selectionLocked = false;
     }
 
     public void ConfigureCatalogs(TraitCatalog traits, ReinforcementCatalog reinforcements)
@@ -309,6 +334,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         }
 
         showing = true;
+        selectionLocked = false;
         currentSourcePosition = sourcePosition;
         completionCallback = onCompleted;
         tuningChipCostOnSelection = Mathf.Max(0, tuningChipCost);
@@ -354,7 +380,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
     private void HandleRewardSelected(RunRewardOption option)
     {
-        if (!showing || option == null)
+        if (!showing || selectionLocked || option == null)
         {
             return;
         }
@@ -375,6 +401,9 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
             tuningSpent = true;
         }
 
+        selectionLocked = true;
+        SetChoiceButtonsInteractable(false);
+
         RunRewardChoiceResult result = RunRewardChoiceApplier.Apply(option, currentSourcePosition);
 
         if (!result.Success)
@@ -386,6 +415,8 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
             AudioManager.Play(SoundEventIds.ActionDenied);
             expeditionHUD?.ShowWarning("보상 적용에 실패했습니다.");
+            selectionLocked = false;
+            SetChoiceButtonsInteractable(true);
             return;
         }
 
@@ -403,7 +434,9 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         {
             TraitDefinition trait = resolvedTraits[i];
 
-            if (trait == null)
+            if (trait == null ||
+                !trait.CanAppearAsLevelUpTrait ||
+                !RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
             {
                 continue;
             }
@@ -545,6 +578,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
         }
 
         showing = false;
+        selectionLocked = false;
         tuningChipCostOnSelection = 0;
         completionCallback = null;
         currentOptions.Clear();
@@ -555,7 +589,21 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
     private void HideImmediate()
     {
         showing = false;
+        selectionLocked = false;
         SetVisible(false);
+    }
+
+    private void SetChoiceButtonsInteractable(bool interactable)
+    {
+        if (choiceButtons == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < choiceButtons.Length; i++)
+        {
+            choiceButtons[i]?.SetInteractable(interactable);
+        }
     }
 
     private void SetVisible(bool visible)
@@ -651,6 +699,12 @@ public static class TraitEffectTextUtility
             TraitEffectType.ActiveCooldownReductionPercent => $"액티브 쿨다운 -{Mathf.Abs(value):0.#}%",
             TraitEffectType.RadarTauntDurationBonus => $"도발 지속시간 +{value:0.#}초",
             TraitEffectType.RadarStealthDurationBonus => $"은밀 표식 유지 +{value:0.#}초",
+            TraitEffectType.SniperSemiAutoMode => "짧은 클릭으로 세미오토 레이저 발사",
+            TraitEffectType.ShotgunCloseRangeDamagePercent => $"샷건 초근거리 피해 최대 +{value:0.#}%",
+            TraitEffectType.MachineGunTerminalGuidance => "기관총 종말 유도 활성화",
+            TraitEffectType.PeriodicReflectiveShield => $"반사 방벽 재충전 {value:0.#}초",
+            TraitEffectType.MachineGunDashMissileSalvo => "대쉬 시 추격 미사일 3발 사출",
+            TraitEffectType.SniperDashEchoShot => "대쉬 위치에서 다음 저격 사격을 40% 위력으로 복제",
             _ => $"{effectType} {value:0.##}"
         };
     }

@@ -27,6 +27,7 @@ public class FieldBaseController : MonoBehaviour
 
     [Header("Identity")]
     [SerializeField] private string baseDisplayName = "적 기지";
+    [SerializeField] private RadarTarget radarTarget;
 
     [Header("NPC / Rescue")]
     [SerializeField] private FieldNpcObjective captiveNpc;
@@ -95,6 +96,8 @@ public class FieldBaseController : MonoBehaviour
     [SerializeField] private HarvestObjectHealth[] resourceChests;
     [SerializeField] private bool lockResourceChestsUntilSecurityOffline = true;
     [SerializeField] private Transform resourceDepositPoint;
+    [Tooltip("Solid storage geometry stays physical; this trigger defines the non-blocking cargo handoff area.")]
+    [SerializeField] private Collider2D resourceDepositTrigger;
     [Min(0.1f)]
     [SerializeField] private float resourceDepositArrivalDistance = 0.8f;
     [SerializeField] private string resourceStorageUnlockedWarning = "자원 보관 구역의 잠금이 해제되었다.";
@@ -109,6 +112,15 @@ public class FieldBaseController : MonoBehaviour
     [SerializeField] private EnemyRoleController[] defenders;
     [SerializeField] private Transform[] defenderZoneAnchors;
     [SerializeField] private Collider2D baseBoundsCollider;
+    [SerializeField] private bool spawnDefendersOnStart = true;
+    [SerializeField] private Transform defenderRuntimeRoot;
+    [SerializeField] private bool useDefenderAnchorRotation = true;
+
+    [Header("Interior Defense Rule")]
+    [Tooltip("Base turrets are exterior defenses and do not target the Player after they have entered this inset area.")]
+    [SerializeField] private bool baseTurretsAreExterior = true;
+    [Min(0f)]
+    [SerializeField] private float protectedInteriorInset = 0.75f;
 
     [Header("Portal")]
     [SerializeField] private GameObject portalPrefab;
@@ -133,15 +145,26 @@ public class FieldBaseController : MonoBehaviour
 
     private readonly List<BaseTurretController> runtimeTurrets = new List<BaseTurretController>();
     private readonly List<FieldBasePowerLink2D> runtimeTurretPowerLinks = new List<FieldBasePowerLink2D>();
+    private readonly List<EnemyRoleController> runtimeDefenders = new List<EnemyRoleController>();
     private bool turretSpawnPassCompleted;
+    private bool defenderSpawnPassCompleted;
 
     public bool IsPortalSpawned => activePortal != null;
     public bool IsSecurityOffline => securityResolved || AllSecurityNodesDisabled();
+    public bool IsObjectiveCompleted => securityResolved;
+    public RadarTarget RadarTarget => radarTarget;
     public int ResourceChestCount => CountConfiguredResourceChests();
     public int RemainingResourceChestCount => CountRemainingResourceChests();
     public Transform ResourceDepositPoint => ResolveResourceDepositPoint();
     public float ResourceDepositArrivalDistance => Mathf.Max(0.1f, resourceDepositArrivalDistance);
     public bool HasResourceStorageSpace => HasAnyResourceStorageSpace();
+
+    public event System.Action<FieldBaseController> ObjectiveCompleted;
+
+    private void Reset()
+    {
+        radarTarget = GetComponent<RadarTarget>();
+    }
 
     private void OnEnable()
     {
@@ -155,6 +178,11 @@ public class FieldBaseController : MonoBehaviour
 
     private void Awake()
     {
+        if (radarTarget == null)
+        {
+            radarTarget = GetComponent<RadarTarget>();
+        }
+
         SubscribeSecurityNodes(true);
         SubscribeNpcPrisonMachine(true);
         SubscribeResourceChests(true);
@@ -162,8 +190,6 @@ public class FieldBaseController : MonoBehaviour
         RegisterManualTurrets();
 
         ApplyInitialGateState();
-        AssignDefendersToZones();
-
         if (captiveNpc != null)
         {
             captiveNpc.SetBaseCaptiveState(true);
@@ -186,6 +212,8 @@ public class FieldBaseController : MonoBehaviour
         {
             SpawnConfiguredTurrets();
         }
+
+        SpawnAndAssignDefenders();
 
         // Start에서 생성한 터렛에도 현재 기지 전력 상태를 즉시 반영한다.
         RefreshDefensePowerState();
@@ -278,6 +306,7 @@ public class FieldBaseController : MonoBehaviour
         CurrencyType[] order =
         {
             CurrencyType.CoreShards,
+            CurrencyType.StabilizedAlloy,
             CurrencyType.ScrapParts,
             CurrencyType.Credits,
             CurrencyType.Experience
@@ -304,6 +333,36 @@ public class FieldBaseController : MonoBehaviour
         return false;
     }
 
+    public bool IsWithinResourceDepositArea(Vector2 worldPosition)
+    {
+        if (resourceDepositTrigger != null && resourceDepositTrigger.enabled)
+        {
+            return resourceDepositTrigger.OverlapPoint(worldPosition);
+        }
+
+        Transform point = ResourceDepositPoint;
+        return point != null &&
+               Vector2.Distance(worldPosition, point.position) <= ResourceDepositArrivalDistance;
+    }
+
+    public bool CanExteriorTurretTargetPlayer(Vector2 playerPosition)
+    {
+        if (!baseTurretsAreExterior || baseBoundsCollider == null)
+        {
+            return true;
+        }
+
+        Bounds bounds = baseBoundsCollider.bounds;
+        float inset = Mathf.Max(0f, protectedInteriorInset);
+        float insetX = Mathf.Min(inset, bounds.extents.x * 0.9f);
+        float insetY = Mathf.Min(inset, bounds.extents.y * 0.9f);
+
+        return playerPosition.x < bounds.min.x + insetX ||
+               playerPosition.x > bounds.max.x - insetX ||
+               playerPosition.y < bounds.min.y + insetY ||
+               playerPosition.y > bounds.max.y - insetY;
+    }
+
     /// <summary>
     /// 적 화물을 기지 자원 상자들에 순서대로 보관한다.
     /// depositedWeight는 EnemyCargoHold 기준으로 실제 이동된 화물 무게다.
@@ -321,6 +380,7 @@ public class FieldBaseController : MonoBehaviour
         CurrencyType[] order =
         {
             CurrencyType.CoreShards,
+            CurrencyType.StabilizedAlloy,
             CurrencyType.ScrapParts,
             CurrencyType.Credits,
             CurrencyType.Experience
@@ -451,13 +511,13 @@ public class FieldBaseController : MonoBehaviour
         if (npcPrisonMachine != null && !npcPrisonMachine.IsDead)
         {
             ShowWarning(npcMachineVulnerableWarning);
-            return;
         }
-
-        if (autoReleaseNpcWhenSecurityOffline && captiveNpc != null)
+        else if (autoReleaseNpcWhenSecurityOffline && captiveNpc != null)
         {
             ResolveNpcRescue();
         }
+
+        ObjectiveCompleted?.Invoke(this);
     }
 
     private void ApplyPowerDependentDamageState(bool powerOffline)
@@ -997,6 +1057,7 @@ public class FieldBaseController : MonoBehaviour
         }
 
         runtimeTurrets.Add(turret);
+        turret.ConfigureFieldBaseDefense(this, baseTurretsAreExterior);
     }
 
     private void CleanupRuntimeTurrets()
@@ -1146,27 +1207,95 @@ public class FieldBaseController : MonoBehaviour
         return transform;
     }
 
-    private void AssignDefendersToZones()
+    private void SpawnAndAssignDefenders()
     {
-        if (defenders == null || defenders.Length == 0 || defenderZoneAnchors == null || defenderZoneAnchors.Length == 0)
+        if (defenderSpawnPassCompleted)
+        {
+            return;
+        }
+
+        defenderSpawnPassCompleted = true;
+
+        if (defenders == null || defenders.Length == 0 ||
+            defenderZoneAnchors == null || defenderZoneAnchors.Length == 0)
         {
             return;
         }
 
         Bounds bounds = ResolveBaseBounds();
+        Transform spawnParent = defenderRuntimeRoot != null ? defenderRuntimeRoot : transform;
+        int sceneDefenderIndex = 0;
 
-        for (int i = 0; i < defenders.Length; i++)
+        for (int anchorIndex = 0; anchorIndex < defenderZoneAnchors.Length; anchorIndex++)
         {
-            EnemyRoleController defender = defenders[i];
-            Transform zoneAnchor = defenderZoneAnchors[i % defenderZoneAnchors.Length];
+            Transform zoneAnchor = defenderZoneAnchors[anchorIndex];
+            EnemyRoleController defender = ResolveSceneDefender(ref sceneDefenderIndex);
 
-            if (defender == null || zoneAnchor == null)
+            if (zoneAnchor == null)
+            {
+                continue;
+            }
+
+            if (defender == null && spawnDefendersOnStart)
+            {
+                EnemyRoleController template = ResolveDefenderTemplate(anchorIndex);
+                if (template != null)
+                {
+                    Quaternion rotation = useDefenderAnchorRotation
+                        ? zoneAnchor.rotation
+                        : Quaternion.identity;
+                    GameObject defenderObject = Instantiate(
+                        template.gameObject,
+                        zoneAnchor.position,
+                        rotation
+                    );
+                    defenderObject.transform.SetParent(spawnParent, true);
+                    defenderObject.name = $"{template.gameObject.name}_Defender_{anchorIndex:00}";
+                    defender = defenderObject.GetComponent<EnemyRoleController>() ??
+                               defenderObject.GetComponentInChildren<EnemyRoleController>(true);
+                }
+            }
+
+            if (defender == null)
             {
                 continue;
             }
 
             defender.ConfigureAsDefender(zoneAnchor, bounds);
+            runtimeDefenders.Add(defender);
         }
+    }
+
+    private EnemyRoleController ResolveSceneDefender(ref int startIndex)
+    {
+        for (int i = startIndex; i < defenders.Length; i++)
+        {
+            EnemyRoleController candidate = defenders[i];
+            startIndex = i + 1;
+
+            if (candidate != null && candidate.gameObject.scene.IsValid())
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private EnemyRoleController ResolveDefenderTemplate(int anchorIndex)
+    {
+        int count = defenders != null ? defenders.Length : 0;
+
+        for (int offset = 0; offset < count; offset++)
+        {
+            EnemyRoleController candidate = defenders[(anchorIndex + offset) % count];
+            if (candidate != null && !candidate.gameObject.scene.IsValid())
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private Bounds ResolveBaseBounds()

@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -9,6 +10,7 @@ public class PlayerChargeGaugeUI : MonoBehaviour
     [SerializeField] private GaugeBarUI chargeGauge;
     [SerializeField] private WorldGaugeFollower follower;
     [SerializeField] private CanvasGroup canvasGroup;
+    [SerializeField] private PlayerWeaponController weaponController;
 
     [Header("Weapon Sources")]
     [SerializeField] private PlayerWeaponBase[] weaponSources;
@@ -17,8 +19,17 @@ public class PlayerChargeGaugeUI : MonoBehaviour
     [SerializeField] private string chargingTextFormat = "{0:0}%";
     [SerializeField] private bool hideOnAwake = true;
     [SerializeField] private bool hideWhenReleased = true;
+    [SerializeField] private Color chargeColor = new Color(0.35f, 0.8f, 1f, 1f);
+    [SerializeField] private Color machineGunCoolingColor = new Color(0.25f, 1f, 0.35f, 1f);
+    [SerializeField] private Color machineGunReadyColor = new Color(0.75f, 1f, 0.78f, 1f);
+    [SerializeField, Min(0f)] private float readyPulseHoldSeconds = 0.3f;
 
     private PlayerWeaponBase activeChargingWeapon;
+    private MachineGunWeapon activeMachineGun;
+    private Tween readyHideTween;
+    private Vector3 baseScale;
+    private bool machineGunCoolingVisible;
+    private bool externalPresentationActive;
     private bool subscribed;
 
     private void Reset()
@@ -26,13 +37,16 @@ public class PlayerChargeGaugeUI : MonoBehaviour
         chargeGauge = GetComponentInChildren<GaugeBarUI>(true);
         follower = GetComponent<WorldGaugeFollower>();
         canvasGroup = GetComponent<CanvasGroup>();
+        weaponController = FindFirstObjectByType<PlayerWeaponController>();
     }
 
     private void Awake()
     {
         CacheReferences();
+        baseScale = transform.localScale;
         ResolvePlayerTarget();
         ResolveWeaponSources();
+        ResolveWeaponController();
 
         if (follower != null)
         {
@@ -41,7 +55,7 @@ public class PlayerChargeGaugeUI : MonoBehaviour
 
         if (hideOnAwake)
         {
-            Hide();
+            HideVisual();
         }
         else
         {
@@ -52,20 +66,41 @@ public class PlayerChargeGaugeUI : MonoBehaviour
     private void OnEnable()
     {
         SubscribeWeapons();
+        SubscribeWeaponController();
 
-        if (hideOnAwake && activeChargingWeapon == null)
+        if (weaponController != null)
         {
-            Hide();
+            HandleWeaponEquipped(weaponController.CurrentWeaponTree, weaponController.CurrentWeapon);
+        }
+
+        if (hideOnAwake && activeChargingWeapon == null && !machineGunCoolingVisible)
+        {
+            HideVisual();
         }
     }
 
     private void OnDisable()
     {
+        readyHideTween?.Kill();
+        readyHideTween = null;
+        transform.DOKill();
+        transform.localScale = baseScale;
+        UnsubscribeWeaponController();
+        BindMachineGun(null);
         UnsubscribeWeapons();
-        Hide();
+        activeChargingWeapon = null;
+        machineGunCoolingVisible = false;
+        externalPresentationActive = false;
+        HideVisual();
     }
 
     public void ShowRatio(float ratio)
+    {
+        externalPresentationActive = true;
+        ShowRatioInternal(ratio, chargeColor, string.Format(chargingTextFormat, Mathf.Clamp01(ratio) * 100f));
+    }
+
+    private void ShowRatioInternal(float ratio, Color color, string text)
     {
         ratio = Mathf.Clamp01(ratio);
 
@@ -74,13 +109,32 @@ public class PlayerChargeGaugeUI : MonoBehaviour
         if (chargeGauge != null)
         {
             chargeGauge.SetRatio(ratio);
-            chargeGauge.SetText(string.Format(chargingTextFormat, ratio * 100f));
+            chargeGauge.SetFillColor(color);
+            chargeGauge.SetText(text);
         }
     }
 
     public void Hide()
     {
-        activeChargingWeapon = null;
+        externalPresentationActive = false;
+
+        if (activeMachineGun != null && activeMachineGun.IsOverheated)
+        {
+            RefreshMachineGunCooling(activeMachineGun.CurrentHeat, activeMachineGun.MaxHeat, true);
+            return;
+        }
+
+        if (activeChargingWeapon != null && activeChargingWeapon.IsCharging)
+        {
+            ShowChargeRatio(activeChargingWeapon.ChargeRatio);
+            return;
+        }
+
+        HideVisual();
+    }
+
+    private void HideVisual()
+    {
 
         if (chargeGauge != null)
         {
@@ -106,6 +160,8 @@ public class PlayerChargeGaugeUI : MonoBehaviour
         {
             canvasGroup = GetComponent<CanvasGroup>();
         }
+
+        ResolveWeaponController();
     }
 
     private void ResolvePlayerTarget()
@@ -174,6 +230,138 @@ public class PlayerChargeGaugeUI : MonoBehaviour
         subscribed = true;
     }
 
+    private void ResolveWeaponController()
+    {
+        if (weaponController == null)
+        {
+            weaponController = FindFirstObjectByType<PlayerWeaponController>();
+        }
+    }
+
+    private void SubscribeWeaponController()
+    {
+        ResolveWeaponController();
+
+        if (weaponController != null)
+        {
+            weaponController.WeaponEquipped -= HandleWeaponEquipped;
+            weaponController.WeaponEquipped += HandleWeaponEquipped;
+        }
+    }
+
+    private void UnsubscribeWeaponController()
+    {
+        if (weaponController != null)
+        {
+            weaponController.WeaponEquipped -= HandleWeaponEquipped;
+        }
+    }
+
+    private void HandleWeaponEquipped(WeaponTreeType weaponTree, PlayerWeaponBase weapon)
+    {
+        readyHideTween?.Kill();
+        readyHideTween = null;
+        transform.DOKill();
+        transform.localScale = baseScale;
+        machineGunCoolingVisible = false;
+        BindMachineGun(weaponTree == WeaponTreeType.MachineGun ? weapon as MachineGunWeapon : null);
+
+        if (activeMachineGun != null && activeMachineGun.IsOverheated)
+        {
+            RefreshMachineGunCooling(activeMachineGun.CurrentHeat, activeMachineGun.MaxHeat, true);
+        }
+        else if (activeChargingWeapon == null)
+        {
+            if (!externalPresentationActive)
+            {
+                HideVisual();
+            }
+        }
+    }
+
+    private void BindMachineGun(MachineGunWeapon weapon)
+    {
+        if (activeMachineGun == weapon)
+        {
+            return;
+        }
+
+        if (activeMachineGun != null)
+        {
+            activeMachineGun.HeatChanged -= HandleMachineGunHeatChanged;
+        }
+
+        activeMachineGun = weapon;
+
+        if (activeMachineGun != null)
+        {
+            activeMachineGun.HeatChanged += HandleMachineGunHeatChanged;
+        }
+    }
+
+    private void HandleMachineGunHeatChanged(float current, float max, bool overheated)
+    {
+        RefreshMachineGunCooling(current, max, overheated);
+    }
+
+    private void RefreshMachineGunCooling(float current, float max, bool overheated)
+    {
+        if (activeMachineGun == null)
+        {
+            return;
+        }
+
+        if (overheated)
+        {
+            machineGunCoolingVisible = true;
+            readyHideTween?.Kill();
+            readyHideTween = null;
+            transform.DOKill();
+            transform.localScale = baseScale;
+
+            float recoveryHeat = activeMachineGun.OverheatRecoveryHeat;
+            float recoveryRange = Mathf.Max(0.001f, max - recoveryHeat);
+            float recoveryProgress = Mathf.Clamp01((max - current) / recoveryRange);
+            if (!externalPresentationActive)
+            {
+                ShowRatioInternal(
+                    recoveryProgress,
+                    machineGunCoolingColor,
+                    string.Format(chargingTextFormat, recoveryProgress * 100f)
+                );
+            }
+            return;
+        }
+
+        if (!machineGunCoolingVisible)
+        {
+            return;
+        }
+
+        machineGunCoolingVisible = false;
+        if (externalPresentationActive)
+        {
+            return;
+        }
+
+        ShowRatioInternal(1f, machineGunReadyColor, string.Format(chargingTextFormat, 100f));
+        transform.DOKill();
+        transform.localScale = baseScale;
+        transform.DOPunchScale(Vector3.one * 0.12f, 0.18f, 3, 0.4f).SetUpdate(false);
+        readyHideTween = DOVirtual.DelayedCall(
+            Mathf.Max(0f, readyPulseHoldSeconds),
+            () =>
+            {
+                readyHideTween = null;
+                if (!machineGunCoolingVisible && activeChargingWeapon == null)
+                {
+                    HideVisual();
+                }
+            },
+            false
+        ).SetTarget(this);
+    }
+
     private void UnsubscribeWeapons()
     {
         if (!subscribed)
@@ -205,32 +393,73 @@ public class PlayerChargeGaugeUI : MonoBehaviour
 
     private void HandleChargeStarted(PlayerWeaponBase weapon)
     {
+        if (machineGunCoolingVisible)
+        {
+            return;
+        }
+
         activeChargingWeapon = weapon;
-        ShowRatio(weapon != null ? weapon.ChargeRatio : 0f);
+        if (!externalPresentationActive)
+        {
+            ShowChargeRatio(weapon != null ? weapon.ChargeRatio : 0f);
+        }
     }
 
     private void HandleChargeChanged(PlayerWeaponBase weapon, float ratio)
     {
+        if (machineGunCoolingVisible)
+        {
+            return;
+        }
+
         activeChargingWeapon = weapon;
-        ShowRatio(ratio);
+        if (!externalPresentationActive)
+        {
+            ShowChargeRatio(ratio);
+        }
     }
 
     private void HandleChargeReleased(PlayerWeaponBase weapon, float ratio)
     {
-        ShowRatio(ratio);
+        if (machineGunCoolingVisible)
+        {
+            return;
+        }
+
+        if (!externalPresentationActive)
+        {
+            ShowChargeRatio(ratio);
+        }
 
         if (hideWhenReleased)
         {
-            Hide();
+            activeChargingWeapon = null;
+            if (!externalPresentationActive)
+            {
+                HideVisual();
+            }
         }
     }
 
     private void HandleChargeCanceled(PlayerWeaponBase weapon)
     {
-        if (activeChargingWeapon == weapon)
+        if (!machineGunCoolingVisible && activeChargingWeapon == weapon)
         {
-            Hide();
+            activeChargingWeapon = null;
+            if (!externalPresentationActive)
+            {
+                HideVisual();
+            }
         }
+    }
+
+    private void ShowChargeRatio(float ratio)
+    {
+        ShowRatioInternal(
+            ratio,
+            chargeColor,
+            string.Format(chargingTextFormat, Mathf.Clamp01(ratio) * 100f)
+        );
     }
 
     private void SetVisible(bool visible)

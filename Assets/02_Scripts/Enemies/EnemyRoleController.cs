@@ -1126,8 +1126,9 @@ public class EnemyRoleController : MonoBehaviour
         escapeTarget = depositPoint.position;
         float arrivalDistance = Mathf.Max(escapeArrivalDistance, homeBase.ResourceDepositArrivalDistance);
         float distance = Vector2.Distance(transform.position, escapeTarget);
+        bool insideDepositArea = homeBase.IsWithinResourceDepositArea(transform.position);
 
-        if (distance > arrivalDistance)
+        if (!insideDepositArea && distance > arrivalDistance)
         {
             cargoDepositStarted = false;
             cargoDepositTimer = Mathf.Max(0f, cargoDepositDuration);
@@ -1504,6 +1505,7 @@ public class EnemyRoleController : MonoBehaviour
                 valueBonus = candidate.CurrencyType switch
                 {
                     CurrencyType.CoreShards => -8f,
+                    CurrencyType.StabilizedAlloy => -6f,
                     CurrencyType.ScrapParts => -4f,
                     CurrencyType.Credits => -1f,
                     _ => 0f

@@ -76,6 +76,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     [SerializeField] private CanvasGroup canvasGroup;
     [SerializeField] private bool deactivateVisualRootWhenClosed = true;
     [SerializeField] private Button closeButton;
+    [SerializeField] private TMP_FontAsset uiFont;
 
     [Header("External Menu Ownership")]
     [Tooltip("켜면 ExpeditionMenuController가 열기/닫기, Pause, Cursor, ESC를 전담합니다.")]
@@ -107,7 +108,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     [SerializeField] private Color normalStatColor = Color.white;
     [SerializeField] private Color coreReadyColor = new Color(0.35f, 1f, 0.45f, 1f);
     [TextArea(2, 4)]
-    [SerializeField] private string coreTrackingTip = "CORE SIGNAL을 수집해 코어 위치를 추적하십시오.\n긴급복귀 시 보존 한도를 초과한 적재물은 손실됩니다.";
+    [SerializeField] private string coreTrackingTip = "코어 추적 신호를 수집해 코어 위치를 추적하십시오.\n긴급복귀 시 보존 한도를 초과한 적재물은 손실됩니다.";
     [TextArea(2, 4)]
     [SerializeField] private string coreReadyTip = "코어 위치가 공개되었습니다.\n보스전에 진입하기 전에 체력과 적재량을 확인하십시오.";
 
@@ -228,6 +229,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     private CursorLockMode previousCursorLockMode;
 
     private ExpeditionObjectiveDirector subscribedObjectiveDirector;
+    private CoreTrackingSignalController subscribedCoreTrackingController;
     private RunRuntimeTraitStore subscribedRuntimeTraitStore;
     private PermanentProgress subscribedPermanentProgress;
     private RunManager subscribedRunManager;
@@ -246,7 +248,11 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     {
         if (root == null)
         {
-            root = gameObject;
+            // Legacy standalone panels may use their own GameObject as the visual
+            // root. A scene-level HUD canvas is not a panel, however: claiming it
+            // here would add a CanvasGroup and hide every HUD child when this panel
+            // initializes closed.
+            root = GetComponent<Canvas>() == null ? gameObject : null;
         }
 
         if (canvasGroup == null && root != null)
@@ -260,6 +266,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         }
 
         ResolveReferences();
+        ConfigureInventoryTypography();
         ConfigurePassiveScrollView();
         SetPanelVisible(false);
     }
@@ -291,8 +298,6 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void OnDisable()
     {
-        fieldDropAction?.Disable();
-
         if (closeButton != null)
         {
             closeButton.onClick.RemoveListener(CloseFromButton);
@@ -470,18 +475,27 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         SetText(hpValueText, $"{currentHp:0}/{maxHp:0}");
         SetColor(hpValueText, normalStatColor);
 
-        ExpeditionObjectiveDirector objectiveDirector = ExpeditionObjectiveDirector.Instance;
-        int signalCount = objectiveDirector != null
-            ? objectiveDirector.SignalCount
-            : run != null ? run.ObjectiveSignalCount : 0;
+        CoreTrackingSignalController coreTracking = FindFirstObjectByType<CoreTrackingSignalController>();
+        ExpeditionObjectiveDirector objectiveDirector = coreTracking == null
+            ? ExpeditionObjectiveDirector.Instance
+            : null;
+        int signalCount = coreTracking != null
+            ? coreTracking.CurrentSignalCount
+            : objectiveDirector != null
+                ? objectiveDirector.SignalCount
+                : run != null ? run.ObjectiveSignalCount : 0;
 
-        int signalRequired = objectiveDirector != null
-            ? objectiveDirector.SignalsRequiredToRevealCore
-            : 2;
+        int signalRequired = coreTracking != null
+            ? coreTracking.RequiredSignalCount
+            : objectiveDirector != null
+                ? objectiveDirector.SignalsRequiredToRevealCore
+                : 2;
 
-        bool coreReady = objectiveDirector != null
-            ? objectiveDirector.CoreRevealed
-            : signalCount >= signalRequired;
+        bool coreReady = coreTracking != null
+            ? coreTracking.IsCoreRevealed
+            : objectiveDirector != null
+                ? objectiveDirector.CoreRevealed
+                : signalCount >= signalRequired;
 
         SetText(coreSignalValueText, $"{signalCount}/{signalRequired}");
         SetColor(coreSignalValueText, coreReady ? coreReadyColor : normalStatColor);
@@ -793,13 +807,21 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             {
                 TraitDefinition trait = resolvedTraits[i];
 
-                if (!CanDisplayTrait(trait, selectedWeaponTree) || !progress.IsTraitActive(trait.TraitId))
+                bool ownsPersistentStoryTrait =
+                    trait != null &&
+                    trait.IsPersistentStoryTrait &&
+                    progress.HasPersistentStoryTrait(trait);
+
+                if (!CanDisplayTrait(trait, selectedWeaponTree) ||
+                    (!ownsPersistentStoryTrait && !progress.IsTraitActive(trait.TraitId)))
                 {
                     continue;
                 }
 
                 PassiveEntry entry = GetOrCreatePassiveEntry(trait, order++);
-                entry.permanentLevel = Mathf.Clamp(progress.GetTraitLevel(trait.TraitId), 0, trait.MaxLevel);
+                entry.permanentLevel = ownsPersistentStoryTrait
+                    ? 1
+                    : Mathf.Clamp(progress.GetTraitLevel(trait.TraitId), 0, trait.MaxLevel);
             }
         }
 
@@ -887,7 +909,12 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             return false;
         }
 
-        if (!includeHiddenTraits && trait.IsHidden)
+        bool ownedPersistentStoryTrait =
+            trait.IsPersistentStoryTrait &&
+            PermanentProgress.Instance != null &&
+            PermanentProgress.Instance.HasPersistentStoryTrait(trait);
+
+        if (!includeHiddenTraits && trait.IsHidden && !ownedPersistentStoryTrait)
         {
             return false;
         }
@@ -1058,6 +1085,12 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             TraitEffectType.ActiveCooldownReductionPercent => $"액티브 쿨다운 -{Mathf.Abs(value):0.#}%",
             TraitEffectType.RadarTauntDurationBonus => $"레이더 도발 시간 +{value:0.#}초",
             TraitEffectType.RadarStealthDurationBonus => $"은밀 탐지 유지 +{value:0.#}초",
+            TraitEffectType.SniperSemiAutoMode => "짧은 클릭으로 세미오토 레이저 발사",
+            TraitEffectType.ShotgunCloseRangeDamagePercent => $"샷건 초근거리 피해 최대 +{value:0.#}%",
+            TraitEffectType.MachineGunTerminalGuidance => "기관총 종말 유도 활성화",
+            TraitEffectType.PeriodicReflectiveShield => $"반사 방벽 재충전 {value:0.#}초",
+            TraitEffectType.MachineGunDashMissileSalvo => "대쉬 시 추격 미사일 3발 사출",
+            TraitEffectType.SniperDashEchoShot => "대쉬 위치에서 다음 저격 사격을 40% 위력으로 복제",
             _ => $"{effectType} {value:0.##}"
         };
     }
@@ -1465,6 +1498,13 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             return;
         }
 
+        if (!entry.trait.CanFieldDrop)
+        {
+            ShowFieldDropWarning("이 특성은 필드에 드랍할 수 없습니다.");
+            AudioManager.Play(SoundEventIds.ActionDenied);
+            return;
+        }
+
         if (entry.runtimeLevel <= 0)
         {
             ShowFieldDropWarning("영구 적용 패시브는 필드에 드랍할 수 없습니다.");
@@ -1566,12 +1606,12 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void BindFieldDropInput()
     {
+        inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
         fieldDropAction = InputBindingUtility.ResolveAction(
             inputActions,
             playerActionMapName,
             fieldDropActionName
         );
-        fieldDropAction?.Enable();
     }
 
     private string ResolveFieldDropKeyText()
@@ -1705,8 +1745,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
         if (playerHealth != null)
         {
-            playerHealth.Damaged += HandleHealthChanged;
-            playerHealth.Healed += HandleHealthChanged;
+            playerHealth.Changed += HandleHealthChanged;
             playerHealth.Died += HandlePlayerDied;
         }
 
@@ -1721,10 +1760,18 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             reinforcementController.ChargesChanged += HandleChargesChanged;
         }
 
-        subscribedObjectiveDirector = ExpeditionObjectiveDirector.Instance;
-        if (subscribedObjectiveDirector != null)
+        subscribedCoreTrackingController = FindFirstObjectByType<CoreTrackingSignalController>();
+        if (subscribedCoreTrackingController != null)
         {
-            subscribedObjectiveDirector.ProgressChanged += HandleObjectiveProgressChanged;
+            subscribedCoreTrackingController.ProgressChanged += HandleObjectiveProgressChanged;
+        }
+        else
+        {
+            subscribedObjectiveDirector = ExpeditionObjectiveDirector.Instance;
+            if (subscribedObjectiveDirector != null)
+            {
+                subscribedObjectiveDirector.ProgressChanged += HandleObjectiveProgressChanged;
+            }
         }
 
         subscribedRuntimeTraitStore = RunRuntimeTraitStore.Instance;
@@ -1757,8 +1804,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
         if (playerHealth != null)
         {
-            playerHealth.Damaged -= HandleHealthChanged;
-            playerHealth.Healed -= HandleHealthChanged;
+            playerHealth.Changed -= HandleHealthChanged;
             playerHealth.Died -= HandlePlayerDied;
         }
 
@@ -1777,6 +1823,12 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         {
             subscribedObjectiveDirector.ProgressChanged -= HandleObjectiveProgressChanged;
             subscribedObjectiveDirector = null;
+        }
+
+        if (subscribedCoreTrackingController != null)
+        {
+            subscribedCoreTrackingController.ProgressChanged -= HandleObjectiveProgressChanged;
+            subscribedCoreTrackingController = null;
         }
 
         if (subscribedRuntimeTraitStore != null)
@@ -2057,6 +2109,61 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         target.sprite = sprite;
         target.enabled = sprite != null;
         target.preserveAspect = true;
+    }
+
+    private void ConfigureInventoryTypography()
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        TextMeshProUGUI[] texts = root.GetComponentsInChildren<TextMeshProUGUI>(true);
+        for (int i = 0; i < texts.Length; i++)
+        {
+            TextMeshProUGUI text = texts[i];
+            if (text == null)
+            {
+                continue;
+            }
+
+            if (uiFont != null)
+            {
+                text.font = uiFont;
+            }
+
+            text.fontSize = Mathf.Min(text.fontSize, 7.5f);
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 5f;
+            text.fontSizeMax = Mathf.Max(5f, Mathf.Min(7.5f, text.fontSize));
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Ellipsis;
+            text.raycastTarget = false;
+        }
+
+        ConfigureInventoryBodyText(shipDescriptionText, 6.5f);
+        ConfigureInventoryBodyText(shipPassiveText, 6.5f);
+        ConfigureInventoryBodyText(shipTipText, 6f);
+        ConfigureInventoryBodyText(activeDescriptionText, 6.5f);
+        ConfigureInventoryBodyText(activeEffectText, 6.5f);
+        ConfigureInventoryBodyText(selectedPassiveDescriptionText, 6.5f);
+        ConfigureInventoryBodyText(selectedPassiveEffectText, 6.5f);
+        ConfigureInventoryBodyText(selectedPassiveFlavorText, 6f);
+    }
+
+    private static void ConfigureInventoryBodyText(TextMeshProUGUI text, float maximumSize)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.fontSize = maximumSize;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 4.5f;
+        text.fontSizeMax = maximumSize;
+        text.textWrappingMode = TextWrappingModes.Normal;
+        text.overflowMode = TextOverflowModes.Ellipsis;
     }
 
     private void SetText(TextMeshProUGUI target, string text)

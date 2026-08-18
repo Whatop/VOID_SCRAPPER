@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_auto_turret_pod"
   displayName: "\uc790\ub3d9 \ud3ec\ud0d1 \ud3ec\ub4dc"
-  description: "\ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \uc9e7\uc740 \ud654\ub825 \uc99d\ud3ed \uc7a5\ube44\ub85c \uc0ac\uc6a9\ud55c\ub2e4. \uc804\ud22c \uad6c\uac04\uc5d0\uc11c \uacf5\uaca9\ub825\uc744 \uc62c\ub9b0\ub2e4."
+  description: "15\ucd08 \ub3d9\uc548 \uc815\ud655\ud55c \uc9c0\uc6d0 \uc0ac\uaca9\uc744 \uc81c\uacf5\ud558\uace0, \ub9de\uc740 \uc77c\ubc18 \uc801 \ucd5c\ub300 2\uba85\uc744 \uc7a0\uc2dc \ud3ec\ud0d1 \uc704\uce58\ub85c \uc720\uc778\ud55c\ub2e4."
   icon: {fileID: 21300000, guid: 4b90d2c92ef6c92952986169c9aa67b8, type: 3}
   rarity: 2
   rarityPriceMultiplier: 0
@@ -27,14 +27,18 @@ MonoBehaviour:
   canAppearAsRandomDrop: 1
   maxCharges: 1
   startWithFullCharges: 1
-  rechargeSeconds: 30
+  rechargeSeconds: 25
   effects:
-  - effectType: 6
-    value: 35
+  - effectType: 10
+    value: 0
     radius: 0
-    duration: 10
+    duration: 15
     targetLayer:
       serializedVersion: 2
       m_Bits: 0
-    prefab: {fileID: 0}
-    prefabLifetime: 1
+    prefab: {fileID: 8700428605217978792, guid: 8db03852a862c7b4eaa4588bbf521bbd, type: 3}
+    prefabLifetime: 15
+    spawnedTurretAttackIntervalMultiplier: 0.75
+    spawnedTurretDamageMultiplier: 1.4
+    spawnedTurretTauntDuration: 2
+    spawnedTurretMaxTauntTargets: 2

@@ -316,6 +316,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyDefinition: {fileID: 11400000, guid: e6e5bef48873ddd4488e1def09de0b86, type: 2}
+  awarenessIndicatorFont: {fileID: 11400000, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
   player: {fileID: 0}
   playerTag: Player
   visualRoot: {fileID: 0}
@@ -352,6 +353,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyDefinition: {fileID: 11400000, guid: 2fa9f4364489b8b48a441bfe87b8323e, type: 2}
+  awarenessIndicatorFont: {fileID: 11400000, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
   firePoint: {fileID: 274234201926276759}
   projectileDefinition: {fileID: 11400000, guid: a461677f565b052499eb7847e2058dee, type: 2}
   attackRange: 9

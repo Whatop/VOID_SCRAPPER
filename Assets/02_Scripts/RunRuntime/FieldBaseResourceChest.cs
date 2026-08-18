@@ -24,12 +24,15 @@ public class FieldBaseResourceChest : MonoBehaviour
     [SerializeField] private int scrapWeight = 1;
     [Min(1)]
     [SerializeField] private int coreShardWeight = 12;
+    [Min(1)]
+    [SerializeField] private int stabilizedAlloyWeight = 2;
 
     [Header("Accepted Currency")]
     [SerializeField] private bool acceptExperience;
     [SerializeField] private bool acceptCredits = true;
     [SerializeField] private bool acceptScrap = true;
     [SerializeField] private bool acceptCoreShards = true;
+    [SerializeField] private bool acceptStabilizedAlloy = true;
 
     [Header("Growth")]
     [Tooltip("VisualRoot처럼 스프라이트만 들어있는 자식을 권장합니다. 비우면 이 오브젝트 전체가 커집니다.")]
@@ -54,6 +57,7 @@ public class FieldBaseResourceChest : MonoBehaviour
     [SerializeField] private int storedCredits;
     [SerializeField] private int storedScrap;
     [SerializeField] private int storedCoreShards;
+    [SerializeField] private int storedStabilizedAlloy;
     [SerializeField] private float currentRewardMultiplier = 1f;
 
     private HarvestObjectHealth health;
@@ -67,7 +71,8 @@ public class FieldBaseResourceChest : MonoBehaviour
         storedExperience * GetWeight(CurrencyType.Experience) +
         storedCredits * GetWeight(CurrencyType.Credits) +
         storedScrap * GetWeight(CurrencyType.ScrapParts) +
-        storedCoreShards * GetWeight(CurrencyType.CoreShards);
+        storedCoreShards * GetWeight(CurrencyType.CoreShards) +
+        storedStabilizedAlloy * GetWeight(CurrencyType.StabilizedAlloy);
 
     public int RemainingWeight => Mathf.Max(0, StorageCapacityWeight - StoredWeight);
     public float FillRatio => StorageCapacityWeight <= 0
@@ -127,6 +132,7 @@ public class FieldBaseResourceChest : MonoBehaviour
         creditsWeight = Mathf.Max(1, creditsWeight);
         scrapWeight = Mathf.Max(1, scrapWeight);
         coreShardWeight = Mathf.Max(1, coreShardWeight);
+        stabilizedAlloyWeight = Mathf.Max(1, stabilizedAlloyWeight);
         maxScaleMultiplier = Mathf.Max(1f, maxScaleMultiplier);
         maxRewardMultiplier = Mathf.Max(1f, maxRewardMultiplier);
         scaleResponseSpeed = Mathf.Max(0.01f, scaleResponseSpeed);
@@ -176,6 +182,10 @@ public class FieldBaseResourceChest : MonoBehaviour
                 storedCoreShards += accepted;
                 break;
 
+            case CurrencyType.StabilizedAlloy:
+                storedStabilizedAlloy += accepted;
+                break;
+
             default:
                 return 0;
         }
@@ -193,6 +203,7 @@ public class FieldBaseResourceChest : MonoBehaviour
             CurrencyType.Credits => storedCredits,
             CurrencyType.ScrapParts => storedScrap,
             CurrencyType.CoreShards => storedCoreShards,
+            CurrencyType.StabilizedAlloy => storedStabilizedAlloy,
             _ => 0
         };
     }
@@ -203,6 +214,7 @@ public class FieldBaseResourceChest : MonoBehaviour
         storedCredits = 0;
         storedScrap = 0;
         storedCoreShards = 0;
+        storedStabilizedAlloy = 0;
         RefreshGrowth(true);
         StorageChanged?.Invoke(this);
     }
@@ -271,6 +283,7 @@ public class FieldBaseResourceChest : MonoBehaviour
             CurrencyType.Credits => acceptCredits,
             CurrencyType.ScrapParts => acceptScrap,
             CurrencyType.CoreShards => acceptCoreShards,
+            CurrencyType.StabilizedAlloy => acceptStabilizedAlloy,
             _ => false
         };
     }
@@ -283,6 +296,7 @@ public class FieldBaseResourceChest : MonoBehaviour
             CurrencyType.Credits => Mathf.Max(1, creditsWeight),
             CurrencyType.ScrapParts => Mathf.Max(1, scrapWeight),
             CurrencyType.CoreShards => Mathf.Max(1, coreShardWeight),
+            CurrencyType.StabilizedAlloy => Mathf.Max(1, stabilizedAlloyWeight),
             _ => 1
         };
     }

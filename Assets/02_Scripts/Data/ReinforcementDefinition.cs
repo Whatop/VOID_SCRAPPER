@@ -42,7 +42,22 @@ public enum ReinforcementEffectType
     SpawnPrefabAtPlayer,
     EmergencyReturn,
     TemporaryEnemyRadarJamming,
-    RevealEnemyVisionAndState
+    RevealEnemyVisionAndState,
+    RevealRadarTargets,
+    DisruptEnemyTracking,
+    TemporaryScrapGainPercent,
+    ConvertCreditsToHealing,
+
+    // Weapon-specific active identities. Appended to preserve serialized values.
+    TemporaryHomingAngleBonus,
+    TemporaryHomingRangeBonus,
+    ClearEnemyProjectilesInCone,
+    DamageEnemiesInCone,
+    TemporaryPierceCountBonus,
+    TemporaryRemovePierceDamageFalloff,
+
+    // Tactical local return. Appended to preserve serialized values.
+    PlaceOrReturnToMarker
 }
 
 [Serializable]
@@ -52,17 +67,46 @@ public class ReinforcementEffect
     [SerializeField] private float value = 1f;
     [SerializeField] private float radius = 0f;
     [SerializeField] private float duration = 0f;
+    [Tooltip("Directional cone full angle in degrees. Used only by cone-shaped effects.")]
+    [Range(1f, 180f)]
+    [SerializeField] private float coneAngle = 90f;
     [SerializeField] private LayerMask targetLayer;
     [SerializeField] private GameObject prefab;
     [SerializeField] private float prefabLifetime = 1f;
+
+    [Header("Resource Transaction Optional")]
+    [Min(0)]
+    [SerializeField] private int resourceCost;
+
+    [Header("Spawned Turret Optional")]
+    [Tooltip("1 = authored turret attack interval. Values below 1 attack more frequently.")]
+    [SerializeField] private float spawnedTurretAttackIntervalMultiplier = 1f;
+    [Tooltip("1 = authored turret projectile damage.")]
+    [SerializeField] private float spawnedTurretDamageMultiplier = 1f;
+    [Min(0f)]
+    [SerializeField] private float spawnedTurretTauntDuration;
+    [Min(0)]
+    [SerializeField] private int spawnedTurretMaxTauntTargets;
 
     public ReinforcementEffectType EffectType => effectType;
     public float Value => value;
     public float Radius => Mathf.Max(0f, radius);
     public float Duration => Mathf.Max(0f, duration);
+    public float ConeAngle => coneAngle > 0f ? Mathf.Clamp(coneAngle, 1f, 180f) : 90f;
     public LayerMask TargetLayer => targetLayer;
     public GameObject Prefab => prefab;
     public float PrefabLifetime => Mathf.Max(0.01f, prefabLifetime);
+    public int ResourceCost => Mathf.Max(0, resourceCost);
+    public float SpawnedTurretAttackIntervalMultiplier =>
+        spawnedTurretAttackIntervalMultiplier > 0f
+            ? spawnedTurretAttackIntervalMultiplier
+            : 1f;
+    public float SpawnedTurretDamageMultiplier =>
+        spawnedTurretDamageMultiplier > 0f
+            ? spawnedTurretDamageMultiplier
+            : 1f;
+    public float SpawnedTurretTauntDuration => Mathf.Max(0f, spawnedTurretTauntDuration);
+    public int SpawnedTurretMaxTauntTargets => Mathf.Max(0, spawnedTurretMaxTauntTargets);
 }
 
 [CreateAssetMenu(menuName = "VOID SCRAPPER/Reinforcements/Reinforcement Definition")]
@@ -315,6 +359,17 @@ public static class ReinforcementEffectTextUtility
             ReinforcementEffectType.EmergencyReturn => "긴급복귀 준비를 시작한다",
             ReinforcementEffectType.TemporaryEnemyRadarJamming => $"{effect.Duration:0.#}초 동안 적 레이더 탐지 차단",
             ReinforcementEffectType.RevealEnemyVisionAndState => $"{effect.Duration:0.#}초 동안 적 시야와 경계 상태 표시",
+            ReinforcementEffectType.RevealRadarTargets => $"반경 {effect.Radius:0.#} 레이더 대상을 {effect.Duration:0.#}초 동안 표시",
+            ReinforcementEffectType.DisruptEnemyTracking => $"반경 {effect.Radius:0.#} 적 추적을 {effect.Duration:0.#}초 동안 교란",
+            ReinforcementEffectType.TemporaryScrapGainPercent => $"{effect.Duration:0.#}초 동안 스크랩 획득량 +{effect.Value:0.#}%",
+            ReinforcementEffectType.ConvertCreditsToHealing => $"크레딧 {effect.ResourceCost} 소모 / HP {effect.Value:0.#} 회복",
+            ReinforcementEffectType.TemporaryHomingAngleBonus => $"{effect.Duration:0.#}초 유도 회전각 +{effect.Value:0.#}°",
+            ReinforcementEffectType.TemporaryHomingRangeBonus => $"{effect.Duration:0.#}초 유도 탐색 거리 +{effect.Value:0.#}",
+            ReinforcementEffectType.ClearEnemyProjectilesInCone => $"전방 {effect.ConeAngle:0.#}° / 거리 {effect.Radius:0.#} 적 탄환 제거",
+            ReinforcementEffectType.DamageEnemiesInCone => $"전방 {effect.ConeAngle:0.#}° / 거리 {effect.Radius:0.#} 피해 {effect.Value:0.#}",
+            ReinforcementEffectType.TemporaryPierceCountBonus => $"{effect.Duration:0.#}초 관통 +{effect.Value:0.#}",
+            ReinforcementEffectType.TemporaryRemovePierceDamageFalloff => $"{effect.Duration:0.#}초 관통 피해 감쇠 제거",
+            ReinforcementEffectType.PlaceOrReturnToMarker => "현재 위치에 표식 설치 / 재사용 시 표식으로 복귀",
             _ => $"{effect.EffectType} {effect.Value:0.##}"
         };
     }

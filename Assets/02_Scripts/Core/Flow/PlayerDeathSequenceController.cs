@@ -75,6 +75,21 @@ public class PlayerDeathSequenceController : MonoBehaviour
             yield return new WaitForSeconds(delayBeforeResult);
         }
 
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.CurrentState == GameState.Tutorial)
+        {
+            if (SceneFlowManager.Instance != null)
+            {
+                SceneFlowManager.Instance.LoadTutorial();
+            }
+            else
+            {
+                Debug.LogError("Tutorial death could not restart because SceneFlowManager is missing.", this);
+            }
+
+            yield break;
+        }
+
         if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
         {
             RunManager.Instance.CompleteRun(deathReason);

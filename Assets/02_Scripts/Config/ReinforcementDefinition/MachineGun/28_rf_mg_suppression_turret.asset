@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_mg_suppression_turret"
   displayName: "\uc81c\uc555 \ud3ec\ud0d1"
-  description: "\uae30\uad00\ucd1d \uae30\uccb4 \uc804\uc6a9. \ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \uae34 \uc9c0\uc18d\uc2dc\uac04\uc758 \uc5f0\uc0ac\ub825 \ubc84\ud504\ub85c \ub3d9\uc791\ud55c\ub2e4."
+  description: "기관총 기체 전용. 12초 동안 빠른 점사로 위협적인 적을 제압하는 아군 포탑을 배치한다."
   icon: {fileID: 21300000, guid: c51c62a6aee3365ec3ca70ff44184baf, type: 3}
   rarity: 2
   rarityPriceMultiplier: 0
@@ -29,12 +29,16 @@ MonoBehaviour:
   startWithFullCharges: 1
   rechargeSeconds: 30
   effects:
-  - effectType: 7
-    value: 25
+  - effectType: 10
+    value: 0
     radius: 0
     duration: 12
     targetLayer:
       serializedVersion: 2
       m_Bits: 0
-    prefab: {fileID: 0}
-    prefabLifetime: 1
+    prefab: {fileID: 8700428605217978792, guid: 8db03852a862c7b4eaa4588bbf521bbd, type: 3}
+    prefabLifetime: 12
+    spawnedTurretAttackIntervalMultiplier: 0.5
+    spawnedTurretDamageMultiplier: 1
+    spawnedTurretTauntDuration: 0
+    spawnedTurretMaxTauntTargets: 0

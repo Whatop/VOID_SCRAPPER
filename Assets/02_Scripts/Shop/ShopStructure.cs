@@ -112,15 +112,8 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     private readonly Collider2D[] projectileBuffer = new Collider2D[128];
     private readonly Collider2D[] knockbackBuffer = new Collider2D[96];
 
-    [Header("Maintenance Field Drop")]
     [SerializeField] private ReinforcementPickup reinforcementPickupPrefab;
     [SerializeField] private Transform reinforcementDropPoint;
-    [Min(0.1f)]
-    [SerializeField] private float fallbackReinforcementDropDistance = 1.25f;
-    [SerializeField] private bool createVisibleFallbackPickupWhenPrefabMissing = true;
-    [SerializeField] private string fallbackPickupLayerName = "Interactable";
-    [SerializeField] private string fallbackPickupSortingLayerName = "Default";
-    [SerializeField] private int fallbackPickupSortingOrder = 20;
 
  
     public string DisplayName => displayName;
@@ -265,106 +258,40 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
             return false;
         }
 
-        Vector3 dropPosition = ResolveReinforcementDropPosition();
-        ReinforcementPickup pickup = reinforcementPickupPrefab != null
-            ? Instantiate(reinforcementPickupPrefab, dropPosition, Quaternion.identity)
-            : CreateFallbackReinforcementPickup(definition, dropPosition);
+        Vector3 dropPosition = reinforcementDropPoint != null
+            ? reinforcementDropPoint.position
+            : transform.position + Vector3.down;
+
+        ReinforcementPickup pickup = null;
+
+        if (reinforcementPickupPrefab != null)
+        {
+            pickup = Instantiate(reinforcementPickupPrefab, dropPosition, Quaternion.identity);
+        }
+        else
+        {
+            GameObject pickupObject = new GameObject($"ReinforcementPickup_{definition.EquipmentId}");
+            pickupObject.transform.position = dropPosition;
+
+            CircleCollider2D collider = pickupObject.AddComponent<CircleCollider2D>();
+            collider.isTrigger = true;
+            collider.radius = 0.45f;
+
+            Rigidbody2D rigidbody2D = pickupObject.AddComponent<Rigidbody2D>();
+            rigidbody2D.gravityScale = 0f;
+            rigidbody2D.bodyType = RigidbodyType2D.Kinematic;
+
+            pickupObject.AddComponent<SpriteRenderer>();
+            pickup = pickupObject.AddComponent<ReinforcementPickup>();
+        }
 
         if (pickup == null)
         {
-            Debug.LogWarning(
-                $"[{name}] ReinforcementPickup 프리팹이 없고 fallback 생성도 비활성화되어 필드 드랍에 실패했습니다.",
-                this
-            );
             return false;
         }
 
-        GameObject pickupObject = pickup.gameObject;
-        pickupObject.transform.SetPositionAndRotation(dropPosition, Quaternion.identity);
-
-        if (!pickupObject.activeSelf)
-        {
-            pickupObject.SetActive(true);
-        }
-
-        pickup.Initialize(definition, charges, 0.35f);
-        AudioManager.PlayAt(SoundEventIds.ReinforcementDrop, dropPosition);
+        pickup.Initialize(definition, charges, 0.5f);
         return true;
-    }
-
-    private Vector3 ResolveReinforcementDropPosition()
-    {
-        if (reinforcementDropPoint != null)
-        {
-            return reinforcementDropPoint.position;
-        }
-
-        GameObject playerObject = FindPlayerObject();
-
-        if (playerObject == null)
-        {
-            return transform.position + Vector3.down * Mathf.Max(0.1f, fallbackReinforcementDropDistance);
-        }
-
-        Vector2 direction = (Vector2)playerObject.transform.position - (Vector2)transform.position;
-
-        if (direction.sqrMagnitude <= 0.001f)
-        {
-            direction = Vector2.down;
-        }
-
-        return playerObject.transform.position +
-               (Vector3)(direction.normalized * Mathf.Max(0.1f, fallbackReinforcementDropDistance));
-    }
-
-    private ReinforcementPickup CreateFallbackReinforcementPickup(
-        ReinforcementDefinition definition,
-        Vector3 position)
-    {
-        if (!createVisibleFallbackPickupWhenPrefabMissing)
-        {
-            return null;
-        }
-
-        GameObject pickupObject = new GameObject($"ReinforcementPickup_{definition.EquipmentId}");
-        pickupObject.transform.position = position;
-
-        int interactableLayer = LayerMask.NameToLayer(fallbackPickupLayerName);
-        if (interactableLayer >= 0)
-        {
-            pickupObject.layer = interactableLayer;
-        }
-
-        CircleCollider2D collider = pickupObject.AddComponent<CircleCollider2D>();
-        collider.isTrigger = true;
-        collider.radius = 0.5f;
-
-        Rigidbody2D rigidbody2D = pickupObject.AddComponent<Rigidbody2D>();
-        rigidbody2D.gravityScale = 0f;
-        rigidbody2D.bodyType = RigidbodyType2D.Kinematic;
-        rigidbody2D.simulated = true;
-
-        GameObject iconObject = new GameObject("Icon");
-        iconObject.transform.SetParent(pickupObject.transform, false);
-        iconObject.layer = pickupObject.layer;
-
-        SpriteRenderer iconRenderer = iconObject.AddComponent<SpriteRenderer>();
-        iconRenderer.sprite = definition.Icon;
-        iconRenderer.color = Color.white;
-        iconRenderer.sortingLayerName = fallbackPickupSortingLayerName;
-        iconRenderer.sortingOrder = fallbackPickupSortingOrder;
-
-        ReinforcementPickup pickup = pickupObject.AddComponent<ReinforcementPickup>();
-
-        if (definition.Icon == null)
-        {
-            Debug.LogWarning(
-                $"[{name}] {definition.DisplayName} 아이콘이 비어 있어 fallback 필드 드랍이 보이지 않을 수 있습니다.",
-                definition
-            );
-        }
-
-        return pickup;
     }
 
     public static void SyncGlobalHostilityFromRun()
@@ -573,6 +500,23 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         }
 
         warningRoutine = StartCoroutine(WarningRecoverRoutine());
+    }
+
+    public void NotifyDefenseDamageWarning(string message)
+    {
+        if (CurrentState == ShopStructureState.Dead || globalHostile)
+        {
+            return;
+        }
+
+        bool firstWarning = CurrentState != ShopStructureState.Warning;
+        EnterWarningState();
+
+        if (firstWarning && !string.IsNullOrWhiteSpace(message))
+        {
+            ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+            hud?.ShowWarning(message);
+        }
     }
 
     private IEnumerator WarningRecoverRoutine()

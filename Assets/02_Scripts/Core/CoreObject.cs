@@ -87,9 +87,12 @@ public class CoreObject : MonoBehaviour, IInteractable
     private Renderer[] objectiveGateRenderers;
     private bool[] objectiveGateColliderStates;
     private bool[] objectiveGateRendererStates;
+    private bool trackingLockOverrideActive;
+    private bool trackingLocked;
 
     public bool IsLocationRevealed => IsCoreLocationRevealed();
     public bool IsInteractionUnlocked => IsObjectiveGateSatisfied();
+    public RadarTarget RadarTarget => radarTarget;
 
     public string InteractionText
     {
@@ -669,6 +672,11 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     private bool IsObjectiveGateSatisfied()
     {
+        if (trackingLockOverrideActive)
+        {
+            return !trackingLocked;
+        }
+
         if (!requireObjectiveSignals || objectiveSignalsRevealLocationOnly)
         {
             return true;
@@ -689,6 +697,11 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     private bool IsCoreLocationRevealed()
     {
+        if (trackingLockOverrideActive)
+        {
+            return !trackingLocked;
+        }
+
         if (!requireObjectiveSignals)
         {
             return true;
@@ -714,7 +727,7 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     private void TryDirectWorldDiscovery()
     {
-        if (!Application.isPlaying || activated || directLocationDiscovered || !allowDirectWorldDiscovery)
+        if (trackingLockOverrideActive || !Application.isPlaying || activated || directLocationDiscovered || !allowDirectWorldDiscovery)
         {
             return;
         }
@@ -739,6 +752,11 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     public void MarkCoreLocationDiscovered(bool notifyPlayer = true)
     {
+        if (trackingLockOverrideActive && trackingLocked)
+        {
+            return;
+        }
+
         bool wasRevealed = IsCoreLocationRevealed();
         directLocationDiscovered = true;
 
@@ -756,6 +774,19 @@ public class CoreObject : MonoBehaviour, IInteractable
             hud?.ShowWarning(directDiscoveryMessage);
             AudioManager.Play(SoundEventIds.UiUnlock);
         }
+    }
+
+    public void SetTrackingLocked(bool locked)
+    {
+        trackingLockOverrideActive = true;
+        trackingLocked = locked;
+
+        if (locked)
+        {
+            directLocationDiscovered = false;
+        }
+
+        ApplyObjectiveGateState();
     }
 
     private void ApplyObjectiveGateState()

@@ -56,6 +56,51 @@ public class ExpandingPulseRing2D : MonoBehaviour
         return pulse;
     }
 
+    public static ExpandingPulseRing2D SpawnCone(
+        Vector3 position,
+        Vector2 direction,
+        Color pulseColor,
+        float pulseDuration,
+        float pulseStartRadius,
+        float pulseEndRadius,
+        float fullAngle,
+        float pulseStartWidth,
+        float pulseEndWidth,
+        int segmentCount,
+        string sortingLayerName,
+        int sortingOrder,
+        Material materialOverride = null,
+        AnimationCurve curve = null,
+        bool useUnscaled = true)
+    {
+        GameObject instance = new GameObject("Runtime_DirectionalConePulse2D");
+        instance.transform.position = position;
+
+        Vector2 normalizedDirection = direction.sqrMagnitude > 0.001f
+            ? direction.normalized
+            : Vector2.up;
+        float angle = Mathf.Atan2(normalizedDirection.y, normalizedDirection.x) * Mathf.Rad2Deg;
+        instance.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+
+        ExpandingPulseRing2D pulse = instance.AddComponent<ExpandingPulseRing2D>();
+        pulse.InitializeCone(
+            pulseColor,
+            pulseDuration,
+            pulseStartRadius,
+            pulseEndRadius,
+            fullAngle,
+            pulseStartWidth,
+            pulseEndWidth,
+            segmentCount,
+            sortingLayerName,
+            sortingOrder,
+            materialOverride,
+            curve,
+            useUnscaled
+        );
+        return pulse;
+    }
+
     public void Initialize(
         Color pulseColor,
         float pulseDuration,
@@ -83,6 +128,45 @@ public class ExpandingPulseRing2D : MonoBehaviour
 
         EnsureLineRenderer(
             Mathf.Clamp(segmentCount, 12, 128),
+            sortingLayerName,
+            sortingOrder,
+            materialOverride
+        );
+
+        elapsed = 0f;
+        initialized = true;
+        ApplyVisual(0f);
+    }
+
+    public void InitializeCone(
+        Color pulseColor,
+        float pulseDuration,
+        float pulseStartRadius,
+        float pulseEndRadius,
+        float fullAngle,
+        float pulseStartWidth,
+        float pulseEndWidth,
+        int segmentCount,
+        string sortingLayerName,
+        int sortingOrder,
+        Material materialOverride = null,
+        AnimationCurve curve = null,
+        bool useUnscaled = true)
+    {
+        duration = Mathf.Max(0.05f, pulseDuration);
+        startRadius = Mathf.Max(0.01f, pulseStartRadius);
+        endRadius = Mathf.Max(startRadius, pulseEndRadius);
+        startWidth = Mathf.Max(0.001f, pulseStartWidth);
+        endWidth = Mathf.Max(0.001f, pulseEndWidth);
+        color = pulseColor;
+        expansionCurve = curve != null && curve.length > 0
+            ? curve
+            : AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        useUnscaledTime = useUnscaled;
+
+        EnsureConeLineRenderer(
+            Mathf.Clamp(segmentCount, 4, 64),
+            Mathf.Clamp(fullAngle, 1f, 180f),
             sortingLayerName,
             sortingOrder,
             materialOverride
@@ -141,6 +225,45 @@ public class ExpandingPulseRing2D : MonoBehaviour
             float radians = i / (float)segmentCount * Mathf.PI * 2f;
             lineRenderer.SetPosition(i, new Vector3(Mathf.Cos(radians), Mathf.Sin(radians), 0f));
         }
+    }
+
+    private void EnsureConeLineRenderer(
+        int segmentCount,
+        float fullAngle,
+        string sortingLayerName,
+        int sortingOrder,
+        Material materialOverride)
+    {
+        if (lineRenderer == null)
+        {
+            lineRenderer = gameObject.AddComponent<LineRenderer>();
+        }
+
+        lineRenderer.useWorldSpace = false;
+        lineRenderer.loop = false;
+        lineRenderer.positionCount = segmentCount + 3;
+        lineRenderer.numCapVertices = 2;
+        lineRenderer.numCornerVertices = 2;
+        lineRenderer.textureMode = LineTextureMode.Stretch;
+        lineRenderer.alignment = LineAlignment.TransformZ;
+        lineRenderer.sortingLayerName = string.IsNullOrWhiteSpace(sortingLayerName)
+            ? "Default"
+            : sortingLayerName;
+        lineRenderer.sortingOrder = sortingOrder;
+        lineRenderer.sharedMaterial = materialOverride != null
+            ? materialOverride
+            : GetRuntimeMaterial();
+
+        lineRenderer.SetPosition(0, Vector3.zero);
+        float halfAngle = fullAngle * 0.5f;
+
+        for (int i = 0; i <= segmentCount; i++)
+        {
+            float radians = Mathf.Lerp(-halfAngle, halfAngle, i / (float)segmentCount) * Mathf.Deg2Rad;
+            lineRenderer.SetPosition(i + 1, new Vector3(Mathf.Cos(radians), Mathf.Sin(radians), 0f));
+        }
+
+        lineRenderer.SetPosition(segmentCount + 2, Vector3.zero);
     }
 
     private void ApplyVisual(float normalized)

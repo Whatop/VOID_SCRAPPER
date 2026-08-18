@@ -122,6 +122,7 @@ public class ShopTradeUI : MonoBehaviour
             root = gameObject;
         }
 
+        ConfigureShopTypography();
         BindButtons();
         ConfigureExplicitResultButtonSound(buyButton);
         ConfigureExplicitResultButtonSound(exitButton);
@@ -130,6 +131,105 @@ public class ShopTradeUI : MonoBehaviour
         {
             root.SetActive(false);
         }
+    }
+
+    private void ConfigureShopTypography()
+    {
+        ConfigureShopName(itemNameText, false);
+        ConfigureShopBody(conditionText, false, 6.5f);
+        ConfigureShopBody(bodyText, true, 6.5f);
+        ConfigureShopBody(priceText, false, 6.5f);
+        ConfigureShopBody(stateText, false, 6.5f);
+        ConfigureShopBody(selectedItemLabelText, false, 6f);
+        ConfigureShopBody(currentActiveNameText, false, 6.5f);
+        ConfigureShopBody(currentActiveTypeText, false, 5.5f);
+        ConfigureShopBody(buyButtonText, false, 7f);
+
+        ConfigureShopCardName(repairButtonText);
+        ConfigureShopCardName(repairButtonNameText);
+        ConfigureShopTextArray(reinforcementButtonTexts, true);
+        ConfigureShopTextArray(reinforcementButtonNameTexts, true);
+        ConfigureShopTextArray(traitButtonTexts, true);
+        ConfigureShopTextArray(traitButtonNameTexts, true);
+        ConfigureShopTextArray(reinforcementButtonPriceTexts, false);
+        ConfigureShopTextArray(traitButtonPriceTexts, false);
+        ConfigureShopBody(repairButtonPriceText, false, 6f);
+    }
+
+    private static void ConfigureShopTextArray(TextMeshProUGUI[] texts, bool cardName)
+    {
+        if (texts == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < texts.Length; i++)
+        {
+            if (cardName)
+            {
+                ConfigureShopCardName(texts[i]);
+            }
+            else
+            {
+                ConfigureShopBody(texts[i], false, 6f);
+            }
+        }
+    }
+
+    private static void ConfigureShopCardName(TextMeshProUGUI text)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        RectTransform rect = text.rectTransform;
+        float heightDelta = Mathf.Approximately(rect.anchorMin.y, rect.anchorMax.y)
+            ? Mathf.Max(12f, rect.sizeDelta.y)
+            : rect.sizeDelta.y;
+        rect.sizeDelta = new Vector2(-12f, heightDelta);
+        ConfigureShopName(text, true);
+    }
+
+    private static void ConfigureShopName(TextMeshProUGUI text, bool compactCard)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        if (!compactCard)
+        {
+            RectTransform rect = text.rectTransform;
+            if (Mathf.Approximately(rect.anchorMin.y, rect.anchorMax.y))
+            {
+                rect.sizeDelta = new Vector2(rect.sizeDelta.x, Mathf.Max(12f, rect.sizeDelta.y));
+            }
+        }
+
+        text.fontSize = compactCard ? 8f : 9f;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = compactCard ? 5.5f : 6f;
+        text.fontSizeMax = compactCard ? 8f : 9f;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.raycastTarget = false;
+    }
+
+    private static void ConfigureShopBody(TextMeshProUGUI text, bool wrap, float maximumSize)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.fontSize = maximumSize;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 5f;
+        text.fontSizeMax = maximumSize;
+        text.textWrappingMode = wrap ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.raycastTarget = false;
     }
 
     private void OnDisable()

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_hunter_jammer"
   displayName: "\ucd94\uc801 \uad50\ub780\uae30"
-  description: "\uc8fc\ubcc0 \uc801\uc744 \ubc00\uccd0\ub0b4\uace0 \ud0c4\ub9c9\uc744 \uc81c\uac70\ud55c\ub2e4. \ucd94\uc801 \uc555\ubc15 \ud574\uc81c\uc6a9\uc774\ub2e4."
+  description: "\ubc18\uacbd 5 \ub0b4\uc758 \ucd94\uc801 \uc911\uc778 \uc77c\ubc18 \uc801\uc744 4\ucd08 \ub3d9\uc548 \uad50\ub780\ud574 \ub9c8\uc9c0\ub9c9 \ud655\uc778 \uc704\uce58\ub97c \uc218\uc0c9\ud558\uac8c \ud569\ub2c8\ub2e4. \uc8fc\ubcc0 \uc801\uc744 \ubc00\uccd0\ub0b4\uace0 \ubc18\uacbd 4\uc758 \uc801 \ud0c4\ud658\uc744 \uc81c\uac70\ud569\ub2c8\ub2e4."
   icon: {fileID: 21300000, guid: de4db88c4437bc323bfd9373779da962, type: 3}
   rarity: 1
   rarityPriceMultiplier: 0
@@ -42,6 +42,15 @@ MonoBehaviour:
     value: 1
     radius: 4
     duration: 0
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
+    prefab: {fileID: 0}
+    prefabLifetime: 1
+  - effectType: 15
+    value: 1
+    radius: 5
+    duration: 4
     targetLayer:
       serializedVersion: 2
       m_Bits: 0

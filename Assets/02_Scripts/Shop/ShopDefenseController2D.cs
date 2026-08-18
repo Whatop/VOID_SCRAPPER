@@ -62,6 +62,12 @@ public class ShopDefenseController2D : MonoBehaviour
     [SerializeField] private EnemyDefinition[] turretAttackDefinitions;
     [SerializeField] private bool cycleTurretAttackDefinitions = true;
 
+    [Header("Accidental Turret Damage Tolerance")]
+    [Min(0.1f)]
+    [SerializeField] private float turretHostilityDamageThreshold = 3f;
+    [Min(0.1f)]
+    [SerializeField] private float turretDamageMemorySeconds = 2.5f;
+
     [Header("Turret Count by Region")]
     [Min(0)]
     [SerializeField] private int region1TurretCount = 4;
@@ -109,6 +115,8 @@ public class ShopDefenseController2D : MonoBehaviour
     [SerializeField] private bool logDefenseSetup;
 
     private readonly List<GameObject> activeDrones = new List<GameObject>();
+    private readonly Dictionary<EnemyHealth, float> trackedTurretHealth =
+        new Dictionary<EnemyHealth, float>();
 
     private Transform combatTarget;
     private bool combatActive;
@@ -117,6 +125,8 @@ public class ShopDefenseController2D : MonoBehaviour
     private float summonAngleCursor;
     private bool spawned;
     private int turretDefinitionCursor;
+    private float recentTurretDamage;
+    private float lastTurretDamageTime = float.NegativeInfinity;
 
     public bool CombatActive => combatActive;
 
@@ -137,6 +147,7 @@ public class ShopDefenseController2D : MonoBehaviour
 
     private void OnEnable()
     {
+        ResetTurretDamageTolerance();
         SubscribePowerNodes(true);
 
         if (shopOwner != null)
@@ -172,6 +183,7 @@ public class ShopDefenseController2D : MonoBehaviour
 
         SetCombatActive(false, null);
         SubscribeRuntimeTurretDamage(false);
+        ResetTurretDamageTolerance();
     }
 
     private void Update()
@@ -333,8 +345,10 @@ public class ShopDefenseController2D : MonoBehaviour
 
             if (turret.TurretHealth != null)
             {
-                turret.TurretHealth.Damaged -= HandleShopTurretDamaged;
-                turret.TurretHealth.Damaged += HandleShopTurretDamaged;
+                EnemyHealth health = turret.TurretHealth;
+                health.HealthChanged -= HandleShopTurretHealthChanged;
+                trackedTurretHealth[health] = health.CurrentHp;
+                health.HealthChanged += HandleShopTurretHealthChanged;
             }
 
             turret.SetPowered(IsGroupPowered(group));
@@ -436,9 +450,43 @@ public class ShopDefenseController2D : MonoBehaviour
         group.RuntimeLinks.Add(link);
     }
 
-    private void HandleShopTurretDamaged(EnemyHealth _)
+    private void HandleShopTurretHealthChanged(EnemyHealth health, float currentHp, float _)
     {
-        shopOwner?.ForceHostileFromDefenseSabotage("상점 방어 포탑");
+        if (health == null || shopOwner == null || shopOwner.IsDead)
+        {
+            return;
+        }
+
+        if (!trackedTurretHealth.TryGetValue(health, out float previousHp))
+        {
+            trackedTurretHealth[health] = currentHp;
+            return;
+        }
+
+        trackedTurretHealth[health] = currentHp;
+        float damage = Mathf.Max(0f, previousHp - currentHp);
+        if (damage <= 0f)
+        {
+            return;
+        }
+
+        float memory = Mathf.Max(0.1f, turretDamageMemorySeconds);
+        if (Time.time - lastTurretDamageTime > memory)
+        {
+            recentTurretDamage = 0f;
+        }
+
+        lastTurretDamageTime = Time.time;
+        recentTurretDamage += damage;
+
+        if (recentTurretDamage + 0.001f >= Mathf.Max(0.1f, turretHostilityDamageThreshold))
+        {
+            recentTurretDamage = 0f;
+            shopOwner.ForceHostileFromDefenseSabotage("상점 방어 포탑");
+            return;
+        }
+
+        shopOwner.NotifyDefenseDamageWarning("상점 경비: 방어 설비 공격을 중단하십시오.");
     }
 
     private void HandlePowerNodeDisabled(FieldBaseSecurityNode disabledNode)
@@ -792,14 +840,26 @@ public class ShopDefenseController2D : MonoBehaviour
                     continue;
                 }
 
-                health.Damaged -= HandleShopTurretDamaged;
+                health.HealthChanged -= HandleShopTurretHealthChanged;
 
                 if (subscribe)
                 {
-                    health.Damaged += HandleShopTurretDamaged;
+                    trackedTurretHealth[health] = health.CurrentHp;
+                    health.HealthChanged += HandleShopTurretHealthChanged;
+                }
+                else
+                {
+                    trackedTurretHealth.Remove(health);
                 }
             }
         }
+    }
+
+    private void ResetTurretDamageTolerance()
+    {
+        trackedTurretHealth.Clear();
+        recentTurretDamage = 0f;
+        lastTurretDamageTime = float.NegativeInfinity;
     }
 
     private void EnsureRuntimeRoots()

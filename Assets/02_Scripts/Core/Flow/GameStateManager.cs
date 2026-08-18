@@ -40,7 +40,9 @@ public class GameStateManager : MonoBehaviour
 
     public bool IsGameplayState()
     {
-        return currentState == GameState.Expedition || currentState == GameState.BossBattle;
+        return currentState == GameState.Expedition ||
+               currentState == GameState.BossBattle ||
+               currentState == GameState.Tutorial;
     }
 
     public bool IsInteractionLocked()

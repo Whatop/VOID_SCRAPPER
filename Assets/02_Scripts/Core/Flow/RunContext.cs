@@ -35,10 +35,15 @@ public class RunContext
     [SerializeField] private float emergencyReturnCapacityRatio = 0.7f;
     [SerializeField] private int scrapCargoWeight = 1;
     [SerializeField] private int coreShardCargoWeight = 12;
+    [SerializeField] private int stabilizedAlloyCargoWeight = 2;
 
     [Header("Campaign Boss Passive Runtime")]
     [SerializeField] private int matterReconstructorCargoProgress;
     [SerializeField] private int matterReconstructorArmorStacks;
+
+    [NonSerialized] private bool hasPlayerVitalCarryover;
+    [NonSerialized] private float carriedPlayerHp;
+    [NonSerialized] private float carriedPlayerArmor;
 
     public bool IsActive => isActive;
     public WeaponTreeType SelectedWeaponTree => selectedWeaponTree;
@@ -72,15 +77,18 @@ public class RunContext
     public float EmergencyReturnCapacityRatio => Mathf.Clamp01(emergencyReturnCapacityRatio);
     public int ScrapCargoWeight => Mathf.Max(1, scrapCargoWeight);
     public int CoreShardCargoWeight => Mathf.Max(1, coreShardCargoWeight);
+    public int StabilizedAlloyCargoWeight => Mathf.Max(1, stabilizedAlloyCargoWeight);
     public int CurrentCargoLoad => CalculateCargoLoad(
         wallet != null ? wallet.PendingScrapParts : 0,
-        wallet != null ? wallet.PendingCoreShards : 0
+        wallet != null ? wallet.PendingCoreShards : 0,
+        wallet != null ? wallet.PendingStabilizedAlloy : 0
     );
     public float CargoRatio => MaxCargoCapacity <= 0
         ? 0f
         : Mathf.Clamp01(CurrentCargoLoad / (float)MaxCargoCapacity);
     public int MatterReconstructorCargoProgress => Mathf.Max(0, matterReconstructorCargoProgress);
     public int MatterReconstructorArmorStacks => Mathf.Max(0, matterReconstructorArmorStacks);
+    public bool HasPlayerVitalCarryover => hasPlayerVitalCarryover;
 
     public RunContext()
     {
@@ -140,6 +148,7 @@ public class RunContext
         ResetCargoRule();
         matterReconstructorCargoProgress = 0;
         matterReconstructorArmorStacks = 0;
+        ClearPlayerVitalCarryover();
         wallet.Clear();
     }
 
@@ -162,6 +171,32 @@ public class RunContext
     public void SetSeaRegion(SeaRegionType selectedSeaRegionType)
     {
         seaRegionType = selectedSeaRegionType;
+    }
+
+    public void CapturePlayerVitals(float currentHp, float currentArmor)
+    {
+        if (!isActive)
+        {
+            return;
+        }
+
+        carriedPlayerHp = Mathf.Max(0f, currentHp);
+        carriedPlayerArmor = Mathf.Max(0f, currentArmor);
+        hasPlayerVitalCarryover = true;
+    }
+
+    public bool TryGetPlayerVitalCarryover(out float currentHp, out float currentArmor)
+    {
+        currentHp = carriedPlayerHp;
+        currentArmor = carriedPlayerArmor;
+        return hasPlayerVitalCarryover;
+    }
+
+    public void ClearPlayerVitalCarryover()
+    {
+        hasPlayerVitalCarryover = false;
+        carriedPlayerHp = 0f;
+        carriedPlayerArmor = 0f;
     }
 
     public void SetLevel(int level)
@@ -304,20 +339,28 @@ public class RunContext
         emergencyReturnCapacityRatio = 0.7f;
         scrapCargoWeight = 1;
         coreShardCargoWeight = 12;
+        stabilizedAlloyCargoWeight = 2;
     }
 
-    public void SetCargoRule(int capacity, float emergencyRatio, int scrapWeight = 1, int coreWeight = 12)
+    public void SetCargoRule(
+        int capacity,
+        float emergencyRatio,
+        int scrapWeight = 1,
+        int coreWeight = 12,
+        int alloyWeight = 2)
     {
         maxCargoCapacity = Mathf.Max(1, capacity);
         emergencyReturnCapacityRatio = Mathf.Clamp01(emergencyRatio);
         scrapCargoWeight = Mathf.Max(1, scrapWeight);
         coreShardCargoWeight = Mathf.Max(1, coreWeight);
+        stabilizedAlloyCargoWeight = Mathf.Max(1, alloyWeight);
     }
 
-    public int CalculateCargoLoad(int scrapParts, int coreShards)
+    public int CalculateCargoLoad(int scrapParts, int coreShards, int stabilizedAlloy = 0)
     {
         return Mathf.Max(0, scrapParts) * ScrapCargoWeight +
-               Mathf.Max(0, coreShards) * CoreShardCargoWeight;
+               Mathf.Max(0, coreShards) * CoreShardCargoWeight +
+               Mathf.Max(0, stabilizedAlloy) * StabilizedAlloyCargoWeight;
     }
 
     public int GetCargoWeight(CurrencyType currencyType)
@@ -326,6 +369,7 @@ public class RunContext
         {
             CurrencyType.ScrapParts => ScrapCargoWeight,
             CurrencyType.CoreShards => CoreShardCargoWeight,
+            CurrencyType.StabilizedAlloy => StabilizedAlloyCargoWeight,
             _ => 0
         };
     }
@@ -413,6 +457,7 @@ public class RunContext
 
     public void End()
     {
+        ClearPlayerVitalCarryover();
         isActive = false;
     }
 }
@@ -437,12 +482,15 @@ public class RunResultData
 
     public int collectedScrapParts;
     public int collectedCoreShards;
+    public int collectedStabilizedAlloy;
 
     public int committedScrapParts;
     public int committedCoreShards;
+    public int committedStabilizedAlloy;
 
     public int lostScrapParts;
     public int lostCoreShards;
+    public int lostStabilizedAlloy;
 
     public int maxCargoCapacity;
     public int collectedCargoLoad;

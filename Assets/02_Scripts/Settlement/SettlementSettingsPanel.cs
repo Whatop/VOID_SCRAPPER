@@ -18,11 +18,11 @@ public class SettlementSettingsPanel : MonoBehaviour
 
     [Header("Audio Mixer Optional")]
     [SerializeField] private AudioMixer audioMixer;
-    [SerializeField] private string masterVolumeParameter = "MasterVolume";
-    [SerializeField] private string bgmVolumeParameter = "BGMVolume";
-    [SerializeField] private string sfxVolumeParameter = "SFXVolume";
-    [SerializeField] private string ambientVolumeParameter = "AmbientVolume";
-    [SerializeField] private string uiVolumeParameter = "UIVolume";
+    [SerializeField] private string masterVolumeParameter = "Master";
+    [SerializeField] private string bgmVolumeParameter = "BG";
+    [SerializeField] private string sfxVolumeParameter = "SFX";
+    [SerializeField] private string ambientVolumeParameter;
+    [SerializeField] private string uiVolumeParameter = "UI";
 
     [Header("Sound - Immediate Apply")]
     [SerializeField] private Slider masterVolumeSlider;
@@ -92,6 +92,10 @@ public class SettlementSettingsPanel : MonoBehaviour
     private const string VSyncKey = "settings_vsync";
     private const string FrameLimitKey = "settings_frame_limit";
 
+    public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
+    public bool IsScreenConfirmationVisible =>
+        screenConfirmRoot != null && screenConfirmRoot.activeSelf;
+
     private void Awake()
     {
         if (panelRoot == null)
@@ -143,27 +147,27 @@ public class SettlementSettingsPanel : MonoBehaviour
 
     public void SetMasterVolume(float value)
     {
-        ApplyAudioVolume(value, MasterVolumeKey, masterVolumeParameter, true);
+        ApplyAudioVolume(value, MasterVolumeKey, masterVolumeParameter);
     }
 
     public void SetBgmVolume(float value)
     {
-        ApplyAudioVolume(value, BgmVolumeKey, bgmVolumeParameter, false);
+        ApplyAudioVolume(value, BgmVolumeKey, bgmVolumeParameter);
     }
 
     public void SetSfxVolume(float value)
     {
-        ApplyAudioVolume(value, SfxVolumeKey, sfxVolumeParameter, false);
+        ApplyAudioVolume(value, SfxVolumeKey, sfxVolumeParameter);
     }
 
     public void SetAmbientVolume(float value)
     {
-        ApplyAudioVolume(value, AmbientVolumeKey, ambientVolumeParameter, false);
+        ApplyAudioVolume(value, AmbientVolumeKey, ambientVolumeParameter);
     }
 
     public void SetUiVolume(float value)
     {
-        ApplyAudioVolume(value, UiVolumeKey, uiVolumeParameter, false);
+        ApplyAudioVolume(value, UiVolumeKey, uiVolumeParameter);
     }
 
     public void SetShowHudHints(bool value)
@@ -318,6 +322,103 @@ public class SettlementSettingsPanel : MonoBehaviour
         RefreshScreenControlsWithoutNotify();
     }
 
+    public bool TryCancelScreenConfirmation()
+    {
+        if (!IsScreenConfirmationVisible)
+        {
+            return false;
+        }
+
+        RevertScreenSettings();
+        return true;
+    }
+
+    public void ConfigurePanel(
+        GameObject root,
+        SettingsMenuTabController tabs)
+    {
+        panelRoot = root;
+        tabController = tabs;
+    }
+
+    public void ConfigureAudio(
+        AudioMixer mixer,
+        Slider master,
+        Slider bgm,
+        Slider sfx,
+        Slider ambient,
+        Slider ui)
+    {
+        audioMixer = mixer;
+        masterVolumeSlider = master;
+        bgmVolumeSlider = bgm;
+        sfxVolumeSlider = sfx;
+        ambientVolumeSlider = ambient;
+        uiVolumeSlider = ui;
+    }
+
+    public void ConfigureGameplay(
+        Toggle showHints,
+        Slider cameraShake,
+        Slider warningOpacity)
+    {
+        showHudHintsToggle = showHints;
+        cameraShakeSlider = cameraShake;
+        warningOpacitySlider = warningOpacity;
+    }
+
+    public void ConfigureControls(
+        InputActionAsset actions,
+        Button resetAllButton,
+        InputRebindButtonUI[] rows)
+    {
+        inputActions = actions;
+        resetAllBindingsButton = resetAllButton;
+        rebindRows = rows;
+    }
+
+    public void ConfigureDisplay(
+        TMP_Dropdown resolutions,
+        TMP_Dropdown fullScreenModes,
+        Toggle vSync,
+        TMP_Dropdown frameLimits,
+        Button applyButton,
+        GameObject confirmationRoot,
+        TextMeshProUGUI confirmationText,
+        Button confirmButton,
+        Button revertButton)
+    {
+        resolutionDropdown = resolutions;
+        fullScreenModeDropdown = fullScreenModes;
+        vSyncToggle = vSync;
+        frameLimitDropdown = frameLimits;
+        applyScreenButton = applyButton;
+        screenConfirmRoot = confirmationRoot;
+        screenConfirmCountdownText = confirmationText;
+        confirmScreenButton = confirmButton;
+        revertScreenButton = revertButton;
+    }
+
+    public void InitializeConfiguredUi()
+    {
+        bool bindAfterInitialization = isActiveAndEnabled;
+
+        if (bindAfterInitialization)
+        {
+            UnbindButtonsAndControls();
+        }
+
+        initialized = false;
+        InitializeSettings();
+        ConfigureButtonSounds();
+        SetConfirmVisible(false);
+
+        if (bindAfterInitialization)
+        {
+            BindButtonsAndControls();
+        }
+    }
+
     public void ResetAllBindings()
     {
         InputBindingPersistence.ResetAll(inputActions);
@@ -376,11 +477,11 @@ public class SettlementSettingsPanel : MonoBehaviour
         SetSliderWithoutNotify(cameraShakeSlider, GameSettingsRuntime.CameraShakeMultiplier);
         SetSliderWithoutNotify(warningOpacitySlider, GameSettingsRuntime.WarningOpacity);
 
-        ApplyAudioVolume(master, MasterVolumeKey, masterVolumeParameter, true);
-        ApplyAudioVolume(bgm, BgmVolumeKey, bgmVolumeParameter, false);
-        ApplyAudioVolume(sfx, SfxVolumeKey, sfxVolumeParameter, false);
-        ApplyAudioVolume(ambient, AmbientVolumeKey, ambientVolumeParameter, false);
-        ApplyAudioVolume(ui, UiVolumeKey, uiVolumeParameter, false);
+        ApplyAudioVolume(master, MasterVolumeKey, masterVolumeParameter);
+        ApplyAudioVolume(bgm, BgmVolumeKey, bgmVolumeParameter);
+        ApplyAudioVolume(sfx, SfxVolumeKey, sfxVolumeParameter);
+        ApplyAudioVolume(ambient, AmbientVolumeKey, ambientVolumeParameter);
+        ApplyAudioVolume(ui, UiVolumeKey, uiVolumeParameter);
 
         int savedWidth = PlayerPrefs.GetInt(ResolutionWidthKey, Screen.width);
         int savedHeight = PlayerPrefs.GetInt(ResolutionHeightKey, Screen.height);
@@ -469,18 +570,39 @@ public class SettlementSettingsPanel : MonoBehaviour
         frameLimitDropdown?.onValueChanged.RemoveListener(SetPendingFrameLimitByIndex);
     }
 
-    private void ApplyAudioVolume(float value, string key, string parameter, bool updateListener)
+    private void ApplyAudioVolume(float value, string key, string parameter)
     {
         value = Mathf.Clamp01(value);
         PlayerPrefs.SetFloat(key, value);
-
-        if (updateListener)
-        {
-            AudioListener.volume = value;
-        }
-
         SetMixerVolume(parameter, value);
+        ApplyRuntimeAudioVolume(key, value);
         PlayerPrefs.Save();
+    }
+
+    private static void ApplyRuntimeAudioVolume(string key, float value)
+    {
+        switch (key)
+        {
+            case MasterVolumeKey:
+                AudioManager.SetMasterVolume(value);
+                break;
+
+            case BgmVolumeKey:
+                AudioManager.SetMusicVolume(value);
+                break;
+
+            case SfxVolumeKey:
+                AudioManager.SetSfxVolume(value);
+                break;
+
+            case AmbientVolumeKey:
+                AudioManager.SetAmbienceVolume(value);
+                break;
+
+            case UiVolumeKey:
+                AudioManager.SetUiVolume(value);
+                break;
+        }
     }
 
     private IEnumerator ScreenConfirmationRoutine()
@@ -741,6 +863,23 @@ public class SettlementSettingsPanel : MonoBehaviour
         }
 
         float db = normalizedVolume <= 0.0001f ? -80f : Mathf.Log10(normalizedVolume) * 20f;
-        audioMixer.SetFloat(parameterName, db);
+        if (audioMixer.SetFloat(parameterName, db))
+        {
+            return;
+        }
+
+        string correctedName = parameterName switch
+        {
+            "MasterVolume" => "Master",
+            "BGMVolume" => "BG",
+            "SFXVolume" => "SFX",
+            "UIVolume" => "UI",
+            _ => string.Empty
+        };
+
+        if (!string.IsNullOrEmpty(correctedName))
+        {
+            audioMixer.SetFloat(correctedName, db);
+        }
     }
 }

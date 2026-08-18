@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   projectileId: 02
   displayName: projectile_Sniper
-  projectilePrefab: {fileID: 4939712952834317954, guid: 50b69ab450da83f4793909f48072e7d0, type: 3}
+  projectilePrefab: {fileID: 4939712952834317954, guid: ba4aef1757256894fae5f9a459c8efbc, type: 3}
   damage: 4
   speed: 22
   range: 16
@@ -23,6 +23,7 @@ MonoBehaviour:
   impactEffectLifeTime: 0.18
   rotateImpactEffectToProjectile: 1
   pierceCount: 3
+  pierceDamageRetention: 1
   useHoming: 0
   homingAngle: 0
   homingRange: 0

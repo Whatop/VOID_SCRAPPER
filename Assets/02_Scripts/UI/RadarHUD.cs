@@ -165,7 +165,8 @@ public class RadarHUD : MonoBehaviour
         marker.SetVisual(
             target.MarkerSprite,
             ResolveMarkerColor(target.MarkerType, target.MarkerColor),
-            ResolveMarkerScale(target.MarkerType, target.MarkerScale)
+            ResolveMarkerScale(target.MarkerType, target.MarkerScale),
+            target.MarkerType
         );
 
         return marker;
@@ -199,45 +200,19 @@ public class RadarHUD : MonoBehaviour
 
     private Color ResolveMarkerColor(RadarMarkerType markerType, Color customColor)
     {
-        if (customColor.a > 0f && customColor != Color.white)
-        {
-            return customColor;
-        }
-
-        switch (markerType)
-        {
-            case RadarMarkerType.Enemy:
-            case RadarMarkerType.Boss:
-                return enemyColor;
-
-            case RadarMarkerType.RewardObject:
-                return rewardColor;
-
-            case RadarMarkerType.Meteor:
-                return meteorColor;
-
-            case RadarMarkerType.Shop:
-            case RadarMarkerType.Event:
-                return specialColor;
-
-            case RadarMarkerType.Core:
-            case RadarMarkerType.ReturnBeacon:
-                return coreColor;
-
-            default:
-                return Color.white;
-        }
+        return RadarMarkerPresentation.ResolveColor(
+            markerType,
+            customColor,
+            enemyColor,
+            rewardColor,
+            meteorColor,
+            specialColor,
+            coreColor
+        );
     }
 
     private float ResolveMarkerScale(RadarMarkerType markerType, float customScale)
     {
-        float scale = Mathf.Max(0.1f, customScale);
-
-        if (markerType == RadarMarkerType.Boss || markerType == RadarMarkerType.Core)
-        {
-            scale *= 1.35f;
-        }
-
-        return scale;
+        return RadarMarkerPresentation.ResolveScale(markerType, customScale);
     }
 }

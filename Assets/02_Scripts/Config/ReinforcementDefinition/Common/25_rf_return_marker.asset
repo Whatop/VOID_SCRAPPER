@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_return_marker"
   displayName: "\uadc0\ud658 \ud45c\uc2dd\uae30"
-  description: "\ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \uc0dd\uc874 \ubcf4\uc870 \uc7a5\ube44\ub85c \ub3d9\uc791\ud55c\ub2e4. \uc9e7\uc740 \ubb34\uc801\uacfc \uc774\ub3d9\uc18d\ub3c4 \uc99d\uac00\ub97c \uc900\ub2e4."
+  description: "\ud604\uc7ac \uc704\uce58\uc5d0 \uadc0\ud658 \ud45c\uc2dd\uc744 \uc124\uce58\ud569\ub2c8\ub2e4. \ub2e4\uc2dc \uc0ac\uc6a9\ud558\uba74 \ud45c\uc2dd \uc704\uce58\ub85c \uc989\uc2dc \ubcf5\uadc0\ud569\ub2c8\ub2e4."
   icon: {fileID: 21300000, guid: 6bb3b487586e883cf64a1d4b8a067e63, type: 3}
   rarity: 3
   rarityPriceMultiplier: 0
@@ -29,21 +29,13 @@ MonoBehaviour:
   startWithFullCharges: 1
   rechargeSeconds: 38
   effects:
-  - effectType: 2
-    value: 3
+  - effectType: 24
+    value: 0
     radius: 0
     duration: 0
+    coneAngle: 90
     targetLayer:
       serializedVersion: 2
       m_Bits: 0
-    prefab: {fileID: 0}
-    prefabLifetime: 1
-  - effectType: 8
-    value: 30
-    radius: 0
-    duration: 4
-    targetLayer:
-      serializedVersion: 2
-      m_Bits: 0
-    prefab: {fileID: 0}
+    prefab: {fileID: 100000, guid: 1bd1263042874f7ba55409c67fc85d42, type: 3}
     prefabLifetime: 1

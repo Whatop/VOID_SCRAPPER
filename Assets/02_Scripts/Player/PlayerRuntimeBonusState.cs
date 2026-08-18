@@ -1,7 +1,12 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerRuntimeBonusState : MonoBehaviour
 {
+    private readonly Dictionary<object, float> externalScrapGainMultipliers =
+        new Dictionary<object, float>();
+    private float externalScrapGainMultiplier = 1f;
+
     [Header("Currency Gain")]
     [SerializeField] private float scrapGainMultiplier = 1f;
     [SerializeField] private float creditsGainMultiplier = 1f;
@@ -40,6 +45,7 @@ public class PlayerRuntimeBonusState : MonoBehaviour
     public float ActiveCooldownMultiplier => activeCooldownMultiplier;
     public float RadarTauntDurationBonus => radarTauntDurationBonus;
     public float RadarStealthDurationBonus => radarStealthDurationBonus;
+    public float ExternalScrapGainMultiplier => externalScrapGainMultiplier;
 
     public void ResetBonuses()
     {
@@ -61,6 +67,27 @@ public class PlayerRuntimeBonusState : MonoBehaviour
     public void AddScrapGainPercent(float percent)
     {
         scrapGainMultiplier *= PercentToMultiplier(percent);
+    }
+
+    public void SetExternalScrapGainMultiplier(object source, float multiplier)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        externalScrapGainMultipliers[source] = Mathf.Max(0f, multiplier);
+        RecalculateExternalScrapGainMultiplier();
+    }
+
+    public void ClearExternalScrapGainMultiplier(object source)
+    {
+        if (source == null || !externalScrapGainMultipliers.Remove(source))
+        {
+            return;
+        }
+
+        RecalculateExternalScrapGainMultiplier();
     }
 
     public void AddCreditsGainPercent(float percent)
@@ -185,7 +212,8 @@ public class PlayerRuntimeBonusState : MonoBehaviour
 
         float multiplier = currencyType switch
         {
-            CurrencyType.ScrapParts => scrapGainMultiplier * harvestYieldMultiplier,
+            CurrencyType.ScrapParts =>
+                scrapGainMultiplier * harvestYieldMultiplier * externalScrapGainMultiplier,
             CurrencyType.CoreShards => harvestYieldMultiplier,
             CurrencyType.Credits => creditsGainMultiplier,
             _ => 1f
@@ -222,6 +250,18 @@ public class PlayerRuntimeBonusState : MonoBehaviour
         }
 
         return Mathf.Max(0f, current / factor);
+    }
+
+    private void RecalculateExternalScrapGainMultiplier()
+    {
+        float multiplier = 1f;
+
+        foreach (KeyValuePair<object, float> entry in externalScrapGainMultipliers)
+        {
+            multiplier *= Mathf.Max(0f, entry.Value);
+        }
+
+        externalScrapGainMultiplier = Mathf.Max(0f, multiplier);
     }
 
     private float PercentToMultiplier(float percent)

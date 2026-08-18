@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -17,6 +19,7 @@ public class EnemyBaseAI : MonoBehaviour
 
     [Header("Definition")]
     [SerializeField] private EnemyDefinition enemyDefinition;
+    [SerializeField] private TMP_FontAsset awarenessIndicatorFont;
 
     [Header("Target")]
     [SerializeField] private Transform player;
@@ -63,6 +66,16 @@ public class EnemyBaseAI : MonoBehaviour
     [SerializeField] private float preferredCombatDistanceRatio = 0.75f;
     [SerializeField] private float closeCombatDistanceRatio = 0.45f;
 
+    [Header("Charging Enemy Reposition")]
+    [Range(0.2f, 0.9f)]
+    [SerializeField] private float chargingPreferredDistanceMinRatio = 0.55f;
+    [Range(0.3f, 1f)]
+    [SerializeField] private float chargingPreferredDistanceMaxRatio = 0.82f;
+    [Min(0.1f)]
+    [SerializeField] private float chargingRepositionDuration = 1f;
+    [Min(0.1f)]
+    [SerializeField] private float chargingRepositionSpeedMultiplier = 0.9f;
+
     [Header("Debug")]
     [SerializeField] private EnemyState currentState = EnemyState.Patrol;
     [SerializeField] private EnemyPurpose purpose = EnemyPurpose.Scout;
@@ -84,14 +97,26 @@ public class EnemyBaseAI : MonoBehaviour
     private Vector2 alertTarget;
     private Vector2 lastSeenPlayerPosition;
     private Vector2 tauntTarget;
+    private UnityEngine.Object temporaryAttractionSource;
 
     private Vector2 desiredVelocity;
     private Vector2 facingDirection = Vector2.up;
+    private readonly Dictionary<UnityEngine.Object, float> externalMoveSpeedMultipliers =
+        new Dictionary<UnityEngine.Object, float>(4);
+    private readonly Dictionary<UnityEngine.Object, float> trackingDisruptionExpirations =
+        new Dictionary<UnityEngine.Object, float>(2);
+    private readonly List<UnityEngine.Object> expiredTrackingDisruptionSources =
+        new List<UnityEngine.Object>(2);
+    private float effectiveExternalMoveSpeedMultiplier = 1f;
+    private bool isPlayerTrackingDisrupted;
+    private float nextTrackingDisruptionExpiration;
 
     private float stateTimer;
     private float lostSightTimer;
     private float strafeTimer;
     private int strafeDirection = 1;
+    private float chargingRepositionTimer;
+    private int chargingRepositionDirection = 1;
     private bool initialized;
 
     public EnemyState CurrentState => currentState;
@@ -103,6 +128,7 @@ public class EnemyBaseAI : MonoBehaviour
     public EnemyVisionSensor VisionSensor => visionSensor;
     public Vector2 HomePosition => spawnPosition;
     public float BaseMoveSpeed => moveSpeed;
+    public float ExternalMoveSpeedMultiplier => effectiveExternalMoveSpeedMultiplier;
     public Vector2 DesiredVelocity => desiredVelocity;
     public Vector2 FacingDirection => facingDirection;
     public bool IsMoving => desiredVelocity.sqrMagnitude > 0.01f;
@@ -124,6 +150,17 @@ public class EnemyBaseAI : MonoBehaviour
         currentState != EnemyState.Dead &&
         purpose != EnemyPurpose.Boss &&
         purpose != EnemyPurpose.ShopGuard;
+    public bool CanReceiveExternalMovementControl =>
+        currentState != EnemyState.Dead &&
+        purpose != EnemyPurpose.Boss &&
+        purpose != EnemyPurpose.ShopGuard;
+    public bool CanReceiveTrackingDisruption =>
+        currentState != EnemyState.Dead &&
+        purpose != EnemyPurpose.Boss &&
+        purpose != EnemyPurpose.ShopGuard &&
+        !IsInsideActiveShopNeutralZone &&
+        IsAware;
+    public bool IsPlayerTrackingDisrupted => isPlayerTrackingDisrupted;
 
     public event Action<EnemyState, EnemyState> StateChanged;
 
@@ -163,6 +200,8 @@ public class EnemyBaseAI : MonoBehaviour
             awarenessIndicator = gameObject.AddComponent<EnemyAwarenessIndicator>();
         }
 
+        awarenessIndicator.ConfigureFont(awarenessIndicatorFont);
+
         if (visualRoot == null)
         {
             visualRoot = transform;
@@ -176,12 +215,22 @@ public class EnemyBaseAI : MonoBehaviour
             health.Died += HandleDied;
         }
 
+        if (attackController != null)
+        {
+            attackController.ProjectileFired += HandleProjectileFired;
+        }
+
         spawnPosition = transform.position;
         desiredVelocity = Vector2.zero;
         navigationAgent?.ResetNavigationState();
         lostSightTimer = 0f;
         stateTimer = 0f;
+        temporaryAttractionSource = null;
+        ClearAllExternalMoveSpeedMultipliers();
+        ClearAllTrackingDisruptions();
         strafeTimer = 0f;
+        chargingRepositionTimer = 0f;
+        chargingRepositionDirection = UnityEngine.Random.value >= 0.5f ? 1 : -1;
         shopSecurityThreatTimer = 0f;
         activeShopNeutralZone = null;
         initialized = true;
@@ -208,7 +257,15 @@ public class EnemyBaseAI : MonoBehaviour
             health.Died -= HandleDied;
         }
 
+        if (attackController != null)
+        {
+            attackController.ProjectileFired -= HandleProjectileFired;
+        }
+
         meleeChargeController?.CancelAttack();
+        temporaryAttractionSource = null;
+        ClearAllExternalMoveSpeedMultipliers();
+        ClearAllTrackingDisruptions();
         activeShopNeutralZone = null;
         shopSecurityThreatTimer = 0f;
         StopMoving();
@@ -229,6 +286,7 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         ResolvePlayer();
+        RefreshTrackingDisruptions();
 
         if (shopSecurityThreatTimer > 0f)
         {
@@ -251,6 +309,12 @@ public class EnemyBaseAI : MonoBehaviour
         {
             ApplyFacingRotation(Time.deltaTime);
             return;
+        }
+
+        if (isPlayerTrackingDisrupted && currentState == EnemyState.Combat)
+        {
+            CancelCurrentAttack();
+            SetState(EnemyState.Search, true);
         }
 
         switch (currentState)
@@ -300,7 +364,7 @@ public class EnemyBaseAI : MonoBehaviour
             return;
         }
 
-        rb.linearVelocity = desiredVelocity;
+        rb.linearVelocity = desiredVelocity * effectiveExternalMoveSpeedMultiplier;
     }
 
     public void ApplyDefinition(EnemyDefinition definition)
@@ -432,6 +496,143 @@ public class EnemyBaseAI : MonoBehaviour
         }
     }
 
+    public bool SetExternalMoveSpeedMultiplier(UnityEngine.Object source, float multiplier)
+    {
+        if (source == null || !CanReceiveExternalMovementControl)
+        {
+            return false;
+        }
+
+        externalMoveSpeedMultipliers[source] = Mathf.Clamp01(multiplier);
+        RecalculateExternalMoveSpeedMultiplier();
+        return true;
+    }
+
+    public bool ClearExternalMoveSpeedMultiplier(UnityEngine.Object source)
+    {
+        if (source == null || !externalMoveSpeedMultipliers.Remove(source))
+        {
+            return false;
+        }
+
+        RecalculateExternalMoveSpeedMultiplier();
+        return true;
+    }
+
+    public bool ApplyTrackingDisruption(UnityEngine.Object source, float duration)
+    {
+        if (source == null || duration <= 0f || !CanReceiveTrackingDisruption)
+        {
+            return false;
+        }
+
+        float requestedExpiration = Time.time + duration;
+
+        if (trackingDisruptionExpirations.TryGetValue(source, out float currentExpiration))
+        {
+            trackingDisruptionExpirations[source] = Mathf.Max(currentExpiration, requestedExpiration);
+        }
+        else
+        {
+            trackingDisruptionExpirations.Add(source, requestedExpiration);
+        }
+
+        RecalculateTrackingDisruptionState();
+        CancelCurrentAttack();
+
+        if (currentState != EnemyState.Taunt)
+        {
+            if (currentState == EnemyState.Alert)
+            {
+                lastSeenPlayerPosition = alertTarget;
+            }
+
+            SetState(EnemyState.Search, true);
+        }
+
+        return true;
+    }
+
+    public bool ClearTrackingDisruption(UnityEngine.Object source)
+    {
+        if (source == null || !trackingDisruptionExpirations.Remove(source))
+        {
+            return false;
+        }
+
+        RecalculateTrackingDisruptionState();
+        return true;
+    }
+
+    private void ClearAllExternalMoveSpeedMultipliers()
+    {
+        externalMoveSpeedMultipliers.Clear();
+        effectiveExternalMoveSpeedMultiplier = 1f;
+    }
+
+    private void RefreshTrackingDisruptions()
+    {
+        if (!isPlayerTrackingDisrupted || Time.time < nextTrackingDisruptionExpiration)
+        {
+            return;
+        }
+
+        expiredTrackingDisruptionSources.Clear();
+        float now = Time.time;
+
+        foreach (KeyValuePair<UnityEngine.Object, float> disruption in trackingDisruptionExpirations)
+        {
+            if (disruption.Key == null || disruption.Value <= now)
+            {
+                expiredTrackingDisruptionSources.Add(disruption.Key);
+            }
+        }
+
+        for (int i = 0; i < expiredTrackingDisruptionSources.Count; i++)
+        {
+            trackingDisruptionExpirations.Remove(expiredTrackingDisruptionSources[i]);
+        }
+
+        RecalculateTrackingDisruptionState();
+    }
+
+    private void ClearAllTrackingDisruptions()
+    {
+        trackingDisruptionExpirations.Clear();
+        expiredTrackingDisruptionSources.Clear();
+        isPlayerTrackingDisrupted = false;
+        nextTrackingDisruptionExpiration = 0f;
+    }
+
+    private void RecalculateTrackingDisruptionState()
+    {
+        float nextExpiration = float.MaxValue;
+        float now = Time.time;
+
+        foreach (KeyValuePair<UnityEngine.Object, float> disruption in trackingDisruptionExpirations)
+        {
+            if (disruption.Key != null && disruption.Value > now)
+            {
+                nextExpiration = Mathf.Min(nextExpiration, disruption.Value);
+            }
+        }
+
+        isPlayerTrackingDisrupted = nextExpiration < float.MaxValue;
+        nextTrackingDisruptionExpiration = isPlayerTrackingDisrupted ? nextExpiration : 0f;
+    }
+
+    private void RecalculateExternalMoveSpeedMultiplier()
+    {
+        float strongestSlow = 1f;
+
+        foreach (KeyValuePair<UnityEngine.Object, float> modifier in externalMoveSpeedMultipliers)
+        {
+            strongestSlow = Mathf.Min(strongestSlow, modifier.Value);
+        }
+
+        effectiveExternalMoveSpeedMultiplier = strongestSlow;
+    }
+
     public void CommandSetFacingDirection(Vector2 direction)
     {
         if (direction.sqrMagnitude <= 0.001f)
@@ -489,6 +690,13 @@ public class EnemyBaseAI : MonoBehaviour
             return;
         }
 
+        if (isPlayerTrackingDisrupted)
+        {
+            CancelCurrentAttack();
+            SetState(EnemyState.Search, true);
+            return;
+        }
+
         if (player != null)
         {
             lastSeenPlayerPosition = player.position;
@@ -535,6 +743,18 @@ public class EnemyBaseAI : MonoBehaviour
             return;
         }
 
+        if (isPlayerTrackingDisrupted)
+        {
+            CancelCurrentAttack();
+
+            if (currentState != EnemyState.Taunt)
+            {
+                SetState(EnemyState.Search, true);
+            }
+
+            return;
+        }
+
         if (activeShopNeutralZone != null && activeShopNeutralZone.IsActiveSafeZone && !IsShopSecurityUnit)
         {
             shopSecurityThreatTimer = Mathf.Max(
@@ -573,25 +793,69 @@ public class EnemyBaseAI : MonoBehaviour
 
     public void ApplyTaunt(Vector2 targetPosition, float duration)
     {
-        if (currentState == EnemyState.Dead)
+        ApplyTemporaryAttraction(this, targetPosition, duration);
+    }
+
+    public bool ApplyTemporaryAttraction(
+        UnityEngine.Object source,
+        Vector2 targetPosition,
+        float duration)
+    {
+        if (source == null || currentState == EnemyState.Dead)
         {
-            return;
+            return false;
         }
 
         if (!IsRadarTauntable)
         {
-            return;
+            return false;
         }
 
+        temporaryAttractionSource = source;
         tauntTarget = targetPosition;
         stateTimer = duration > 0f ? duration : defaultTauntDuration;
         FaceTo(tauntTarget);
         SetState(EnemyState.Taunt);
+        return true;
+    }
+
+    public bool ClearTemporaryAttraction(UnityEngine.Object source)
+    {
+        if (source == null || temporaryAttractionSource != source)
+        {
+            return false;
+        }
+
+        temporaryAttractionSource = null;
+
+        if (currentState == EnemyState.Taunt)
+        {
+            ResumeAfterTemporaryAttraction();
+        }
+
+        return true;
     }
 
     public void ApplyRadarTaunt(Vector2 scanOrigin)
     {
-        ApplyTaunt(scanOrigin, defaultTauntDuration);
+        ApplyRadarTaunt(this, scanOrigin, 0f);
+    }
+
+    public void ApplyRadarTaunt(Vector2 scanOrigin, float durationBonus)
+    {
+        ApplyRadarTaunt(this, scanOrigin, durationBonus);
+    }
+
+    public bool ApplyRadarTaunt(
+        UnityEngine.Object source,
+        Vector2 scanOrigin,
+        float durationBonus)
+    {
+        return ApplyTemporaryAttraction(
+            source,
+            scanOrigin,
+            defaultTauntDuration + Mathf.Max(0f, durationBonus)
+        );
     }
 
     public void ApplyRadarAlert(Vector2 scanOrigin)
@@ -647,7 +911,9 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void UpdateAlert()
     {
-        if (roleController != null && roleController.TryHandleAlert(this, Time.deltaTime))
+        if (!isPlayerTrackingDisrupted &&
+            roleController != null &&
+            roleController.TryHandleAlert(this, Time.deltaTime))
         {
             return;
         }
@@ -706,9 +972,18 @@ public class EnemyBaseAI : MonoBehaviour
         }
         else
         {
-            if (cancelAttackImmediatelyOnSightLoss)
+            bool committedCharge = attackController != null &&
+                                   attackController.IsCommittedCharge;
+
+            if (cancelAttackImmediatelyOnSightLoss && !committedCharge)
             {
                 CancelCurrentAttack();
+            }
+
+            else if (committedCharge)
+            {
+                StopMoving();
+                return;
             }
 
             lostSightTimer += Time.deltaTime;
@@ -800,6 +1075,23 @@ public class EnemyBaseAI : MonoBehaviour
         float attackRange = GetAttackRange();
         float distanceToPlayer = GetDistanceToPlayer();
 
+        if (attackController != null && attackController.IsCharging)
+        {
+            StopMoving();
+            TryAttackPlayer();
+            return;
+        }
+
+        if (IsRangedChargingEnemy() && chargingRepositionTimer > 0f)
+        {
+            chargingRepositionTimer = Mathf.Max(
+                0f,
+                chargingRepositionTimer - Time.deltaTime
+            );
+            UpdateChargingEnemyReposition(attackRange, distanceToPlayer);
+            return;
+        }
+
         if (attackRange > 0f && distanceToPlayer <= attackRange)
         {
             StopMoving();
@@ -808,6 +1100,57 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         MoveTo(player.position, moveSpeed * interceptorMoveSpeedMultiplier);
+    }
+
+    private void UpdateChargingEnemyReposition(float attackRange, float distanceToPlayer)
+    {
+        if (player == null || attackRange <= 0f)
+        {
+            StopMoving();
+            return;
+        }
+
+        float minimumDistance = attackRange * Mathf.Clamp(
+            chargingPreferredDistanceMinRatio,
+            0.2f,
+            0.9f
+        );
+        float maximumDistance = attackRange * Mathf.Clamp(
+            chargingPreferredDistanceMaxRatio,
+            chargingPreferredDistanceMinRatio,
+            1f
+        );
+        Vector2 toPlayer = (Vector2)player.position - (Vector2)transform.position;
+
+        if (toPlayer.sqrMagnitude <= 0.001f)
+        {
+            StopMoving();
+            return;
+        }
+
+        if (distanceToPlayer < minimumDistance)
+        {
+            Vector2 retreatTarget = (Vector2)transform.position - toPlayer.normalized * 1.5f;
+            MoveTo(
+                retreatTarget,
+                moveSpeed * Mathf.Max(0.1f, chargingRepositionSpeedMultiplier)
+            );
+        }
+        else if (distanceToPlayer > maximumDistance)
+        {
+            MoveTo(
+                player.position,
+                moveSpeed * Mathf.Max(0.1f, chargingRepositionSpeedMultiplier)
+            );
+        }
+        else
+        {
+            Vector2 strafeDirection = new Vector2(-toPlayer.y, toPlayer.x).normalized *
+                                      chargingRepositionDirection;
+            desiredVelocity = strafeDirection * moveSpeed *
+                              Mathf.Max(0.1f, chargingRepositionSpeedMultiplier);
+            SetFacing(toPlayer);
+        }
     }
 
     private void UpdateSentinelCombat()
@@ -978,15 +1321,22 @@ public class EnemyBaseAI : MonoBehaviour
 
         if (stateTimer <= 0f || Vector2.Distance(transform.position, tauntTarget) <= arriveDistance)
         {
-            if (CanSeePlayer())
-            {
-                SetState(EnemyState.Combat);
-            }
-            else
-            {
-                lastSeenPlayerPosition = tauntTarget;
-                SetState(EnemyState.Search);
-            }
+            ResumeAfterTemporaryAttraction();
+        }
+    }
+
+    private void ResumeAfterTemporaryAttraction()
+    {
+        temporaryAttractionSource = null;
+
+        if (CanSeePlayer())
+        {
+            SetState(EnemyState.Combat);
+        }
+        else
+        {
+            lastSeenPlayerPosition = tauntTarget;
+            SetState(EnemyState.Search);
         }
     }
 
@@ -1014,6 +1364,12 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         EnemyState previousState = currentState;
+
+        if (previousState == EnemyState.Taunt && nextState != EnemyState.Taunt)
+        {
+            temporaryAttractionSource = null;
+        }
+
         currentState = nextState;
 
         switch (currentState)
@@ -1161,7 +1517,7 @@ public class EnemyBaseAI : MonoBehaviour
     }
     private bool IsFacingLockedByAttack()
     {
-        return (attackController != null && attackController.IsCharging) ||
+        return (attackController != null && attackController.IsAimDirectionLocked) ||
                (meleeChargeController != null && meleeChargeController.LocksFacing);
     }
     private void ApplyFacingRotation(float deltaTime)
@@ -1201,7 +1557,7 @@ public class EnemyBaseAI : MonoBehaviour
 
     private bool CanSeePlayer()
     {
-        if (player == null)
+        if (player == null || isPlayerTrackingDisrupted)
         {
             return false;
         }
@@ -1217,14 +1573,16 @@ public class EnemyBaseAI : MonoBehaviour
 
     private bool CanSuspectPlayer()
     {
-        return player != null &&
+        return !isPlayerTrackingDisrupted &&
+               player != null &&
                visionSensor != null &&
                visionSensor.HasVisualSuspicion;
     }
 
     private bool HasRadarContact()
     {
-        return player != null &&
+        return !isPlayerTrackingDisrupted &&
+               player != null &&
                visionSensor != null &&
                visionSensor.HasRadarContact(player);
     }
@@ -1291,9 +1649,32 @@ public class EnemyBaseAI : MonoBehaviour
         };
     }
 
+    private bool IsRangedChargingEnemy()
+    {
+        if (enemyDefinition == null)
+        {
+            return false;
+        }
+
+        return enemyDefinition.EnemyType == EnemyType.Charging ||
+               enemyDefinition.EnemyType == EnemyType.EliteCharging;
+    }
+
+    private void HandleProjectileFired(EnemyAttackController source)
+    {
+        if (source != attackController || !IsRangedChargingEnemy())
+        {
+            return;
+        }
+
+        chargingRepositionTimer = Mathf.Max(0.1f, chargingRepositionDuration);
+        chargingRepositionDirection = UnityEngine.Random.value >= 0.5f ? 1 : -1;
+    }
+
     private void HandleDied(EnemyHealth enemyHealth)
     {
         meleeChargeController?.CancelAttack();
+        ClearAllTrackingDisruptions();
         activeShopNeutralZone = null;
         SetState(EnemyState.Dead);
     }

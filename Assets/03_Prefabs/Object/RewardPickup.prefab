@@ -219,8 +219,10 @@ MonoBehaviour:
   creditsSprite: {fileID: 21300000, guid: fe0d55d234eb11b45999963b9665eb68, type: 3}
   scrapSprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
   coreShardSprite: {fileID: 21300000, guid: e994f32c1ad9d9a4d9acdb03b931ddeb, type: 3}
+  stabilizedAlloySprite: {fileID: 0}
   tuningChipSprite: {fileID: 21300000, guid: e0d61017609500c4f8765e0a3ccc5904, type: 3}
   healSprite: {fileID: 21300000, guid: ae509803613d585448596513b0f7e09b, type: 3}
+  stabilizedAlloySpriteColor: {r: 0.82, g: 0.95, b: 1, a: 1}
   visualRoot: {fileID: 4988858253263396575}
   bubbleRenderer: {fileID: 2254988350893917215}
   animateVisual: 1
@@ -233,12 +235,14 @@ MonoBehaviour:
   creditsVisualScale: 0.56
   scrapVisualScale: 0.58
   coreVisualScale: 0.78
+  stabilizedAlloyVisualScale: 0.62
   tuningChipVisualScale: 0.66
   healVisualScale: 0.64
   experienceBubbleColor: {r: 0.45, g: 0.85, b: 1, a: 0.8}
   creditsBubbleColor: {r: 1, g: 0.78, b: 0.12, a: 0.85}
   scrapBubbleColor: {r: 0.9, g: 0.42, b: 0.14, a: 0.85}
   coreBubbleColor: {r: 1, g: 0.65, b: 0.12, a: 0.95}
+  stabilizedAlloyBubbleColor: {r: 0.72, g: 0.9, b: 0.96, a: 0.9}
   tuningChipBubbleColor: {r: 0.25, g: 0.95, b: 1, a: 0.9}
   healBubbleColor: {r: 0.35, g: 1, b: 0.35, a: 0.85}
 --- !u!114 &3076223052412961147

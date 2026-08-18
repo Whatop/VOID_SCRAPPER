@@ -410,6 +410,7 @@ public class ShipTraitTreePanel : MonoBehaviour
             settlementController = FindFirstObjectByType<SettlementController>();
         }
 
+        ConfigureSettlementPresentation();
         SyncBranchGates();
         EnsureGeneratedNodeButtons(false);
         BindNodes();
@@ -991,6 +992,7 @@ public class ShipTraitTreePanel : MonoBehaviour
         bool selected = selectedBranch == branchKind;
         bool visible = available || !hideLockedBranchTabs;
 
+        tabButton.SetLabel(available ? GetBranchDisplayName(branchKind) : "잠김");
         tabButton.SetVisualState(available, selected, visible);
     }
 
@@ -2500,12 +2502,65 @@ public class ShipTraitTreePanel : MonoBehaviour
     {
         return branchKind switch
         {
-            ShipTraitBranchKind.Shared => "공유 특성",
-            ShipTraitBranchKind.MachineGun => "기관총 특성",
-            ShipTraitBranchKind.Sniper => "스나 특성",
-            ShipTraitBranchKind.Shotgun => "샷건 특성",
+            ShipTraitBranchKind.Shared => "공용",
+            ShipTraitBranchKind.MachineGun => "스위퍼",
+            ShipTraitBranchKind.Sniper => "랜서",
+            ShipTraitBranchKind.Shotgun => "브리처",
             _ => "특성"
         };
+    }
+
+    private void ConfigureSettlementPresentation()
+    {
+        ConfigureText(titleText, 10f, 8f, 11f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+        ConfigureText(descriptionText, 6.5f, 5.5f, 7f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
+        ConfigureText(branchText, 6.5f, 5.5f, 7f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+        ConfigureText(levelText, 7f, 6f, 7.5f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+        ConfigureText(statusText, 6.5f, 5.5f, 7f, TextWrappingModes.NoWrap, TextOverflowModes.Truncate);
+        ConfigureText(costText, 6.5f, 5.5f, 7f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
+        ConfigureText(messageText, 6f, 5f, 6.5f, TextWrappingModes.NoWrap, TextOverflowModes.Truncate);
+        ConfigureText(unlockButtonLabelText, 7f, 5.5f, 7.5f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+        ConfigureText(traitActivationToggleButtonLabelText, 7f, 5.5f, 7.5f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+
+        if (costText != null)
+        {
+            costText.alignment = TextAlignmentOptions.MidlineLeft;
+        }
+
+        ConfigureBranchTabText(sharedTabButton);
+        ConfigureBranchTabText(machineGunTabButton);
+        ConfigureBranchTabText(sniperTabButton);
+        ConfigureBranchTabText(shotgunTabButton);
+    }
+
+    private static void ConfigureBranchTabText(ShipTraitBranchTabButton tabButton)
+    {
+        TextMeshProUGUI label = tabButton != null
+            ? tabButton.GetComponentInChildren<TextMeshProUGUI>(true)
+            : null;
+        ConfigureText(label, 7f, 5.5f, 7.5f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
+    }
+
+    private static void ConfigureText(
+        TextMeshProUGUI text,
+        float size,
+        float minimum,
+        float maximum,
+        TextWrappingModes wrapping,
+        TextOverflowModes overflow)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.fontSize = size;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = minimum;
+        text.fontSizeMax = maximum;
+        text.textWrappingMode = wrapping;
+        text.overflowMode = overflow;
+        text.raycastTarget = false;
     }
 
     private string GetDefaultDescription(ShipTraitBranchKind branchKind)
@@ -2516,13 +2571,13 @@ public class ShipTraitTreePanel : MonoBehaviour
                 "모든 기체와 무기 트리에 공통으로 적용되는 특성 그룹입니다.",
 
             ShipTraitBranchKind.MachineGun =>
-                "기관총 트리 전용 특성 그룹입니다. 지속 사격과 유도 보정을 강화합니다.",
+                "스위퍼 전용 특성 그룹입니다. 지속 사격과 유도 보정을 강화합니다.",
 
             ShipTraitBranchKind.Sniper =>
-                "스나이퍼 트리 전용 특성 그룹입니다. 차징, 관통, 장거리 교전을 강화합니다.",
+                "랜서 전용 특성 그룹입니다. 차징, 관통, 장거리 교전을 강화합니다.",
 
             ShipTraitBranchKind.Shotgun =>
-                "샷건 트리 전용 특성 그룹입니다. 돌입, 산탄, 근거리 생존을 강화합니다.",
+                "브리처 전용 특성 그룹입니다. 돌입, 산탄, 근거리 생존을 강화합니다.",
 
             _ => "특성 그룹입니다."
         };
@@ -2567,6 +2622,7 @@ public class ShipTraitTreePanel : MonoBehaviour
             }
         }
 
+        LayoutCostIcons(showScrap, showCore);
         SetCostIconActive(scrapCostIconRoot, scrapCostIconImage, scrapCostIconSprite, showScrap);
         SetCostIconActive(coreShardCostIconRoot, coreShardCostIconImage, coreShardCostIconSprite, showCore);
     }
@@ -2596,6 +2652,22 @@ public class ShipTraitTreePanel : MonoBehaviour
 
             image.enabled = (active || !hideCostIconsWhenFree) && image.sprite != null;
             image.preserveAspect = true;
+            image.raycastTarget = false;
+        }
+    }
+
+    private void LayoutCostIcons(bool showScrap, bool showCore)
+    {
+        bool showBoth = showScrap && showCore;
+        SetCostIconVerticalPosition(scrapCostIconRoot, showBoth ? 5f : 0f);
+        SetCostIconVerticalPosition(coreShardCostIconRoot, showBoth ? -5f : 0f);
+    }
+
+    private static void SetCostIconVerticalPosition(GameObject root, float y)
+    {
+        if (root != null && root.transform is RectTransform rect)
+        {
+            rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, y);
         }
     }
 

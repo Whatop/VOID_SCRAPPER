@@ -48,8 +48,10 @@ public class RewardPickup : MonoBehaviour
     [SerializeField] private Sprite creditsSprite;
     [SerializeField] private Sprite scrapSprite;
     [SerializeField] private Sprite coreShardSprite;
+    [SerializeField] private Sprite stabilizedAlloySprite;
     [SerializeField] private Sprite tuningChipSprite;
     [SerializeField] private Sprite healSprite;
+    [SerializeField] private Color stabilizedAlloySpriteColor = new Color(0.82f, 0.95f, 1f, 1f);
 
     [Header("Visual Presentation Optional")]
     [Tooltip("Collider와 분리된 자식 Transform을 연결하세요. 비워두거나 Root를 연결하면 부유/회전은 적용하지 않습니다.")]
@@ -68,6 +70,7 @@ public class RewardPickup : MonoBehaviour
     [SerializeField] private float creditsVisualScale = 0.56f;
     [SerializeField] private float scrapVisualScale = 0.58f;
     [SerializeField] private float coreVisualScale = 0.78f;
+    [SerializeField] private float stabilizedAlloyVisualScale = 0.62f;
     [SerializeField] private float tuningChipVisualScale = 0.66f;
     [SerializeField] private float healVisualScale = 0.64f;
 
@@ -76,6 +79,7 @@ public class RewardPickup : MonoBehaviour
     [SerializeField] private Color creditsBubbleColor = new Color(1f, 0.78f, 0.12f, 0.85f);
     [SerializeField] private Color scrapBubbleColor = new Color(0.9f, 0.42f, 0.14f, 0.85f);
     [SerializeField] private Color coreBubbleColor = new Color(1f, 0.65f, 0.12f, 0.95f);
+    [SerializeField] private Color stabilizedAlloyBubbleColor = new Color(0.72f, 0.9f, 0.96f, 0.9f);
     [SerializeField] private Color tuningChipBubbleColor = new Color(0.25f, 0.95f, 1f, 0.9f);
     [SerializeField] private Color healBubbleColor = new Color(0.35f, 1f, 0.35f, 0.85f);
 
@@ -630,6 +634,10 @@ public class RewardPickup : MonoBehaviour
                 AudioManager.PlayAt(SoundEventIds.PickupCore, transform.position);
                 break;
 
+            case CurrencyType.StabilizedAlloy:
+                AudioManager.PlayAt(SoundEventIds.PickupScrap, transform.position);
+                break;
+
             case CurrencyType.TuningChips:
                 AudioManager.PlayAt(SoundEventIds.PickupTuningChip, transform.position);
                 break;
@@ -649,7 +657,11 @@ public class RewardPickup : MonoBehaviour
         if (hud != null)
         {
             AudioManager.Play(SoundEventIds.ActionDenied);
-            hud.ShowWarning("기체 용량이 가득 찼습니다.");
+            hud.ShowCommunication(
+                ShipCommunicationChannel.Cargo,
+                "적재 공간이 가득 찼습니다.",
+                ShipCommunicationSeverity.Warning
+            );
         }
     }
 
@@ -706,6 +718,9 @@ public class RewardPickup : MonoBehaviour
                 CurrencyType.Credits => creditsSprite,
                 CurrencyType.ScrapParts => scrapSprite,
                 CurrencyType.CoreShards => coreShardSprite,
+                CurrencyType.StabilizedAlloy => stabilizedAlloySprite != null
+                    ? stabilizedAlloySprite
+                    : scrapSprite,
                 CurrencyType.TuningChips => tuningChipSprite != null ? tuningChipSprite : experienceSprite,
                 _ => null
             };
@@ -715,6 +730,11 @@ public class RewardPickup : MonoBehaviour
         {
             spriteRenderer.sprite = targetSprite;
         }
+
+        spriteRenderer.color = pickupKind == RewardPickupKind.Currency &&
+                               currencyType == CurrencyType.StabilizedAlloy
+            ? stabilizedAlloySpriteColor
+            : Color.white;
 
         currentVisualScaleMultiplier = ResolveVisualScaleMultiplier();
 
@@ -739,6 +759,7 @@ public class RewardPickup : MonoBehaviour
             CurrencyType.Credits => creditsVisualScale,
             CurrencyType.ScrapParts => scrapVisualScale,
             CurrencyType.CoreShards => coreVisualScale,
+            CurrencyType.StabilizedAlloy => stabilizedAlloyVisualScale,
             CurrencyType.TuningChips => tuningChipVisualScale,
             _ => 1f
         });
@@ -757,6 +778,7 @@ public class RewardPickup : MonoBehaviour
             CurrencyType.Credits => creditsBubbleColor,
             CurrencyType.ScrapParts => scrapBubbleColor,
             CurrencyType.CoreShards => coreBubbleColor,
+            CurrencyType.StabilizedAlloy => stabilizedAlloyBubbleColor,
             CurrencyType.TuningChips => tuningChipBubbleColor,
             _ => Color.white
         };

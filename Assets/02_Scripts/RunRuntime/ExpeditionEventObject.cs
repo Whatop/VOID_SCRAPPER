@@ -214,6 +214,9 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
     public ExpeditionEventType EventType => eventType;
     public ExpeditionEventState State => state;
     public bool CanReceiveEventDamage => eventType == ExpeditionEventType.UnstableReactor && state == ExpeditionEventState.Active;
+    public RadarTarget RadarTarget => radarTarget;
+
+    public event System.Action<ExpeditionEventObject, ExpeditionEventState> Resolved;
 
     public string InteractionText
     {
@@ -616,6 +619,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
         state = failed ? ExpeditionEventState.Failed : ExpeditionEventState.Completed;
         phase = CombatPhase.None;
+        Resolved?.Invoke(this, state);
 
         StopAllEventCoroutines();
         UntrackAllEnemies();

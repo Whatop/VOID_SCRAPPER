@@ -8,6 +8,7 @@ public class SceneFlowManager : MonoBehaviour
 
     [Header("Scene Names")]
     [SerializeField] private string bootSceneName = "Boot";
+    [SerializeField] private string tutorialSceneName = "Tutorial";
     [SerializeField] private string settlementSceneName = "Settlement";
     [SerializeField] private string expeditionSceneName = "Expedition";
 
@@ -17,6 +18,7 @@ public class SceneFlowManager : MonoBehaviour
     private bool isLoading;
 
     public string BootSceneName => bootSceneName;
+    public string TutorialSceneName => tutorialSceneName;
     public string SettlementSceneName => settlementSceneName;
     public string ExpeditionSceneName => expeditionSceneName;
     public bool IsLoading => isLoading || IsMotionTitleTransitioning();
@@ -41,6 +43,16 @@ public class SceneFlowManager : MonoBehaviour
         }
 
         StartCoroutine(LoadSceneRoutine(settlementSceneName, GameState.Settlement));
+    }
+
+    public void LoadTutorial()
+    {
+        if (IsLoading)
+        {
+            return;
+        }
+
+        StartCoroutine(LoadSceneRoutine(tutorialSceneName, GameState.Tutorial));
     }
 
     public void LoadExpedition()

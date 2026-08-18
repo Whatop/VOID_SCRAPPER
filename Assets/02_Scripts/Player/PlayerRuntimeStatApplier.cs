@@ -5,6 +5,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private PlayerHealth playerHealth;
+    [SerializeField] private PlayerArmor playerArmor;
     [SerializeField] private PlayerController2D playerController;
     [SerializeField] private PlayerDash playerDash;
     [SerializeField] private PlayerWeaponController weaponController;
@@ -15,6 +16,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
     [Header("Base Stats")]
     [SerializeField] private float baseMaxHp = 20f;
+    [SerializeField] private float baseMaxArmor;
+    [SerializeField] private float baseStartingArmor;
     [SerializeField] private float baseMoveSpeed = 6f;
     [SerializeField] private float baseDashDistance = 5f;
     [SerializeField] private float baseDashCooldown = 1.1f;
@@ -25,6 +28,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     [Header("Cargo Weight")]
     [SerializeField] private int scrapCargoWeight = 1;
     [SerializeField] private int coreShardCargoWeight = 12;
+    [SerializeField] private int stabilizedAlloyCargoWeight = 2;
 
     [Header("Trait Apply Rule")]
     [SerializeField] private bool applyTraitEffectsCumulatively;
@@ -40,6 +44,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     private struct RuntimeStats
     {
         public float maxHp;
+        public float maxArmor;
+        public float startingArmor;
         public float moveSpeed;
         public float dashDistance;
         public float dashCooldown;
@@ -48,6 +54,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
         public RuntimeStats(
             float baseMaxHp,
+            float baseMaxArmor,
+            float baseStartingArmor,
             float baseMoveSpeed,
             float baseDashDistance,
             float baseDashCooldown,
@@ -55,6 +63,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
             float baseEmergencyReturnCapacityRatio)
         {
             maxHp = Mathf.Max(1f, baseMaxHp);
+            startingArmor = Mathf.Max(0f, baseStartingArmor);
+            maxArmor = Mathf.Max(Mathf.Max(0f, baseMaxArmor), startingArmor);
             moveSpeed = Mathf.Max(0.1f, baseMoveSpeed);
             dashDistance = Mathf.Max(0.1f, baseDashDistance);
             dashCooldown = Mathf.Max(0.05f, baseDashCooldown);
@@ -66,6 +76,13 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+    }
+
+    private void OnDisable()
+    {
+        PlayerPeriodicReflector2D.SetSourceEnabled(gameObject, this, false);
+        PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, false);
+        PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, false);
     }
 
     public void Apply(
@@ -83,6 +100,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
         runtimeStats = new RuntimeStats(
             baseMaxHp,
+            baseMaxArmor,
+            baseStartingArmor,
             baseMoveSpeed,
             baseDashDistance,
             baseDashCooldown,
@@ -102,6 +121,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         ApplyShip(selectedShip);
 
         ApplyBuildings(progress, buildingDefinitions);
+        ApplySectorTechnologies(progress);
         ApplyPermanentTraits(progress, traitDefinitions, selectedWeaponTree);
 
         // 런 중 Trait는 RunRuntimeTraitStore + RunTraitEffectApplier가 단독 적용한다.
@@ -122,7 +142,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         {
             Debug.Log(
                 $"Runtime Stat Apply 완료 / Weapon: {selectedWeaponTree}, Ship: {selectedShipId}, " +
-                $"HP: {runtimeStats.maxHp}, Move: {runtimeStats.moveSpeed:0.##}, " +
+                $"HP: {runtimeStats.maxHp}, Armor: {runtimeStats.startingArmor}/{runtimeStats.maxArmor}, " +
+                $"HealEfficiency: {(runtimeBonusState?.HealEfficiencyMultiplier ?? 1f):0.##}x, Move: {runtimeStats.moveSpeed:0.##}, " +
                 $"DashDistance: {runtimeStats.dashDistance:0.##}, DashCooldown: {runtimeStats.dashCooldown:0.##}, " +
                 $"Cargo: {runtimeStats.cargoCapacity}, EmergencyReturnRatio: {runtimeStats.emergencyReturnCapacityRatio:0.##}",
                 this
@@ -130,11 +151,36 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         }
     }
 
+    public bool TryGetCurrentVitals(out float currentHp, out float currentArmor)
+    {
+        CacheReferences();
+
+        currentHp = playerHealth != null ? playerHealth.CurrentHp : 0f;
+        currentArmor = playerArmor != null ? playerArmor.CurrentArmor : 0f;
+
+        return playerHealth != null &&
+               playerArmor != null &&
+               !playerHealth.IsDead &&
+               currentHp > 0f;
+    }
+
+    public void RestoreCurrentVitals(float currentHp, float currentArmor)
+    {
+        CacheReferences();
+        playerHealth?.RestoreCurrentHp(currentHp);
+        playerArmor?.RestoreCurrentArmor(currentArmor);
+    }
+
     private void CacheReferences()
     {
         if (playerHealth == null)
         {
             playerHealth = GetComponent<PlayerHealth>();
+        }
+
+        if (playerArmor == null)
+        {
+            playerArmor = GetComponent<PlayerArmor>();
         }
 
         if (playerController == null)
@@ -190,6 +236,10 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
     private void ResetRuntimeModifiers()
     {
+        PlayerPeriodicReflector2D.SetSourceEnabled(gameObject, this, false);
+        PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, false);
+        PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, false);
+
         if (weaponModifiers != null)
         {
             weaponModifiers.ResetModifiers();
@@ -304,6 +354,44 @@ private BuildingDefinition FindBuildingDefinition(
         ApplyBuilding(progress, buildingDefinitions, BuildingType.EngineWorkshop);
         ApplyBuilding(progress, buildingDefinitions, BuildingType.WeaponLab);
         ApplyBuilding(progress, buildingDefinitions, BuildingType.RecoveryProcessor);
+
+        ClampStats();
+    }
+
+    private void ApplySectorTechnologies(PermanentProgress progress)
+    {
+        if (progress == null)
+        {
+            return;
+        }
+
+        IReadOnlyList<SectorTechnologyDefinition> definitions = SectorTechnologyCatalog.Definitions;
+        for (int i = 0; i < definitions.Count; i++)
+        {
+            SectorTechnologyDefinition definition = definitions[i];
+            int level = progress.GetSectorTechnologyLevel(definition.Id);
+            if (level <= 0)
+            {
+                continue;
+            }
+
+            float value = definition.GetEffectValue(level);
+            switch (definition.EffectType)
+            {
+                case SectorTechnologyEffectType.MaxHp:
+                    runtimeStats.maxHp += value;
+                    break;
+
+                case SectorTechnologyEffectType.StartingArmor:
+                    runtimeStats.startingArmor += value;
+                    runtimeStats.maxArmor = Mathf.Max(runtimeStats.maxArmor, runtimeStats.startingArmor);
+                    break;
+
+                case SectorTechnologyEffectType.HealEfficiencyPercent:
+                    runtimeBonusState?.AddHealEfficiencyPercent(value);
+                    break;
+            }
+        }
 
         ClampStats();
     }
@@ -540,13 +628,18 @@ private BuildingDefinition FindBuildingDefinition(
                 continue;
             }
 
-            int level = Mathf.Clamp(progress.GetTraitLevel(trait.TraitId), 0, trait.MaxLevel);
+            bool ownsPersistentStoryTrait =
+                trait.IsPersistentStoryTrait && progress.HasPersistentStoryTrait(trait);
+            int level = ownsPersistentStoryTrait
+                ? 1
+                : Mathf.Clamp(progress.GetTraitLevel(trait.TraitId), 0, trait.MaxLevel);
+
             if (level <= 0)
             {
                 continue;
             }
 
-            if (!progress.IsTraitActive(trait.TraitId))
+            if (!ownsPersistentStoryTrait && !progress.IsTraitActive(trait.TraitId))
             {
                 continue;
             }
@@ -656,6 +749,10 @@ private BuildingDefinition FindBuildingDefinition(
                 weaponModifiers?.AddHomingRange(value);
                 break;
 
+            case TraitEffectType.RemovePierceDamageFalloff:
+                weaponModifiers?.AddPierceDamageFalloffRemoval(Mathf.Max(1, Mathf.RoundToInt(value)));
+                break;
+
             case TraitEffectType.FireRatePercent:
                 weaponModifiers?.AddFireRatePercent(value);
                 break;
@@ -693,6 +790,37 @@ private BuildingDefinition FindBuildingDefinition(
             case TraitEffectType.RadarStealthDurationBonus:
                 runtimeBonusState?.AddRadarStealthDurationBonus(value);
                 break;
+
+            case TraitEffectType.SniperSemiAutoMode:
+                weaponModifiers?.AddSniperSemiAutoMode(Mathf.Max(1, Mathf.RoundToInt(value)));
+                break;
+
+            case TraitEffectType.ShotgunCloseRangeDamagePercent:
+                weaponModifiers?.AddShotgunCloseRangeDamagePercent(value);
+                break;
+
+            case TraitEffectType.MachineGunTerminalGuidance:
+                weaponModifiers?.AddMachineGunTerminalGuidance(
+                    Mathf.Max(1, Mathf.RoundToInt(value))
+                );
+                break;
+
+            case TraitEffectType.PeriodicReflectiveShield:
+                PlayerPeriodicReflector2D.SetSourceEnabled(
+                    gameObject,
+                    this,
+                    true,
+                    Mathf.Max(0.05f, value)
+                );
+                break;
+
+            case TraitEffectType.MachineGunDashMissileSalvo:
+                PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, true);
+                break;
+
+            case TraitEffectType.SniperDashEchoShot:
+                PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, true);
+                break;
         }
     }
 
@@ -710,6 +838,15 @@ private BuildingDefinition FindBuildingDefinition(
             playerHealth.SetMaxHp(runtimeStats.maxHp, refillHealth);
         }
 
+        if (playerArmor != null)
+        {
+            playerArmor.SetMaxArmor(runtimeStats.maxArmor, false);
+            if (refillHealth)
+            {
+                playerArmor.SetArmor(runtimeStats.startingArmor);
+            }
+        }
+
         if (playerController != null)
         {
             playerController.SetMoveSpeed(runtimeStats.moveSpeed);
@@ -723,7 +860,13 @@ private BuildingDefinition FindBuildingDefinition(
 
         if (runContext != null && runContext.IsActive)
         {
-            runContext.SetCargoRule(runtimeStats.cargoCapacity, runtimeStats.emergencyReturnCapacityRatio, scrapCargoWeight, coreShardCargoWeight);
+            runContext.SetCargoRule(
+                runtimeStats.cargoCapacity,
+                runtimeStats.emergencyReturnCapacityRatio,
+                scrapCargoWeight,
+                coreShardCargoWeight,
+                stabilizedAlloyCargoWeight
+            );
         }
 
         if (cargoController != null)
@@ -735,6 +878,8 @@ private BuildingDefinition FindBuildingDefinition(
     private void ClampStats()
     {
         runtimeStats.maxHp = Mathf.Max(1f, runtimeStats.maxHp);
+        runtimeStats.maxArmor = Mathf.Max(0f, runtimeStats.maxArmor);
+        runtimeStats.startingArmor = Mathf.Clamp(runtimeStats.startingArmor, 0f, runtimeStats.maxArmor);
         runtimeStats.moveSpeed = Mathf.Max(0.1f, runtimeStats.moveSpeed);
         runtimeStats.dashDistance = Mathf.Max(0.1f, runtimeStats.dashDistance);
         runtimeStats.dashCooldown = Mathf.Max(0.05f, runtimeStats.dashCooldown);

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 using Unity.Cinemachine;
 
 [DisallowMultipleComponent]
@@ -33,12 +34,11 @@ public class GungeonStyleCamera2D : MonoBehaviour
     [SerializeField] private Rigidbody2D playerRb;
     [SerializeField] private float moveBiasStrength = 0.08f;
     [SerializeField] private float maxMoveBias = 0.15f;
-    [Min(0f)]
-    [SerializeField] private float moveBiasAcceleration = 10f;
-    [Min(0f)]
-    [SerializeField] private float moveBiasDeceleration = 5.5f;
-    [Min(0f)]
+    [SerializeField] private float moveBiasSmoothSpeed = 8f;
     [SerializeField] private float moveBiasVelocityDeadZone = 0.08f;
+
+    [Header("Idle Recentering")]
+    [SerializeField] private float idleRecenteringSmoothSpeed = 5.5f;
 
     [Header("Camera Shake")]
     [SerializeField] private bool enableCameraShake = true;
@@ -49,14 +49,14 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     [Header("Pixel Perfect Stabilization")]
     [SerializeField] private bool snapOffsetToPixelGrid = true;
-    [SerializeField] private bool snapOnlyWhenSettled = true;
-    [Min(0f)]
-    [SerializeField] private float pixelSnapSettleDistance = 0.015f;
+    [FormerlySerializedAs("snapOnlyWhenSettled")]
+    [SerializeField] private bool snapOffsetOnlyWhenSettled = true;
+    [SerializeField] private float pixelSnapSettleDistance = 0.012f;
     [SerializeField] private int assetsPixelsPerUnit = 32;
 
     private CinemachineFollow follow;
     private Vector3 currentOffset;
-    private Vector2 currentMoveBias;
+    private Vector2 currentMoveBiasOffset;
     private float runtimeAimOffsetMultiplier = 1f;
     private float runtimeMouseDistanceMultiplier = 1f;
 
@@ -94,7 +94,6 @@ public class GungeonStyleCamera2D : MonoBehaviour
     private void OnDisable()
     {
         cinematicFocusActive = false;
-        currentMoveBias = Vector2.zero;
 
         if (Instance == this)
         {
@@ -131,7 +130,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
         float activeSmoothSpeed = cinematicFocusActive
             ? cinematicFocusSmoothSpeed
-            : offsetSmoothSpeed;
+            : ResolveOffsetSmoothSpeed(targetOffset);
 
         if (activeSmoothSpeed <= 0f)
         {
@@ -146,12 +145,10 @@ public class GungeonStyleCamera2D : MonoBehaviour
         Vector2 shakeOffset = EvaluateShakeOffset();
         Vector3 outputOffset = currentOffset + new Vector3(shakeOffset.x, shakeOffset.y, 0f);
 
-        bool offsetSettled = (currentOffset - targetOffset).sqrMagnitude <=
-                             pixelSnapSettleDistance * pixelSnapSettleDistance;
-        bool canSnap = snapOffsetToPixelGrid &&
-                       (!snapOnlyWhenSettled || (offsetSettled && shakeRemaining <= 0f));
+        bool settledForPixelSnap = !snapOffsetOnlyWhenSettled ||
+                                   (targetOffset - currentOffset).sqrMagnitude <= pixelSnapSettleDistance * pixelSnapSettleDistance;
 
-        if (canSnap)
+        if (snapOffsetToPixelGrid && settledForPixelSnap)
         {
             outputOffset.x = SnapToPixelGrid(outputOffset.x);
             outputOffset.y = SnapToPixelGrid(outputOffset.y);
@@ -283,16 +280,30 @@ public class GungeonStyleCamera2D : MonoBehaviour
         }
 
         Vector2 mouseScreen = Mouse.current.position.ReadValue();
+        Rect pixelRect = mainCamera.pixelRect;
 
-        float cameraDepth = Mathf.Abs(mainCamera.transform.position.z - player.position.z);
+        if (pixelRect.width <= 0f || pixelRect.height <= 0f)
+        {
+            return Vector2.zero;
+        }
 
-        Vector3 mouseWorld = mainCamera.ScreenToWorldPoint(
-            new Vector3(mouseScreen.x, mouseScreen.y, cameraDepth)
+        mouseScreen.x = Mathf.Clamp(mouseScreen.x, pixelRect.xMin, pixelRect.xMax);
+        mouseScreen.y = Mathf.Clamp(mouseScreen.y, pixelRect.yMin, pixelRect.yMax);
+
+        Vector2 viewportCenter = pixelRect.center;
+        Vector2 centeredViewport = new Vector2(
+            (mouseScreen.x - viewportCenter.x) / (pixelRect.width * 0.5f),
+            (mouseScreen.y - viewportCenter.y) / (pixelRect.height * 0.5f)
         );
 
-        mouseWorld.z = player.position.z;
-
-        Vector2 toMouse = mouseWorld - player.position;
+        float orthographicSize = cinemachineCamera != null
+            ? cinemachineCamera.Lens.OrthographicSize
+            : mainCamera.orthographicSize;
+        float viewportAspect = pixelRect.width / pixelRect.height;
+        Vector2 toMouse = new Vector2(
+            centeredViewport.x * orthographicSize * viewportAspect,
+            centeredViewport.y * orthographicSize
+        );
         float distance = toMouse.magnitude;
 
         if (distance <= deadZoneRadius)
@@ -328,26 +339,31 @@ public class GungeonStyleCamera2D : MonoBehaviour
             }
         }
 
-        bool increasing = targetBias.sqrMagnitude > currentMoveBias.sqrMagnitude;
-        float smoothSpeed = increasing
-            ? Mathf.Max(0f, moveBiasAcceleration)
-            : Mathf.Max(0f, moveBiasDeceleration);
+        float smoothSpeed = Mathf.Max(0f, moveBiasSmoothSpeed);
 
         if (smoothSpeed <= 0f)
         {
-            currentMoveBias = targetBias;
-            return currentMoveBias;
+            currentMoveBiasOffset = targetBias;
+            return currentMoveBiasOffset;
         }
 
         float t = 1f - Mathf.Exp(-smoothSpeed * Time.unscaledDeltaTime);
-        currentMoveBias = Vector2.Lerp(currentMoveBias, targetBias, t);
+        currentMoveBiasOffset = Vector2.Lerp(currentMoveBiasOffset, targetBias, t);
+        return currentMoveBiasOffset;
+    }
 
-        if (targetBias == Vector2.zero && currentMoveBias.sqrMagnitude <= 0.000001f)
+    private float ResolveOffsetSmoothSpeed(Vector3 targetOffset)
+    {
+        bool playerNearlyStopped = playerRb == null ||
+                                   playerRb.linearVelocity.sqrMagnitude <= moveBiasVelocityDeadZone * moveBiasVelocityDeadZone;
+        bool returningTowardTarget = targetOffset.sqrMagnitude < currentOffset.sqrMagnitude;
+
+        if (playerNearlyStopped && returningTowardTarget)
         {
-            currentMoveBias = Vector2.zero;
+            return Mathf.Max(0f, idleRecenteringSmoothSpeed);
         }
 
-        return currentMoveBias;
+        return Mathf.Max(0f, offsetSmoothSpeed);
     }
 
     private Vector2 EvaluateShakeOffset()

@@ -4,8 +4,10 @@ using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyAttackController))]
-public class BaseTurretController : MonoBehaviour
+public class BaseTurretController : MonoBehaviour, IPlayerOwnedAlly, IPlayerProjectileHitListener
 {
+    private const int MaxTrackedDeploymentTaunts = 8;
+
     [Header("Definition Optional")]
     [Tooltip("연결하면 EnemyAttackController와 EnemyHealth에 동일한 정의를 적용합니다. 비우면 각 컴포넌트의 Fallback 값을 사용합니다.")]
     [SerializeField] private EnemyDefinition turretDefinition;
@@ -33,6 +35,10 @@ public class BaseTurretController : MonoBehaviour
     [SerializeField] private LayerMask lineOfSightBlockMask;
     [SerializeField] private bool requireLineOfSight = true;
 
+    [Header("Enemy Base Defense Optional")]
+    [SerializeField] private FieldBaseController fieldBaseOwner;
+    [SerializeField] private bool exteriorFieldBaseDefense;
+
     [Header("Neutral Shop Defense Optional")]
     [SerializeField] private ShopStructure shopOwner;
     [Tooltip("중립 상점 포탑이 탐색할 적 레이어입니다. 비어 있으면 모든 레이어에서 EnemyHealth를 필터링합니다.")]
@@ -40,6 +46,10 @@ public class BaseTurretController : MonoBehaviour
     [Min(0.05f)]
     [SerializeField] private float targetRefreshInterval = 0.2f;
     [SerializeField] private bool requireThreateningEnemy = true;
+
+    [Header("Player Deployable Optional")]
+    [Min(0f)]
+    [SerializeField] private float playerDeploymentOffset = 0.9f;
 
     [Header("Aim")]
     [SerializeField] private float turnSpeed = 360f;
@@ -66,6 +76,17 @@ public class BaseTurretController : MonoBehaviour
     private float targetRefreshTimer;
     private bool lastTargetPlayerMode;
     private bool targetModeInitialized;
+    private bool playerAllied;
+    private Transform playerOwner;
+    private RadarTarget radarTarget;
+    private Collider2D[] deploymentColliders;
+    private bool[] deploymentColliderStates;
+    private bool playerDeploymentOverridesApplied;
+    private bool radarVisibleBeforePlayerDeployment;
+    private readonly EnemyBaseAI[] deploymentTauntTargets = new EnemyBaseAI[MaxTrackedDeploymentTaunts];
+    private readonly float[] deploymentTauntEndsAt = new float[MaxTrackedDeploymentTaunts];
+    private float playerDeploymentTauntDuration;
+    private int playerDeploymentMaxTauntTargets;
 
     public bool PoweredOn => poweredOn;
     public bool IsDestroyed => turretHealth != null && turretHealth.IsDead;
@@ -73,6 +94,8 @@ public class BaseTurretController : MonoBehaviour
     public EnemyHealth TurretHealth => turretHealth;
     public ShopStructure ShopOwner => shopOwner;
     public bool IsShopDefense => shopOwner != null;
+    public bool IsPlayerAllied => playerAllied;
+    public bool IsPlayerOwnedAlly => playerAllied;
     public EnemyDefinition TurretDefinition => turretDefinition;
 
     public event Action<BaseTurretController, bool> PowerChanged;
@@ -121,6 +144,11 @@ public class BaseTurretController : MonoBehaviour
 
         attackController?.CancelCharge();
         ClearTarget();
+        RestorePlayerDeploymentOverrides();
+        ResetPlayerDeploymentCombat();
+        playerAllied = false;
+        playerOwner = null;
+        targetModeInitialized = false;
     }
 
     private void Update()
@@ -136,7 +164,7 @@ public class BaseTurretController : MonoBehaviour
             return;
         }
 
-        bool targetPlayerMode = shopOwner == null || shopOwner.IsHostile;
+        bool targetPlayerMode = !playerAllied && (shopOwner == null || shopOwner.IsHostile);
 
         if (!targetModeInitialized || lastTargetPlayerMode != targetPlayerMode)
         {
@@ -195,11 +223,123 @@ public class BaseTurretController : MonoBehaviour
 
     public void ConfigureShopDefense(ShopStructure owner)
     {
+        RestorePlayerDeploymentOverrides();
+        ResetPlayerDeploymentCombat();
+        playerAllied = false;
+        playerOwner = null;
         shopOwner = owner;
+        fieldBaseOwner = null;
+        exteriorFieldBaseDefense = false;
         targetModeInitialized = false;
         targetRefreshTimer = 0f;
         ClearTarget();
         ConfigureProjectileAllegiance();
+    }
+
+    public void ConfigureFieldBaseDefense(FieldBaseController owner, bool exteriorDefense)
+    {
+        if (playerAllied || shopOwner != null)
+        {
+            return;
+        }
+
+        fieldBaseOwner = owner;
+        exteriorFieldBaseDefense = exteriorDefense;
+        targetRefreshTimer = 0f;
+        ClearTarget();
+    }
+
+    public void ConfigurePlayerAlly(
+        GameObject owner,
+        float attackIntervalMultiplier = 1f,
+        float damageMultiplier = 1f,
+        float tauntDuration = 0f,
+        int maxTauntTargets = 0)
+    {
+        if (owner == null)
+        {
+            Debug.LogWarning("플레이어 포탑 소유자가 없어 아군 배치를 구성하지 못했습니다.", this);
+            return;
+        }
+
+        ResetPlayerDeploymentCombat();
+        playerAllied = true;
+        playerOwner = owner.transform;
+        shopOwner = null;
+        fieldBaseOwner = null;
+        exteriorFieldBaseDefense = false;
+        targetModeInitialized = false;
+        targetRefreshTimer = 0f;
+        ClearTarget();
+
+        Vector2 deployDirection = playerOwner.up;
+
+        if (deployDirection.sqrMagnitude <= 0.001f)
+        {
+            deployDirection = Vector2.up;
+        }
+
+        transform.position = (Vector2)playerOwner.position +
+                             deployDirection.normalized * Mathf.Max(0f, playerDeploymentOffset);
+        attackController?.ConfigurePlayerDeploymentCombat(
+            attackIntervalMultiplier,
+            damageMultiplier
+        );
+        playerDeploymentTauntDuration = Mathf.Max(0f, tauntDuration);
+        playerDeploymentMaxTauntTargets = Mathf.Clamp(
+            maxTauntTargets,
+            0,
+            MaxTrackedDeploymentTaunts
+        );
+        ClearDeploymentTauntTracking();
+        ApplyPlayerDeploymentOverrides();
+        SetPowered(true);
+        ConfigureProjectileAllegiance();
+    }
+
+    public void HandlePlayerProjectileHit(EnemyHealth enemyHealth, EnemyBaseAI enemyAI)
+    {
+        if (!playerAllied ||
+            playerDeploymentTauntDuration <= 0f ||
+            playerDeploymentMaxTauntTargets <= 0 ||
+            enemyHealth == null ||
+            enemyHealth.IsDead ||
+            enemyAI == null ||
+            !enemyAI.IsRadarTauntable ||
+            enemyAI.IsShopSecurityUnit ||
+            !enemyAI.IsShopSecurityThreat)
+        {
+            return;
+        }
+
+        float now = Time.time;
+        int firstFreeIndex = -1;
+
+        for (int i = 0; i < playerDeploymentMaxTauntTargets; i++)
+        {
+            EnemyBaseAI trackedTarget = deploymentTauntTargets[i];
+
+            if (trackedTarget == enemyAI)
+            {
+                ApplyDeploymentTaunt(i, enemyAI, now);
+                return;
+            }
+
+            if (firstFreeIndex < 0 &&
+                (trackedTarget == null ||
+                 !trackedTarget.gameObject.activeInHierarchy ||
+                 trackedTarget.Health == null ||
+                 trackedTarget.Health.IsDead ||
+                 deploymentTauntEndsAt[i] <= now))
+            {
+                firstFreeIndex = i;
+            }
+        }
+
+        if (firstFreeIndex >= 0)
+        {
+            ApplyDeploymentTaunt(firstFreeIndex, enemyAI, now);
+        }
     }
 
     public void ConfigureDefinition(EnemyDefinition definition)
@@ -212,6 +352,7 @@ public class BaseTurretController : MonoBehaviour
         turretDefinition = definition;
         ResolveReferences();
         attackController?.CancelCharge();
+        ResetPlayerDeploymentCombat();
         attackController?.ApplyDefinition(turretDefinition);
         turretHealth?.ApplyDefinition(turretDefinition);
         targetRefreshTimer = 0f;
@@ -250,6 +391,17 @@ public class BaseTurretController : MonoBehaviour
             turretHealth = GetComponent<EnemyHealth>();
         }
 
+        if (radarTarget == null)
+        {
+            radarTarget = GetComponent<RadarTarget>();
+        }
+
+        if (deploymentColliders == null)
+        {
+            deploymentColliders = GetComponentsInChildren<Collider2D>(true);
+            deploymentColliderStates = new bool[deploymentColliders.Length];
+        }
+
         if (headPivot == null)
         {
             headPivot = transform;
@@ -265,6 +417,98 @@ public class BaseTurretController : MonoBehaviour
             machineGunLeftFirePoint,
             machineGunRightFirePoint
         );
+    }
+
+    private void ApplyPlayerDeploymentOverrides()
+    {
+        RestorePlayerDeploymentOverrides();
+        playerDeploymentOverridesApplied = true;
+
+        if (radarTarget != null)
+        {
+            radarVisibleBeforePlayerDeployment = radarTarget.IsRadarVisible;
+            radarTarget.SetVisible(false);
+        }
+
+        if (deploymentColliders == null || deploymentColliderStates == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < deploymentColliders.Length; i++)
+        {
+            Collider2D deploymentCollider = deploymentColliders[i];
+
+            if (deploymentCollider == null)
+            {
+                continue;
+            }
+
+            deploymentColliderStates[i] = deploymentCollider.enabled;
+
+            if (!deploymentCollider.isTrigger)
+            {
+                deploymentCollider.enabled = false;
+            }
+        }
+    }
+
+    private void RestorePlayerDeploymentOverrides()
+    {
+        if (!playerDeploymentOverridesApplied)
+        {
+            return;
+        }
+
+        playerDeploymentOverridesApplied = false;
+
+        if (radarTarget != null)
+        {
+            radarTarget.SetVisible(radarVisibleBeforePlayerDeployment);
+        }
+
+        if (deploymentColliders == null || deploymentColliderStates == null)
+        {
+            return;
+        }
+
+        int count = Mathf.Min(deploymentColliders.Length, deploymentColliderStates.Length);
+
+        for (int i = 0; i < count; i++)
+        {
+            if (deploymentColliders[i] != null)
+            {
+                deploymentColliders[i].enabled = deploymentColliderStates[i];
+            }
+        }
+    }
+
+    private void ResetPlayerDeploymentCombat()
+    {
+        attackController?.ResetPlayerDeploymentCombat();
+        playerDeploymentTauntDuration = 0f;
+        playerDeploymentMaxTauntTargets = 0;
+        ClearDeploymentTauntTracking();
+    }
+
+    private void ApplyDeploymentTaunt(int index, EnemyBaseAI enemyAI, float now)
+    {
+        deploymentTauntTargets[index] = enemyAI;
+        deploymentTauntEndsAt[index] = now + playerDeploymentTauntDuration;
+        enemyAI.ApplyTemporaryAttraction(
+            this,
+            transform.position,
+            playerDeploymentTauntDuration
+        );
+    }
+
+    private void ClearDeploymentTauntTracking()
+    {
+        for (int i = 0; i < deploymentTauntTargets.Length; i++)
+        {
+            deploymentTauntTargets[i] = null;
+            deploymentTauntEndsAt[i] = 0f;
+        }
     }
 
     private void ApplyDefinitionIfAssigned()
@@ -285,7 +529,11 @@ public class BaseTurretController : MonoBehaviour
             return;
         }
 
-        if (shopOwner != null && !shopOwner.IsHostile)
+        if (playerAllied)
+        {
+            attackController.SetProjectileOwner(ProjectileOwner.Player, false);
+        }
+        else if (shopOwner != null && !shopOwner.IsHostile)
         {
             attackController.SetProjectileOwner(ProjectileOwner.ShopDefense, true);
         }
@@ -328,9 +576,16 @@ public class BaseTurretController : MonoBehaviour
 
         enemyTargetHealth = null;
         enemyTargetAI = null;
-        target = playerTargetHealth != null && !playerTargetHealth.IsDead
-            ? playerTargetHealth.transform
-            : null;
+        bool canTargetPlayer = playerTargetHealth != null &&
+                               !playerTargetHealth.IsDead &&
+                               CanTargetPlayerPosition(playerTargetHealth.transform.position);
+
+        target = canTargetPlayer ? playerTargetHealth.transform : null;
+
+        if (!canTargetPlayer && attackController != null && attackController.IsCharging)
+        {
+            attackController.CancelCharge();
+        }
     }
 
     private void ResolveHostileEnemyTarget()
@@ -411,7 +666,9 @@ public class BaseTurretController : MonoBehaviour
 
         if (targetPlayerMode)
         {
-            return playerTargetHealth != null && !playerTargetHealth.IsDead;
+            return playerTargetHealth != null &&
+                   !playerTargetHealth.IsDead &&
+                   CanTargetPlayerPosition(playerTargetHealth.transform.position);
         }
 
         return enemyTargetHealth != null &&
@@ -419,6 +676,13 @@ public class BaseTurretController : MonoBehaviour
                enemyTargetAI != null &&
                !enemyTargetAI.IsShopSecurityUnit &&
                (!requireThreateningEnemy || enemyTargetAI.IsShopSecurityThreat);
+    }
+
+    private bool CanTargetPlayerPosition(Vector2 playerPosition)
+    {
+        return !exteriorFieldBaseDefense ||
+               fieldBaseOwner == null ||
+               fieldBaseOwner.CanExteriorTurretTargetPlayer(playerPosition);
     }
 
     private void ClearTarget()

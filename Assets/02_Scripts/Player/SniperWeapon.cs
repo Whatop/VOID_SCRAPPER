@@ -1,4 +1,19 @@
+using System;
 using UnityEngine;
+
+public readonly struct SniperSuccessfulShotSnapshot
+{
+    public SniperSuccessfulShotSnapshot(
+        PlayerProjectileFireSnapshot projectile,
+        Vector2 aimWorldPosition)
+    {
+        Projectile = projectile;
+        AimWorldPosition = aimWorldPosition;
+    }
+
+    public PlayerProjectileFireSnapshot Projectile { get; }
+    public Vector2 AimWorldPosition { get; }
+}
 
 public class SniperWeapon : PlayerWeaponBase
 {
@@ -30,6 +45,24 @@ public class SniperWeapon : PlayerWeaponBase
     [Tooltip("이동 중 차징 속도 배율입니다. 0.6이면 차징 시간이 약 1 / 0.6 = 1.67배 길어집니다.")]
     [Range(0.1f, 1f)]
     [SerializeField] private float movingChargeSpeedMultiplier = 0.6f;
+
+    [Header("Semi-Auto Laser Trait")]
+    [Tooltip("디버그용. 체크하면 특성 없이도 짧은 클릭 세미오토가 활성화됩니다.")]
+    [SerializeField] private bool enableSemiAutoWithoutTrait;
+    [Tooltip("선택 사항. 비우면 기존 스나이퍼 탄환 프리팹을 사용하고 아래 fallback 수치를 적용합니다.")]
+    [SerializeField] private ProjectileDefinition semiAutoProjectileDefinition;
+    [SerializeField] private float fallbackSemiAutoDamage = 2.4f;
+    [SerializeField] private float fallbackSemiAutoSpeed = 28f;
+    [SerializeField] private float fallbackSemiAutoRange = 12f;
+    [SerializeField] private int fallbackSemiAutoPierceCount = 1;
+    [Min(0.05f)]
+    [SerializeField] private float semiAutoFireInterval = 0.28f;
+    [Range(0f, 1f)]
+    [SerializeField] private float semiAutoSoundVolumeMultiplier = 0.65f;
+    [Range(0f, 1f)]
+    [SerializeField] private float semiAutoAnimationPowerRatio = 0.3f;
+    [Tooltip("세미오토 모드에서는 최소 차징 시간 전까지 차징선, 줌, 차징음을 표시하지 않습니다.")]
+    [SerializeField] private bool delayChargePresentationUntilMinimumCharge = true;
 
     [Header("Stationary Snipe Camera Assist")]
     [Tooltip("멈춘 상태에서 차징할 때 마우스 방향 카메라 오프셋을 얼마나 더 멀리 보낼지 결정합니다.")]
@@ -75,10 +108,13 @@ public class SniperWeapon : PlayerWeaponBase
 
     private bool isCharging;
     private bool chargeAudioStarted;
+    private bool chargePresentationStarted;
     private float chargeTimer;
     private float nextChargeAllowedTime;
 
     public override bool IsCharging => isCharging;
+
+    public event Action<SniperSuccessfulShotSnapshot> SuccessfulShotFired;
 
     public override float ChargeRatio
     {
@@ -174,16 +210,20 @@ public class SniperWeapon : PlayerWeaponBase
         }
 
         chargeTimer += effectiveDeltaTime;
+        TryStartChargePresentation();
 
-        if (!chargeAudioStarted && chargeTimer >= Mathf.Max(0f, chargeAudioStartDelay))
+        if (chargePresentationStarted)
         {
-            StartChargeAudio();
-        }
+            if (!chargeAudioStarted && chargeTimer >= GetChargeAudioStartThreshold())
+            {
+                StartChargeAudio();
+            }
 
-        UpdateCameraZoom();
-        UpdateAimAssist();
-        UpdateChargePresentation();
-        NotifyChargeChanged(ChargeRatio);
+            UpdateCameraZoom();
+            UpdateAimAssist();
+            UpdateChargePresentation();
+            NotifyChargeChanged(ChargeRatio);
+        }
 
         // ReleasedThisFrame가 UI 포인터 전환 등의 이유로 유실되어도
         // Held가 false가 되는 순간 반드시 발사 처리를 한다.
@@ -204,21 +244,38 @@ public class SniperWeapon : PlayerWeaponBase
 
         isCharging = true;
         chargeTimer = 0f;
+        chargeAudioStarted = false;
+        chargePresentationStarted = false;
 
+        SetChargeLineVisible(false);
+        TryStartChargePresentation();
+    }
+
+    private void TryStartChargePresentation()
+    {
+        if (!isCharging || chargePresentationStarted)
+        {
+            return;
+        }
+
+        if (ShouldDelayChargePresentation() && chargeTimer < Mathf.Max(0f, minimumChargeTime))
+        {
+            return;
+        }
+
+        chargePresentationStarted = true;
+        SetChargeLineVisible(showChargeAimLine);
         UpdateCameraZoom();
         UpdateAimAssist();
-        SetChargeLineVisible(showChargeAimLine);
         UpdateChargePresentation();
-
-        chargeAudioStarted = false;
-
-        if (chargeAudioStartDelay <= 0f)
-        {
-            StartChargeAudio();
-        }
 
         NotifyChargeStarted();
         NotifyChargeChanged(ChargeRatio);
+
+        if (GetChargeAudioStartThreshold() <= 0f)
+        {
+            StartChargeAudio();
+        }
     }
 
     private void FireChargedShot()
@@ -230,6 +287,12 @@ public class SniperWeapon : PlayerWeaponBase
 
         if (chargeTimer < Mathf.Max(0f, minimumChargeTime))
         {
+            if (IsSemiAutoModeEnabled())
+            {
+                FireSemiAutoShot();
+                return;
+            }
+
             bool playCancel = !suppressCancelSoundBeforeMinimumCharge && chargeAudioStarted;
             CancelCharge(!playCancel);
             nextChargeAllowedTime = Time.time + Mathf.Max(rapidClickLockout, nextChargeDelay);
@@ -254,12 +317,14 @@ public class SniperWeapon : PlayerWeaponBase
             damage *= weaponModifiers.ChargeDamageMultiplier;
         }
 
+        Vector2 aimWorldPosition = ResolveShotAimWorldPosition(direction, baseRange);
         bool fired = SpawnProjectile(
             direction,
             damage,
             baseSpeed,
             baseRange,
-            basePierce
+            basePierce,
+            out PlayerProjectileFireSnapshot projectileSnapshot
         );
 
         StopChargeLoop();
@@ -268,8 +333,15 @@ public class SniperWeapon : PlayerWeaponBase
         {
             SpawnMuzzleEffect(direction);
             AudioManager.PlayAt(SoundEventIds.SniperFire, transform.position);
+            PlaySuccessfulFireFeedback(
+                WeaponTreeType.Sniper,
+                direction,
+                firePoint,
+                finalChargeRatio
+            );
 
             RegisterAttack();
+            NotifySuccessfulShot(projectileSnapshot, aimWorldPosition);
             NotifyFired(finalChargeRatio);
             NotifyChargeReleased(finalChargeRatio);
         }
@@ -291,17 +363,152 @@ public class SniperWeapon : PlayerWeaponBase
         nextChargeAllowedTime = Time.time + Mathf.Max(0f, nextChargeDelay);
     }
 
+    private void FireSemiAutoShot()
+    {
+        if (!isCharging || !IsSemiAutoModeEnabled())
+        {
+            return;
+        }
+
+        ProjectileDefinition definition = semiAutoProjectileDefinition != null
+            ? semiAutoProjectileDefinition
+            : GetProjectileDefinition();
+
+        float damage = semiAutoProjectileDefinition != null
+            ? semiAutoProjectileDefinition.Damage
+            : fallbackSemiAutoDamage;
+        float speed = semiAutoProjectileDefinition != null
+            ? semiAutoProjectileDefinition.Speed
+            : fallbackSemiAutoSpeed;
+        float range = semiAutoProjectileDefinition != null
+            ? semiAutoProjectileDefinition.Range
+            : fallbackSemiAutoRange;
+        int pierce = semiAutoProjectileDefinition != null
+            ? semiAutoProjectileDefinition.PierceCount
+            : fallbackSemiAutoPierceCount;
+
+        Vector2 direction = GetAimDirection();
+        Vector2 aimWorldPosition = ResolveShotAimWorldPosition(direction, range);
+        bool fired = SpawnProjectileWithDefinition(
+            definition,
+            direction,
+            damage,
+            speed,
+            range,
+            Mathf.Max(0, pierce),
+            out PlayerProjectileFireSnapshot projectileSnapshot
+        );
+
+        StopChargeLoop();
+
+        if (fired)
+        {
+            SpawnMuzzleEffect(direction);
+            AudioManager.PlayAt(
+                SoundEventIds.SniperFire,
+                transform.position,
+                Mathf.Clamp01(semiAutoSoundVolumeMultiplier)
+            );
+            PlaySuccessfulFireFeedback(
+                WeaponTreeType.Sniper,
+                direction,
+                firePoint,
+                Mathf.Clamp01(semiAutoAnimationPowerRatio)
+            );
+
+            RegisterAttack();
+            NotifySuccessfulShot(projectileSnapshot, aimWorldPosition);
+            NotifyFired(Mathf.Clamp01(semiAutoAnimationPowerRatio));
+        }
+        else
+        {
+            if (logProjectileFailure)
+            {
+                Debug.LogError(
+                    $"{name}: 스나이퍼 세미오토 탄환 생성에 실패했습니다. Semi Auto Projectile Definition 또는 기존 스나이퍼 탄환 설정을 확인하세요.",
+                    this
+                );
+            }
+
+            AudioManager.PlayAt(SoundEventIds.SniperChargeCancel, transform.position, 0.45f);
+        }
+
+        ResetChargeState();
+        nextChargeAllowedTime = Time.time + GetSemiAutoFireInterval();
+    }
+
+    private Vector2 ResolveShotAimWorldPosition(Vector2 direction, float range)
+    {
+        if (playerController != null &&
+            playerController.TryGetAimWorldPosition(out Vector2 aimWorldPosition))
+        {
+            return aimWorldPosition;
+        }
+
+        Vector2 origin = firePoint != null ? firePoint.position : transform.position;
+        Vector2 fallbackDirection = direction.sqrMagnitude > 0.001f
+            ? direction.normalized
+            : Vector2.up;
+        return origin + fallbackDirection * Mathf.Max(1f, range);
+    }
+
+    private void NotifySuccessfulShot(
+        PlayerProjectileFireSnapshot projectileSnapshot,
+        Vector2 aimWorldPosition)
+    {
+        SuccessfulShotFired?.Invoke(
+            new SniperSuccessfulShotSnapshot(projectileSnapshot, aimWorldPosition)
+        );
+    }
+
+    private bool IsSemiAutoModeEnabled()
+    {
+        return enableSemiAutoWithoutTrait ||
+               (weaponModifiers != null && weaponModifiers.SniperSemiAutoEnabled);
+    }
+
+    private bool ShouldDelayChargePresentation()
+    {
+        return delayChargePresentationUntilMinimumCharge && IsSemiAutoModeEnabled();
+    }
+
+    private float GetChargeAudioStartThreshold()
+    {
+        float threshold = Mathf.Max(0f, chargeAudioStartDelay);
+
+        if (ShouldDelayChargePresentation())
+        {
+            threshold = Mathf.Max(threshold, Mathf.Max(0f, minimumChargeTime));
+        }
+
+        return threshold;
+    }
+
+    private float GetSemiAutoFireInterval()
+    {
+        float interval = Mathf.Max(0.05f, semiAutoFireInterval);
+
+        if (weaponModifiers != null)
+        {
+            interval *= weaponModifiers.FireIntervalMultiplier;
+        }
+
+        return Mathf.Max(0.05f, interval);
+    }
+
     private void CancelCharge(bool silent = false)
     {
         if (!isCharging)
         {
             StopChargeLoop();
             chargeAudioStarted = false;
+            chargePresentationStarted = false;
             SetChargeLineVisible(false);
             return;
         }
 
-        bool shouldPlayCancelSound = !silent && chargeAudioStarted;
+        bool hadChargePresentation = chargePresentationStarted;
+        bool shouldPlayCancelSound = hadChargePresentation && !silent && chargeAudioStarted;
         StopChargeLoop();
 
         if (shouldPlayCancelSound)
@@ -309,7 +516,11 @@ public class SniperWeapon : PlayerWeaponBase
             AudioManager.PlayAt(SoundEventIds.SniperChargeCancel, transform.position, 0.7f);
         }
 
-        NotifyChargeCanceled();
+        if (hadChargePresentation)
+        {
+            NotifyChargeCanceled();
+        }
+
         ResetChargeState();
     }
 
@@ -317,6 +528,7 @@ public class SniperWeapon : PlayerWeaponBase
     {
         StopChargeLoop();
         chargeAudioStarted = false;
+        chargePresentationStarted = false;
         isCharging = false;
         chargeTimer = 0f;
         SetChargeLineVisible(false);

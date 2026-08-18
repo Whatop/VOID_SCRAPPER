@@ -207,8 +207,55 @@ Transform:
   m_Children:
   - {fileID: 5788023321733266276}
   - {fileID: 8076082658247506124}
+  - {fileID: 920200002}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &920200001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 920200002}
+  - component: {fileID: 920200003}
+  m_Layer: 0
+  m_Name: InteractionPromptAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &920200002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 920200001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.18, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3017875591291958695}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &920200003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 920200001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dcc0e3b7b931d4397e963decc0b769, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  anchorTransform: {fileID: 920200002}
+  worldOffset: {x: 0, y: 0, z: 0}
 --- !u!58 &4406542340014589492
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -269,7 +316,7 @@ MonoBehaviour:
   acquireText: "\uD68D\uB4DD"
   acquireBlockedText: "\uBCF4\uC720\uC911"
   dismantleText: "\uBD84\uD574"
-  acquireKeyText: E
+  acquireKeyText: F
   dismantleKeyText: G
   useTwoLinePrompt: 1
   pickupBlockSeconds: 0.5

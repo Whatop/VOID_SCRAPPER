@@ -19,6 +19,16 @@ public class MachineGunWeapon : PlayerWeaponBase
     [SerializeField] private float fallbackSpreadAngle = 6f;
     [SerializeField] private int fallbackPierceCount;
 
+    [Header("Terminal Guidance Evolution")]
+    [Min(0f)]
+    [SerializeField] private float terminalGuidanceTurnRateBonus = 150f;
+    [Min(0f)]
+    [SerializeField] private float terminalGuidanceAcquisitionRangeBonus = 1.5f;
+    [Min(1f)]
+    [SerializeField] private float terminalGuidanceRetentionRangeMultiplier = 1.5f;
+    [Min(0f)]
+    [SerializeField] private float terminalGuidanceCloseSteeringDistance = 0.75f;
+
     [Header("Machine Gun Fire Points")]
     [SerializeField] private Transform leftFirePoint;
     [SerializeField] private Transform rightFirePoint;
@@ -52,6 +62,7 @@ public class MachineGunWeapon : PlayerWeaponBase
     public float MaxHeat => Mathf.Max(1f, maxHeat);
     public float HeatRatio => useHeatSystem ? Mathf.Clamp01(currentHeat / MaxHeat) : 0f;
     public bool IsOverheated => useHeatSystem && overheated;
+    public float OverheatRecoveryHeat => MaxHeat * Mathf.Clamp01(overheatRecoveryRatio);
 
     public event Action<float, float, bool> HeatChanged;
 
@@ -159,6 +170,12 @@ public class MachineGunWeapon : PlayerWeaponBase
             nextFireSoundTime = Time.time + 0.08f;
         }
 
+        PlaySuccessfulFireFeedback(
+            WeaponTreeType.MachineGun,
+            baseDirection,
+            selectedFirePoint
+        );
+
         lastShotSide = shotSide;
         AdvanceFirePointSide();
         lastShotTime = Time.time;
@@ -166,6 +183,23 @@ public class MachineGunWeapon : PlayerWeaponBase
         RegisterAttack();
         NotifyFired();
         return true;
+    }
+
+    protected override void ConfigureSpawnedProjectile(Bullet bullet)
+    {
+        if (bullet == null ||
+            weaponModifiers == null ||
+            !weaponModifiers.MachineGunTerminalGuidanceEnabled)
+        {
+            return;
+        }
+
+        bullet.ConfigureTerminalGuidance(
+            terminalGuidanceTurnRateBonus,
+            terminalGuidanceAcquisitionRangeBonus,
+            terminalGuidanceRetentionRangeMultiplier,
+            terminalGuidanceCloseSteeringDistance
+        );
     }
 
     private void UpdateHeat(float deltaTime)

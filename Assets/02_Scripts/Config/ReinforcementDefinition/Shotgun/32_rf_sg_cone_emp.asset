@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_sg_cone_emp"
   displayName: "\uc6d0\ubfd4 EMP"
-  description: "\uc0f7\uac74 \uae30\uccb4 \uc804\uc6a9. \ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \uc8fc\ubcc0 \ud0c4\ub9c9 \uc81c\uac70\uc640 \ud53c\ud574\ub85c \ub3d9\uc791\ud55c\ub2e4."
+  description: "\uc0f7\uac74 \uae30\uccb4 \uc804\uc6a9. \uc870\uc900 \ubc29\ud5a5 90\ub3c4 \uc6d0\ubfd4 \uc548\uc758 \uc801 \ud0c4\ud658\uc744 \uc81c\uac70\ud558\uace0 \uc801\uc5d0\uac8c 8 \ud53c\ud574\ub97c \uc900\ub2e4."
   icon: {fileID: 21300000, guid: 460968b6f52142cde75b5e9823e0959c, type: 3}
   rarity: 2
   rarityPriceMultiplier: 0
@@ -29,19 +29,21 @@ MonoBehaviour:
   startWithFullCharges: 1
   rechargeSeconds: 30
   effects:
-  - effectType: 3
+  - effectType: 20
     value: 1
     radius: 5
     duration: 0
+    coneAngle: 90
     targetLayer:
       serializedVersion: 2
       m_Bits: 0
     prefab: {fileID: 0}
     prefabLifetime: 1
-  - effectType: 4
+  - effectType: 21
     value: 8
     radius: 4
     duration: 0
+    coneAngle: 90
     targetLayer:
       serializedVersion: 2
       m_Bits: 0

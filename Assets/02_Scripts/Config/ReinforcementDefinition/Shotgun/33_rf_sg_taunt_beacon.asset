@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentId: "rf_sg_taunt_beacon"
   displayName: "\ub3c4\ubc1c \ube44\ucf58"
-  description: "\uc0f7\uac74 \uae30\uccb4 \uc804\uc6a9. \ud604\uc7ac \uad6c\ud604\uc5d0\uc11c\ub294 \uc8fc\ubcc0 \uc801\uc744 \ubc00\uccd0\ub0b4\ub294 \uacf5\uac04 \ud655\ubcf4 \uc7a5\ube44\ub2e4."
+  description: "\uc0f7\uac74 \uae30\uccb4 \uc804\uc6a9. 4\ucd08 \ub3d9\uc548 \ubc18\uacbd 4\uc758 \uc77c\ubc18 \uc801\uc744 \uc881\uc740 \uad50\uc804 \uc9c0\uc810\uc73c\ub85c \uc720\uc778\ud55c\ub2e4."
   icon: {fileID: 21300000, guid: 2c4d128a9db6811a49b8b94844af1ecd, type: 3}
   rarity: 2
   rarityPriceMultiplier: 0
@@ -29,12 +29,12 @@ MonoBehaviour:
   startWithFullCharges: 1
   rechargeSeconds: 30
   effects:
-  - effectType: 5
-    value: 3
-    radius: 5
-    duration: 0
+  - effectType: 10
+    value: 0
+    radius: 4
+    duration: 4
     targetLayer:
       serializedVersion: 2
       m_Bits: 0
-    prefab: {fileID: 0}
-    prefabLifetime: 1
+    prefab: {fileID: 100000, guid: 9616a09bfb954c7ba625148fda317e3d, type: 3}
+    prefabLifetime: 4

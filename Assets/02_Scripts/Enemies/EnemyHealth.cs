@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
@@ -11,9 +12,15 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     [Header("References")]
     [SerializeField] private RewardDropper rewardDropper;
 
+    [Header("Hit Feedback")]
+    [SerializeField] private SpriteHitFlash2D spriteHitFlash;
+    [SerializeField] private bool autoCreateSpriteHitFlash = true;
+    [FormerlySerializedAs("addProceduralHitFeedback")]
+    [SerializeField] private bool useProceduralHitFeedback;
+    [Min(0.1f)]
+    [SerializeField] private float proceduralHitIntensity = 1f;
+
     [Header("Camera Shake")]
-    [Tooltip("ProjectileDefinition의 Hit VFX와 함께 짧은 공용 스파크/섬광을 추가합니다.")]
-    [SerializeField] private bool addProceduralHitFeedback = true;
     [SerializeField] private float hitShakeAmplitude = 0.04f;
     [SerializeField] private float hitShakeDuration = 0.065f;
     [SerializeField] private float deathShakeAmplitude = 0.11f;
@@ -79,6 +86,16 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         if (collidersToDisableOnDeath == null || collidersToDisableOnDeath.Length == 0)
         {
             collidersToDisableOnDeath = GetComponentsInChildren<Collider2D>();
+        }
+
+        if (spriteHitFlash == null)
+        {
+            spriteHitFlash = GetComponent<SpriteHitFlash2D>();
+        }
+
+        if (spriteHitFlash == null && autoCreateSpriteHitFlash)
+        {
+            spriteHitFlash = gameObject.AddComponent<SpriteHitFlash2D>();
         }
     }
 
@@ -329,16 +346,18 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         float typeMultiplier = isBoss ? Mathf.Max(1f, bossFeedbackMultiplier) : 1f;
         float damageScale = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0.01f, damage) / 2f), 0.65f, 1.75f);
 
-        // 피격 VFX는 ProjectileDefinition/Bullet이 공격 종류별로 생성한다.
-        // Health는 카메라 흔들림만 담당해 중복 Hit 이펙트를 방지한다.
+        spriteHitFlash?.Play(damageScale * typeMultiplier);
+
+        // ProjectileDefinition의 무기별 Impact VFX와 Sprite White Flash를 기본으로 사용합니다.
+        // Procedural Spark는 더 강한 피드백이 필요할 때만 Inspector에서 켭니다.
         CombatFeedbackManager.PlayHit(
             position,
             incomingDirection,
             isBoss ? CombatFeedbackKind.Boss : CombatFeedbackKind.Enemy,
-            Mathf.Clamp(damageScale * typeMultiplier, 0.8f, 2.2f),
+            Mathf.Clamp(proceduralHitIntensity * damageScale * typeMultiplier, 0.5f, 2.4f),
             hitShakeAmplitude * damageScale * typeMultiplier,
             hitShakeDuration,
-            addProceduralHitFeedback
+            useProceduralHitFeedback
         );
     }
 

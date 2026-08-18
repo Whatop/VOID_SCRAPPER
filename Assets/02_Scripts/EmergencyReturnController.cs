@@ -104,7 +104,7 @@ public class EmergencyReturnController : MonoBehaviour
 
         if (gaugeUI == null)
         {
-            ShowWarning(preparingMessage);
+            ShowWarning(preparingMessage, ShipCommunicationSeverity.Information);
         }
 
         returnRoutine = StartCoroutine(PrepareRoutine());
@@ -162,7 +162,7 @@ public class EmergencyReturnController : MonoBehaviour
 
         if (gaugeUI == null)
         {
-            ShowWarning(readyMessage);
+            ShowWarning(readyMessage, ShipCommunicationSeverity.Confirmation);
         }
 
         if (!holdRequired || !completeOnReleaseAfterGaugeFull)
@@ -274,6 +274,8 @@ public class EmergencyReturnController : MonoBehaviour
             return;
         }
 
+        GameAudioLoopController.BeginRunEndMusicTransition();
+
         if (exitSequence == null)
         {
             exitSequence = GetComponent<EmergencyReturnExitSequence>();
@@ -348,7 +350,9 @@ public class EmergencyReturnController : MonoBehaviour
         }
     }
 
-    private void ShowWarning(string message)
+    private void ShowWarning(
+        string message,
+        ShipCommunicationSeverity severity = ShipCommunicationSeverity.Warning)
     {
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -357,7 +361,11 @@ public class EmergencyReturnController : MonoBehaviour
 
         if (expeditionHUD != null)
         {
-            expeditionHUD.ShowWarning(message);
+            expeditionHUD.ShowCommunication(
+                ShipCommunicationChannel.Navigation,
+                message,
+                severity
+            );
             return;
         }
 
@@ -365,7 +373,11 @@ public class EmergencyReturnController : MonoBehaviour
 
         if (warningMessageUI != null)
         {
-            warningMessageUI.ShowMessage(message);
+            warningMessageUI.ShowCommunication(
+                ShipCommunicationChannel.Navigation,
+                message,
+                severity
+            );
             return;
         }
 
