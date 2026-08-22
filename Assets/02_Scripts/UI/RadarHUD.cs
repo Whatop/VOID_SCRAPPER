@@ -7,22 +7,26 @@ public class RadarHUD : MonoBehaviour
     [SerializeField] private RectTransform radarArea;
     [SerializeField] private RadarMarkerUI markerPrefab;
     [SerializeField] private Transform defaultCenter;
+    [SerializeField] private PlayerVisualStateController playerVisualState;
 
     [Header("Scan")]
     [SerializeField] private float scanRadius = 15f;
     [SerializeField] private bool autoUpdate = true;
 
     [Header("Fallback Colors")]
-    [SerializeField] private Color enemyColor = Color.red;
-    [SerializeField] private Color rewardColor = Color.yellow;
-    [SerializeField] private Color meteorColor = Color.white;
+    [SerializeField] private Color enemyColor = new Color(1f, 0.22f, 0.18f, 1f);
+    [SerializeField] private Color rewardColor = new Color(1f, 0.78f, 0.22f, 1f);
+    [SerializeField] private Color meteorColor = new Color(0.68f, 0.78f, 0.9f, 1f);
+    [SerializeField] private Color eventColor = new Color(0.25f, 0.82f, 1f, 1f);
     [SerializeField] private Color specialColor = new Color(0.75f, 0.25f, 1f);
     [SerializeField] private Color coreColor = Color.yellow;
 
     private readonly List<RadarTarget> currentTargets = new List<RadarTarget>();
     private readonly Dictionary<RadarTarget, RadarMarkerUI> markerMap = new Dictionary<RadarTarget, RadarMarkerUI>();
+    private readonly List<RadarTarget> removeBuffer = new List<RadarTarget>();
 
     private Transform center;
+    private RadarMarkerUI playerMarker;
 
     private void Reset()
     {
@@ -37,6 +41,20 @@ public class RadarHUD : MonoBehaviour
         }
 
         center = defaultCenter;
+        if (center == null)
+        {
+            PlayerController2D player = FindFirstObjectByType<PlayerController2D>();
+            center = player != null ? player.transform : null;
+        }
+
+        playerVisualState ??= FindFirstObjectByType<PlayerVisualStateController>();
+        if (playerVisualState != null)
+        {
+            playerVisualState.CurseStateChanged += HandlePlayerVisualChanged;
+            playerVisualState.WeaponAccentChanged += HandleWeaponAccentChanged;
+        }
+
+        CreatePlayerMarker();
     }
 
     private void Update()
@@ -174,19 +192,19 @@ public class RadarHUD : MonoBehaviour
 
     private void ClearMissingMarkers()
     {
-        List<RadarTarget> removeList = new List<RadarTarget>();
+        removeBuffer.Clear();
 
         foreach (RadarTarget target in markerMap.Keys)
         {
             if (target == null || !currentTargets.Contains(target) || !target.IsRadarVisible)
             {
-                removeList.Add(target);
+                removeBuffer.Add(target);
             }
         }
 
-        for (int i = 0; i < removeList.Count; i++)
+        for (int i = 0; i < removeBuffer.Count; i++)
         {
-            RadarTarget target = removeList[i];
+            RadarTarget target = removeBuffer[i];
             RadarMarkerUI marker = markerMap[target];
 
             if (marker != null)
@@ -206,9 +224,55 @@ public class RadarHUD : MonoBehaviour
             enemyColor,
             rewardColor,
             meteorColor,
+            eventColor,
             specialColor,
             coreColor
         );
+    }
+
+    private void OnDestroy()
+    {
+        if (playerVisualState != null)
+        {
+            playerVisualState.CurseStateChanged -= HandlePlayerVisualChanged;
+            playerVisualState.WeaponAccentChanged -= HandleWeaponAccentChanged;
+        }
+    }
+
+    private void CreatePlayerMarker()
+    {
+        if (playerMarker != null || markerPrefab == null || radarArea == null)
+        {
+            return;
+        }
+
+        playerMarker = Instantiate(markerPrefab, radarArea);
+        playerMarker.name = "RadarPlayerMarker";
+        playerMarker.SetPosition(Vector2.zero);
+        RefreshPlayerMarkerVisual();
+        playerMarker.transform.SetAsLastSibling();
+    }
+
+    private void HandlePlayerVisualChanged(bool _) => RefreshPlayerMarkerVisual();
+    private void HandleWeaponAccentChanged(WeaponTreeType _, Color __) => RefreshPlayerMarkerVisual();
+
+    private void RefreshPlayerMarkerVisual()
+    {
+        if (playerMarker == null)
+        {
+            return;
+        }
+
+        Sprite sprite = null;
+        Color color = Color.green;
+        if (playerVisualState != null)
+        {
+            PlayerShipVisualController shipVisual = playerVisualState.GetComponent<PlayerShipVisualController>();
+            sprite = shipVisual != null ? shipVisual.CurrentSprite : null;
+            color = playerVisualState.CurrentWeaponAccentColor;
+        }
+
+        playerMarker.SetVisual(sprite, color, 0.85f);
     }
 
     private float ResolveMarkerScale(RadarMarkerType markerType, float customScale)

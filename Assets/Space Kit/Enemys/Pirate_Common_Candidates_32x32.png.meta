@@ -1,0 +1,1794 @@
+fileFormatVersion: 2
+guid: d49e64aced3373c46aeee19b6dc2762c
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -165298391677540540
+    second: Pirate_Common_Candidates_32x32_0
+  - first:
+      213: 3074508233203580657
+    second: Pirate_Common_Candidates_32x32_1
+  - first:
+      213: 8821114818567158907
+    second: Pirate_Common_Candidates_32x32_2
+  - first:
+      213: -3692818513181773324
+    second: Pirate_Common_Candidates_32x32_3
+  - first:
+      213: 8313702003833434161
+    second: Pirate_Common_Candidates_32x32_4
+  - first:
+      213: 6287638510399086547
+    second: Pirate_Common_Candidates_32x32_5
+  - first:
+      213: -7918928145898029670
+    second: Pirate_Common_Candidates_32x32_6
+  - first:
+      213: -2778024909581857607
+    second: Pirate_Common_Candidates_32x32_7
+  - first:
+      213: 8996437089386081207
+    second: Pirate_Common_Candidates_32x32_8
+  - first:
+      213: -526751674481448348
+    second: Pirate_Common_Candidates_32x32_9
+  - first:
+      213: 4168453528741510495
+    second: Pirate_Common_Candidates_32x32_10
+  - first:
+      213: 1259549369392133270
+    second: Pirate_Common_Candidates_32x32_11
+  - first:
+      213: -1645576424982620573
+    second: Pirate_Common_Candidates_32x32_12
+  - first:
+      213: -4443790576403174989
+    second: Pirate_Common_Candidates_32x32_13
+  - first:
+      213: -6386932502878901857
+    second: Pirate_Common_Candidates_32x32_14
+  - first:
+      213: -1582722853777427958
+    second: Pirate_Common_Candidates_32x32_15
+  - first:
+      213: 6469542082490743866
+    second: Pirate_Common_Candidates_32x32_16
+  - first:
+      213: -8224561071734617339
+    second: Pirate_Common_Candidates_32x32_17
+  - first:
+      213: -8742611057933122236
+    second: Pirate_Common_Candidates_32x32_18
+  - first:
+      213: 2147135688940533274
+    second: Pirate_Common_Candidates_32x32_19
+  - first:
+      213: 8677308254349443937
+    second: Pirate_Common_Candidates_32x32_20
+  - first:
+      213: -7632526904550156468
+    second: Pirate_Common_Candidates_32x32_21
+  - first:
+      213: 6468521811339609121
+    second: Pirate_Common_Candidates_32x32_22
+  - first:
+      213: 6602421033111634022
+    second: Pirate_Common_Candidates_32x32_23
+  - first:
+      213: -1046447778185429886
+    second: Pirate_Common_Candidates_32x32_24
+  - first:
+      213: 6846191805412555949
+    second: Pirate_Common_Candidates_32x32_25
+  - first:
+      213: -5889695571600565518
+    second: Pirate_Common_Candidates_32x32_26
+  - first:
+      213: -1628728163457478148
+    second: Pirate_Common_Candidates_32x32_27
+  - first:
+      213: 3687784283384683836
+    second: Pirate_Common_Candidates_32x32_28
+  - first:
+      213: -8193855011809190732
+    second: Pirate_Common_Candidates_32x32_29
+  - first:
+      213: 13033776381460890
+    second: Pirate_Common_Candidates_32x32_30
+  - first:
+      213: -1044797692990028519
+    second: Pirate_Common_Candidates_32x32_31
+  - first:
+      213: 3568678480461964920
+    second: Pirate_Common_Candidates_32x32_32
+  - first:
+      213: 1191463379897425728
+    second: Pirate_Common_Candidates_32x32_33
+  - first:
+      213: -1215433353091641725
+    second: Pirate_Common_Candidates_32x32_34
+  - first:
+      213: -1803458088092104641
+    second: Pirate_Common_Candidates_32x32_35
+  - first:
+      213: 5386196994251432748
+    second: Pirate_Common_Candidates_32x32_36
+  - first:
+      213: -5440076151862804825
+    second: Pirate_Common_Candidates_32x32_37
+  - first:
+      213: 2673646472935156003
+    second: Pirate_Common_Candidates_32x32_38
+  - first:
+      213: 2619476614394048218
+    second: Pirate_Common_Candidates_32x32_39
+  - first:
+      213: 5441008558729017624
+    second: Pirate_Common_Candidates_32x32_40
+  - first:
+      213: -8297229540534922217
+    second: Pirate_Common_Candidates_32x32_41
+  - first:
+      213: -2990729717544800652
+    second: Pirate_Common_Candidates_32x32_42
+  - first:
+      213: 6837433013111796361
+    second: Pirate_Common_Candidates_32x32_43
+  - first:
+      213: -8884274876834411387
+    second: Pirate_Common_Candidates_32x32_44
+  - first:
+      213: -330272513575672367
+    second: Pirate_Common_Candidates_32x32_45
+  - first:
+      213: -6516941366412215531
+    second: Pirate_Common_Candidates_32x32_46
+  - first:
+      213: 4412107620276805825
+    second: Pirate_Common_Candidates_32x32_47
+  - first:
+      213: 8790213808239245158
+    second: Pirate_Common_Candidates_32x32_48
+  - first:
+      213: -3463518787694270701
+    second: Pirate_Common_Candidates_32x32_49
+  - first:
+      213: 7828895019165745527
+    second: Pirate_Common_Candidates_32x32_50
+  - first:
+      213: -8178609627847051447
+    second: Pirate_Common_Candidates_32x32_51
+  - first:
+      213: 4340481523353477287
+    second: Pirate_Common_Candidates_32x32_52
+  - first:
+      213: -4144349639160851158
+    second: Pirate_Common_Candidates_32x32_53
+  - first:
+      213: 5219349963463462912
+    second: Pirate_Common_Candidates_32x32_54
+  - first:
+      213: -1879086260224785238
+    second: Pirate_Common_Candidates_32x32_55
+  - first:
+      213: 4014584480848265015
+    second: Pirate_Common_Candidates_32x32_56
+  - first:
+      213: 7148189173715102411
+    second: Pirate_Common_Candidates_32x32_57
+  - first:
+      213: 2878140899087840839
+    second: Pirate_Common_Candidates_32x32_58
+  - first:
+      213: 8051829816514960722
+    second: Pirate_Common_Candidates_32x32_59
+  - first:
+      213: -3539656150702143059
+    second: Pirate_Common_Candidates_32x32_60
+  - first:
+      213: 7256956107871223586
+    second: Pirate_Common_Candidates_32x32_61
+  - first:
+      213: 8845221023954451977
+    second: Pirate_Common_Candidates_32x32_62
+  - first:
+      213: 3733838398414488650
+    second: Pirate_Common_Candidates_32x32_63
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 224
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 447ed121dfdb4bdf0800000000000000
+      internalID: -165298391677540540
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_1
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 224
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1fefc1bd2f8daaa20800000000000000
+      internalID: 3074508233203580657
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_2
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 224
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b7c31a3f035ea6a70800000000000000
+      internalID: 8821114818567158907
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_3
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 224
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4f170dda02970ccc0800000000000000
+      internalID: -3692818513181773324
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_4
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 224
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 130f1f2bce3306370800000000000000
+      internalID: 8313702003833434161
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_5
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 224
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3df576079ed224750800000000000000
+      internalID: 6287638510399086547
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_6
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 224
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a9db7edbec05a1290800000000000000
+      internalID: -7918928145898029670
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_7
+      rect:
+        serializedVersion: 2
+        x: 224
+        y: 224
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9bccf2730197279d0800000000000000
+      internalID: -2778024909581857607
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_8
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 192
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bba10d1ed3c9dc70800000000000000
+      internalID: 8996437089386081207
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_9
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 192
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 46ae0b5942a90b8f0800000000000000
+      internalID: -526751674481448348
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_10
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 192
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f5d7c53266259d930800000000000000
+      internalID: 4168453528741510495
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_11
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 192
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6947fa36a71da7110800000000000000
+      internalID: 1259549369392133270
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_12
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 192
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 366572ac5fcb929e0800000000000000
+      internalID: -1645576424982620573
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_13
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 192
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b9a245d30c7452c0800000000000000
+      internalID: -4443790576403174989
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_14
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 192
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f99a1816abe0d57a0800000000000000
+      internalID: -6386932502878901857
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_15
+      rect:
+        serializedVersion: 2
+        x: 224
+        y: 192
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a0234ba33f9090ae0800000000000000
+      internalID: -1582722853777427958
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_16
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 160
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a3c3d463f3e68c950800000000000000
+      internalID: 6469542082490743866
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_17
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 160
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 50b80c5e74d7cdd80800000000000000
+      internalID: -8224561071734617339
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_18
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 160
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4458e7a20910ca680800000000000000
+      internalID: -8742611057933122236
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_19
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 160
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a163dd778882ccd10800000000000000
+      internalID: 2147135688940533274
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_20
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 160
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 163401b02edfb6870800000000000000
+      internalID: 8677308254349443937
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_21
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 160
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c471dab1831d31690800000000000000
+      internalID: -7632526904550156468
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_22
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 160
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 12483c2d05ec4c950800000000000000
+      internalID: 6468521811339609121
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_23
+      rect:
+        serializedVersion: 2
+        x: 224
+        y: 160
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 660cf20d2f280ab50800000000000000
+      internalID: 6602421033111634022
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_24
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 128
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 28cb2414a454a71f0800000000000000
+      internalID: -1046447778185429886
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_25
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 128
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dac3ec1ac2f820f50800000000000000
+      internalID: 6846191805412555949
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_26
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 128
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2fa9e832519934ea0800000000000000
+      internalID: -5889695571600565518
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_27
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 128
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf1517d5d589569e0800000000000000
+      internalID: -1628728163457478148
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_28
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 128
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c3d996b5444ad2330800000000000000
+      internalID: 3687784283384683836
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_29
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 128
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4bc1f089744994e80800000000000000
+      internalID: -8193855011809190732
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_30
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 128
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a918c4b862e4e2000800000000000000
+      internalID: 13033776381460890
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_31
+      rect:
+        serializedVersion: 2
+        x: 224
+        y: 128
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9158e27a8022081f0800000000000000
+      internalID: -1044797692990028519
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_32
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 96
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 87624899b2e768130800000000000000
+      internalID: 3568678480461964920
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_33
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 96
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 04f1ca1a1ade88010800000000000000
+      internalID: 1191463379897425728
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_34
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 96
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 38e8fc41ec9e12fe0800000000000000
+      internalID: -1215433353091641725
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_35
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 96
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f3807fb8c64d8f6e0800000000000000
+      internalID: -1803458088092104641
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_36
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 96
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c2322a401ad9fba40800000000000000
+      internalID: 5386196994251432748
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_37
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 96
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7aeb4290097f084b0800000000000000
+      internalID: -5440076151862804825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_38
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 96
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 329a6423d43ba1520800000000000000
+      internalID: 2673646472935156003
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_39
+      rect:
+        serializedVersion: 2
+        x: 224
+        y: 96
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ade666a2a104a5420800000000000000
+      internalID: 2619476614394048218
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_40
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 64
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 81937ead478528b40800000000000000
+      internalID: 5441008558729017624
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_41
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 64
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 714d98881b15adc80800000000000000
+      internalID: -8297229540534922217
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_42
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 64
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 47ea98eda2bce76d0800000000000000
+      internalID: -2990729717544800652
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_43
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 64
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 982be02691173ee50800000000000000
+      internalID: 6837433013111796361
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_44
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 64
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 58c8b570217b4b480800000000000000
+      internalID: -8884274876834411387
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_45
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 64
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1d52f3516e2aa6bf0800000000000000
+      internalID: -330272513575672367
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_46
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 64
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 51b73f00b5c2f85a0800000000000000
+      internalID: -6516941366412215531
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_47
+      rect:
+        serializedVersion: 2
+        x: 224
+        y: 64
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1c0a4691184fa3d30800000000000000
+      internalID: 4412107620276805825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_48
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 32
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 66775d3d2ec1df970800000000000000
+      internalID: 8790213808239245158
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_49
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 32
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 317679a530c1fefc0800000000000000
+      internalID: -3463518787694270701
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_50
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 32
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 77103396a82d5ac60800000000000000
+      internalID: 7828895019165745527
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_51
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 32
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 947369720edbf7e80800000000000000
+      internalID: -8178609627847051447
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_52
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 32
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7a061a9d2fc7c3c30800000000000000
+      internalID: 4340481523353477287
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_53
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 32
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a259cccf5ff4c76c0800000000000000
+      internalID: -4144349639160851158
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_54
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 32
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 00010b2732bde6840800000000000000
+      internalID: 5219349963463462912
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_55
+      rect:
+        serializedVersion: 2
+        x: 224
+        y: 32
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aa40cfc80052ce5e0800000000000000
+      internalID: -1879086260224785238
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_56
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 73fb1cda05ba6b730800000000000000
+      internalID: 4014584480848265015
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_57
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bcae4964e28733360800000000000000
+      internalID: 7148189173715102411
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_58
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 74677af06e531f720800000000000000
+      internalID: 2878140899087840839
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_59
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 25dd545ce88ddbf60800000000000000
+      internalID: 8051829816514960722
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_60
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: da94f5e1c7d90eec0800000000000000
+      internalID: -3539656150702143059
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_61
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 22ff3409123e5b460800000000000000
+      internalID: 7256956107871223586
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_62
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 90e3f9448a980ca70800000000000000
+      internalID: 8845221023954451977
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Pirate_Common_Candidates_32x32_63
+      rect:
+        serializedVersion: 2
+        x: 224
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a44853a9d3241d330800000000000000
+      internalID: 3733838398414488650
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 470ae57faa537b94a8f2b4163f42b774
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Pirate_Common_Candidates_32x32_0: -165298391677540540
+      Pirate_Common_Candidates_32x32_1: 3074508233203580657
+      Pirate_Common_Candidates_32x32_10: 4168453528741510495
+      Pirate_Common_Candidates_32x32_11: 1259549369392133270
+      Pirate_Common_Candidates_32x32_12: -1645576424982620573
+      Pirate_Common_Candidates_32x32_13: -4443790576403174989
+      Pirate_Common_Candidates_32x32_14: -6386932502878901857
+      Pirate_Common_Candidates_32x32_15: -1582722853777427958
+      Pirate_Common_Candidates_32x32_16: 6469542082490743866
+      Pirate_Common_Candidates_32x32_17: -8224561071734617339
+      Pirate_Common_Candidates_32x32_18: -8742611057933122236
+      Pirate_Common_Candidates_32x32_19: 2147135688940533274
+      Pirate_Common_Candidates_32x32_2: 8821114818567158907
+      Pirate_Common_Candidates_32x32_20: 8677308254349443937
+      Pirate_Common_Candidates_32x32_21: -7632526904550156468
+      Pirate_Common_Candidates_32x32_22: 6468521811339609121
+      Pirate_Common_Candidates_32x32_23: 6602421033111634022
+      Pirate_Common_Candidates_32x32_24: -1046447778185429886
+      Pirate_Common_Candidates_32x32_25: 6846191805412555949
+      Pirate_Common_Candidates_32x32_26: -5889695571600565518
+      Pirate_Common_Candidates_32x32_27: -1628728163457478148
+      Pirate_Common_Candidates_32x32_28: 3687784283384683836
+      Pirate_Common_Candidates_32x32_29: -8193855011809190732
+      Pirate_Common_Candidates_32x32_3: -3692818513181773324
+      Pirate_Common_Candidates_32x32_30: 13033776381460890
+      Pirate_Common_Candidates_32x32_31: -1044797692990028519
+      Pirate_Common_Candidates_32x32_32: 3568678480461964920
+      Pirate_Common_Candidates_32x32_33: 1191463379897425728
+      Pirate_Common_Candidates_32x32_34: -1215433353091641725
+      Pirate_Common_Candidates_32x32_35: -1803458088092104641
+      Pirate_Common_Candidates_32x32_36: 5386196994251432748
+      Pirate_Common_Candidates_32x32_37: -5440076151862804825
+      Pirate_Common_Candidates_32x32_38: 2673646472935156003
+      Pirate_Common_Candidates_32x32_39: 2619476614394048218
+      Pirate_Common_Candidates_32x32_4: 8313702003833434161
+      Pirate_Common_Candidates_32x32_40: 5441008558729017624
+      Pirate_Common_Candidates_32x32_41: -8297229540534922217
+      Pirate_Common_Candidates_32x32_42: -2990729717544800652
+      Pirate_Common_Candidates_32x32_43: 6837433013111796361
+      Pirate_Common_Candidates_32x32_44: -8884274876834411387
+      Pirate_Common_Candidates_32x32_45: -330272513575672367
+      Pirate_Common_Candidates_32x32_46: -6516941366412215531
+      Pirate_Common_Candidates_32x32_47: 4412107620276805825
+      Pirate_Common_Candidates_32x32_48: 8790213808239245158
+      Pirate_Common_Candidates_32x32_49: -3463518787694270701
+      Pirate_Common_Candidates_32x32_5: 6287638510399086547
+      Pirate_Common_Candidates_32x32_50: 7828895019165745527
+      Pirate_Common_Candidates_32x32_51: -8178609627847051447
+      Pirate_Common_Candidates_32x32_52: 4340481523353477287
+      Pirate_Common_Candidates_32x32_53: -4144349639160851158
+      Pirate_Common_Candidates_32x32_54: 5219349963463462912
+      Pirate_Common_Candidates_32x32_55: -1879086260224785238
+      Pirate_Common_Candidates_32x32_56: 4014584480848265015
+      Pirate_Common_Candidates_32x32_57: 7148189173715102411
+      Pirate_Common_Candidates_32x32_58: 2878140899087840839
+      Pirate_Common_Candidates_32x32_59: 8051829816514960722
+      Pirate_Common_Candidates_32x32_6: -7918928145898029670
+      Pirate_Common_Candidates_32x32_60: -3539656150702143059
+      Pirate_Common_Candidates_32x32_61: 7256956107871223586
+      Pirate_Common_Candidates_32x32_62: 8845221023954451977
+      Pirate_Common_Candidates_32x32_63: 3733838398414488650
+      Pirate_Common_Candidates_32x32_7: -2778024909581857607
+      Pirate_Common_Candidates_32x32_8: 8996437089386081207
+      Pirate_Common_Candidates_32x32_9: -526751674481448348
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

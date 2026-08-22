@@ -15,6 +15,14 @@ public class GameAudioLoopController : MonoBehaviour
     [SerializeField] private float musicVolumeScale = 1f;
     [SerializeField] private float shopMusicVolumeScale = 1f;
 
+    [Header("Frontend Music")]
+    [SerializeField, Range(0f, 1f)] private float mainMenuMusicVolumeScale = 0.75f;
+    [SerializeField, Range(0f, 1f)] private float tutorialMusicVolumeScale = 0.55f;
+
+    [Header("Tutorial Corruption")]
+    [Min(0f)]
+    [SerializeField] private float tutorialCorruptionMusicFadeDuration = 0.45f;
+
     [Header("Shop Crossfade")]
     [Min(0f)]
     [SerializeField] private float shopMusicCrossfadeDuration = 0.65f;
@@ -32,9 +40,11 @@ public class GameAudioLoopController : MonoBehaviour
 
     private Coroutine shopBlendRoutine;
     private Coroutine runEndMusicFadeRoutine;
+    private Coroutine tutorialCorruptionMusicFadeRoutine;
     private float shopBlend;
     private bool shopLoopPrepared;
     private bool runEndMusicFadeRequested;
+    private bool tutorialCorruptionMusicSilenced;
 
     public bool IsShopModeActive => shopModeDepth > 0;
     public float ShopBlend => shopBlend;
@@ -160,6 +170,12 @@ public class GameAudioLoopController : MonoBehaviour
         controller?.RequestRunEndMusicFade();
     }
 
+    public static void BeginTutorialCorruptionMusicTransition()
+    {
+        GameAudioLoopController controller = ResolveInstance();
+        controller?.RequestTutorialCorruptionMusicFade();
+    }
+
     private static GameAudioLoopController ResolveInstance()
     {
         if (Instance != null)
@@ -205,6 +221,7 @@ public class GameAudioLoopController : MonoBehaviour
         }
 
         StopShopBlendRoutine();
+        StopTutorialCorruptionMusicFadeRoutine();
     }
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -214,7 +231,9 @@ public class GameAudioLoopController : MonoBehaviour
         bossIntroMusicOverride = false;
         shopBlend = 0f;
         shopLoopPrepared = false;
+        tutorialCorruptionMusicSilenced = false;
         StopShopBlendRoutine();
+        StopTutorialCorruptionMusicFadeRoutine();
         AudioManager.StopLoop(ShopMusicChannel);
 
         if (GameStateManager.Instance != null)
@@ -230,6 +249,12 @@ public class GameAudioLoopController : MonoBehaviour
 
     private void HandleStateChanged(GameState previous, GameState next)
     {
+        if (next != GameState.Tutorial)
+        {
+            tutorialCorruptionMusicSilenced = false;
+            StopTutorialCorruptionMusicFadeRoutine();
+        }
+
         if (!SupportsShopMode(next))
         {
             shopModeDepth = 0;
@@ -369,6 +394,20 @@ public class GameAudioLoopController : MonoBehaviour
                 AudioManager.SetLoopModulation(MusicChannel, 1f, baseVolume);
                 break;
 
+            case GameState.Tutorial:
+                PlayAmbience(SoundEventIds.AmbTutorialLoop);
+                AudioManager.SetLoopModulation(AmbienceChannel, 1f, baseVolume);
+
+                if (tutorialCorruptionMusicSilenced)
+                {
+                    AudioManager.StopLoop(MusicChannel);
+                    break;
+                }
+
+                PlayMusic(SoundEventIds.MusicTutorialLoop, tutorialMusicVolumeScale);
+                AudioManager.SetLoopModulation(MusicChannel, 1f, baseVolume);
+                break;
+
             case GameState.Expedition:
             case GameState.ReturnChoice:
                 PlayAmbience(SoundEventIds.AmbSpaceLoop);
@@ -397,6 +436,11 @@ public class GameAudioLoopController : MonoBehaviour
                 break;
 
             case GameState.Boot:
+                StopAmbience();
+                PlayMusic(SoundEventIds.MusicMainMenuLoop, mainMenuMusicVolumeScale);
+                AudioManager.SetLoopModulation(MusicChannel, 1f, baseVolume);
+                break;
+
             case GameState.ExpeditionLoading:
             default:
                 StopAmbience();
@@ -510,6 +554,17 @@ public class GameAudioLoopController : MonoBehaviour
         shopBlendRoutine = null;
     }
 
+    private void StopTutorialCorruptionMusicFadeRoutine()
+    {
+        if (tutorialCorruptionMusicFadeRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(tutorialCorruptionMusicFadeRoutine);
+        tutorialCorruptionMusicFadeRoutine = null;
+    }
+
     private void RequestRunEndMusicFade()
     {
         if (runEndMusicFadeRequested)
@@ -531,6 +586,43 @@ public class GameAudioLoopController : MonoBehaviour
         }
 
         runEndMusicFadeRoutine = StartCoroutine(RunEndMusicFadeRoutine());
+    }
+
+    private void RequestTutorialCorruptionMusicFade()
+    {
+        if (tutorialCorruptionMusicSilenced || currentState != GameState.Tutorial)
+        {
+            return;
+        }
+
+        tutorialCorruptionMusicSilenced = true;
+        StopTutorialCorruptionMusicFadeRoutine();
+
+        if (tutorialCorruptionMusicFadeDuration <= 0f || !isActiveAndEnabled)
+        {
+            AudioManager.StopLoop(MusicChannel);
+            return;
+        }
+
+        tutorialCorruptionMusicFadeRoutine = StartCoroutine(TutorialCorruptionMusicFadeRoutine());
+    }
+
+    private IEnumerator TutorialCorruptionMusicFadeRoutine()
+    {
+        float duration = Mathf.Max(0.01f, tutorialCorruptionMusicFadeDuration);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float smooth = t * t * (3f - (2f * t));
+            AudioManager.SetLoopModulation(MusicChannel, 1f, 1f - smooth);
+            yield return null;
+        }
+
+        AudioManager.StopLoop(MusicChannel);
+        tutorialCorruptionMusicFadeRoutine = null;
     }
 
     private IEnumerator RunEndMusicFadeRoutine()
@@ -566,7 +658,10 @@ public class GameAudioLoopController : MonoBehaviour
 
     private void PlayAmbience(string eventId)
     {
-        AudioManager.PlayLoop(eventId, AmbienceChannel, ambienceVolumeScale);
+        if (!AudioManager.PlayLoop(eventId, AmbienceChannel, ambienceVolumeScale))
+        {
+            AudioManager.StopLoop(AmbienceChannel);
+        }
     }
 
     private void StopAmbience()
@@ -576,7 +671,10 @@ public class GameAudioLoopController : MonoBehaviour
 
     private void PlayMusic(string eventId, float volumeScale)
     {
-        AudioManager.PlayLoop(eventId, MusicChannel, volumeScale);
+        if (!AudioManager.PlayLoop(eventId, MusicChannel, volumeScale))
+        {
+            AudioManager.StopLoop(MusicChannel);
+        }
     }
 
     private static bool SupportsShopMode(GameState state)

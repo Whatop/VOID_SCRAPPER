@@ -1,10 +1,9 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class RunTraitChoiceButtonUI : MonoBehaviour, IPointerClickHandler
+public class RunTraitChoiceButtonUI : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Button button;
@@ -21,7 +20,6 @@ public class RunTraitChoiceButtonUI : MonoBehaviour, IPointerClickHandler
     private RunRewardOption rewardOption;
     private Action<TraitDefinition> selectedCallback;
     private Action<RunRewardOption> rewardSelectedCallback;
-    private Button boundButton;
     private int lastHandledClickFrame = -1;
 
     private void Reset()
@@ -34,21 +32,6 @@ public class RunTraitChoiceButtonUI : MonoBehaviour, IPointerClickHandler
     {
         CacheReferences();
         ConfigureTypography();
-        BindClick();
-    }
-
-    private void OnEnable()
-    {
-        BindClick();
-    }
-
-    private void OnDestroy()
-    {
-        if (boundButton != null)
-        {
-            boundButton.onClick.RemoveListener(HandleClicked);
-            boundButton = null;
-        }
     }
 
     public void Setup(
@@ -97,7 +80,6 @@ public class RunTraitChoiceButtonUI : MonoBehaviour, IPointerClickHandler
             button.interactable = true;
         }
 
-        BindClick();
     }
 
     public void SetupReward(
@@ -162,7 +144,6 @@ public class RunTraitChoiceButtonUI : MonoBehaviour, IPointerClickHandler
             button.interactable = true;
         }
 
-        BindClick();
     }
 
     public void Clear()
@@ -182,24 +163,8 @@ public class RunTraitChoiceButtonUI : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    private void HandleClicked()
+    public void HandleButtonClicked()
     {
-        if (lastHandledClickFrame == Time.frameCount)
-        {
-            return;
-        }
-
-        lastHandledClickFrame = Time.frameCount;
-        InvokeSelection();
-    }
-
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        if (eventData == null || eventData.button != PointerEventData.InputButton.Left)
-        {
-            return;
-        }
-
         if (lastHandledClickFrame == Time.frameCount)
         {
             return;
@@ -281,25 +246,6 @@ public class RunTraitChoiceButtonUI : MonoBehaviour, IPointerClickHandler
         {
             button = GetComponent<Button>();
         }
-    }
-
-    private void BindClick()
-    {
-        CacheReferences();
-
-        if (button == null)
-        {
-            return;
-        }
-
-        if (boundButton != null && boundButton != button)
-        {
-            boundButton.onClick.RemoveListener(HandleClicked);
-        }
-
-        boundButton = button;
-        boundButton.onClick.RemoveListener(HandleClicked);
-        boundButton.onClick.AddListener(HandleClicked);
     }
 
     private void ConfigureTypography()

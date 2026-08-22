@@ -32,6 +32,45 @@ public class PlayerChargeGaugeUI : MonoBehaviour
     private bool externalPresentationActive;
     private bool subscribed;
 
+    public void ConfigureRuntime(
+        Transform target,
+        GaugeBarUI runtimeChargeGauge,
+        WorldGaugeFollower runtimeFollower,
+        CanvasGroup runtimeCanvasGroup,
+        PlayerWeaponController runtimeWeaponController)
+    {
+        UnsubscribeWeaponController();
+        BindMachineGun(null);
+        UnsubscribeWeapons();
+
+        playerTarget = target;
+        chargeGauge = runtimeChargeGauge;
+        follower = runtimeFollower;
+        canvasGroup = runtimeCanvasGroup;
+        weaponController = runtimeWeaponController;
+        weaponSources = playerTarget != null
+            ? playerTarget.GetComponentsInChildren<PlayerWeaponBase>(true)
+            : System.Array.Empty<PlayerWeaponBase>();
+        baseScale = transform.localScale;
+
+        if (follower != null)
+        {
+            follower.SetTarget(playerTarget);
+        }
+
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        SubscribeWeapons();
+        SubscribeWeaponController();
+        if (weaponController != null)
+        {
+            HandleWeaponEquipped(weaponController.CurrentWeaponTree, weaponController.CurrentWeapon);
+        }
+    }
+
     private void Reset()
     {
         chargeGauge = GetComponentInChildren<GaugeBarUI>(true);

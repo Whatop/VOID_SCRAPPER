@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uCC28\uC9D5 \uC5D8\uB9AC\uD2B8"
   enemyType: 8
   enemyPrefab: {fileID: 6983035740697639387, guid: 6b003641383fd2c4face90b26dff574c, type: 3}
-  maxHp: 44
+  maxHp: 40
   moveSpeed: 2.4
   visionRange: 12
   attackRange: 10
@@ -45,7 +45,7 @@ MonoBehaviour:
   splitDelay: 0.55
   splitAngleOffset: 0
   removeParentProjectileOnSplit: 1
-  predictiveShotChance: 0
+  predictiveShotChance: 0.5
   predictiveMinimumTargetSpeed: 0.5
   predictiveMaxLeadTime: 0.65
   predictiveVelocityMultiplier: 1

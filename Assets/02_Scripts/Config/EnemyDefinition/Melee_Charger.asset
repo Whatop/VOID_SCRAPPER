@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uADFC\uC811 \uB3CC\uC9C4\uD615 \uC801"
   enemyType: 9
   enemyPrefab: {fileID: 0}
-  maxHp: 16
+  maxHp: 14
   moveSpeed: 3.2
   visionRange: 9
   attackRange: 0

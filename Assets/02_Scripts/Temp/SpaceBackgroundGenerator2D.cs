@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -16,6 +17,9 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Camera targetCamera;
+
+    [Tooltip("Optional scene-authored normal background. When assigned, this root replaces runtime normal-background generation while retaining the shared Pixel Curse transition/minimal background path.")]
+    [SerializeField] private Transform authoredNormalBackgroundRoot;
 
     [Tooltip("비워두면 Main Camera를 따라갑니다. 플레이어를 직접 넣어도 됩니다.")]
     [SerializeField] private Transform followTargetOverride;
@@ -257,8 +261,19 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     [SerializeField] private bool neverShrinkStarfieldAtRuntime = true;
 
     private const string GeneratedRootName = "__Generated_SpaceBackground";
+    private const string MinimalRootName = "__Minimal_ExpeditionBackground";
+    private const string CurseTransitionOverlayName = "CurseTransitionOverlay";
+    private const int MinimalStarCount = 48;
+    private const int MinimalCurseFragmentCount = 10;
+
+    [Header("References")]
+    [SerializeField] private PlayerVisualStateController playerVisualState;
+    [SerializeField] private float curseToCursedTransitionDuration = 0.6f;
+    [SerializeField] private float curseToNormalTransitionDuration = 0.35f;
+    [SerializeField] private Color curseTransitionColor = new Color(0.65f, 0.2f, 1f, 1f);
 
     private Transform generatedRoot;
+    private Transform minimalBackgroundRoot;
     private Transform starLayer;
     private Transform planetLayer;
     private Transform cloudLayer;
@@ -292,6 +307,17 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     private int lastRenderSyncFrame = -1;
     private int lastRenderSyncCameraId;
     private bool cameraCallbacksRegistered;
+    private Vector3 layerCameraSample;
+    private bool hasLayerCameraSample;
+    private Tween curseTransitionTween;
+    private bool isCurseBackgroundActive;
+    private PlayerVisualStateController subscribedPlayerVisualState;
+    private readonly List<SpriteRenderer> generatedBackgroundRenderers = new List<SpriteRenderer>();
+    private readonly List<float> generatedBackgroundRendererAlphas = new List<float>();
+    private readonly List<SpriteRenderer> minimalBackgroundRenderers = new List<SpriteRenderer>();
+    private readonly List<float> minimalBackgroundRendererAlphas = new List<float>();
+    private readonly Dictionary<int, float> rendererBaseAlphaByInstanceId = new Dictionary<int, float>();
+    private SpriteRenderer curseTransitionRenderer;
 
     private void Reset()
     {
@@ -301,16 +327,28 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     private void OnEnable()
     {
         RegisterCameraCallbacks();
+        ResolvePlayerVisualState();
+        SubscribeCurseState();
+
+        if (Application.isPlaying)
+        {
+            isCurseBackgroundActive = playerVisualState != null && playerVisualState.IsCursed;
+            ApplyBackgroundVisibility(isCurseBackgroundActive);
+        }
     }
 
     private void OnDisable()
     {
         UnregisterCameraCallbacks();
+        UnsubscribeCurseState();
+        ResetCurseTransition();
     }
 
     private void OnDestroy()
     {
         UnregisterCameraCallbacks();
+        UnsubscribeCurseState();
+        ResetCurseTransition();
     }
 
     private void RegisterCameraCallbacks()
@@ -348,10 +386,30 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         {
             GenerateBackground();
         }
+        else if (authoredNormalBackgroundRoot != null)
+        {
+            PrepareAuthoredBackground();
+        }
+        else
+        {
+            CacheBackgroundRendererLists();
+        }
+
+        ResolvePlayerVisualState();
+        SubscribeCurseState();
+
+        bool curseActive = playerVisualState != null && playerVisualState.IsCursed;
+        isCurseBackgroundActive = curseActive;
+        ApplyCurseBackgroundState(curseActive, true);
     }
 
     private void LateUpdate()
     {
+        if (generatedRoot == null || !generatedRoot.gameObject.activeSelf)
+        {
+            return;
+        }
+
         // When render-time synchronization is enabled, the camera callbacks below
         // are the single presentation sample. Updating here as well can sample the
         // pre-Cinemachine camera and produce a one-frame planet/starfield pop.
@@ -409,33 +467,352 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         CreateDustWisps();
         CreateSmallFlares();
         CreateLargeFlares();
+        CreateMinimalBackground();
 
         UpdateLayerPositions();
+        CacheBackgroundRendererLists();
+        ApplyBackgroundVisibility(isCurseBackgroundActive);
+        ApplyCurseBackgroundState(isCurseBackgroundActive, true);
 
         Debug.Log($"Space background generated. Seed: {finalSeed}", this);
+    }
+
+    private void PrepareAuthoredBackground()
+    {
+        ResolveTargetCamera();
+
+        generatedRoot = authoredNormalBackgroundRoot;
+        generatedRoot.gameObject.name = GeneratedRootName;
+
+        int finalSeed = randomizeSeed
+            ? UnityEngine.Random.Range(int.MinValue, int.MaxValue)
+            : seed;
+
+        random = new System.Random(finalSeed);
+
+        Transform existingMinimalRoot = transform.Find(MinimalRootName);
+        if (existingMinimalRoot == null)
+        {
+            CreateMinimalBackground();
+        }
+        else
+        {
+            minimalBackgroundRoot = existingMinimalRoot;
+        }
+
+        CacheGeneratedLayersIfNeeded();
+        CacheLayerOriginPositions();
+        CacheBackgroundRendererLists();
     }
 
     [ContextMenu("Clear Generated Background")]
     public void ClearGeneratedBackground()
     {
-        Transform existing = transform.Find(GeneratedRootName);
-
-        if (existing == null)
+        if (curseTransitionTween != null)
         {
-            ClearCachedLayers();
+            curseTransitionTween.Kill(false);
+            curseTransitionTween = null;
+        }
+
+        if (authoredNormalBackgroundRoot == null)
+        {
+            DestroyGeneratedObject(transform.Find(GeneratedRootName));
+        }
+        DestroyGeneratedObject(transform.Find(MinimalRootName));
+        DestroyGeneratedObject(transform.Find(CurseTransitionOverlayName));
+
+        ClearCachedLayers();
+    }
+
+    private void DestroyGeneratedObject(Transform target)
+    {
+        if (target == null)
+        {
             return;
         }
 
         if (Application.isPlaying)
         {
-            Destroy(existing.gameObject);
+            Destroy(target.gameObject);
         }
         else
         {
-            DestroyImmediate(existing.gameObject);
+            DestroyImmediate(target.gameObject);
+        }
+    }
+
+    private void ApplyBackgroundVisibility(bool curseActive)
+    {
+        CacheBackgroundRendererLists();
+
+        SetRootRenderersAlpha(
+            generatedBackgroundRenderers,
+            generatedBackgroundRendererAlphas,
+            curseActive ? 0f : 1f
+        );
+        SetRootRenderersAlpha(
+            minimalBackgroundRenderers,
+            minimalBackgroundRendererAlphas,
+            curseActive ? 1f : 0f
+        );
+
+        if (generatedRoot != null)
+        {
+            generatedRoot.gameObject.SetActive(!curseActive);
         }
 
-        ClearCachedLayers();
+        if (minimalBackgroundRoot != null)
+        {
+            minimalBackgroundRoot.gameObject.SetActive(curseActive);
+        }
+
+        SetSingleRendererAlpha(curseTransitionRenderer, 0f);
+        isCurseBackgroundActive = curseActive;
+    }
+
+    private void ResolvePlayerVisualState()
+    {
+        if (playerVisualState == null)
+        {
+            playerVisualState = FindFirstObjectByType<PlayerVisualStateController>(FindObjectsInactive.Include);
+        }
+    }
+
+    private void SubscribeCurseState()
+    {
+        ResolvePlayerVisualState();
+
+        if (subscribedPlayerVisualState == playerVisualState)
+        {
+            return;
+        }
+
+        UnsubscribeCurseState();
+        subscribedPlayerVisualState = playerVisualState;
+
+        if (subscribedPlayerVisualState != null)
+        {
+            subscribedPlayerVisualState.CurseStateChanged += HandlePlayerCurseStateChanged;
+        }
+    }
+
+    private void UnsubscribeCurseState()
+    {
+        if (subscribedPlayerVisualState == null)
+        {
+            return;
+        }
+
+        subscribedPlayerVisualState.CurseStateChanged -= HandlePlayerCurseStateChanged;
+        subscribedPlayerVisualState = null;
+    }
+
+    private void HandlePlayerCurseStateChanged(bool cursed)
+    {
+        ApplyCurseBackgroundState(cursed, false);
+    }
+
+    private void ApplyCurseBackgroundState(bool cursed, bool immediate)
+    {
+        CacheBackgroundRendererLists();
+
+        if (generatedRoot == null || minimalBackgroundRoot == null ||
+            generatedBackgroundRenderers.Count == 0 || minimalBackgroundRenderers.Count == 0)
+        {
+            isCurseBackgroundActive = cursed;
+            ApplyBackgroundVisibility(cursed);
+            return;
+        }
+
+        if (curseTransitionTween != null)
+        {
+            curseTransitionTween.Kill(false);
+            curseTransitionTween = null;
+        }
+
+        bool previousCurseState = isCurseBackgroundActive;
+        isCurseBackgroundActive = cursed;
+
+        if (immediate || previousCurseState == cursed)
+        {
+            ApplyBackgroundVisibility(cursed);
+            return;
+        }
+
+        generatedRoot.gameObject.SetActive(true);
+        minimalBackgroundRoot.gameObject.SetActive(true);
+
+        float generatedStartAlpha = previousCurseState ? 0f : 1f;
+        float minimalStartAlpha = previousCurseState ? 1f : 0f;
+        float generatedTargetAlpha = cursed ? 0f : 1f;
+        float minimalTargetAlpha = cursed ? 1f : 0f;
+
+        SetRootRenderersAlpha(
+            generatedBackgroundRenderers,
+            generatedBackgroundRendererAlphas,
+            generatedStartAlpha
+        );
+        SetRootRenderersAlpha(
+            minimalBackgroundRenderers,
+            minimalBackgroundRendererAlphas,
+            minimalStartAlpha
+        );
+        SetSingleRendererAlpha(curseTransitionRenderer, 0f);
+
+        float transitionDuration = cursed
+            ? Mathf.Max(0.01f, curseToCursedTransitionDuration)
+            : Mathf.Max(0.01f, curseToNormalTransitionDuration);
+        float flashInDuration = Mathf.Min(0.12f, transitionDuration * 0.25f);
+        float flashOutDuration = Mathf.Min(0.16f, transitionDuration * 0.3f);
+        float flashPeak = cursed ? 0.4f : 0.22f;
+
+        Sequence sequence = DOTween.Sequence();
+        sequence.SetUpdate(true);
+        sequence.Append(
+            DOVirtual.Float(
+                0f,
+                flashPeak,
+                Mathf.Max(0.01f, flashInDuration),
+                value => SetSingleRendererAlpha(curseTransitionRenderer, value)
+            )
+        );
+        sequence.Join(
+            DOVirtual.Float(
+                generatedStartAlpha,
+                generatedTargetAlpha,
+                transitionDuration,
+                value => SetRootRenderersAlpha(
+                    generatedBackgroundRenderers,
+                    generatedBackgroundRendererAlphas,
+                    value
+                )
+            )
+        );
+        sequence.Join(
+            DOVirtual.Float(
+                minimalStartAlpha,
+                minimalTargetAlpha,
+                transitionDuration,
+                value => SetRootRenderersAlpha(
+                    minimalBackgroundRenderers,
+                    minimalBackgroundRendererAlphas,
+                    value
+                )
+            )
+        );
+        sequence.Append(
+            DOVirtual.Float(
+                flashPeak,
+                0f,
+                Mathf.Max(0.01f, flashOutDuration),
+                value => SetSingleRendererAlpha(curseTransitionRenderer, value)
+            )
+        );
+        sequence.OnComplete(() =>
+        {
+            curseTransitionTween = null;
+            ApplyBackgroundVisibility(cursed);
+        });
+
+        curseTransitionTween = sequence;
+    }
+
+    private void CacheBackgroundRendererLists()
+    {
+        CacheGeneratedLayersIfNeeded();
+
+        if (minimalBackgroundRoot == null)
+        {
+            minimalBackgroundRoot = transform.Find(MinimalRootName);
+        }
+
+        if (curseTransitionRenderer == null)
+        {
+            Transform overlay = transform.Find(CurseTransitionOverlayName);
+            curseTransitionRenderer = overlay != null ? overlay.GetComponent<SpriteRenderer>() : null;
+        }
+
+        CacheRootRenderers(generatedRoot, generatedBackgroundRenderers, generatedBackgroundRendererAlphas);
+        CacheRootRenderers(minimalBackgroundRoot, minimalBackgroundRenderers, minimalBackgroundRendererAlphas);
+    }
+
+    private void CacheRootRenderers(
+        Transform root,
+        List<SpriteRenderer> renderers,
+        List<float> baseAlphas)
+    {
+        renderers.Clear();
+        baseAlphas.Clear();
+
+        if (root == null)
+        {
+            return;
+        }
+
+        SpriteRenderer[] children = root.GetComponentsInChildren<SpriteRenderer>(true);
+
+        for (int i = 0; i < children.Length; i++)
+        {
+            SpriteRenderer renderer = children[i];
+
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            int instanceId = renderer.GetInstanceID();
+            if (!rendererBaseAlphaByInstanceId.TryGetValue(instanceId, out float baseAlpha))
+            {
+                baseAlpha = renderer.color.a;
+                rendererBaseAlphaByInstanceId.Add(instanceId, baseAlpha);
+            }
+
+            renderers.Add(renderer);
+            baseAlphas.Add(baseAlpha);
+        }
+    }
+
+    private void SetRootRenderersAlpha(List<SpriteRenderer> renderers, List<float> baseAlphas, float normalizedAlpha)
+    {
+        normalizedAlpha = Mathf.Clamp01(normalizedAlpha);
+
+        for (int i = 0; i < renderers.Count; i++)
+        {
+            SpriteRenderer renderer = renderers[i];
+
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            float baseAlpha = i < baseAlphas.Count ? baseAlphas[i] : 1f;
+            Color color = renderer.color;
+            color.a = baseAlpha * normalizedAlpha;
+            renderer.color = color;
+        }
+    }
+
+    private void SetSingleRendererAlpha(SpriteRenderer renderer, float targetAlpha)
+    {
+        if (renderer == null)
+        {
+            return;
+        }
+
+        Color color = renderer.color;
+        color.a = Mathf.Clamp01(targetAlpha) * Mathf.Clamp01(curseTransitionColor.a);
+        renderer.color = color;
+    }
+
+    private void ResetCurseTransition()
+    {
+        if (curseTransitionTween != null)
+        {
+            curseTransitionTween.Kill(false);
+            curseTransitionTween = null;
+        }
+
+        ApplyBackgroundVisibility(isCurseBackgroundActive);
     }
 
     public void SetMapArea(Vector2 center, Vector2 size)
@@ -620,6 +997,8 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     private void ClearCachedLayers()
     {
         generatedRoot = null;
+        minimalBackgroundRoot = null;
+        curseTransitionRenderer = null;
         starLayer = null;
         planetLayer = null;
         cloudLayer = null;
@@ -628,6 +1007,11 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         starfieldRenderer = null;
         starfieldRenderers.Clear();
         starfieldCoverageMultipliers.Clear();
+        generatedBackgroundRenderers.Clear();
+        generatedBackgroundRendererAlphas.Clear();
+        minimalBackgroundRenderers.Clear();
+        minimalBackgroundRendererAlphas.Clear();
+        rendererBaseAlphaByInstanceId.Clear();
 
         cameraZoomTransitionActive = false;
         cameraZoomTransitionProgress = 0f;
@@ -866,6 +1250,143 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         }
 
         starfieldRenderer = starfieldRenderers.Count > 0 ? starfieldRenderers[0] : null;
+    }
+
+    private void CreateMinimalBackground()
+    {
+        minimalBackgroundRoot = new GameObject(MinimalRootName).transform;
+        minimalBackgroundRoot.SetParent(transform, false);
+        minimalBackgroundRoot.localPosition = new Vector3(0f, 0f, backgroundZ);
+        minimalBackgroundRoot.localRotation = Quaternion.identity;
+        minimalBackgroundRoot.localScale = Vector3.one;
+
+        Vector2 coverage = GetInitialStarfieldSize() * Mathf.Max(1f, starfieldCoverOverscan);
+        coverage.x = Mathf.Max(24f, coverage.x);
+        coverage.y = Mathf.Max(14f, coverage.y);
+
+        Sprite overlaySprite = ResolveMinimalBackgroundSprite();
+        if (overlaySprite != null)
+        {
+            Color voidColor = new Color(0.02f, 0.008f, 0.035f, 0.3f);
+            GameObject backdrop = CreateSpriteObjectNative(
+                "MinimalVoidBackdrop",
+                overlaySprite,
+                minimalBackgroundRoot,
+                mapCenter,
+                0f,
+                voidColor,
+                baseSortingOrder - 140,
+                Vector3.one
+            );
+            backdrop.transform.localScale = CalculateCoverScale(overlaySprite, coverage, true);
+        }
+
+        if (smallFlareSprite != null)
+        {
+            Vector2 half = coverage * 0.5f;
+
+            for (int i = 0; i < MinimalStarCount; i++)
+            {
+                Vector2 position = mapCenter + new Vector2(
+                    RandomRange(-half.x, half.x),
+                    RandomRange(-half.y, half.y)
+                );
+                float size = RandomRange(0.045f, 0.095f);
+                float purpleMix = RandomRange(0f, 1f);
+                Color color = Color.Lerp(
+                    new Color(0.42f, 0.58f, 0.82f, 1f),
+                    new Color(0.68f, 0.34f, 0.92f, 1f),
+                    purpleMix
+                );
+                color.a = RandomRange(0.11f, 0.23f);
+
+                CreateSpriteObjectWorldSize(
+                    $"MinimalStar_{i:00}",
+                    smallFlareSprite,
+                    minimalBackgroundRoot,
+                    position,
+                    new Vector2(size, size),
+                    0f,
+                    color,
+                    baseSortingOrder - 120
+                );
+            }
+
+            for (int i = 0; i < MinimalCurseFragmentCount; i++)
+            {
+                Vector2 position = mapCenter + new Vector2(
+                    RandomRange(-half.x, half.x),
+                    RandomRange(-half.y, half.y)
+                );
+                float width = RandomRange(0.08f, 0.2f);
+                float height = RandomRange(0.06f, 0.16f);
+                Color color = new Color(0.72f, 0.2f, 1f, RandomRange(0.12f, 0.24f));
+
+                CreateSpriteObjectWorldSize(
+                    $"CurseFragment_{i:00}",
+                    smallFlareSprite,
+                    minimalBackgroundRoot,
+                    position,
+                    new Vector2(width, height),
+                    random.Next(0, 4) * 90f,
+                    color,
+                    baseSortingOrder - 110
+                );
+            }
+        }
+
+        CreateCurseTransitionOverlay(overlaySprite, coverage);
+    }
+
+    private Sprite ResolveMinimalBackgroundSprite()
+    {
+        List<Sprite> validSprites = GetValidStarfieldSprites();
+
+        if (validSprites.Count > 0)
+        {
+            return validSprites[0];
+        }
+
+        if (starFlareSprite != null)
+        {
+            return starFlareSprite;
+        }
+
+        return smallFlareSprite;
+    }
+
+    private void CreateCurseTransitionOverlay(Sprite overlaySprite, Vector2 coverage)
+    {
+        if (overlaySprite == null)
+        {
+            curseTransitionRenderer = null;
+            return;
+        }
+
+        Transform existing = transform.Find(CurseTransitionOverlayName);
+        if (existing != null)
+        {
+            DestroyGeneratedObject(existing);
+        }
+
+        Color overlayColor = curseTransitionColor;
+        overlayColor.a = 0f;
+
+        GameObject overlay = CreateSpriteObjectNative(
+            CurseTransitionOverlayName,
+            overlaySprite,
+            transform,
+            mapCenter,
+            0f,
+            overlayColor,
+            baseSortingOrder + 80,
+            Vector3.one
+        );
+        overlay.transform.localPosition = new Vector3(mapCenter.x, mapCenter.y, backgroundZ - 0.25f);
+        overlay.transform.localScale = CalculateCoverScale(overlaySprite, coverage, true);
+
+        curseTransitionRenderer = overlay.GetComponent<SpriteRenderer>();
+        SetSingleRendererAlpha(curseTransitionRenderer, 0f);
     }
 
     private void CreateLegacyTiledStarfield(Sprite sprite, Vector2 backgroundSize)
@@ -1270,6 +1791,13 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     {
         CacheGeneratedLayersIfNeeded();
 
+        ResolveTargetCamera();
+        hasLayerCameraSample = targetCamera != null;
+        if (hasLayerCameraSample)
+        {
+            layerCameraSample = targetCamera.transform.position;
+        }
+
         if (generatedRoot == null)
         {
             return;
@@ -1369,7 +1897,9 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         }
 
         float pixelStep = 1f / Mathf.Max(1, assetsPixelsPerUnit);
-        Vector3 cameraPosition = targetCamera.transform.position;
+        Vector3 cameraPosition = hasLayerCameraSample
+            ? layerCameraSample
+            : targetCamera.transform.position;
         cameraPosition.x = Mathf.Round(cameraPosition.x / pixelStep) * pixelStep;
         cameraPosition.y = Mathf.Round(cameraPosition.y / pixelStep) * pixelStep;
 
@@ -1398,6 +1928,13 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     private void SyncForCameraRender(Camera camera)
     {
         if (!syncBeforeCameraRender || camera == null)
+        {
+            return;
+        }
+
+        CacheGeneratedLayersIfNeeded();
+
+        if (generatedRoot == null || !generatedRoot.gameObject.activeSelf)
         {
             return;
         }
@@ -1910,6 +2447,8 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         assetsPixelsPerUnit = Mathf.Max(1, assetsPixelsPerUnit);
         expectedMaximumZoomMultiplier = Mathf.Max(1f, expectedMaximumZoomMultiplier);
         extraZoomCoverageMargin = Mathf.Max(0f, extraZoomCoverageMargin);
+        curseToCursedTransitionDuration = Mathf.Max(0.01f, curseToCursedTransitionDuration);
+        curseToNormalTransitionDuration = Mathf.Max(0.01f, curseToNormalTransitionDuration);
         layeredBackdropCount = Mathf.Max(1, layeredBackdropCount);
         starfieldCoverOverscan = Mathf.Max(1f, starfieldCoverOverscan);
         starfieldBrightness = Mathf.Clamp01(starfieldBrightness);

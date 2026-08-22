@@ -314,22 +314,22 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
 
         AddImage(CreateStretchObject("Dimmer", canvasRoot.transform), new Color(0f, 0f, 0f, 0.62f));
         pauseRoot = CreatePanel("PauseMenuRoot", canvasRoot.transform, Vector2.zero, new Vector2(220f, 190f), PanelColor);
-        CreateText("Title", pauseRoot.transform, "PAUSED", new Vector2(0f, 66f), new Vector2(180f, 28f), 18f, AccentColor);
-        continueButton = CreateButton("ContinueButton", pauseRoot.transform, "CONTINUE", new Vector2(0f, 25f));
-        optionsButton = CreateButton("OptionsButton", pauseRoot.transform, "OPTIONS", new Vector2(0f, -15f));
-        quitButton = CreateButton("QuitButton", pauseRoot.transform, "QUIT", new Vector2(0f, -55f));
+        CreateText("Title", pauseRoot.transform, "일시정지", new Vector2(0f, 66f), new Vector2(180f, 28f), 18f, AccentColor);
+        continueButton = CreateButton("ContinueButton", pauseRoot.transform, "계속하기", new Vector2(0f, 25f));
+        optionsButton = CreateButton("OptionsButton", pauseRoot.transform, "설정", new Vector2(0f, -15f));
+        quitButton = CreateButton("QuitButton", pauseRoot.transform, "나가기", new Vector2(0f, -55f));
 
         GameObject optionsObject = new GameObject("OptionsPanel", typeof(RectTransform));
         optionsObject.transform.SetParent(canvasRoot.transform, false);
         sharedOptions = optionsObject.AddComponent<SharedOptionsMenuUI>();
-        sharedOptions.Configure(inputActions, masterAudioMixer, uiFont);
+        sharedOptions.Configure(inputActions, masterAudioMixer, uiFont, true, true);
 
         quitRoot = CreateStretchObject("QuitConfirmationRoot", canvasRoot.transform);
         AddImage(quitRoot, new Color(0f, 0f, 0f, 0.75f));
         GameObject panel = CreatePanel("ConfirmationPanel", quitRoot.transform, Vector2.zero, new Vector2(330f, 126f), PanelColor);
         quitMessage = CreateText("Message", panel.transform, string.Empty, new Vector2(0f, 25f), new Vector2(290f, 48f), 11f, TextColor);
-        confirmQuitButton = CreateButton("ConfirmQuitButton", panel.transform, "CONFIRM", new Vector2(-65f, -36f), new Vector2(108f, 26f));
-        cancelQuitButton = CreateButton("CancelQuitButton", panel.transform, "CANCEL", new Vector2(65f, -36f), new Vector2(108f, 26f));
+        confirmQuitButton = CreateButton("ConfirmQuitButton", panel.transform, "확인", new Vector2(-65f, -36f), new Vector2(108f, 26f));
+        cancelQuitButton = CreateButton("CancelQuitButton", panel.transform, "취소", new Vector2(65f, -36f), new Vector2(108f, 26f));
         quitRoot.SetActive(false);
     }
 

@@ -148,14 +148,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 1729370689716797226}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 1729370689716797226}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 1050588435100045361}
   beamEndPoint: {fileID: 2523958241833070319}
@@ -225,7 +226,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4253995957970548621}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: start
   m_TagString: Untagged
   m_Icon: {fileID: 3443629218296621865, guid: 0000000000000000d000000000000000, type: 0}
@@ -571,10 +572,11 @@ MonoBehaviour:
   collidersToDisable:
   - {fileID: 1124569729126954043}
   - {fileID: 7610199130418867407}
-  - {fileID: 3782272113136668228}
-  - {fileID: 8256623135197141417}
+  - {fileID: 0}
+  - {fileID: 0}
   holdStartedWarning: "\uC804\uB825\uB9DD \uCC28\uB2E8\uC744 \uC2DC\uC791\uD569\uB2C8\uB2E4.
-    \uD53C\uACA9\uB418\uAC70\uB098 \uC0C1\uD638\uC791\uC6A9 \uC785\uB825\uC744 \uB193\uC73C\uBA74 \uCDE8\uC18C\uB429\uB2C8\uB2E4."
+    \uD53C\uACA9\uB418\uAC70\uB098 \uC0C1\uD638\uC791\uC6A9 \uC785\uB825\uC744 \uB193\uC73C\uBA74
+    \uCDE8\uC18C\uB429\uB2C8\uB2E4."
   disabledWarning: "\uAE30\uC9C0 \uC804\uB825\uB9DD\uC744 \uCC28\uB2E8\uD588\uB2E4."
 --- !u!1 &412068410991508646
 GameObject:
@@ -838,7 +840,7 @@ Transform:
   m_GameObject: {fileID: 619292392326297899}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.4, y: -2.55, z: 0}
+  m_LocalPosition: {x: -2.44, y: -2.7, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1080,7 +1082,8 @@ GameObject:
   - component: {fileID: 5671235077192232113}
   - component: {fileID: 1166371142874795453}
   - component: {fileID: 232876942598430250}
-  m_Layer: 0
+  - component: {fileID: 3637256618717727111}
+  m_Layer: 19
   m_Name: MoneyBoxWall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1172,14 +1175,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 0}
-  pushPlayerWhenClosed: 0
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 0}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 4253995957970548621}
   beamEndPoint: {fileID: 1579762907890538641}
@@ -1254,6 +1258,52 @@ PolygonCollider2D:
       - {x: 0.2722712, y: 0.22237948}
       - {x: 0.22227119, y: 0.27891925}
   m_UseDelaunayMesh: 0
+--- !u!61 &3637256618717727111
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 861177753141076781}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.72942805, y: -0.4848714}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 0.64, y: 0.64}
+    newSize: {x: 0.64, y: 0.64}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 2.0162444, y: 1.5040121}
+  m_EdgeRadius: 0
 --- !u!1 &983109637666380993
 GameObject:
   m_ObjectHideFlags: 0
@@ -1350,7 +1400,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6436163077472733263}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: end
   m_TagString: Untagged
   m_Icon: {fileID: 3443629218296621865, guid: 0000000000000000d000000000000000, type: 0}
@@ -1739,7 +1789,8 @@ GameObject:
   - component: {fileID: 6195153944754249619}
   - component: {fileID: 5336372211846246156}
   - component: {fileID: 5035388511917774660}
-  m_Layer: 0
+  - component: {fileID: 3728283610312817110}
+  m_Layer: 19
   m_Name: Mid_Wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1831,14 +1882,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 0}
-  pushPlayerWhenClosed: 0
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 3728283610312817110}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 648490479628491723}
   beamEndPoint: {fileID: 6312499444682915127}
@@ -1912,6 +1964,52 @@ PolygonCollider2D:
       - {x: 0.29999998, y: 0.28}
       - {x: 0.25, y: 0.29}
   m_UseDelaunayMesh: 0
+--- !u!61 &3728283610312817110
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1562572611441463532}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -1.5475827, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 0.64, y: 0.64}
+    newSize: {x: 0.64, y: 0.64}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 1.5095937, y: 0.64}
+  m_EdgeRadius: 0
 --- !u!1 &1610752980828582304
 GameObject:
   m_ObjectHideFlags: 0
@@ -1921,7 +2019,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8676324352688768755}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: end
   m_TagString: Untagged
   m_Icon: {fileID: -5487077368411116049, guid: 0000000000000000d000000000000000, type: 0}
@@ -2506,7 +2604,8 @@ GameObject:
   - component: {fileID: 6304031764566628130}
   - component: {fileID: 4473015239762856149}
   - component: {fileID: 7848339511605154124}
-  m_Layer: 0
+  - component: {fileID: 6910879707981632027}
+  m_Layer: 19
   m_Name: Mid_Wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2598,14 +2697,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 0}
-  pushPlayerWhenClosed: 0
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 6910879707981632027}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 1489630197082124333}
   beamEndPoint: {fileID: 1898384067099567678}
@@ -2679,6 +2779,52 @@ PolygonCollider2D:
       - {x: 0.29999998, y: 0.24437548}
       - {x: 0.25, y: 0.29}
   m_UseDelaunayMesh: 0
+--- !u!61 &6910879707981632027
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1958099173516282659}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -1.4532832, y: 0.13535422}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 0.64, y: 0.64}
+    newSize: {x: 0.64, y: 0.64}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 2.7344372, y: 0.36929154}
+  m_EdgeRadius: 0
 --- !u!1 &1980265313367443591
 GameObject:
   m_ObjectHideFlags: 0
@@ -2871,84 +3017,6 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   m_Size: {x: 0.5512953, y: 0.28807926}
-  m_EdgeRadius: 0
---- !u!1 &2050889149594771167
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2942569787410108214}
-  - component: {fileID: 3782272113136668228}
-  m_Layer: 0
-  m_Name: Wall_Coll
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2942569787410108214
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2050889149594771167}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3.9, y: -3.05, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6545477362101882587}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!61 &3782272113136668228
-BoxCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2050889149594771167}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0.50415254, y: -0.26026678}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0, y: 0}
-    oldSize: {x: 0, y: 0}
-    newSize: {x: 0, y: 0}
-    adaptiveTilingThreshold: 0
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  m_Size: {x: 2.0301461, y: 1.5205336}
   m_EdgeRadius: 0
 --- !u!1 &2141021214596569757
 GameObject:
@@ -3305,7 +3373,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7922207730033228667}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: start
   m_TagString: Untagged
   m_Icon: {fileID: -5487077368411116049, guid: 0000000000000000d000000000000000, type: 0}
@@ -3475,14 +3543,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 7625043105169427141}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 7625043105169427141}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 5983179053277767413}
   beamEndPoint: {fileID: 8332532286608397112}
@@ -3540,7 +3609,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6312499444682915127}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: end
   m_TagString: Untagged
   m_Icon: {fileID: -5487077368411116049, guid: 0000000000000000d000000000000000, type: 0}
@@ -4542,7 +4611,7 @@ GameObject:
   - component: {fileID: 7783355892536761267}
   - component: {fileID: 3819068251746689269}
   - component: {fileID: 8852596190385415422}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: MoneyBoxWall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4634,14 +4703,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 0}
-  pushPlayerWhenClosed: 0
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 0}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 320121331725256963}
   beamEndPoint: {fileID: 6436163077472733263}
@@ -4820,7 +4890,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 320121331725256963}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: start
   m_TagString: Untagged
   m_Icon: {fileID: 3443629218296621865, guid: 0000000000000000d000000000000000, type: 0}
@@ -4882,7 +4952,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7283183695224821561}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: start
   m_TagString: Untagged
   m_Icon: {fileID: 3443629218296621865, guid: 0000000000000000d000000000000000, type: 0}
@@ -5313,6 +5383,16 @@ MonoBehaviour:
   reinforcementSpawnRadius: 1.75
   setPlayerAsEnemyTarget: 1
   playerTag: Player
+  useReinforcementArrival: 1
+  reinforcementWarningTime: 0.8
+  reinforcementTravelTime: 0.32
+  reinforcementReadyDelay: 0.25
+  reinforcementOffscreenEntryDistance: 10.5
+  reinforcementArrivalMarkerRadius: 0.85
+  reinforcementSpawnClearance: 0.55
+  reinforcementDestinationBlockingLayers:
+    serializedVersion: 2
+    m_Bits: 0
   takeDamageFromPlayerProjectiles: 1
   takeDamageFromEnemyProjectiles: 0
   blockProjectileWhenDamageIgnored: 1
@@ -5411,7 +5491,8 @@ GameObject:
   - component: {fileID: 216402871602646967}
   - component: {fileID: 7754476081345923433}
   - component: {fileID: 3669391493773381698}
-  m_Layer: 0
+  - component: {fileID: 4054189618882544451}
+  m_Layer: 19
   m_Name: MoneyBoxWall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5503,14 +5584,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 0}
-  pushPlayerWhenClosed: 0
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 0}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 3423513040954177162}
   beamEndPoint: {fileID: 5215108551480606719}
@@ -5585,6 +5667,52 @@ PolygonCollider2D:
       - {x: 0.28790525, y: 0.24019316}
       - {x: 0.24, y: 0.29}
   m_UseDelaunayMesh: 0
+--- !u!61 &4054189618882544451
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4200488347847243643}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: -0.7623052}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 0.64, y: 0.64}
+    newSize: {x: 0.64, y: 0.64}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 0.64, y: 1.0293401}
+  m_EdgeRadius: 0
 --- !u!1 &4249562795935125624
 GameObject:
   m_ObjectHideFlags: 0
@@ -5712,7 +5840,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1489630197082124333}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: start
   m_TagString: Untagged
   m_Icon: {fileID: -5487077368411116049, guid: 0000000000000000d000000000000000, type: 0}
@@ -6489,7 +6617,8 @@ GameObject:
   - component: {fileID: 4737694039470452381}
   - component: {fileID: 233375453955716687}
   - component: {fileID: 1480903960376808836}
-  m_Layer: 0
+  - component: {fileID: 3008859210672424979}
+  m_Layer: 19
   m_Name: Mid_Wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6581,14 +6710,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 0}
-  pushPlayerWhenClosed: 0
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 3008859210672424979}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 7922207730033228667}
   beamEndPoint: {fileID: 3633744497011270219}
@@ -6664,6 +6794,52 @@ PolygonCollider2D:
       - {x: 0.29999998, y: 0.28}
       - {x: 0.25, y: 0.29}
   m_UseDelaunayMesh: 0
+--- !u!61 &3008859210672424979
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5022941777423679827}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -2.0781827, y: 0.12528053}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 0.64, y: 0.64}
+    newSize: {x: 0.64, y: 0.64}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 2.6592264, y: 0.38943893}
+  m_EdgeRadius: 0
 --- !u!1 &5084686270423798499
 GameObject:
   m_ObjectHideFlags: 0
@@ -7359,8 +7535,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5241710740ea26f448b2b4eac76326f8, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   markerType: 8
   markerTransform: {fileID: 8074732933343397856}
   visible: 1
@@ -7601,14 +7777,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 1864773397701985978}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 1864773397701985978}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 6608256818101543336}
   beamEndPoint: {fileID: 5009879408536805502}
@@ -7635,7 +7812,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1579762907890538641}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: end
   m_TagString: Untagged
   m_Icon: {fileID: 3443629218296621865, guid: 0000000000000000d000000000000000, type: 0}
@@ -7805,14 +7982,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 5339609538351068425}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 5339609538351068425}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 2422505814530957996}
   beamEndPoint: {fileID: 2814879319813970271}
@@ -7926,7 +8104,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3423513040954177162}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: start
   m_TagString: Untagged
   m_Icon: {fileID: 3443629218296621865, guid: 0000000000000000d000000000000000, type: 0}
@@ -8122,84 +8300,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!1 &6077387378671149508
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2812837719054703948}
-  - component: {fileID: 8256623135197141417}
-  m_Layer: 0
-  m_Name: Wall_Coll
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2812837719054703948
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6077387378671149508}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.108, y: -0.832, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 905726881918403540}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!61 &8256623135197141417
-BoxCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6077387378671149508}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 1.7858276, y: 0.77368975}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0, y: 0}
-    oldSize: {x: 0, y: 0}
-    newSize: {x: 0, y: 0}
-    adaptiveTilingThreshold: 0
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  m_Size: {x: 4.5934963, y: 3.5884466}
-  m_EdgeRadius: 0
 --- !u!1 &6112906790505698111
 GameObject:
   m_ObjectHideFlags: 0
@@ -8233,7 +8333,6 @@ Transform:
   - {fileID: 5448690484923922107}
   - {fileID: 4589463731913986101}
   - {fileID: 8572763477379058779}
-  - {fileID: 2812837719054703948}
   - {fileID: 5447822830555638027}
   - {fileID: 4679091005841410257}
   m_Father: {fileID: 7274631152865294933}
@@ -8571,7 +8670,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2942569787410108214}
   - {fileID: 5652417298677685937}
   - {fileID: 3302537961386008124}
   - {fileID: 7484368225894371515}
@@ -9096,7 +9194,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3633744497011270219}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: end
   m_TagString: Untagged
   m_Icon: {fileID: -5487077368411116049, guid: 0000000000000000d000000000000000, type: 0}
@@ -10010,7 +10108,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1898384067099567678}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: end
   m_TagString: Untagged
   m_Icon: {fileID: -5487077368411116049, guid: 0000000000000000d000000000000000, type: 0}
@@ -10392,7 +10490,8 @@ GameObject:
   - component: {fileID: 8601474910309595398}
   - component: {fileID: 1093639669343345430}
   - component: {fileID: 2323810032568463841}
-  m_Layer: 0
+  - component: {fileID: 1410628383194269499}
+  m_Layer: 19
   m_Name: Mid_Wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -10484,14 +10583,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 0}
-  pushPlayerWhenClosed: 0
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 1410628383194269499}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 7478935462707057996}
   beamEndPoint: {fileID: 8676324352688768755}
@@ -10566,6 +10666,52 @@ PolygonCollider2D:
       - {x: 0.29999998, y: 0.28}
       - {x: 0.25, y: 0.29}
   m_UseDelaunayMesh: 0
+--- !u!61 &1410628383194269499
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7591194738035257462}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -1.9786949, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 0.64, y: 0.64}
+    newSize: {x: 0.64, y: 0.64}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 2.5634232, y: 0.64}
+  m_EdgeRadius: 0
 --- !u!1 &7747010414379938244
 GameObject:
   m_ObjectHideFlags: 0
@@ -11115,14 +11261,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 2239244881999061960}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 2239244881999061960}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 6611536742612708962}
   beamEndPoint: {fileID: 8602429774333408381}
@@ -11288,14 +11435,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 4182213619668623264}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 4182213619668623264}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 2125574082764292243}
   beamEndPoint: {fileID: 2532507633999966057}
@@ -14905,7 +15053,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 648490479628491723}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: start
   m_TagString: Untagged
   m_Icon: {fileID: -5487077368411116049, guid: 0000000000000000d000000000000000, type: 0}
@@ -15014,7 +15162,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7478935462707057996}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: start
   m_TagString: Untagged
   m_Icon: {fileID: -5487077368411116049, guid: 0000000000000000d000000000000000, type: 0}
@@ -15305,6 +15453,16 @@ MonoBehaviour:
   reinforcementSpawnRadius: 1.75
   setPlayerAsEnemyTarget: 1
   playerTag: Player
+  useReinforcementArrival: 1
+  reinforcementWarningTime: 0.8
+  reinforcementTravelTime: 0.32
+  reinforcementReadyDelay: 0.25
+  reinforcementOffscreenEntryDistance: 10.5
+  reinforcementArrivalMarkerRadius: 0.85
+  reinforcementSpawnClearance: 0.55
+  reinforcementDestinationBlockingLayers:
+    serializedVersion: 2
+    m_Bits: 0
   takeDamageFromPlayerProjectiles: 1
   takeDamageFromEnemyProjectiles: 0
   blockProjectileWhenDamageIgnored: 1
@@ -15591,7 +15749,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5215108551480606719}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: end
   m_TagString: Untagged
   m_Icon: {fileID: 3443629218296621865, guid: 0000000000000000d000000000000000, type: 0}
@@ -15778,7 +15936,7 @@ GameObject:
   - component: {fileID: 5717744265379755240}
   - component: {fileID: 5881865554930274462}
   - component: {fileID: 717113229872172172}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: MoneyBoxWall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -15870,14 +16028,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 0}
-  pushPlayerWhenClosed: 0
-  pushOutDistance: 0.35
+  gateMode: 0
+  blockingCollider: {fileID: 0}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 7283183695224821561}
   beamEndPoint: {fileID: 9122207985033475105}
@@ -15962,7 +16121,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9122207985033475105}
-  m_Layer: 0
+  m_Layer: 19
   m_Name: end
   m_TagString: Untagged
   m_Icon: {fileID: 3443629218296621865, guid: 0000000000000000d000000000000000, type: 0}

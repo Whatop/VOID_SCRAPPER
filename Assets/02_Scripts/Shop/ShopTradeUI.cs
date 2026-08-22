@@ -1,7 +1,26 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
+
+[DisallowMultipleComponent]
+public sealed class ShopOptionSelectionRelay : MonoBehaviour, ISelectHandler
+{
+    private ShopTradeUI owner;
+    private Button targetButton;
+
+    public void Configure(ShopTradeUI newOwner, Button newTargetButton)
+    {
+        owner = newOwner;
+        targetButton = newTargetButton;
+    }
+
+    public void OnSelect(BaseEventData eventData)
+    {
+        owner?.HandleOptionFocused(targetButton);
+    }
+}
 
 public class ShopTradeUI : MonoBehaviour
 {
@@ -109,6 +128,7 @@ public class ShopTradeUI : MonoBehaviour
     private readonly List<ReinforcementDefinition> reinforcementChoices = new List<ReinforcementDefinition>();
 
     private ShopOption selectedOption;
+    private Button selectedOptionButton;
     private bool isOpen;
     private bool pauseRequested;
     private bool shopAudioModeRequested;
@@ -124,6 +144,7 @@ public class ShopTradeUI : MonoBehaviour
 
         ConfigureShopTypography();
         BindButtons();
+        ConfigureOptionSelectionRelays();
         ConfigureExplicitResultButtonSound(buyButton);
         ConfigureExplicitResultButtonSound(exitButton);
 
@@ -277,6 +298,7 @@ public class ShopTradeUI : MonoBehaviour
         ApplyTopStateVisual();
         RollShopItems();
         selectedOption = default;
+        selectedOptionButton = null;
         RefreshTradePage();
         ShowTradePage();
     }
@@ -306,6 +328,7 @@ public class ShopTradeUI : MonoBehaviour
         traitChoices.Clear();
         reinforcementChoices.Clear();
         selectedOption = default;
+        selectedOptionButton = null;
 
         if (root != null)
         {
@@ -344,7 +367,7 @@ public class ShopTradeUI : MonoBehaviour
         if (repairButton != null)
         {
             repairButton.onClick.RemoveAllListeners();
-            repairButton.onClick.AddListener(() => SelectOption(BuildRepairOption()));
+            repairButton.onClick.AddListener(() => SelectOption(BuildRepairOption(), repairButton));
         }
 
         for (int i = 0; i < reinforcementButtons.Length; i++)
@@ -427,6 +450,7 @@ public class ShopTradeUI : MonoBehaviour
         }
 
         RefreshCurrentActiveBar();
+        SelectEventSystemButton(selectedOptionButton);
     }
 
     private void ShowMaintenancePage()
@@ -501,21 +525,60 @@ public class ShopTradeUI : MonoBehaviour
 
     private void SelectFirstAvailableOption()
     {
+        if (currentShop != null && currentShop.CanBuyRepair(currentPlayer))
+        {
+            SelectOption(BuildRepairOption(), repairButton);
+            SelectEventSystemButton(repairButton);
+            return;
+        }
+
+        for (int i = 0; i < reinforcementChoices.Count; i++)
+        {
+            ReinforcementDefinition definition = reinforcementChoices[i];
+
+            if (currentStock != null &&
+                currentStock.CanBuyReinforcement(definition, currentShop, currentPlayer))
+            {
+                Button targetButton = GetArrayItem(reinforcementButtons, i);
+                SelectOption(BuildReinforcementOption(definition), targetButton);
+                SelectEventSystemButton(targetButton);
+                return;
+            }
+        }
+
+        for (int i = 0; i < traitChoices.Count; i++)
+        {
+            TraitDefinition definition = traitChoices[i];
+
+            if (currentStock != null && currentStock.CanBuyTrait(definition))
+            {
+                Button targetButton = GetArrayItem(traitButtons, i);
+                SelectOption(BuildTraitOption(definition), targetButton);
+                SelectEventSystemButton(targetButton);
+                return;
+            }
+        }
+
         if (currentShop != null)
         {
-            SelectOption(BuildRepairOption());
+            SelectOption(BuildRepairOption(), repairButton);
+            SelectEventSystemButton(repairButton);
             return;
         }
 
         if (reinforcementChoices.Count > 0)
         {
-            SelectOption(BuildReinforcementOption(reinforcementChoices[0]));
+            Button targetButton = GetArrayItem(reinforcementButtons, 0);
+            SelectOption(BuildReinforcementOption(reinforcementChoices[0]), targetButton);
+            SelectEventSystemButton(targetButton);
             return;
         }
 
         if (traitChoices.Count > 0)
         {
-            SelectOption(BuildTraitOption(traitChoices[0]));
+            Button targetButton = GetArrayItem(traitButtons, 0);
+            SelectOption(BuildTraitOption(traitChoices[0]), targetButton);
+            SelectEventSystemButton(targetButton);
             return;
         }
 
@@ -532,8 +595,20 @@ public class ShopTradeUI : MonoBehaviour
         SetIcon(repairButtonIcon, repairIcon);
 
         string name = "수리";
-        string price = currentShop != null ? $"{currentShop.RepairCost}C" : string.Empty;
+        int cost = currentShop != null ? currentShop.RepairCost : 0;
+        bool affordable = currentShop != null && ShopRunBridge.CanSpendCredits(cost);
+        string price = currentShop != null
+            ? BuildCardPriceText(cost, false, false, affordable)
+            : string.Empty;
         SetCardText(repairButtonText, repairButtonNameText, repairButtonPriceText, name, price);
+        ApplyCardVisualState(
+            repairButtonIcon,
+            repairButtonText,
+            repairButtonNameText,
+            repairButtonPriceText,
+            false,
+            affordable
+        );
     }
 
     private void RefreshReinforcementSlots()
@@ -561,6 +636,9 @@ public class ShopTradeUI : MonoBehaviour
 
             Sprite icon = definition.Icon != null ? definition.Icon : activeFallbackIcon;
             int cost = currentStock != null ? currentStock.GetReinforcementCost(definition) : definition.Cost;
+            bool purchased = currentStock != null && currentStock.WasReinforcementPurchased(definition);
+            bool soldOut = currentStock != null && currentStock.ReinforcementSoldOut;
+            bool affordable = ShopRunBridge.CanSpendCredits(cost);
 
             SetIcon(GetArrayItem(reinforcementButtonIcons, i), icon);
             SetCardText(
@@ -568,7 +646,15 @@ public class ShopTradeUI : MonoBehaviour
                 GetArrayItem(reinforcementButtonNameTexts, i),
                 GetArrayItem(reinforcementButtonPriceTexts, i),
                 definition.DisplayName,
-                $"{cost}C"
+                BuildCardPriceText(cost, purchased, soldOut, affordable)
+            );
+            ApplyCardVisualState(
+                GetArrayItem(reinforcementButtonIcons, i),
+                GetArrayItem(reinforcementButtonTexts, i),
+                GetArrayItem(reinforcementButtonNameTexts, i),
+                GetArrayItem(reinforcementButtonPriceTexts, i),
+                purchased || soldOut,
+                affordable
             );
         }
     }
@@ -598,6 +684,9 @@ public class ShopTradeUI : MonoBehaviour
 
             Sprite icon = definition.Icon != null ? definition.Icon : traitFallbackIcon;
             int cost = currentStock != null ? currentStock.TraitCost : 0;
+            bool purchased = currentStock != null && currentStock.WasTraitPurchased(definition);
+            bool soldOut = currentStock != null && currentStock.TraitSoldOut;
+            bool affordable = ShopRunBridge.CanSpendCredits(cost);
 
             SetIcon(GetArrayItem(traitButtonIcons, i), icon);
             SetCardText(
@@ -605,7 +694,15 @@ public class ShopTradeUI : MonoBehaviour
                 GetArrayItem(traitButtonNameTexts, i),
                 GetArrayItem(traitButtonPriceTexts, i),
                 definition.DisplayName,
-                $"{cost}C"
+                BuildCardPriceText(cost, purchased, soldOut, affordable)
+            );
+            ApplyCardVisualState(
+                GetArrayItem(traitButtonIcons, i),
+                GetArrayItem(traitButtonTexts, i),
+                GetArrayItem(traitButtonNameTexts, i),
+                GetArrayItem(traitButtonPriceTexts, i),
+                purchased || soldOut,
+                affordable
             );
         }
     }
@@ -633,7 +730,9 @@ public class ShopTradeUI : MonoBehaviour
 
         if (currentActiveTypeText != null)
         {
-            currentActiveTypeText.text = currentActive != null ? currentActive.GetUseTypeText() : string.Empty;
+            currentActiveTypeText.text = currentActive != null
+                ? $"장착 중 · {currentActive.GetUseTypeText()}"
+                : string.Empty;
         }
     }
 
@@ -644,7 +743,7 @@ public class ShopTradeUI : MonoBehaviour
             return;
         }
 
-        SelectOption(BuildReinforcementOption(reinforcementChoices[index]));
+        SelectOption(BuildReinforcementOption(reinforcementChoices[index]), GetArrayItem(reinforcementButtons, index));
     }
 
     private void OnClickTraitSlot(int index)
@@ -654,12 +753,13 @@ public class ShopTradeUI : MonoBehaviour
             return;
         }
 
-        SelectOption(BuildTraitOption(traitChoices[index]));
+        SelectOption(BuildTraitOption(traitChoices[index]), GetArrayItem(traitButtons, index));
     }
 
-    private void SelectOption(ShopOption option)
+    private void SelectOption(ShopOption option, Button sourceButton = null)
     {
         selectedOption = option;
+        selectedOptionButton = sourceButton;
 
         SetIcon(detailIconImage, option.Icon);
 
@@ -672,9 +772,39 @@ public class ShopTradeUI : MonoBehaviour
         RefreshBuyButtonState();
     }
 
+    public void HandleOptionFocused(Button targetButton)
+    {
+        if (!isOpen || targetButton == null || !targetButton.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        if (targetButton == repairButton)
+        {
+            SelectOption(BuildRepairOption(), targetButton);
+            return;
+        }
+
+        int reinforcementIndex = GetButtonIndex(reinforcementButtons, targetButton);
+
+        if (reinforcementIndex >= 0 && reinforcementIndex < reinforcementChoices.Count)
+        {
+            SelectOption(BuildReinforcementOption(reinforcementChoices[reinforcementIndex]), targetButton);
+            return;
+        }
+
+        int traitIndex = GetButtonIndex(traitButtons, targetButton);
+
+        if (traitIndex >= 0 && traitIndex < traitChoices.Count)
+        {
+            SelectOption(BuildTraitOption(traitChoices[traitIndex]), targetButton);
+        }
+    }
+
     private void SelectEmptyOption()
     {
         selectedOption = default;
+        selectedOptionButton = null;
 
         SetIcon(detailIconImage, null);
         SetText(selectedItemLabelText, "선택된 아이템");
@@ -689,6 +819,7 @@ public class ShopTradeUI : MonoBehaviour
     private void RefreshBuyButtonState()
     {
         bool canBuy = CanBuySelectedOption();
+        bool purchased = IsSelectedOptionPurchased();
 
         if (buyButton != null)
         {
@@ -697,7 +828,31 @@ public class ShopTradeUI : MonoBehaviour
 
         if (buyButtonText != null)
         {
-            buyButtonText.text = canBuy ? buyText : cannotBuyText;
+            if (canBuy)
+            {
+                buyButtonText.text = buyText;
+            }
+            else if (purchased)
+            {
+                buyButtonText.text = "판매 완료";
+            }
+            else if (IsSelectedCategorySoldOut())
+            {
+                buyButtonText.text = "판매 종료";
+            }
+            else if (selectedOption.Kind != ShopOptionKind.None &&
+                     !ShopRunBridge.CanSpendCredits(selectedOption.Cost))
+            {
+                buyButtonText.text = "크레딧 부족";
+            }
+            else if (selectedOption.Kind == ShopOptionKind.Repair)
+            {
+                buyButtonText.text = "수리 불필요";
+            }
+            else
+            {
+                buyButtonText.text = cannotBuyText;
+            }
         }
     }
 
@@ -755,17 +910,6 @@ public class ShopTradeUI : MonoBehaviour
         }
 
         AudioManager.Play(SoundEventIds.ShopBuySuccess);
-
-        if (selectedOption.Kind == ShopOptionKind.Reinforcement)
-        {
-            RemoveReinforcementFromChoices(selectedOption.Reinforcement);
-            selectedOption = default;
-        }
-        else if (selectedOption.Kind == ShopOptionKind.Trait)
-        {
-            RemoveTraitFromChoices(selectedOption.Trait);
-            selectedOption = default;
-        }
 
         RefreshTradePage();
 
@@ -833,7 +977,6 @@ public class ShopTradeUI : MonoBehaviour
             Title = definition.DisplayName,
             ConditionText = $"{definition.GetRarityText()} / {definition.GetUseTypeText()}",
             DescriptionText =
-                $"등급: {definition.GetRarityText()}\n" +
                 $"{definition.GetAvailabilityText()}\n\n" +
                 $"{definition.Description}\n\n" +
                 $"효과\n{definition.BuildEffectSummary()}",
@@ -855,47 +998,13 @@ public class ShopTradeUI : MonoBehaviour
         {
             Kind = ShopOptionKind.Trait,
             Title = definition.DisplayName,
-            ConditionText = definition.GetCategoryText(),
+            ConditionText = $"{definition.GetRarityText()} / {definition.GetCategoryText()}",
             DescriptionText = definition.Description,
             Cost = currentStock != null ? currentStock.TraitCost : 0,
             Icon = definition.Icon != null ? definition.Icon : traitFallbackIcon,
             Trait = definition,
             Reinforcement = null
         };
-    }
-
-    private void RemoveReinforcementFromChoices(ReinforcementDefinition definition)
-    {
-        if (definition == null)
-        {
-            return;
-        }
-
-        for (int i = reinforcementChoices.Count - 1; i >= 0; i--)
-        {
-            if (reinforcementChoices[i] == null ||
-                reinforcementChoices[i].EquipmentId == definition.EquipmentId)
-            {
-                reinforcementChoices.RemoveAt(i);
-            }
-        }
-    }
-
-    private void RemoveTraitFromChoices(TraitDefinition definition)
-    {
-        if (definition == null)
-        {
-            return;
-        }
-
-        for (int i = traitChoices.Count - 1; i >= 0; i--)
-        {
-            if (traitChoices[i] == null ||
-                traitChoices[i].TraitId == definition.TraitId)
-            {
-                traitChoices.RemoveAt(i);
-            }
-        }
     }
 
     private void ConfigureExplicitResultButtonSound(Button targetButton)
@@ -926,7 +1035,161 @@ public class ShopTradeUI : MonoBehaviour
             soundButton.SetHoverSoundEnabled(true);
             soundButton.SetHoverSoundEventId(SoundEventIds.UiHover);
             soundButton.SetDisabledClickSoundEnabled(true);
-            soundButton.SetDisabledClickSoundEventId(SoundEventIds.UiDisabled);
+            soundButton.SetDisabledClickSoundEventId(
+                targetButton == buyButton ? SoundEventIds.ShopBuyFail : SoundEventIds.UiDisabled
+            );
+        }
+    }
+
+    private void ConfigureOptionSelectionRelays()
+    {
+        ConfigureOptionSelectionRelay(repairButton);
+
+        for (int i = 0; i < reinforcementButtons.Length; i++)
+        {
+            ConfigureOptionSelectionRelay(reinforcementButtons[i]);
+        }
+
+        for (int i = 0; i < traitButtons.Length; i++)
+        {
+            ConfigureOptionSelectionRelay(traitButtons[i]);
+        }
+    }
+
+    private void ConfigureOptionSelectionRelay(Button targetButton)
+    {
+        if (targetButton == null)
+        {
+            return;
+        }
+
+        ShopOptionSelectionRelay relay = targetButton.GetComponent<ShopOptionSelectionRelay>();
+
+        if (relay == null)
+        {
+            relay = targetButton.gameObject.AddComponent<ShopOptionSelectionRelay>();
+        }
+
+        relay.Configure(this, targetButton);
+    }
+
+    private void SelectEventSystemButton(Button targetButton)
+    {
+        if (targetButton == null || !targetButton.gameObject.activeInHierarchy || !targetButton.interactable)
+        {
+            return;
+        }
+
+        EventSystem currentEventSystem = EventSystem.current;
+
+        if (currentEventSystem != null)
+        {
+            currentEventSystem.SetSelectedGameObject(targetButton.gameObject);
+        }
+    }
+
+    private int GetButtonIndex(Button[] buttons, Button targetButton)
+    {
+        if (buttons == null || targetButton == null)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            if (buttons[i] == targetButton)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private bool IsSelectedOptionPurchased()
+    {
+        if (currentStock == null)
+        {
+            return false;
+        }
+
+        return selectedOption.Kind switch
+        {
+            ShopOptionKind.Reinforcement => currentStock.WasReinforcementPurchased(selectedOption.Reinforcement),
+            ShopOptionKind.Trait => currentStock.WasTraitPurchased(selectedOption.Trait),
+            _ => false
+        };
+    }
+
+    private bool IsSelectedCategorySoldOut()
+    {
+        if (currentStock == null)
+        {
+            return false;
+        }
+
+        return selectedOption.Kind switch
+        {
+            ShopOptionKind.Reinforcement => currentStock.ReinforcementSoldOut,
+            ShopOptionKind.Trait => currentStock.TraitSoldOut,
+            _ => false
+        };
+    }
+
+    private string BuildCardPriceText(
+        int cost,
+        bool purchased,
+        bool soldOut,
+        bool affordable)
+    {
+        if (purchased)
+        {
+            return "판매 완료";
+        }
+
+        if (soldOut)
+        {
+            return "판매 종료";
+        }
+
+        return affordable ? $"{cost}C" : $"{cost}C 부족";
+    }
+
+    private void ApplyCardVisualState(
+        Image icon,
+        TextMeshProUGUI legacyText,
+        TextMeshProUGUI name,
+        TextMeshProUGUI price,
+        bool purchased,
+        bool affordable)
+    {
+        Color contentColor = purchased
+            ? new Color(0.48f, 0.52f, 0.56f, 0.72f)
+            : Color.white;
+        Color priceColor = purchased
+            ? new Color(0.55f, 0.58f, 0.62f)
+            : affordable
+                ? new Color(0.55f, 1f, 1f)
+                : new Color(1f, 0.55f, 0.35f);
+
+        if (icon != null)
+        {
+            icon.color = contentColor;
+        }
+
+        if (legacyText != null)
+        {
+            legacyText.color = contentColor;
+        }
+
+        if (name != null)
+        {
+            name.color = contentColor;
+        }
+
+        if (price != null)
+        {
+            price.color = priceColor;
         }
     }
 

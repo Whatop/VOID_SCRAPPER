@@ -435,7 +435,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
             CurrencyType.Experience => "경험치",
             CurrencyType.Credits => "크레딧",
             CurrencyType.ScrapParts => "스크랩 부품",
-            CurrencyType.CoreShards => "코어 조각",
+            CurrencyType.CoreShards => "코어",
             CurrencyType.TuningChips => "튜닝 칩",
             CurrencyType.StabilizedAlloy => "안정화 합금",
             _ => currencyType.ToString()

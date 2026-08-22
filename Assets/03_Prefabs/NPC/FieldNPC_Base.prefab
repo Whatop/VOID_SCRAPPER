@@ -209,6 +209,8 @@ MonoBehaviour:
   state: 0
   requiresRescue: 1
   oneUseService: 0
+  useDialogueBeforeService: 1
+  serviceConversationOverride:
   useBaseRescueFlow: 0
   baseRescueBlockedText: "\uBCF4\uC548\uC2DC\uC124\uC744 \uBA3C\uC800 \uBE44\uD65C\uC131\uD654\uD574\uB77C."
   baseReleasedWarning: "NPC\uB97C \uAD6C\uC870\uD588\uB2E4. \uB300\uD654\uD558\uAC70\uB098

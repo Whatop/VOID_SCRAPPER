@@ -658,6 +658,7 @@ MonoBehaviour:
   creditsAmountPerShard: 5
   scrapAmountPerShard: 1
   coreAmountPerShard: 1
+  stabilizedAlloyAmountPerShard: 1
   tuningChipAmountPerShard: 1
   experienceAmountPerShard: 3
   amountPerShard: 5
@@ -745,7 +746,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   anchorTransform: {fileID: 3486426835848565797}
-  worldOffset: {x: 2, y: 0, z: 0}
+  worldOffset: {x: 0, y: 1, z: 0}
 --- !u!1 &5863280058785957510
 GameObject:
   m_ObjectHideFlags: 0

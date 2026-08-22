@@ -47,17 +47,21 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private float currentHp;
     private float invincibleTimer;
+    private float minimumHealthFloor;
+    private bool dashInvincible;
     private bool isDead;
 
     public float CurrentHp => currentHp;
     public float MaxHp => maxHp;
     public float HpRatio => maxHp <= 0f ? 0f : currentHp / maxHp;
+    public float MinimumHealthFloor => minimumHealthFloor;
     public bool IsDead => isDead;
-    public bool IsInvincible => invincibleTimer > 0f;
+    public bool IsInvincible => invincibleTimer > 0f || dashInvincible;
 
     public event Action<float, float> Damaged;
     public event Action<float, float> Healed;
     public event Action<float, float> Changed;
+    public event Action<bool> InvincibilityChanged;
     public event Action Died;
 
     private void Awake()
@@ -96,15 +100,33 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         if (invincibleTimer > 0f)
         {
+            bool wasInvincible = IsInvincible;
             invincibleTimer -= Time.deltaTime;
+
+            if (invincibleTimer <= 0f)
+            {
+                invincibleTimer = 0f;
+
+                if (wasInvincible != IsInvincible)
+                {
+                    InvincibilityChanged?.Invoke(IsInvincible);
+                }
+            }
         }
     }
 
     public void ResetHealth()
     {
+        bool wasInvincible = IsInvincible;
         currentHp = maxHp;
         invincibleTimer = 0f;
+        dashInvincible = false;
         isDead = false;
+
+        if (wasInvincible)
+        {
+            InvincibilityChanged?.Invoke(false);
+        }
 
         if (playerCollider != null)
         {
@@ -129,6 +151,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     public void SetMaxHp(float newMaxHp, bool refill)
     {
         maxHp = Mathf.Max(1f, newMaxHp);
+        minimumHealthFloor = Mathf.Min(minimumHealthFloor, maxHp);
 
         if (refill)
         {
@@ -136,7 +159,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         }
         else
         {
-            currentHp = Mathf.Clamp(currentHp, 0f, maxHp);
+            currentHp = Mathf.Clamp(currentHp, minimumHealthFloor, maxHp);
         }
 
         if (refill)
@@ -169,8 +192,27 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     public void RestoreCurrentHp(float value)
     {
-        currentHp = Mathf.Clamp(value, 0f, maxHp);
+        currentHp = Mathf.Clamp(value, minimumHealthFloor, maxHp);
         Changed?.Invoke(currentHp, maxHp);
+    }
+
+    public void SetMinimumHealthFloor(float value)
+    {
+        minimumHealthFloor = Mathf.Clamp(value, 0f, maxHp);
+
+        if (isDead || currentHp >= minimumHealthFloor)
+        {
+            return;
+        }
+
+        currentHp = minimumHealthFloor;
+        Healed?.Invoke(currentHp, maxHp);
+        Changed?.Invoke(currentHp, maxHp);
+    }
+
+    public void ClearMinimumHealthFloor()
+    {
+        minimumHealthFloor = 0f;
     }
 
     public void TakeDamage(float damage)
@@ -196,7 +238,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             return;
         }
 
-        if (invincibleTimer > 0f)
+        if (IsInvincible)
         {
             return;
         }
@@ -223,7 +265,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             remainingDamage = armor.AbsorbDamage(damage);
         }
 
-        invincibleTimer = invincibleTimeAfterHit;
+        SetInvincibleTime(invincibleTimeAfterHit);
 
         PlayHitFeedback(damage, hitPoint, incomingDirection);
         AudioManager.PlayAt(SoundEventIds.ShipHit, hitPoint);
@@ -233,7 +275,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             return;
         }
 
-        currentHp = Mathf.Max(0f, currentHp - remainingDamage);
+        currentHp = Mathf.Max(minimumHealthFloor, currentHp - remainingDamage);
         Damaged?.Invoke(currentHp, maxHp);
         Changed?.Invoke(currentHp, maxHp);
 
@@ -267,7 +309,34 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             return;
         }
 
-        invincibleTimer = Mathf.Max(invincibleTimer, duration);
+        SetInvincibleTime(Mathf.Max(invincibleTimer, duration));
+    }
+
+    public void SetDashInvincible(bool enabled)
+    {
+        if (dashInvincible == enabled)
+        {
+            return;
+        }
+
+        bool wasInvincible = IsInvincible;
+        dashInvincible = enabled;
+
+        if (wasInvincible != IsInvincible)
+        {
+            InvincibilityChanged?.Invoke(IsInvincible);
+        }
+    }
+
+    private void SetInvincibleTime(float duration)
+    {
+        bool wasInvincible = IsInvincible;
+        invincibleTimer = Mathf.Max(0f, duration);
+
+        if (wasInvincible != IsInvincible)
+        {
+            InvincibilityChanged?.Invoke(IsInvincible);
+        }
     }
 
     private void PlayHitFeedback(float damage, Vector2 position, Vector2 incomingDirection)
@@ -317,7 +386,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         }
 
         isDead = true;
-        invincibleTimer = 0f;
+        SetDashInvincible(false);
+        SetInvincibleTime(0f);
 
         if (rb != null)
         {

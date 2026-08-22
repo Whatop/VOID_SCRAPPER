@@ -41,6 +41,33 @@ public class WorldGaugeFollower : MonoBehaviour
     private bool presentationDirty;
     private int lastPresentationFrame = -1;
 
+    public void ConfigureRuntime(
+        Transform runtimeTarget,
+        Vector3 runtimeWorldOffset,
+        Canvas runtimeCanvas,
+        Camera runtimeWorldCamera)
+    {
+        target = runtimeTarget;
+        targetComponent = runtimeTarget;
+        targetAnchor = null;
+        worldOffset = runtimeWorldOffset;
+        anchorToTargetTop = false;
+        includeChildRenderers = false;
+        includeChildColliders = false;
+        canvas = runtimeCanvas;
+        worldCamera = runtimeWorldCamera;
+        uiCamera = runtimeCanvas != null && runtimeCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? runtimeCanvas.worldCamera
+            : null;
+        stabilizeForPixelPerfectCamera = true;
+        assetsPixelsPerUnit = 32;
+        snapToCanvasPixelGrid = true;
+        CacheReferences();
+        ApplyPivotOption();
+        presentationDirty = true;
+        SetVisible(false);
+    }
+
     private void Reset()
     {
         rectTransform = GetComponent<RectTransform>();

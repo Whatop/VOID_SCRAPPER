@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1400643041236353376}
   - component: {fileID: 6009008903004655402}
-  m_Layer: 15
+  m_Layer: 10
   m_Name: 'VisualRoot '
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -101,7 +101,7 @@ GameObject:
   - component: {fileID: 9140045335331089460}
   - component: {fileID: 1808526096256300020}
   - component: {fileID: 4294011879118399337}
-  m_Layer: 15
+  m_Layer: 10
   m_Name: PF_Meteor_Small_3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -252,8 +252,8 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 1
-  m_LinearDamping: 1
-  m_AngularDamping: 0.5
+  m_LinearDamping: 0
+  m_AngularDamping: 0
   m_GravityScale: 0
   m_Material: {fileID: 6200000, guid: 7c1fe3c73e5b46445a0ed1db7b488a33, type: 2}
   m_IncludeLayers:
@@ -281,18 +281,20 @@ MonoBehaviour:
   body: {fileID: 1808526096256300020}
   configureRigidbodyOnEnable: 1
   mass: 1
-  linearDamping: 1
-  angularDamping: 0.5
+  linearDamping: 0
+  angularDamping: 0
   collisionDetection: 1
   interpolation: 1
   randomizeOnEnable: 1
-  speedRange: {x: 0.15, y: 0.45}
-  angularSpeedRange: {x: -25, y: 25}
-  maxLinearSpeed: 2
-  maxAngularSpeed: 90
+  movementChance: 0.4
+  speedRange: {x: 0.15, y: 0.4}
+  angularSpeedRange: {x: -12, y: 12}
+  idleAngularSpeedRange: {x: -2, y: 2}
+  maxLinearSpeed: 0.6
+  maxAngularSpeed: 30
   useRoamingBounds: 0
   roamingBounds:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
   boundsPadding: 0.5
-  bounceVelocityRetention: 0.8
+  bounceVelocityRetention: 0.9

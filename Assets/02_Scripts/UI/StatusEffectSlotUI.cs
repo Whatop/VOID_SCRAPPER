@@ -170,7 +170,7 @@ public class StatusEffectSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerE
         tooltipRoot.SetParent(tooltipCanvasRoot != null ? tooltipCanvasRoot : transform, false);
         tooltipRoot.anchorMin = new Vector2(0.5f, 0.5f);
         tooltipRoot.anchorMax = new Vector2(0.5f, 0.5f);
-        tooltipRoot.pivot = new Vector2(0f, 1f);
+        tooltipRoot.pivot = new Vector2(0.5f, 1f);
         tooltipRoot.anchoredPosition = Vector2.zero;
         tooltipRoot.sizeDelta = new Vector2(150f, 64f);
 
@@ -210,7 +210,9 @@ public class StatusEffectSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerE
 
         Vector3[] corners = new Vector3[4];
         slotRect.GetWorldCorners(corners);
-        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(null, corners[1]);
+        Vector3 worldBottomCenter = (corners[0] + corners[3]) * 0.5f;
+        Vector3 worldTopCenter = (corners[1] + corners[2]) * 0.5f;
+        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(null, worldBottomCenter);
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             tooltipCanvasRoot,
             screenPoint,
@@ -218,9 +220,24 @@ public class StatusEffectSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerE
             out Vector2 localPoint);
 
         Rect canvasRect = tooltipCanvasRoot.rect;
+        Vector2 topLocalPoint = RectTransformUtility.WorldToScreenPoint(null, worldTopCenter);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            tooltipCanvasRoot,
+            topLocalPoint,
+            null,
+            out Vector2 localTopPoint);
+
         Vector2 size = tooltipRoot.rect.size;
-        float x = Mathf.Clamp(localPoint.x, canvasRect.xMin + 3f, canvasRect.xMax - size.x - 3f);
-        float y = Mathf.Clamp(localPoint.y, canvasRect.yMin + size.y + 3f, canvasRect.yMax - 3f);
+        float halfWidth = size.x * 0.5f;
+        float x = Mathf.Clamp(localPoint.x, canvasRect.xMin + halfWidth + 3f, canvasRect.xMax - halfWidth - 3f);
+        const float gap = 3f;
+        float y = localPoint.y - gap;
+        if (y - size.y < canvasRect.yMin + 3f)
+        {
+            y = localTopPoint.y + gap + size.y;
+        }
+
+        y = Mathf.Clamp(y, canvasRect.yMin + size.y + 3f, canvasRect.yMax - 3f);
         tooltipRoot.anchoredPosition = new Vector2(x, y);
         tooltipRoot.SetAsLastSibling();
     }

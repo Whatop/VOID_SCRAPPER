@@ -80,8 +80,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d70876f46c78488aa371e0eb5e7b57cf, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   effectTrigger: {fileID: 58000000}
   visualRoot: {fileID: 400001}
   coreRoot: {fileID: 400002}

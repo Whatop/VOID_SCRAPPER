@@ -43,8 +43,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 80a53205eaf74a67850671206839c048, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   visualRoot: {fileID: 400001}
   radiusPulseRoot: {fileID: 400003}
   coreRenderer: {fileID: 21200000}
@@ -164,7 +164,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 22
-  m_Sprite: {fileID: -8173519150137954632, guid: 82aabd5b11a4e984db1e75bed82be3d8, type: 3}
+  m_Sprite: {fileID: 1210419459, guid: 82aabd5b11a4e984db1e75bed82be3d8, type: 3}
   m_Color: {r: 0.45, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -251,7 +251,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 21
-  m_Sprite: {fileID: -8173519150137954632, guid: 82aabd5b11a4e984db1e75bed82be3d8, type: 3}
+  m_Sprite: {fileID: 1210419459, guid: 82aabd5b11a4e984db1e75bed82be3d8, type: 3}
   m_Color: {r: 0.45, g: 1, b: 1, a: 0.24}
   m_FlipX: 0
   m_FlipY: 0

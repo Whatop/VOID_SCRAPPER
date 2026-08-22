@@ -21,6 +21,21 @@ public class GaugeBarUI : MonoBehaviour
     public Image FillImage => fillImage;
     public TextMeshProUGUI ValueText => valueText;
 
+    public void ConfigureRuntime(
+        Image runtimeFillImage,
+        TextMeshProUGUI runtimeValueText,
+        CanvasGroup runtimeCanvasGroup,
+        GameObject runtimeRootObject)
+    {
+        fillImage = runtimeFillImage;
+        valueText = runtimeValueText;
+        canvasGroup = runtimeCanvasGroup;
+        rootObject = runtimeRootObject != null ? runtimeRootObject : gameObject;
+        slider = null;
+        CacheReferences();
+        SetRatio(Ratio);
+    }
+
     private void Reset()
     {
         slider = GetComponent<Slider>();

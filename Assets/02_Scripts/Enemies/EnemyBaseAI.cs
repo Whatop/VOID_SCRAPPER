@@ -66,6 +66,22 @@ public class EnemyBaseAI : MonoBehaviour
     [SerializeField] private float preferredCombatDistanceRatio = 0.75f;
     [SerializeField] private float closeCombatDistanceRatio = 0.45f;
 
+    [Header("Open Map Combat Maneuver")]
+    [Range(0.1f, 1f)]
+    [SerializeField] private float scoutManeuverSpeedMultiplier = 0.7f;
+    [Range(0f, 0.8f)]
+    [SerializeField] private float scoutApproachLateralBlend = 0.35f;
+    [Min(0f)]
+    [SerializeField] private float ambusherInterceptLeadTime = 0.4f;
+    [Min(0f)]
+    [SerializeField] private float ambusherMaximumLeadDistance = 2f;
+    [Range(0f, 0.5f)]
+    [SerializeField] private float ambusherFlankDistanceRatio = 0.22f;
+    [Min(0f)]
+    [SerializeField] private float interceptorApproachLeadTime = 0.35f;
+    [Min(0f)]
+    [SerializeField] private float interceptorMaximumLeadDistance = 1.75f;
+
     [Header("Charging Enemy Reposition")]
     [Range(0.2f, 0.9f)]
     [SerializeField] private float chargingPreferredDistanceMinRatio = 0.55f;
@@ -88,6 +104,7 @@ public class EnemyBaseAI : MonoBehaviour
     private EnemyVisionSensor visionSensor;
     private EnemyAwarenessIndicator awarenessIndicator;
     private EnemyMeleeChargeController2D meleeChargeController;
+    private Rigidbody2D playerBody;
 
     private ShopNeutralZone2D activeShopNeutralZone;
     private float shopSecurityThreatTimer;
@@ -427,6 +444,7 @@ public class EnemyBaseAI : MonoBehaviour
     public void SetTarget(Transform target)
     {
         player = target;
+        CachePlayerBody();
 
         if (visionSensor != null)
         {
@@ -1039,14 +1057,45 @@ public class EnemyBaseAI : MonoBehaviour
         float attackRange = GetAttackRange();
         float distanceToPlayer = GetDistanceToPlayer();
 
-        if (attackRange > 0f && distanceToPlayer <= attackRange)
+        if (attackRange <= 0f || distanceToPlayer > attackRange)
         {
-            StopMoving();
-            TryAttackPlayer();
+            MoveTo(player.position, moveSpeed);
             return;
         }
 
-        MoveTo(player.position, moveSpeed);
+        Vector2 toPlayer = (Vector2)player.position - (Vector2)transform.position;
+        float preferredDistance = Mathf.Max(0.5f, attackRange * preferredCombatDistanceRatio);
+        float tooCloseDistance = preferredDistance * 0.7f;
+        Vector2 moveDirection;
+
+        if (distanceToPlayer < tooCloseDistance)
+        {
+            moveDirection = -toPlayer.normalized;
+        }
+        else
+        {
+            Vector2 lateralDirection = GetCombatLateralDirection(toPlayer, 0.9f, 1.8f);
+
+            if (distanceToPlayer > preferredDistance * 1.1f)
+            {
+                float lateralBlend = Mathf.Clamp01(scoutApproachLateralBlend);
+                moveDirection = Vector2.Lerp(
+                    toPlayer.normalized,
+                    lateralDirection,
+                    lateralBlend
+                ).normalized;
+            }
+            else
+            {
+                moveDirection = lateralDirection;
+            }
+        }
+
+        MoveInCombatDirection(
+            moveDirection,
+            moveSpeed * Mathf.Clamp(scoutManeuverSpeedMultiplier, 0.1f, 1f)
+        );
+        TryAttackPlayer();
     }
 
     private void UpdateAmbusherCombat()
@@ -1057,7 +1106,22 @@ public class EnemyBaseAI : MonoBehaviour
 
         if (distanceToPlayer > desiredCloseDistance)
         {
-            MoveTo(player.position, moveSpeed * ambusherMoveSpeedMultiplier);
+            Vector2 toPlayer = (Vector2)player.position - (Vector2)transform.position;
+            Vector2 lateralDirection = GetCombatLateralDirection(toPlayer, 0.75f, 1.55f);
+            Vector2 interceptPosition = GetPlayerInterceptPosition(
+                ambusherInterceptLeadTime,
+                ambusherMaximumLeadDistance
+            );
+            float flankDistance = attackRange * Mathf.Clamp(
+                ambusherFlankDistanceRatio,
+                0f,
+                0.5f
+            );
+
+            MoveTo(
+                interceptPosition + lateralDirection * flankDistance,
+                moveSpeed * ambusherMoveSpeedMultiplier
+            );
         }
         else
         {
@@ -1099,7 +1163,13 @@ public class EnemyBaseAI : MonoBehaviour
             return;
         }
 
-        MoveTo(player.position, moveSpeed * interceptorMoveSpeedMultiplier);
+        MoveTo(
+            GetPlayerInterceptPosition(
+                interceptorApproachLeadTime,
+                interceptorMaximumLeadDistance
+            ),
+            moveSpeed * interceptorMoveSpeedMultiplier
+        );
     }
 
     private void UpdateChargingEnemyReposition(float attackRange, float distanceToPlayer)
@@ -1139,7 +1209,10 @@ public class EnemyBaseAI : MonoBehaviour
         else if (distanceToPlayer > maximumDistance)
         {
             MoveTo(
-                player.position,
+                GetPlayerInterceptPosition(
+                    interceptorApproachLeadTime,
+                    interceptorMaximumLeadDistance
+                ),
                 moveSpeed * Mathf.Max(0.1f, chargingRepositionSpeedMultiplier)
             );
         }
@@ -1479,6 +1552,56 @@ public class EnemyBaseAI : MonoBehaviour
         SetFacing(direction);
     }
 
+    private void MoveInCombatDirection(Vector2 direction, float speed)
+    {
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            StopMoving();
+            return;
+        }
+
+        Vector2 targetPosition = (Vector2)transform.position +
+                                 direction.normalized * Mathf.Max(1f, speed);
+        MoveTo(targetPosition, speed);
+    }
+
+    private Vector2 GetCombatLateralDirection(
+        Vector2 toPlayer,
+        float minimumDirectionDuration,
+        float maximumDirectionDuration)
+    {
+        if (toPlayer.sqrMagnitude <= 0.001f)
+        {
+            return Vector2.zero;
+        }
+
+        strafeTimer -= Time.deltaTime;
+
+        if (strafeTimer <= 0f)
+        {
+            float minimum = Mathf.Max(0.1f, minimumDirectionDuration);
+            float maximum = Mathf.Max(minimum, maximumDirectionDuration);
+            strafeTimer = UnityEngine.Random.Range(minimum, maximum);
+            strafeDirection = UnityEngine.Random.value >= 0.5f ? 1 : -1;
+        }
+
+        return new Vector2(-toPlayer.y, toPlayer.x).normalized * strafeDirection;
+    }
+
+    private Vector2 GetPlayerInterceptPosition(float leadTime, float maximumLeadDistance)
+    {
+        if (player == null)
+        {
+            return transform.position;
+        }
+
+        Vector2 leadOffset = playerBody != null
+            ? playerBody.linearVelocity * Mathf.Max(0f, leadTime)
+            : Vector2.zero;
+        leadOffset = Vector2.ClampMagnitude(leadOffset, Mathf.Max(0f, maximumLeadDistance));
+        return (Vector2)player.position + leadOffset;
+    }
+
     private void StopMoving()
     {
         desiredVelocity = Vector2.zero;
@@ -1611,6 +1734,11 @@ public class EnemyBaseAI : MonoBehaviour
     {
         if (player != null)
         {
+            if (playerBody == null)
+            {
+                CachePlayerBody();
+            }
+
             return;
         }
 
@@ -1624,12 +1752,18 @@ public class EnemyBaseAI : MonoBehaviour
         if (found != null)
         {
             player = found.transform;
+            CachePlayerBody();
 
             if (visionSensor != null)
             {
                 visionSensor.SetTarget(player);
             }
         }
+    }
+
+    private void CachePlayerBody()
+    {
+        playerBody = player != null ? player.GetComponentInParent<Rigidbody2D>() : null;
     }
 
     private EnemyPurpose ResolvePurpose(EnemyType enemyType)

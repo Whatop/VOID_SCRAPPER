@@ -38,6 +38,8 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
     [SerializeField] private string routeAddActionName = "MapRouteAdd";
     [SerializeField] private string routeRemoveActionName = "MapRouteRemove";
     [SerializeField] private string routeClearActionName = "MapRouteClear";
+    [SerializeField] private string uiActionMapName = "UI";
+    [SerializeField] private string cancelActionName = "Cancel";
     [SerializeField] private RectTransform controlHintsRoot;
     [SerializeField] private TextMeshProUGUI controlHintsText;
 
@@ -56,17 +58,20 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
     [SerializeField] private bool createLegendIfMissing = true;
 
     [Header("Marker Colors")]
-    [SerializeField] private Color enemyColor = Color.red;
-    [SerializeField] private Color rewardColor = Color.yellow;
-    [SerializeField] private Color meteorColor = Color.yellow;
+    [SerializeField] private Color enemyColor = new Color(1f, 0.22f, 0.18f, 1f);
+    [SerializeField] private Color rewardColor = new Color(1f, 0.78f, 0.22f, 1f);
+    [SerializeField] private Color meteorColor = new Color(0.68f, 0.78f, 0.9f, 1f);
+    [SerializeField] private Color eventColor = new Color(0.25f, 0.82f, 1f, 1f);
     [SerializeField] private Color specialColor = new Color(0.75f, 0.25f, 1f, 1f);
     [SerializeField] private Color coreColor = new Color(1f, 0.85f, 0.15f, 1f);
     [SerializeField] private Color playerColor = new Color(0.36f, 1f, 0.48f, 1f);
 
+    [Header("Marker Sizes")]
+    [SerializeField, Min(1f)] private float playerMarkerSize = 8f;
+    [SerializeField, Range(0.25f, 1f)] private float meteorMarkerScaleMultiplier = 0.65f;
+
     [Header("Marker Rules")]
-    [SerializeField] private bool showEnemiesOnlyWhenRecentlyScanned = true;
-    [SerializeField, Min(0f)] private float enemyMarkerLingerSeconds = 6f;
-    [SerializeField] private bool showMeteorsOnFullMap;
+    [SerializeField] private bool showMeteorsOnFullMap = true;
     [SerializeField] private bool showRewardObjectsOnFullMap = true;
     [SerializeField] private bool autoRefreshWhileVisible = true;
     [SerializeField, Min(0.05f)] private float refreshInterval = 0.15f;
@@ -81,6 +86,14 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
     [SerializeField] private OperationSearchRegionGraphic operationSearchRegionGraphic;
     [SerializeField] private TextMeshProUGUI operationSearchRegionText;
     [SerializeField] private Color operationSearchRegionColor = new Color(1f, 0.72f, 0.22f, 1f);
+
+    private bool hasExternalObjective;
+    private string externalObjectiveTitle;
+    private string externalObjectiveDetail;
+    private string externalObjectiveState;
+    private bool showExternalSearchRegion;
+    private Vector2 externalSearchRegionCenter;
+    private float externalSearchRegionRadius;
 
     private readonly Dictionary<RadarTarget, RadarMarkerUI> markerMap = new Dictionary<RadarTarget, RadarMarkerUI>();
     private readonly List<RadarTarget> removeBuffer = new List<RadarTarget>();
@@ -273,6 +286,42 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
         RefreshOperationInformation();
     }
 
+    public void SetExternalObjective(
+        string title,
+        string detail,
+        string state = "진행 중")
+    {
+        hasExternalObjective = !string.IsNullOrWhiteSpace(detail);
+        externalObjectiveTitle = title;
+        externalObjectiveDetail = detail;
+        externalObjectiveState = state;
+        RefreshOperationInformation();
+    }
+
+    public void ClearExternalObjective()
+    {
+        hasExternalObjective = false;
+        externalObjectiveTitle = string.Empty;
+        externalObjectiveDetail = string.Empty;
+        externalObjectiveState = string.Empty;
+        RefreshOperationInformation();
+    }
+
+    public void SetExternalSearchRegion(Vector2 center, float radius)
+    {
+        externalSearchRegionCenter = center;
+        externalSearchRegionRadius = Mathf.Max(0f, radius);
+        showExternalSearchRegion = externalSearchRegionRadius > 0f;
+        RefreshOperationSearchRegion();
+    }
+
+    public void ClearExternalSearchRegion()
+    {
+        showExternalSearchRegion = false;
+        externalSearchRegionRadius = 0f;
+        RefreshOperationSearchRegion();
+    }
+
     private void HandleMapGenerated(ExpeditionMapGenerator generator)
     {
         if (mapContentRoot != null)
@@ -364,7 +413,10 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             return;
         }
 
-        routePlanner.TryAddWaypoint(MapToWorldPosition(localPosition));
+        if (routePlanner.TryAddWaypoint(MapToWorldPosition(localPosition)))
+        {
+            AudioManager.Play(SoundEventIds.MapRoutePlaced);
+        }
     }
 
     private void TryRemoveRouteAtScreenPosition(Vector2 screenPosition, Camera eventCamera)
@@ -386,7 +438,10 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             Vector2 waypointMapPosition = WorldToMapPosition(waypoint);
             if ((waypointMapPosition - localPosition).sqrMagnitude <= hitRadiusSqr)
             {
-                routePlanner.RemoveWaypoint(i);
+                if (routePlanner.RemoveWaypoint(i))
+                {
+                    AudioManager.Play(SoundEventIds.MapRouteRemoved);
+                }
                 return;
             }
         }
@@ -502,7 +557,11 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
     {
         if (routeClearAction != null && routeClearAction.WasPressedThisFrame())
         {
-            routePlanner?.ClearRoute();
+            if (routePlanner != null && routePlanner.WaypointCount > 0)
+            {
+                routePlanner.ClearRoute();
+                AudioManager.Play(SoundEventIds.MapRouteRemoved);
+            }
         }
 
         Mouse mouse = Mouse.current;
@@ -738,7 +797,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
 
         CreateLegendRow(0, RadarMarkerShape.Diamond, false, playerColor, "플레이어", fontSource);
         CreateLegendRow(1, RadarMarkerShape.Circle, true, rewardColor, "자원", fontSource);
-        CreateLegendRow(2, RadarMarkerShape.Circle, true, specialColor, "이벤트", fontSource);
+        CreateLegendRow(2, RadarMarkerShape.Circle, true, eventColor, "이벤트", fontSource);
         CreateLegendRow(3, RadarMarkerShape.Diamond, true, specialColor, "상점", fontSource);
         CreateLegendRow(4, RadarMarkerShape.Hexagon, true, coreColor, "코어", fontSource);
         legendBuilt = true;
@@ -803,7 +862,8 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             return;
         }
 
-        bool hasOperation = operationController != null && operationController.HasOperation;
+        bool hasProductionOperation = operationController != null && operationController.HasOperation;
+        bool hasOperation = hasExternalObjective || hasProductionOperation;
         if (operationInfoRoot != null && operationInfoRoot.gameObject.activeSelf != hasOperation)
         {
             operationInfoRoot.gameObject.SetActive(hasOperation);
@@ -811,6 +871,15 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
 
         if (!hasOperation)
         {
+            return;
+        }
+
+        if (hasExternalObjective)
+        {
+            operationInfoText.text =
+                $"<b>[{externalObjectiveTitle}]</b>\n\n" +
+                $"<color=#98A6B5>현재 목표</color>\n{externalObjectiveDetail}\n\n" +
+                $"<color=#98A6B5>상태</color>\n{externalObjectiveState}";
             return;
         }
 
@@ -881,7 +950,11 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
         string add = InputBindingUtility.GetDisplayString(inputActions, mapActionMapName, routeAddActionName, "LMB");
         string remove = InputBindingUtility.GetDisplayString(inputActions, mapActionMapName, routeRemoveActionName, "RMB");
         string clear = InputBindingUtility.GetDisplayString(inputActions, mapActionMapName, routeClearActionName, "C");
-        controlHintsText.text = $"[{add}] 경로 추가\n[{remove}] 경로 제거\n[{clear}] 경로 초기화\n휠 확대 · 드래그 이동";
+        string cancel = InputBindingUtility.GetDisplayString(inputActions, uiActionMapName, cancelActionName, "Esc");
+        controlHintsText.text =
+            $"[{add}] 경로 추가  [{remove}] 경로 제거\n" +
+            $"[{clear}] 경로 초기화  [{cancel}] 닫기\n" +
+            "휠 확대 · 드래그 이동";
     }
 
     private void CreateLegendRow(
@@ -1083,8 +1156,9 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             return;
         }
 
-        bool showRegion = operationController != null &&
-                          operationController.ShowSearchRegion &&
+        bool showProductionRegion = operationController != null &&
+                                    operationController.ShowSearchRegion;
+        bool showRegion = (showExternalSearchRegion || showProductionRegion) &&
                           discoveryController != null &&
                           mapArea != null;
         GameObject regionObject = operationSearchRegionGraphic.gameObject;
@@ -1100,12 +1174,18 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
 
         Bounds bounds = discoveryController.MapBounds;
         Rect mapRect = mapArea.rect;
-        float diameter = operationController.SearchRegionRadius * 2f;
+        Vector2 regionCenter = showExternalSearchRegion
+            ? externalSearchRegionCenter
+            : operationController.SearchRegionCenter;
+        float regionRadius = showExternalSearchRegion
+            ? externalSearchRegionRadius
+            : operationController.SearchRegionRadius;
+        float diameter = regionRadius * 2f;
         float width = diameter / Mathf.Max(0.001f, bounds.size.x) * mapRect.width;
         float height = diameter / Mathf.Max(0.001f, bounds.size.y) * mapRect.height;
         RectTransform regionRect = operationSearchRegionGraphic.rectTransform;
         Vector2 desiredPosition = mapArea.anchoredPosition +
-                                  WorldToMapPosition(operationController.SearchRegionCenter);
+                                  WorldToMapPosition(regionCenter);
         Vector2 desiredSize = new Vector2(Mathf.Max(12f, width), Mathf.Max(12f, height));
 
         if ((regionRect.anchoredPosition - desiredPosition).sqrMagnitude > 0.0001f)
@@ -1249,7 +1329,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             return;
         }
 
-        playerMarker.sizeDelta = new Vector2(10f, 10f);
+        playerMarker.sizeDelta = new Vector2(playerMarkerSize, playerMarkerSize);
 
         Image legacyImage = playerMarker.GetComponent<Image>();
         if (legacyImage != null)
@@ -1279,7 +1359,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             shapeRect.anchorMax = new Vector2(0.5f, 0.5f);
             shapeRect.pivot = new Vector2(0.5f, 0.5f);
             shapeRect.anchoredPosition = Vector2.zero;
-            shapeRect.sizeDelta = new Vector2(10f, 10f);
+            shapeRect.sizeDelta = new Vector2(playerMarkerSize, playerMarkerSize);
 
             markerGraphic = shapeObject.GetComponent<RadarMarkerShapeGraphic>();
         }
@@ -1308,6 +1388,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             if (!markerMap.TryGetValue(target, out RadarMarkerUI marker) || marker == null)
             {
                 marker = Instantiate(markerPrefab, markerRoot);
+                marker.gameObject.SetActive(true);
                 markerMap[target] = marker;
             }
 
@@ -1317,7 +1398,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
                 ResolveMarkerScale(target),
                 target.MarkerType
             );
-            marker.SetPosition(WorldToMapPosition(target.WorldPosition));
+            marker.SetPosition(WorldToMapPosition(target.RecordedMapPosition));
         }
 
         removeBuffer.Clear();
@@ -1352,14 +1433,18 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             enemyColor,
             rewardColor,
             meteorColor,
+            eventColor,
             specialColor,
             coreColor
         );
     }
 
-    private static float ResolveMarkerScale(RadarTarget target)
+    private float ResolveMarkerScale(RadarTarget target)
     {
-        return RadarMarkerPresentation.ResolveScale(target.MarkerType, target.MarkerScale);
+        float scale = RadarMarkerPresentation.ResolveScale(target.MarkerType, target.MarkerScale);
+        return target.MarkerType == RadarMarkerType.Meteor
+            ? scale * meteorMarkerScaleMultiplier
+            : scale;
     }
 
     private bool ShouldShowTarget(RadarTarget target)
@@ -1369,8 +1454,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             return false;
         }
 
-        if (!discoveryController.IsTargetDiscovered(target) &&
-            !discoveryController.IsWorldPositionDiscovered(target.WorldPosition))
+        if (!discoveryController.IsTargetDiscovered(target))
         {
             return false;
         }
@@ -1379,8 +1463,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
         {
             case RadarMarkerType.Enemy:
             case RadarMarkerType.Boss:
-                return !showEnemiesOnlyWhenRecentlyScanned ||
-                       target.WasScannedRecently(Mathf.Max(enemyMarkerLingerSeconds, target.MapMarkerLifetime));
+                return true;
 
             case RadarMarkerType.Meteor:
                 return showMeteorsOnFullMap;

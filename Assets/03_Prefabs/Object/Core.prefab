@@ -140,12 +140,14 @@ MonoBehaviour:
   directDiscoveryRadius: 5
   showDirectDiscoveryMessage: 0
   directDiscoveryMessage: ""
-  preserveSpentCoreVisualAfterActivation: 1
+  preserveSpentCoreVisualAfterActivation: 0
   destroyCoreAfterActivation: 0
   hideCoreInsteadOfDisable: 1
   radarTarget: {fileID: 1354538380679807693}
   coreActivationPresentation: {fileID: 0}
-  coreShardRewardPoint: {fileID: 0}
+  completedCorePickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
+  completedCoreDropPoint: {fileID: 0}
+  completedCoreInitialVelocity: {x: 0, y: 0.85}
 --- !u!114 &-6155725199462713330
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -422,7 +424,7 @@ MonoBehaviour:
   playActivateStateDirectly: 1
   forceIdleStateOnEnable: 1
   idleStateName: Idle
-  keepSpentVisualAfterActivation: 1
+  keepSpentVisualAfterActivation: 0
   spentStateName: Spent
   freezeLastFrameWhenSpentStateMissing: 1
   disableCollidersAfterActivation: 1

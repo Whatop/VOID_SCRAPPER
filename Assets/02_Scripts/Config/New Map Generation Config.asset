@@ -18,8 +18,21 @@ MonoBehaviour:
   region2MapSize: {x: 128, y: 128}
   region3MapSize: {x: 116, y: 116}
   finalNetworkMapSize: {x: 96, y: 96}
-  startSafeRadius: 14
+  startSafeRadius: 18
   importantPointMinDistance: 28
+  enablePoiClusterLayout: 1
+  salvagePoiCount: 2
+  highValuePoiCount: 2
+  poiMinSpacing: 14
+  salvagePoiRadius: 7
+  highValuePoiRadius: 8
+  clusteredHarvestRatio: 0.75
+  clusteredEnemyRatio: 0.75
+  enableEnvironmentDressing: 1
+  salvageDressingCount: 12
+  highValueDressingCount: 18
+  transitDressingCount: 24
+  poiDressingRadiusMultiplier: 1.15
   enableFiniteBoundary: 1
   boundaryWarningDistance: 7
   boundaryResistanceDistance: 3

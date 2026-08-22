@@ -63,6 +63,17 @@ public class ShopStockController : MonoBehaviour
     public IReadOnlyList<TraitDefinition> TraitPool => traitPool;
     public IReadOnlyList<ReinforcementDefinition> ReinforcementPool => reinforcementPool;
 
+    public bool WasTraitPurchased(TraitDefinition trait)
+    {
+        return trait != null && boughtTraitIdsThisShop.Contains(trait.TraitId);
+    }
+
+    public bool WasReinforcementPurchased(ReinforcementDefinition reinforcement)
+    {
+        return reinforcement != null &&
+               boughtReinforcementIdsThisShop.Contains(reinforcement.EquipmentId);
+    }
+
     private void OnEnable()
     {
         ResetStockRuntime();

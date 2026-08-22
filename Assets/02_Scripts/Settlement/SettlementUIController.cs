@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;
 
@@ -8,6 +10,24 @@ public enum SettlementPanelKind
     Repair,
     Trait,
     SectorTechnology
+}
+
+[DisallowMultipleComponent]
+public sealed class SettlementPrimaryNavigationPointer : MonoBehaviour, IPointerEnterHandler
+{
+    private SettlementUIController owner;
+    private int navigationIndex;
+
+    public void Configure(SettlementUIController controller, int index)
+    {
+        owner = controller;
+        navigationIndex = index;
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        owner?.SelectPrimaryNavigationIndex(navigationIndex, false);
+    }
 }
 
 public enum SettlementSelectionKind
@@ -86,6 +106,9 @@ public class SettlementUIController : MonoBehaviour
     private NavigationButtonView sectorTechnologyNavigationView;
     private NavigationButtonView traitNavigationView;
     private NavigationButtonView settingsNavigationView;
+    private Button[] primaryNavigationButtons = new Button[0];
+    private int primaryNavigationIndex;
+    private CanvasGroup settlementInputGroup;
 
     [Header("Start")]
     [SerializeField] private SettlementPanelKind startPanel = SettlementPanelKind.Main;
@@ -167,10 +190,59 @@ public class SettlementUIController : MonoBehaviour
     private void Start()
     {
         ShowPanel(startPanel);
+        SelectPrimaryNavigationForCurrentPanel();
+    }
+
+    private void Update()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null || primaryNavigationButtons.Length == 0 ||
+            (settingsMenuController != null && settingsMenuController.IsOpen))
+        {
+            return;
+        }
+
+        GameObject selectedObject = EventSystem.current != null
+            ? EventSystem.current.currentSelectedGameObject
+            : null;
+        int selectedIndex = GetPrimaryNavigationIndex(selectedObject);
+        if (selectedIndex >= 0 && selectedIndex != primaryNavigationIndex)
+        {
+            primaryNavigationIndex = selectedIndex;
+            RefreshNavigationState();
+        }
+
+        int direction = 0;
+        if (keyboard.wKey.wasPressedThisFrame)
+        {
+            direction = -1;
+        }
+        else if (keyboard.sKey.wasPressedThisFrame)
+        {
+            direction = 1;
+        }
+
+        if (direction != 0)
+        {
+            int nextIndex = (primaryNavigationIndex + direction + primaryNavigationButtons.Length) %
+                            primaryNavigationButtons.Length;
+            SelectPrimaryNavigationIndex(nextIndex, true);
+            return;
+        }
+
+        if (keyboard.spaceKey.wasPressedThisFrame)
+        {
+            Button selectedButton = primaryNavigationButtons[primaryNavigationIndex];
+            if (selectedButton != null && selectedButton.IsInteractable())
+            {
+                selectedButton.onClick.Invoke();
+            }
+        }
     }
 
     private void OnDisable()
     {
+        SetSettlementInputEnabled(true);
         UnsubscribeController();
         UnsubscribeButtons();
     }
@@ -202,6 +274,7 @@ public class SettlementUIController : MonoBehaviour
         SetPanelActive(repairPanel, false);
         SetPanelActive(traitPanel, false);
         CloseSettingsOverlay();
+        SelectPrimaryNavigationForCurrentPanel();
         sectorTechnologyPanelUI.Show();
         RefreshNavigationState();
     }
@@ -217,7 +290,21 @@ public class SettlementUIController : MonoBehaviour
     }
     private void OpenSettingsOverlay()
     {
-        settingsMenuController?.Open();
+        if (settingsMenuController == null)
+        {
+            return;
+        }
+
+        SelectPrimaryNavigationIndex(4, false);
+        SetSettlementInputEnabled(false);
+        EventSystem.current?.SetSelectedGameObject(null);
+        settingsMenuController.Open();
+
+        if (!settingsMenuController.IsOpen)
+        {
+            SetSettlementInputEnabled(true);
+        }
+
         RefreshNavigationState();
     }
 
@@ -227,6 +314,8 @@ public class SettlementUIController : MonoBehaviour
         {
             settingsMenuController.Close();
         }
+
+        SetSettlementInputEnabled(true);
 
         if (MouseCursorManager.Instance != null)
         {
@@ -473,6 +562,7 @@ public class SettlementUIController : MonoBehaviour
         SetPanelActive(traitPanel, panelKind == SettlementPanelKind.Trait);
         
         CloseSettingsOverlay();
+        SelectPrimaryNavigationForCurrentPanel();
 
         if (panelKind == SettlementPanelKind.Main)
         {
@@ -602,6 +692,13 @@ public class SettlementUIController : MonoBehaviour
         }
 
         Transform navigationParent = mainPanel.transform.parent;
+        settlementInputGroup = navigationParent.GetComponent<CanvasGroup>();
+        if (settlementInputGroup == null)
+        {
+            settlementInputGroup = navigationParent.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        SetSettlementInputEnabled(true);
         BuildNavigationBackground(navigationParent);
         hangarNavigationButton = Instantiate(openRepairPanelButton, navigationParent);
         hangarNavigationButton.name = "HangarNavigationButton";
@@ -625,6 +722,31 @@ public class SettlementUIController : MonoBehaviour
         sectorTechnologyNavigationView = ConfigureNavigationButton(sectorTechnologyNavigationButton, "지역 기술", new Vector2(-208f, 14f), new Color(0.72f, 0.92f, 1f, 1f));
         traitNavigationView = ConfigureNavigationButton(openTraitPanelButton, "추가 특성", new Vector2(-208f, -14f), new Color(0.75f, 0.45f, 1f, 1f));
         settingsNavigationView = ConfigureNavigationButton(openSettingsPanelButton, "설정", new Vector2(-208f, -42f), new Color(0.52f, 0.72f, 0.82f, 1f));
+
+        primaryNavigationButtons = new[]
+        {
+            hangarNavigationButton,
+            openRepairPanelButton,
+            sectorTechnologyNavigationButton,
+            openTraitPanelButton,
+            openSettingsPanelButton
+        };
+        for (int i = 0; i < primaryNavigationButtons.Length; i++)
+        {
+            Button button = primaryNavigationButtons[i];
+            if (button == null)
+            {
+                continue;
+            }
+
+            Navigation navigation = button.navigation;
+            navigation.mode = Navigation.Mode.None;
+            button.navigation = navigation;
+            SettlementPrimaryNavigationPointer pointer =
+                button.GetComponent<SettlementPrimaryNavigationPointer>() ??
+                button.gameObject.AddComponent<SettlementPrimaryNavigationPointer>();
+            pointer.Configure(this, i);
+        }
 
         if (launchButton != null)
         {
@@ -756,21 +878,24 @@ public class SettlementUIController : MonoBehaviour
 
         SetNavigationViewActive(
             hangarNavigationView,
-            !settingsOpen && currentPanel == SettlementPanelKind.Main
+            !settingsOpen && primaryNavigationIndex == 0
         );
         SetNavigationViewActive(
             repairNavigationView,
-            !settingsOpen && currentPanel == SettlementPanelKind.Repair
+            !settingsOpen && primaryNavigationIndex == 1
         );
         SetNavigationViewActive(
             sectorTechnologyNavigationView,
-            !settingsOpen && currentPanel == SettlementPanelKind.SectorTechnology
+            !settingsOpen && primaryNavigationIndex == 2
         );
         SetNavigationViewActive(
             traitNavigationView,
-            !settingsOpen && currentPanel == SettlementPanelKind.Trait
+            !settingsOpen && primaryNavigationIndex == 3
         );
-        SetNavigationViewActive(settingsNavigationView, settingsOpen);
+        SetNavigationViewActive(
+            settingsNavigationView,
+            settingsOpen || primaryNavigationIndex == 4
+        );
     }
 
     private static void SetNavigationViewActive(NavigationButtonView view, bool active)
@@ -1108,7 +1233,85 @@ public class SettlementUIController : MonoBehaviour
 
     private void HandleSettingsOpenStateChanged(bool isOpen)
     {
+        SetSettlementInputEnabled(!isOpen);
         RefreshNavigationState();
+
+        if (!isOpen)
+        {
+            SelectPrimaryNavigationIndex(4, false);
+        }
+    }
+
+    private void SetSettlementInputEnabled(bool inputEnabled)
+    {
+        if (settlementInputGroup == null)
+        {
+            return;
+        }
+
+        settlementInputGroup.interactable = inputEnabled;
+        settlementInputGroup.blocksRaycasts = inputEnabled;
+    }
+
+    internal void SelectPrimaryNavigationIndex(int index, bool playSound)
+    {
+        if (primaryNavigationButtons.Length == 0)
+        {
+            return;
+        }
+
+        int nextIndex = Mathf.Clamp(index, 0, primaryNavigationButtons.Length - 1);
+        Button button = primaryNavigationButtons[nextIndex];
+        if (button == null || !button.gameObject.activeInHierarchy || !button.IsInteractable())
+        {
+            return;
+        }
+
+        bool selectionChanged = primaryNavigationIndex != nextIndex;
+        primaryNavigationIndex = nextIndex;
+
+        if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != button.gameObject)
+        {
+            EventSystem.current.SetSelectedGameObject(button.gameObject);
+        }
+
+        RefreshNavigationState();
+
+        if (playSound && selectionChanged)
+        {
+            AudioManager.Play(SoundEventIds.UiHover);
+        }
+    }
+
+    private int GetPrimaryNavigationIndex(GameObject selectedObject)
+    {
+        if (selectedObject == null)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < primaryNavigationButtons.Length; i++)
+        {
+            if (primaryNavigationButtons[i] != null &&
+                primaryNavigationButtons[i].gameObject == selectedObject)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private void SelectPrimaryNavigationForCurrentPanel()
+    {
+        int index = currentPanel switch
+        {
+            SettlementPanelKind.Repair => 1,
+            SettlementPanelKind.SectorTechnology => 2,
+            SettlementPanelKind.Trait => 3,
+            _ => 0
+        };
+        SelectPrimaryNavigationIndex(index, false);
     }
 
     private void SubscribeButtons()

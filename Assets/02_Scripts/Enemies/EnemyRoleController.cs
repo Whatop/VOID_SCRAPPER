@@ -284,19 +284,8 @@ public class EnemyRoleController : MonoBehaviour
         radarTarget.SetMarkerType(RadarMarkerType.Enemy);
 
         Sprite marker = roleMarkerSprite != null ? roleMarkerSprite : radarTarget.MarkerSprite;
-        Color color = roleType switch
-        {
-            EnemyRoleType.Defender => defenderMarkerColor,
-            EnemyRoleType.RivalHarvester => rivalMarkerColor,
-            EnemyRoleType.Scavenger => scavengerMarkerColor,
-            _ => radarTarget.MarkerColor
-        };
-
-        float scale = roleType == EnemyRoleType.Patrol
-            ? radarTarget.MarkerScale
-            : Mathf.Max(0.1f, roleMarkerScale);
-
-        radarTarget.SetMarkerVisual(marker, color, scale);
+        float sharedScale = Mathf.Min(1f, Mathf.Max(0.1f, roleMarkerScale));
+        radarTarget.SetMarkerVisual(marker, Color.white, sharedScale);
     }
 
     public bool TryHandlePriority(EnemyBaseAI owner, float deltaTime)

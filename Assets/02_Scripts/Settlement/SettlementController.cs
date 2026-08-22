@@ -76,6 +76,9 @@ public class SettlementRepairViewData
 
 public class SettlementController : MonoBehaviour
 {
+    private const string FirstSettlementPendingFlag = "story_first_settlement_unknown_core_pending";
+    private const string FirstSettlementCompleteFlag = "story_first_settlement_unknown_core_complete";
+
     public static SettlementController Instance { get; private set; }
 
     [Header("Selection Defaults")]
@@ -173,6 +176,11 @@ public class SettlementController : MonoBehaviour
             return;
         }
 
+        if (TryInitializeFirstSettlementMachineGunSelection(progress))
+        {
+            return;
+        }
+
         selectedWeaponTree = progress.LastSelectedWeaponTree;
         selectedShipId = progress.SelectedShipId;
 
@@ -183,6 +191,50 @@ public class SettlementController : MonoBehaviour
 
         int selectedIndex = FindShipIndex(selectedShipId);
         previewShipIndex = selectedIndex >= 0 ? selectedIndex : Mathf.Max(0, FindShipIndex(ResolveDefaultShipId()));
+    }
+
+    private bool TryInitializeFirstSettlementMachineGunSelection(PermanentProgress progress)
+    {
+        if (!progress.HasUnlockFlag(FirstSettlementPendingFlag) ||
+            progress.HasUnlockFlag(FirstSettlementCompleteFlag))
+        {
+            return false;
+        }
+
+        ShipDefinition machineGunShip = null;
+        for (int i = 0; i < shipDefinitions.Count; i++)
+        {
+            ShipDefinition candidate = shipDefinitions[i];
+            if (candidate == null ||
+                candidate.DefaultWeaponTree != WeaponTreeType.MachineGun ||
+                !IsShipUnlocked(candidate))
+            {
+                continue;
+            }
+
+            machineGunShip = candidate;
+            if (candidate.UnlockedByDefault)
+            {
+                break;
+            }
+        }
+
+        if (machineGunShip == null)
+        {
+            Debug.LogWarning(
+                "First Settlement arrival could not find an unlocked Machine Gun ShipDefinition.",
+                this
+            );
+            return false;
+        }
+
+        selectedShipId = machineGunShip.ShipId;
+        selectedWeaponTree = WeaponTreeType.MachineGun;
+        previewShipIndex = Mathf.Max(0, FindShipIndex(selectedShipId));
+        progress.SetSelectedShipId(selectedShipId);
+        progress.SetLastSelectedWeaponTree(selectedWeaponTree);
+        SaveProgress();
+        return true;
     }
 
     public void SelectWeaponTree(WeaponTreeType weaponTreeType)
@@ -1026,7 +1078,7 @@ public class SettlementController : MonoBehaviour
         PermanentProgress progress = PermanentProgress.Instance;
         int scrap = progress != null ? progress.ScrapParts : 0;
         int core = progress != null ? progress.CoreShards : 0;
-        return $"스크랩 부품 {scrap}    코어 조각 {core}";
+        return $"스크랩 부품 {scrap}    코어 {core}";
     }
 
     public string BuildStatusText()
@@ -1350,7 +1402,7 @@ public class SettlementController : MonoBehaviour
 
         if (coreCost > 0)
         {
-            builder.AppendLine($"코어 조각 {coreCost}");
+            builder.AppendLine($"코어 {coreCost}");
         }
 
         return builder.ToString().TrimEnd();
@@ -1363,7 +1415,7 @@ public class SettlementController : MonoBehaviour
 
         if (coreCost > 0)
         {
-            return $"스크랩 부품 {scrapCost}, 코어 조각 {coreCost}";
+            return $"스크랩 부품 {scrapCost}, 코어 {coreCost}";
         }
 
         return $"스크랩 부품 {scrapCost}";

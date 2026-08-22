@@ -251,6 +251,9 @@ MonoBehaviour:
   markerSprite: {fileID: 21300000, guid: 49b2bca3a3f8d7a48bbc281b2a42304c, type: 3}
   markerColor: {r: 1, g: 1, b: 1, a: 1}
   markerScale: 1
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 0
   alertOnMachineGunScan: 0
@@ -354,10 +357,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 10
   rewardDropper: {fileID: 2963155244060544709}
-  hitEffectPrefab: {fileID: 0}
-  hitEffectDuration: 0.12
-  useProceduralHitEffectWhenPrefabMissing: 1
-  hitEffectIntensity: 0.9
+  spriteHitFlash: {fileID: 0}
+  autoCreateSpriteHitFlash: 1
+  useProceduralHitFeedback: 0
+  proceduralHitIntensity: 1
   hitShakeAmplitude: 0.04
   hitShakeDuration: 0.065
   deathShakeAmplitude: 0.11
@@ -367,6 +370,9 @@ MonoBehaviour:
   knockbackDuration: 0.14
   knockbackDistanceMultiplier: 1
   clearVelocityDuringKnockback: 1
+  deathEffectPrefab: {fileID: 0}
+  deathEffectLifeTime: 0.45
+  useProceduralDeathEffectWhenPrefabMissing: 1
   dropRewardOnDeath: 1
   releaseOnDeath: 1
   releaseDelayOnDeath: 0.25
@@ -403,11 +409,17 @@ MonoBehaviour:
   useNavigationAgent: 1
   visionRange: 9
   loseSightTime: 2
+  radarCanTrackExactPlayerPosition: 0
+  cancelAttackImmediatelyOnSightLoss: 1
   alertDuration: 3
   searchDuration: 2.5
   defaultTauntDuration: 4
   preferredCombatDistanceRatio: 0.75
   closeCombatDistanceRatio: 0.45
+  chargingPreferredDistanceMinRatio: 0.55
+  chargingPreferredDistanceMaxRatio: 0.82
+  chargingRepositionDuration: 1
+  chargingRepositionSpeedMultiplier: 0.9
   currentState: 0
   purpose: 0
 --- !u!114 &7757727176635614241
@@ -423,8 +435,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyDefinition: {fileID: 11400000, guid: e6e5bef48873ddd4488e1def09de0b86, type: 2}
-  awarenessIndicatorFont: {fileID: 11400000, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
   firePoint: {fileID: 274234201926276759}
+  runtimeCenterFirePoint: {fileID: 0}
+  runtimeMachineGunLeftFirePoint: {fileID: 0}
+  runtimeMachineGunRightFirePoint: {fileID: 0}
   projectileOwner: 1
   ignoreShopSecurityTargets: 0
   projectileDefinition: {fileID: 11400000, guid: a461677f565b052499eb7847e2058dee, type: 2}
@@ -444,6 +458,10 @@ MonoBehaviour:
   burstTrackTargetEachShot: 0
   shakeLateralSpeed: 1.35
   shakeFrequency: 4.5
+  staggeredVolleyCount: 2
+  staggeredVolleyInterval: 0.25
+  staggeredVolleyAngleOffset: 9
+  staggeredTrackTargetEachVolley: 1
   splitProjectileDefinition: {fileID: 0}
   splitProjectileCount: 6
   splitDelay: 0.95
@@ -454,11 +472,14 @@ MonoBehaviour:
   predictiveMaxLeadTime: 0.65
   predictiveVelocityMultiplier: 1
   showAimLineDuringCharge: 1
-  lockAimDirectionOnChargeStart: 1
+  trackAimDuringEarlyCharge: 1
+  chargeAimLockFraction: 0.75
   aimLineRenderer: {fileID: 0}
   autoCreateAimLineRenderer: 1
   aimLineColor: {r: 1, g: 0.05, b: 0.05, a: 0.85}
+  lockedAimLineColor: {r: 1, g: 0.82, b: 0.18, a: 1}
   aimLineWidth: 0.045
+  lockedAimLineWidthMultiplier: 1.65
   aimLineLength: 12
   aimLineBlockLayer:
     serializedVersion: 2
@@ -497,6 +518,7 @@ MonoBehaviour:
   creditsAmountPerShard: 5
   scrapAmountPerShard: 1
   coreAmountPerShard: 1
+  stabilizedAlloyAmountPerShard: 1
   tuningChipAmountPerShard: 1
   experienceAmountPerShard: 3
   amountPerShard: 1
@@ -554,16 +576,19 @@ MonoBehaviour:
   creditsWeight: 1
   scrapWeight: 1
   coreShardWeight: 12
+  stabilizedAlloyWeight: 2
   allowExperience: 0
   allowCredits: 1
   allowScrap: 1
   allowCoreShards: 1
+  allowStabilizedAlloy: 1
   dropCargoOnDeath: 1
   rewardDropper: {fileID: 2963155244060544709}
   experience: 0
   credits: 0
   scrapParts: 0
   coreShards: 0
+  stabilizedAlloy: 0
 --- !u!114 &4412942735317678970
 MonoBehaviour:
   m_ObjectHideFlags: 0

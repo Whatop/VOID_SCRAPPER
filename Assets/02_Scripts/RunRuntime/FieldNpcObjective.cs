@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PixelCrushers.DialogueSystem;
 using UnityEngine;
 
 public enum FieldNpcServiceType
@@ -28,6 +29,11 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
     [SerializeField] private FieldNpcState state = FieldNpcState.WaitingForRescue;
     [SerializeField] private bool requiresRescue = true;
     [SerializeField] private bool oneUseService;
+
+    [Header("Dialogue System")]
+    [SerializeField] private bool useDialogueBeforeService = true;
+    [Tooltip("비워 두면 현재 FieldNpcServiceType에 맞는 기본 대화를 사용합니다.")]
+    [SerializeField] private string serviceConversationOverride;
 
     [Header("Base Rescue Flow")]
     [SerializeField] private bool useBaseRescueFlow;
@@ -81,6 +87,10 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
     private readonly List<EnemyHealth> trackedEnemies = new List<EnemyHealth>();
     private bool serviceUsed;
     private GameObject activeRewardCapsule;
+    private DialogueSystemController pendingDialogueController;
+    private GameObject pendingServiceInteractor;
+    private string pendingConversationTitle;
+    private Coroutine serviceAfterDialogueRoutine;
 
     public FieldNpcServiceType ServiceType => serviceType;
     public FieldNpcState State => state;
@@ -203,6 +213,7 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
     private void OnDisable()
     {
+        CancelPendingServiceDialogue();
         UntrackEnemies();
     }
 
@@ -243,7 +254,174 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
             return;
         }
 
-        ExecuteService(interactor);
+        if (!TryBeginServiceDialogue(interactor))
+        {
+            ExecuteService(interactor);
+        }
+    }
+
+    private bool TryBeginServiceDialogue(GameObject interactor)
+    {
+        if (!useDialogueBeforeService)
+        {
+            return false;
+        }
+
+        if (pendingDialogueController != null || serviceAfterDialogueRoutine != null)
+        {
+            return true;
+        }
+
+        string conversationTitle = ResolveServiceConversationTitle();
+
+        if (string.IsNullOrWhiteSpace(conversationTitle))
+        {
+            Debug.LogWarning(
+                $"[{nameof(FieldNpcObjective)}] {name} has no Dialogue System conversation configured. " +
+                "The existing service will open directly.",
+                this
+            );
+            return false;
+        }
+
+        if (!DialogueManager.hasInstance || DialogueManager.instance == null)
+        {
+            Debug.LogWarning(
+                $"[{nameof(FieldNpcObjective)}] Cannot start '{conversationTitle}' because the " +
+                "persistent Dialogue Manager is unavailable. The existing service will open directly.",
+                this
+            );
+            return false;
+        }
+
+        if (DialogueManager.isConversationActive)
+        {
+            Debug.LogWarning(
+                $"[{nameof(FieldNpcObjective)}] Cannot start '{conversationTitle}' while another " +
+                "conversation is active.",
+                this
+            );
+            return true;
+        }
+
+        DialogueDatabase database = DialogueManager.MasterDatabase;
+        Conversation conversation = database != null
+            ? database.GetConversation(conversationTitle)
+            : null;
+
+        if (conversation == null)
+        {
+            Debug.LogWarning(
+                $"[{nameof(FieldNpcObjective)}] Conversation '{conversationTitle}' is missing from " +
+                "the active Dialogue Database. The existing service will open directly.",
+                this
+            );
+            return false;
+        }
+
+        pendingDialogueController = DialogueManager.instance;
+        pendingServiceInteractor = interactor;
+        pendingConversationTitle = conversationTitle;
+        pendingDialogueController.conversationEnded -= HandleServiceConversationEnded;
+        pendingDialogueController.conversationEnded += HandleServiceConversationEnded;
+
+        Transform actor = interactor != null ? interactor.transform : null;
+        DialogueManager.StartConversation(conversationTitle, actor, transform);
+
+        bool started = DialogueManager.isConversationActive &&
+                       string.Equals(
+                           DialogueManager.lastConversationStarted,
+                           conversationTitle,
+                           StringComparison.Ordinal
+                       );
+
+        if (started)
+        {
+            return true;
+        }
+
+        Debug.LogWarning(
+            $"[{nameof(FieldNpcObjective)}] Dialogue System rejected conversation " +
+            $"'{conversationTitle}'. The existing service will open directly.",
+            this
+        );
+        CancelPendingServiceDialogue();
+        return false;
+    }
+
+    private void HandleServiceConversationEnded(Transform actor)
+    {
+        if (string.IsNullOrWhiteSpace(pendingConversationTitle) ||
+            !string.Equals(
+                DialogueManager.lastConversationEnded,
+                pendingConversationTitle,
+                StringComparison.Ordinal
+            ))
+        {
+            return;
+        }
+
+        GameObject interactor = pendingServiceInteractor;
+        UnsubscribePendingDialogueController();
+        pendingServiceInteractor = null;
+        pendingConversationTitle = null;
+
+        if (isActiveAndEnabled)
+        {
+            serviceAfterDialogueRoutine = StartCoroutine(OpenServiceAfterDialogue(interactor));
+        }
+    }
+
+    private System.Collections.IEnumerator OpenServiceAfterDialogue(GameObject interactor)
+    {
+        // DialogueGameplayBridge releases its pause ownership on the same end event.
+        // Defer one frame so the service UI can acquire its own input/pause ownership cleanly.
+        yield return null;
+        serviceAfterDialogueRoutine = null;
+
+        if (state == FieldNpcState.Available && CanInteract(interactor))
+        {
+            ExecuteService(interactor);
+        }
+    }
+
+    private void CancelPendingServiceDialogue()
+    {
+        if (serviceAfterDialogueRoutine != null)
+        {
+            StopCoroutine(serviceAfterDialogueRoutine);
+            serviceAfterDialogueRoutine = null;
+        }
+
+        UnsubscribePendingDialogueController();
+        pendingServiceInteractor = null;
+        pendingConversationTitle = null;
+    }
+
+    private void UnsubscribePendingDialogueController()
+    {
+        if (pendingDialogueController != null)
+        {
+            pendingDialogueController.conversationEnded -= HandleServiceConversationEnded;
+            pendingDialogueController = null;
+        }
+    }
+
+    private string ResolveServiceConversationTitle()
+    {
+        if (!string.IsNullOrWhiteSpace(serviceConversationOverride))
+        {
+            return serviceConversationOverride.Trim();
+        }
+
+        return serviceType switch
+        {
+            FieldNpcServiceType.Technician => "NPC_FieldTechnician_Service",
+            FieldNpcServiceType.Converter => "NPC_EquipmentConverter_Service",
+            FieldNpcServiceType.BlackMarket => "NPC_BlackMarket_Service",
+            FieldNpcServiceType.RescueContact => "NPC_RescueContact_Service",
+            _ => string.Empty
+        };
     }
 
     private void BeginRescue(GameObject interactor)

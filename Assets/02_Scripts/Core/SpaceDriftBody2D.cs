@@ -14,21 +14,24 @@ public class SpaceDriftBody2D : MonoBehaviour
     [Header("Rigidbody Setup")]
     [SerializeField] private bool configureRigidbodyOnEnable = true;
     [SerializeField] private float mass = 1f;
-    [SerializeField] private float linearDamping = 1f;
-    [SerializeField] private float angularDamping = 0.5f;
+    [SerializeField] private float linearDamping;
+    [SerializeField] private float angularDamping;
     [SerializeField] private CollisionDetectionMode2D collisionDetection = CollisionDetectionMode2D.Continuous;
     [SerializeField] private RigidbodyInterpolation2D interpolation = RigidbodyInterpolation2D.Interpolate;
 
     [Header("Initial Drift")]
     [SerializeField] private bool randomizeOnEnable = true;
-    [SerializeField] private Vector2 speedRange = new Vector2(0.15f, 0.45f);
-    [SerializeField] private Vector2 angularSpeedRange = new Vector2(-25f, 25f);
+    [Range(0f, 1f)]
+    [SerializeField] private float movementChance = 0.4f;
+    [SerializeField] private Vector2 speedRange = new Vector2(0.15f, 0.4f);
+    [SerializeField] private Vector2 angularSpeedRange = new Vector2(-12f, 12f);
+    [SerializeField] private Vector2 idleAngularSpeedRange = new Vector2(-2f, 2f);
 
     [Header("Limits")]
     [Min(0.01f)]
-    [SerializeField] private float maxLinearSpeed = 2f;
+    [SerializeField] private float maxLinearSpeed = 0.6f;
     [Min(0.01f)]
-    [SerializeField] private float maxAngularSpeed = 90f;
+    [SerializeField] private float maxAngularSpeed = 30f;
 
     [Header("Bounds")]
     [SerializeField] private bool useRoamingBounds;
@@ -36,9 +39,11 @@ public class SpaceDriftBody2D : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float boundsPadding = 0.5f;
     [Range(0f, 1f)]
-    [SerializeField] private float bounceVelocityRetention = 0.8f;
+    [SerializeField] private float bounceVelocityRetention = 0.9f;
 
     private bool initialized;
+    private bool hasRuntimeMovementOverride;
+    private bool runtimeMovementEnabled;
 
     public Rigidbody2D Body => body;
     public bool HasRoamingBounds => useRoamingBounds;
@@ -69,6 +74,8 @@ public class SpaceDriftBody2D : MonoBehaviour
     private void OnDisable()
     {
         initialized = false;
+        hasRuntimeMovementOverride = false;
+        runtimeMovementEnabled = false;
 
         if (body != null)
         {
@@ -103,10 +110,43 @@ public class SpaceDriftBody2D : MonoBehaviour
         useRoamingBounds = false;
     }
 
+    public void SetRuntimeMovementEnabled(bool enabled, bool rerandomize = true)
+    {
+        hasRuntimeMovementOverride = true;
+        runtimeMovementEnabled = enabled;
+
+        if (rerandomize && isActiveAndEnabled)
+        {
+            ApplyRandomizedVelocity(enabled);
+        }
+    }
+
     public void RandomizeVelocity()
     {
         if (body == null)
         {
+            return;
+        }
+
+        bool shouldMove = hasRuntimeMovementOverride
+            ? runtimeMovementEnabled
+            : Random.value < Mathf.Clamp01(movementChance);
+        ApplyRandomizedVelocity(shouldMove);
+    }
+
+    private void ApplyRandomizedVelocity(bool shouldMove)
+    {
+        if (body == null)
+        {
+            return;
+        }
+
+        if (!shouldMove)
+        {
+            float minIdleAngular = Mathf.Min(idleAngularSpeedRange.x, idleAngularSpeedRange.y);
+            float maxIdleAngular = Mathf.Max(idleAngularSpeedRange.x, idleAngularSpeedRange.y);
+            body.linearVelocity = Vector2.zero;
+            body.angularVelocity = Random.Range(minIdleAngular, maxIdleAngular);
             return;
         }
 

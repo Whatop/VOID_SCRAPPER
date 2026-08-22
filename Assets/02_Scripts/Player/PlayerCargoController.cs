@@ -54,6 +54,7 @@ public class PlayerCargoController : MonoBehaviour
     public int EmergencyReturnCapacityLimit => Mathf.FloorToInt(MaxCapacity * EmergencyReturnRatio);
 
     public event Action<int, int> CargoChanged;
+    public event Action CargoFullRejected;
 
     private void OnEnable()
     {
@@ -104,6 +105,11 @@ public class PlayerCargoController : MonoBehaviour
         }
 
         return RunManager.Instance.CurrentRun.GetAcceptedAmountByCargo(currencyType, requestedAmount);
+    }
+
+    public void NotifyCargoFullRejected()
+    {
+        CargoFullRejected?.Invoke();
     }
 
     private void Subscribe()

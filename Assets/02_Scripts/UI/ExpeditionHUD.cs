@@ -32,6 +32,7 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private CanvasGroup operationCanvasGroup;
     [SerializeField] private TextMeshProUGUI operationTitleText;
     [SerializeField] private TextMeshProUGUI operationDetailText;
+    [SerializeField] private Image operationAccentImage;
     [SerializeField] private bool createOperationPresentationIfMissing = true;
     [SerializeField] private string moveActionName = "Move";
     [SerializeField, Min(0.05f)] private float operationBriefingIntroDuration = 0.24f;
@@ -51,8 +52,8 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI reinforcementKeyText;
     [SerializeField] private Sprite mapHintIcon;
     [SerializeField] private Sprite inventoryHintIcon;
-    [SerializeField] private string mapHintFormat = "{0}";
-    [SerializeField] private string inventoryHintFormat = "{0}";
+    [SerializeField] private string mapHintFormat = "[{0}] 지도";
+    [SerializeField] private string inventoryHintFormat = "[{0}] 인벤토리";
     [SerializeField] private string reinforcementKeyFormat = "[{0}]";
 
     [Header("HUD Roots")]
@@ -77,6 +78,9 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private string armorBonusFormat = "장갑 {0:0}";
     [SerializeField] private Color armorBonusColor = Color.white;
     [SerializeField] private Color armorFillColor = Color.white;
+    [SerializeField] private Color hpNormalStateColor = new Color(0.95f, 0.24f, 0.28f, 1f);
+    [SerializeField] private Color hpShieldStateColor = new Color(0.25f, 0.82f, 1f, 1f);
+    [SerializeField] private Color hpInvulnerableStateColor = new Color(1f, 0.78f, 0.22f, 1f);
     [Tooltip("HPValueText와 ArmorValueText가 같은 부모일 때 Armor 텍스트를 HP 텍스트 바로 옆으로 고정합니다.")]
     [FormerlySerializedAs("autoPositionArmorBonusBesideHpText")]
     [SerializeField] private bool anchorArmorBonusToHpText = true;
@@ -107,15 +111,18 @@ public class ExpeditionHUD : MonoBehaviour
     [Header("Cargo Bottom Bar")]
     [SerializeField] private GaugeBarUI cargoGauge;
     [SerializeField] private TextMeshProUGUI cargoValueText;
-    [SerializeField] private CargoGaugeTickGraphic cargoTickGraphic;
-    [SerializeField, Min(1)] private int cargoTickInterval = 25;
-    [SerializeField] private Color cargoTickColor = new Color(0.86f, 0.9f, 0.94f, 0.48f);
+    [SerializeField] private CanvasGroup cargoCanvasGroup;
+    [SerializeField] private bool createCargoPresentationIfMissing = true;
+    [SerializeField] private string cargoLabel = "적재량";
     [SerializeField] private string cargoValueFormat = "{0}/{1}";
     [SerializeField] private Color cargoNormalColor = new Color(0.35f, 0.85f, 1f, 1f);
     [SerializeField] private Color cargoWarningColor = new Color(1f, 0.75f, 0.18f, 1f);
     [SerializeField] private Color cargoFullColor = new Color(1f, 0.2f, 0.15f, 1f);
     [Range(0f, 1f)]
     [SerializeField] private float cargoWarningRatio = 0.8f;
+    [SerializeField, Min(0f)] private float cargoVisibleDuration = 2.25f;
+    [SerializeField, Min(0.05f)] private float cargoFadeDuration = 0.65f;
+    [SerializeField, Range(0f, 1f)] private float cargoWarningIdleAlpha = 0.45f;
 
     [Header("Resource Counters - Vertical")]
     [SerializeField] private ResourceCounterUI creditsCounter;
@@ -130,6 +137,10 @@ public class ExpeditionHUD : MonoBehaviour
     [Header("Reinforcement / Heat")]
     [SerializeField] private ReinforcementSlotUI reinforcementSlotUI;
     [SerializeField] private WeaponHeatUI weaponHeatUI;
+    [SerializeField] private PlayerChargeGaugeUI playerChargeGaugeUI;
+    [SerializeField] private Canvas worldGaugeCanvas;
+    [SerializeField] private bool createSharedStatusPresentationIfMissing = true;
+    [SerializeField] private bool createWorldChargeGaugeIfMissing = true;
 
     [Header("Messages")]
     [SerializeField] private WarningMessageUI warningMessageUI;
@@ -145,17 +156,35 @@ public class ExpeditionHUD : MonoBehaviour
     private bool operationBriefingPresented;
     private bool resourceCounterOriginCached;
     private Vector2 resourceCounterOrigin;
+    private Sequence cargoVisibilitySequence;
+    private bool cargoPresentationInitialized;
+    private int lastCargoLoad = -1;
+    private int lastCargoCapacity = -1;
+    private Image cargoPanelImage;
+    private Image cargoTrackImage;
+    private Image cargoFillImage;
+    private Image cargoAccentImage;
+    private TextMeshProUGUI cargoLabelText;
+    private Outline cargoFrameOutline;
+    private Image hpPanelImage;
+    private Image hpTrackImage;
+    private Image hpAccentImage;
+    private TextMeshProUGUI hpLabelText;
+    private Outline hpFrameOutline;
+    private ComponentShieldPassive componentShield;
 
     public bool IsCinematicMode => cinematicMode;
 
     private void Awake()
     {
         ResolveReferences();
+        EnsureSharedStatusPresentation();
+        EnsureCargoPresentation();
         EnsureCoreTrackingPresentation();
         EnsureMenuHintPresentation();
+        ApplySharedHudLayout();
         EnsureStabilizedAlloyCounter();
         CacheResourceCounterOrigin();
-        EnsureCargoTickPresentation();
         ResolveCinematicCanvasGroup();
         SetCanvasGroupVisible(true);
         ConfigureDashIcon();
@@ -166,11 +195,13 @@ public class ExpeditionHUD : MonoBehaviour
     private void OnEnable()
     {
         ResolveReferences();
+        EnsureSharedStatusPresentation();
+        EnsureCargoPresentation();
         EnsureCoreTrackingPresentation();
         EnsureMenuHintPresentation();
+        ApplySharedHudLayout();
         EnsureStabilizedAlloyCounter();
         CacheResourceCounterOrigin();
-        EnsureCargoTickPresentation();
         Subscribe();
         InputSystem.onActionChange += HandleInputActionChange;
         GameSettingsRuntime.Changed += HandleGameSettingsChanged;
@@ -182,6 +213,9 @@ public class ExpeditionHUD : MonoBehaviour
     {
         Unsubscribe();
         ResolveReferences();
+        EnsureSharedStatusPresentation();
+        EnsureCargoPresentation();
+        ApplySharedHudLayout();
         Subscribe();
         RefreshAll();
         ApplyCinematicVisibility();
@@ -194,6 +228,8 @@ public class ExpeditionHUD : MonoBehaviour
         GameSettingsRuntime.Changed -= HandleGameSettingsChanged;
         UnbindOperationMovement();
         KillOperationBriefingTween();
+        KillCargoVisibilityTween();
+        cargoPresentationInitialized = false;
     }
 
     private void Update()
@@ -205,7 +241,6 @@ public class ExpeditionHUD : MonoBehaviour
 
         UpdateDashDisplay();
         UpdateReinforcementSlot();
-        UpdateCargoDisplay();
     }
 
     public void SetCinematicMode(bool enabled)
@@ -243,6 +278,7 @@ public class ExpeditionHUD : MonoBehaviour
         UpdateDashDisplay();
         UpdateReinforcementSlot();
         UpdateCargoDisplay();
+        InitializeCargoVisibilityIfNeeded();
     }
 
     public void ShowWarning(string message)
@@ -302,6 +338,11 @@ public class ExpeditionHUD : MonoBehaviour
             operationTitleText.color = accentColor;
         }
 
+        if (operationAccentImage != null)
+        {
+            operationAccentImage.color = accentColor;
+        }
+
         if (operationDetailText != null)
         {
             operationDetailText.text = detail ?? string.Empty;
@@ -319,6 +360,52 @@ public class ExpeditionHUD : MonoBehaviour
         operationRoot.SetActive(false);
         operationBriefingPending = true;
         BindOperationMovement();
+    }
+
+    public void ShowObjectiveBriefing(string title, string detail, Color accentColor)
+    {
+        EnsureOperationPresentation();
+        if (operationRoot == null)
+        {
+            return;
+        }
+
+        operationBriefingPending = false;
+        operationBriefingPresented = true;
+        UnbindOperationMovement();
+
+        if (operationTitleText != null)
+        {
+            operationTitleText.text = string.IsNullOrWhiteSpace(title)
+                ? "목표 갱신"
+                : $"목표 갱신 · {title}";
+            operationTitleText.color = accentColor;
+        }
+
+        if (operationAccentImage != null)
+        {
+            operationAccentImage.color = accentColor;
+        }
+
+        if (operationDetailText != null)
+        {
+            operationDetailText.text = detail ?? string.Empty;
+        }
+
+        PlayOperationBriefing();
+    }
+
+    public void HideObjectiveBriefing()
+    {
+        operationBriefingPending = false;
+        operationBriefingPresented = false;
+        UnbindOperationMovement();
+        KillOperationBriefingTween();
+
+        if (operationRoot != null)
+        {
+            operationRoot.SetActive(false);
+        }
     }
 
     private void BindOperationMovement()
@@ -371,6 +458,7 @@ public class ExpeditionHUD : MonoBehaviour
 
         KillOperationBriefingTween();
         operationRoot.SetActive(true);
+        operationRoot.transform.SetAsLastSibling();
         operationBriefingRect ??= operationRoot.transform as RectTransform;
         if (operationBriefingRect != null)
         {
@@ -430,13 +518,17 @@ public class ExpeditionHUD : MonoBehaviour
     private void ResolveReferences()
     {
         playerHealth ??= FindFirstObjectByType<PlayerHealth>();
+        componentShield ??= playerHealth != null
+            ? playerHealth.GetComponent<ComponentShieldPassive>()
+            : null;
         playerArmor ??= FindFirstObjectByType<PlayerArmor>();
         playerDash ??= FindFirstObjectByType<PlayerDash>();
         reinforcementController ??= FindFirstObjectByType<PlayerReinforcementController>();
         reinforcementSlotUI ??= FindFirstObjectByType<ReinforcementSlotUI>();
         statusEffectPresenter ??= FindFirstObjectByType<StatusEffectHUDPresenter>(FindObjectsInactive.Include);
-        cargoController ??= FindFirstObjectByType<PlayerCargoController>();
+        cargoController ??= FindFirstObjectByType<PlayerCargoController>(FindObjectsInactive.Include);
         weaponHeatUI ??= FindFirstObjectByType<WeaponHeatUI>(FindObjectsInactive.Include);
+        playerChargeGaugeUI ??= FindFirstObjectByType<PlayerChargeGaugeUI>(FindObjectsInactive.Include);
         warningMessageUI ??= FindFirstObjectByType<WarningMessageUI>(FindObjectsInactive.Include);
         coreTrackingController ??= FindFirstObjectByType<CoreTrackingSignalController>();
         inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
@@ -445,6 +537,789 @@ public class ExpeditionHUD : MonoBehaviour
         {
             objectiveDirector = ExpeditionObjectiveDirector.Instance;
         }
+    }
+
+    private void EnsureSharedStatusPresentation()
+    {
+        if (!Application.isPlaying || !createSharedStatusPresentationIfMissing)
+        {
+            return;
+        }
+
+        EnsureWeaponHeatPresentation();
+        EnsureWorldChargeGaugePresentation();
+        EnsureReinforcementPresentation();
+        ApplyHealthVisualPolish();
+    }
+
+    private void EnsureWeaponHeatPresentation()
+    {
+        if (weaponHeatUI != null || statusRoot == null)
+        {
+            return;
+        }
+
+        RectTransform parent = statusRoot.transform as RectTransform;
+        if (parent == null)
+        {
+            return;
+        }
+
+        GameObject root = new GameObject(
+            "WeaponHeatStatus",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image),
+            typeof(CanvasGroup)
+        );
+        root.layer = parent.gameObject.layer;
+        root.SetActive(false);
+
+        RectTransform rootRect = root.GetComponent<RectTransform>();
+        rootRect.SetParent(parent, false);
+        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+        rootRect.pivot = new Vector2(0.5f, 0.5f);
+        rootRect.anchoredPosition = new Vector2(-186.5f, 111f);
+        rootRect.sizeDelta = new Vector2(91f, 7f);
+
+        Image background = root.GetComponent<Image>();
+        background.color = new Color(0.015f, 0.03f, 0.05f, 0.86f);
+        background.raycastTarget = false;
+
+        GameObject fillAreaObject = new GameObject("Fill Area", typeof(RectTransform));
+        fillAreaObject.layer = root.layer;
+        RectTransform fillArea = fillAreaObject.GetComponent<RectTransform>();
+        fillArea.SetParent(rootRect, false);
+        fillArea.anchorMin = Vector2.zero;
+        fillArea.anchorMax = Vector2.one;
+        fillArea.offsetMin = new Vector2(1f, 1f);
+        fillArea.offsetMax = new Vector2(-1f, -1f);
+
+        Image fill = CreateRuntimeImage("Fill", fillArea, new Color(0.35f, 0.9f, 1f, 1f));
+
+        Slider slider = root.AddComponent<Slider>();
+        slider.navigation = new Navigation { mode = Navigation.Mode.None };
+        slider.transition = Selectable.Transition.None;
+        slider.interactable = false;
+        slider.targetGraphic = background;
+        slider.fillRect = fill.rectTransform;
+        slider.handleRect = null;
+        slider.direction = Slider.Direction.LeftToRight;
+        slider.minValue = 0f;
+        slider.maxValue = 1f;
+        slider.wholeNumbers = false;
+        slider.SetValueWithoutNotify(0f);
+
+        CanvasGroup group = root.GetComponent<CanvasGroup>();
+        group.interactable = false;
+        group.blocksRaycasts = false;
+
+        PlayerWeaponController weaponController = FindFirstObjectByType<PlayerWeaponController>();
+        GaugeBarUI heatGauge = root.AddComponent<GaugeBarUI>();
+        heatGauge.ConfigureRuntime(fill, null, group, root);
+        weaponHeatUI = root.AddComponent<WeaponHeatUI>();
+        weaponHeatUI.ConfigureRuntime(root, group, weaponController, fill, null);
+        root.SetActive(true);
+    }
+
+    private void ApplyHealthVisualPolish()
+    {
+        if (!Application.isPlaying || hpGauge == null)
+        {
+            return;
+        }
+
+        RectTransform rootRect = hpGauge.transform as RectTransform;
+        if (rootRect == null)
+        {
+            return;
+        }
+
+        hpPanelImage ??= hpGauge.GetComponent<Image>();
+        hpPanelImage ??= hpGauge.gameObject.AddComponent<Image>();
+        hpPanelImage.color = new Color(0.035f, 0.018f, 0.024f, 0.96f);
+        hpPanelImage.raycastTarget = false;
+
+        hpFrameOutline ??= hpGauge.GetComponent<Outline>();
+        hpFrameOutline ??= hpGauge.gameObject.AddComponent<Outline>();
+        hpFrameOutline.effectColor = new Color(0.95f, 0.24f, 0.28f, 0.6f);
+        hpFrameOutline.effectDistance = new Vector2(1f, -1f);
+        hpFrameOutline.useGraphicAlpha = false;
+
+        Slider slider = hpGauge.GetComponent<Slider>();
+        if (slider != null)
+        {
+            hpTrackImage ??= slider.targetGraphic as Image;
+        }
+
+        if (hpAccentImage == null)
+        {
+            Transform accentTransform = rootRect.Find("HPAccent");
+            hpAccentImage = accentTransform != null
+                ? accentTransform.GetComponent<Image>()
+                : CreateRuntimeImage("HPAccent", rootRect, new Color(0.95f, 0.2f, 0.24f, 1f));
+        }
+
+        if (hpLabelText == null)
+        {
+            Transform labelTransform = rootRect.Find("HPLabel");
+            hpLabelText = labelTransform != null
+                ? labelTransform.GetComponent<TextMeshProUGUI>()
+                : CreateRuntimeText("HPLabel", rootRect, 5.5f, TextAlignmentOptions.Left);
+        }
+
+        RectTransform hpValueRect = hpValueText != null ? hpValueText.rectTransform : null;
+        if (hpValueRect != null && hpValueRect.parent != rootRect)
+        {
+            hpValueRect.SetParent(rootRect, false);
+        }
+
+        RectTransform armorTextRect = armorBonusText != null ? armorBonusText.rectTransform : null;
+        if (armorTextRect != null && armorTextRect.parent != rootRect)
+        {
+            armorTextRect.SetParent(rootRect, false);
+        }
+
+        SetCargoPanelRect(
+            hpAccentImage.rectTransform,
+            Vector2.zero,
+            new Vector2(0f, 1f),
+            new Vector2(1f, 2f),
+            new Vector2(3f, -2f)
+        );
+        SetCargoPanelRect(
+            hpLabelText.rectTransform,
+            new Vector2(0f, 0.42f),
+            new Vector2(0.35f, 1f),
+            new Vector2(7f, 0f),
+            new Vector2(-1f, -1f)
+        );
+        SetCargoPanelRect(
+            hpValueRect,
+            new Vector2(0.48f, 0.42f),
+            Vector2.one,
+            Vector2.zero,
+            new Vector2(-5f, -1f)
+        );
+
+        hpLabelText.text = "HP";
+        hpLabelText.fontStyle = FontStyles.Bold;
+        hpLabelText.fontSize = 5.5f;
+        hpLabelText.color = new Color(0.94f, 0.62f, 0.64f, 1f);
+        hpLabelText.raycastTarget = false;
+
+        if (hpValueText != null)
+        {
+            hpValueText.fontStyle = FontStyles.Bold;
+            hpValueText.fontSize = 6.5f;
+            hpValueText.alignment = TextAlignmentOptions.Right;
+            hpValueText.color = Color.white;
+            hpValueText.raycastTarget = false;
+        }
+
+        hpValueFormat = "{0:0} / {1:0}";
+        anchorArmorBonusToHpText = false;
+
+        if (armorBonusText != null)
+        {
+            SetCargoPanelRect(
+                armorTextRect,
+                new Vector2(0.24f, 0.42f),
+                new Vector2(0.57f, 1f),
+                Vector2.zero,
+                new Vector2(-1f, -1f)
+            );
+            armorBonusText.fontSize = 5.5f;
+            armorBonusText.alignment = TextAlignmentOptions.Center;
+            armorBonusText.raycastTarget = false;
+        }
+
+        if (hpTrackImage != null)
+        {
+            SetCargoPanelRect(
+                hpTrackImage.rectTransform,
+                Vector2.zero,
+                new Vector2(1f, 0f),
+                new Vector2(5f, 3f),
+                new Vector2(-4f, 8f)
+            );
+            hpTrackImage.color = new Color(0.1f, 0.025f, 0.035f, 0.98f);
+            hpTrackImage.raycastTarget = false;
+        }
+
+        RectTransform fillAreaRect = slider != null && slider.fillRect != null
+            ? slider.fillRect.parent as RectTransform
+            : null;
+        if (fillAreaRect != null)
+        {
+            SetCargoPanelRect(
+                fillAreaRect,
+                Vector2.zero,
+                new Vector2(1f, 0f),
+                new Vector2(6f, 4f),
+                new Vector2(-5f, 7f)
+            );
+        }
+
+        if (hpGauge.FillImage != null)
+        {
+            hpGauge.FillImage.color = new Color(0.92f, 0.16f, 0.2f, 1f);
+            hpGauge.FillImage.raycastTarget = false;
+        }
+
+        armorFillColor = new Color(0.88f, 0.9f, 0.94f, 1f);
+        armorBonusColor = new Color(0.88f, 0.9f, 0.94f, 1f);
+        if (armorFillImage != null)
+        {
+            armorFillImage.color = armorFillColor;
+            armorFillImage.raycastTarget = false;
+        }
+
+        RefreshHealthStateVisual();
+    }
+
+    private void EnsureWorldChargeGaugePresentation()
+    {
+        if (playerChargeGaugeUI != null || !createWorldChargeGaugeIfMissing || playerHealth == null)
+        {
+            return;
+        }
+
+        ResolveWorldGaugeCanvas();
+        RectTransform parent = worldGaugeCanvas != null
+            ? worldGaugeCanvas.transform as RectTransform
+            : null;
+        if (parent == null)
+        {
+            return;
+        }
+
+        GameObject root = new GameObject(
+            "PlayerChargeGauge_Runtime",
+            typeof(RectTransform),
+            typeof(CanvasGroup)
+        );
+        root.layer = parent.gameObject.layer;
+        root.SetActive(false);
+
+        RectTransform rootRect = root.GetComponent<RectTransform>();
+        rootRect.SetParent(parent, false);
+        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+        rootRect.pivot = new Vector2(0.5f, 0f);
+        rootRect.sizeDelta = new Vector2(54f, 6f);
+
+        Image background = CreateRuntimeImage(
+            "Background",
+            rootRect,
+            new Color(0.015f, 0.03f, 0.05f, 0.86f)
+        );
+        background.rectTransform.anchorMin = new Vector2(0f, 0.25f);
+        background.rectTransform.anchorMax = new Vector2(1f, 0.75f);
+        background.rectTransform.offsetMin = Vector2.zero;
+        background.rectTransform.offsetMax = Vector2.zero;
+        background.raycastTarget = false;
+
+        GameObject fillAreaObject = new GameObject("Fill Area", typeof(RectTransform));
+        fillAreaObject.layer = root.layer;
+        RectTransform fillArea = fillAreaObject.GetComponent<RectTransform>();
+        fillArea.SetParent(rootRect, false);
+        fillArea.anchorMin = new Vector2(0f, 0.25f);
+        fillArea.anchorMax = new Vector2(1f, 0.75f);
+        fillArea.offsetMin = Vector2.zero;
+        fillArea.offsetMax = Vector2.zero;
+
+        Image fill = CreateRuntimeImage("Fill", fillArea, new Color(0.35f, 0.8f, 1f, 1f));
+
+        Slider slider = root.AddComponent<Slider>();
+        slider.navigation = new Navigation { mode = Navigation.Mode.None };
+        slider.transition = Selectable.Transition.None;
+        slider.interactable = false;
+        slider.targetGraphic = background;
+        slider.fillRect = fill.rectTransform;
+        slider.handleRect = null;
+        slider.direction = Slider.Direction.LeftToRight;
+        slider.minValue = 0f;
+        slider.maxValue = 1f;
+        slider.wholeNumbers = false;
+        slider.SetValueWithoutNotify(1f);
+
+        CanvasGroup group = root.GetComponent<CanvasGroup>();
+        group.interactable = false;
+        group.blocksRaycasts = false;
+
+        GaugeBarUI gauge = root.AddComponent<GaugeBarUI>();
+        gauge.ConfigureRuntime(fill, null, group, root);
+
+        WorldGaugeFollower follower = root.AddComponent<WorldGaugeFollower>();
+        follower.ConfigureRuntime(
+            playerHealth.transform,
+            new Vector3(0f, 1.1f, 0f),
+            worldGaugeCanvas,
+            Camera.main
+        );
+
+        PlayerWeaponController weaponController = FindFirstObjectByType<PlayerWeaponController>();
+        playerChargeGaugeUI = root.AddComponent<PlayerChargeGaugeUI>();
+        playerChargeGaugeUI.ConfigureRuntime(
+            playerHealth.transform,
+            gauge,
+            follower,
+            group,
+            weaponController
+        );
+        root.SetActive(true);
+    }
+
+    private void ResolveWorldGaugeCanvas()
+    {
+        if (worldGaugeCanvas != null)
+        {
+            return;
+        }
+
+        if (playerChargeGaugeUI != null)
+        {
+            worldGaugeCanvas = playerChargeGaugeUI.GetComponentInParent<Canvas>();
+            if (worldGaugeCanvas != null)
+            {
+                return;
+            }
+        }
+
+        Canvas[] canvases = FindObjectsByType<Canvas>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            Canvas candidate = canvases[i];
+            if (candidate != null && candidate.name == "Canvas_WorldHUD")
+            {
+                worldGaugeCanvas = candidate;
+                return;
+            }
+        }
+    }
+
+    private void EnsureReinforcementPresentation()
+    {
+        if (reinforcementSlotUI != null)
+        {
+            return;
+        }
+
+        RectTransform parent = transform as RectTransform;
+        if (parent == null)
+        {
+            return;
+        }
+
+        GameObject root = new GameObject(
+            "ReinforcementSlotUI_Runtime",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image),
+            typeof(CanvasGroup)
+        );
+        root.layer = parent.gameObject.layer;
+        root.SetActive(false);
+
+        RectTransform rootRect = root.GetComponent<RectTransform>();
+        rootRect.SetParent(parent, false);
+        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+        rootRect.pivot = new Vector2(0.5f, 0.5f);
+        rootRect.anchoredPosition = new Vector2(-220f, -103f);
+        rootRect.sizeDelta = new Vector2(28f, 28f);
+        rootRect.localScale = new Vector3(0.8f, 0.8f, 1f);
+
+        Image background = root.GetComponent<Image>();
+        background.color = new Color(0.025f, 0.055f, 0.075f, 0.92f);
+        background.raycastTarget = false;
+
+        Image readyGlow = CreateRuntimeImage("ReadyGlow", rootRect, new Color(0.65f, 0.95f, 1f, 0.2f));
+        SetRuntimeInset(readyGlow.rectTransform, -2f);
+        readyGlow.gameObject.SetActive(false);
+
+        Image icon = CreateRuntimeImage("Icon", rootRect, Color.white);
+        SetRuntimeInset(icon.rectTransform, 2f);
+        icon.preserveAspect = true;
+
+        Image rechargeFill = CreateRuntimeImage("RechargeFill", rootRect, Color.white);
+        SetRuntimeInset(rechargeFill.rectTransform, 2f);
+        rechargeFill.preserveAspect = true;
+
+        Image durationFill = CreateRuntimeImage("DurationFill", rootRect, new Color(0.35f, 0.9f, 1f, 0.55f));
+        SetRuntimeInset(durationFill.rectTransform, 2f);
+        durationFill.preserveAspect = true;
+
+        Image disabledOverlay = CreateRuntimeImage("DisabledOverlay", rootRect, new Color(0f, 0f, 0f, 0.42f));
+        SetRuntimeInset(disabledOverlay.rectTransform, 2f);
+
+        TextMeshProUGUI chargeText = CreateRuntimeText("Charges", rootRect, 6f, TextAlignmentOptions.TopRight);
+        chargeText.rectTransform.offsetMin = new Vector2(2f, 2f);
+        chargeText.rectTransform.offsetMax = new Vector2(-2f, -2f);
+
+        TextMeshProUGUI keyText = CreateRuntimeText("Binding", rootRect, 6f, TextAlignmentOptions.Center);
+        RectTransform keyRect = keyText.rectTransform;
+        keyRect.anchorMin = new Vector2(0.5f, 0f);
+        keyRect.anchorMax = new Vector2(0.5f, 0f);
+        keyRect.pivot = new Vector2(0.5f, 1f);
+        keyRect.anchoredPosition = new Vector2(0f, -2f);
+        keyRect.sizeDelta = new Vector2(36f, 9f);
+
+        CanvasGroup group = root.GetComponent<CanvasGroup>();
+        group.interactable = false;
+        group.blocksRaycasts = false;
+
+        reinforcementSlotUI = root.AddComponent<ReinforcementSlotUI>();
+        reinforcementSlotUI.ConfigureRuntime(
+            root,
+            group,
+            icon,
+            rechargeFill,
+            durationFill,
+            readyGlow.gameObject,
+            readyGlow,
+            chargeText,
+            keyText,
+            disabledOverlay
+        );
+        root.SetActive(true);
+    }
+
+    private void EnsureCargoPresentation()
+    {
+        if (cargoRoot != null || !Application.isPlaying || !createCargoPresentationIfMissing || statusRoot == null)
+        {
+            ResolveCargoCanvasGroup();
+            ApplyCargoVisualPolish();
+            return;
+        }
+
+        RectTransform parent = statusRoot.transform as RectTransform;
+        if (parent == null)
+        {
+            return;
+        }
+
+        GameObject root = new GameObject(
+            "CargoStatus",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image),
+            typeof(CanvasGroup)
+        );
+        root.layer = parent.gameObject.layer;
+
+        RectTransform rootRect = root.GetComponent<RectTransform>();
+        rootRect.SetParent(parent, false);
+        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+        rootRect.pivot = new Vector2(0f, 0.5f);
+        rootRect.anchoredPosition = new Vector2(-232f, -82f);
+        rootRect.sizeDelta = new Vector2(104f, 22f);
+
+        cargoPanelImage = root.GetComponent<Image>();
+        cargoPanelImage.color = new Color(0.012f, 0.026f, 0.04f, 0.94f);
+        cargoPanelImage.raycastTarget = false;
+
+        cargoTrackImage = CreateRuntimeImage(
+            "CargoBarTrack",
+            rootRect,
+            new Color(0.025f, 0.065f, 0.085f, 0.96f)
+        );
+        cargoFillImage = CreateRuntimeImage("Fill", rootRect, cargoNormalColor);
+        cargoFillImage.type = Image.Type.Filled;
+        cargoFillImage.fillMethod = Image.FillMethod.Horizontal;
+        cargoFillImage.fillOrigin = (int)Image.OriginHorizontal.Left;
+        cargoFillImage.fillClockwise = true;
+
+        TextMeshProUGUI valueText = CreateRuntimeText("CargoValue", rootRect, 6.5f, TextAlignmentOptions.Right);
+        valueText.fontStyle = FontStyles.Bold;
+        valueText.color = Color.white;
+
+        cargoRoot = root;
+        cargoCanvasGroup = root.GetComponent<CanvasGroup>();
+        cargoCanvasGroup.interactable = false;
+        cargoCanvasGroup.blocksRaycasts = false;
+        cargoValueText = valueText;
+        cargoGauge = root.AddComponent<GaugeBarUI>();
+        cargoGauge.ConfigureRuntime(cargoFillImage, valueText, cargoCanvasGroup, root);
+        ApplyCargoVisualPolish();
+    }
+
+    private void ApplyCargoVisualPolish()
+    {
+        if (!Application.isPlaying || cargoRoot == null || cargoGauge == null)
+        {
+            return;
+        }
+
+        RectTransform rootRect = cargoRoot.transform as RectTransform;
+        if (rootRect == null)
+        {
+            return;
+        }
+
+        cargoPanelImage ??= cargoRoot.GetComponent<Image>();
+        cargoPanelImage ??= cargoRoot.AddComponent<Image>();
+        cargoPanelImage.color = new Color(0.012f, 0.026f, 0.04f, 0.94f);
+        cargoPanelImage.raycastTarget = false;
+
+        cargoFrameOutline ??= cargoRoot.GetComponent<Outline>();
+        cargoFrameOutline ??= cargoRoot.AddComponent<Outline>();
+        cargoFrameOutline.effectDistance = new Vector2(1f, -1f);
+        cargoFrameOutline.useGraphicAlpha = false;
+
+        Slider slider = cargoGauge.GetComponent<Slider>();
+        if (slider != null)
+        {
+            cargoTrackImage ??= slider.targetGraphic as Image;
+            cargoFillImage ??= slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
+        }
+
+        if (cargoTrackImage == null)
+        {
+            Transform trackTransform = rootRect.Find("CargoBarTrack");
+            cargoTrackImage = trackTransform != null ? trackTransform.GetComponent<Image>() : null;
+        }
+
+        if (cargoFillImage == null)
+        {
+            Transform fillTransform = rootRect.Find("Fill");
+            cargoFillImage = fillTransform != null ? fillTransform.GetComponent<Image>() : null;
+        }
+
+        if (cargoAccentImage == null)
+        {
+            Transform accentTransform = rootRect.Find("CargoAccent");
+            cargoAccentImage = accentTransform != null
+                ? accentTransform.GetComponent<Image>()
+                : CreateRuntimeImage("CargoAccent", rootRect, cargoNormalColor);
+        }
+
+        if (cargoLabelText == null)
+        {
+            Transform labelTransform = rootRect.Find("CargoLabel");
+            cargoLabelText = labelTransform != null
+                ? labelTransform.GetComponent<TextMeshProUGUI>()
+                : CreateRuntimeText("CargoLabel", rootRect, 5.5f, TextAlignmentOptions.Left);
+        }
+
+        SetCargoPanelRect(
+            cargoAccentImage.rectTransform,
+            Vector2.zero,
+            new Vector2(0f, 1f),
+            new Vector2(1f, 2f),
+            new Vector2(3f, -2f)
+        );
+        SetCargoPanelRect(
+            cargoLabelText.rectTransform,
+            new Vector2(0f, 0.42f),
+            new Vector2(0.58f, 1f),
+            new Vector2(7f, 0f),
+            new Vector2(-1f, -1f)
+        );
+        SetCargoPanelRect(
+            cargoValueText.rectTransform,
+            new Vector2(0.48f, 0.42f),
+            Vector2.one,
+            Vector2.zero,
+            new Vector2(-5f, -1f)
+        );
+
+        cargoLabelText.text = cargoLabel;
+        cargoLabelText.fontStyle = FontStyles.Normal;
+        cargoLabelText.fontSize = 5.5f;
+        cargoLabelText.alignment = TextAlignmentOptions.Left;
+        cargoLabelText.raycastTarget = false;
+
+        cargoValueText.fontStyle = FontStyles.Bold;
+        cargoValueText.fontSize = 6.5f;
+        cargoValueText.alignment = TextAlignmentOptions.Right;
+        cargoValueText.raycastTarget = false;
+        cargoValueText.gameObject.SetActive(true);
+
+        if (cargoTrackImage != null)
+        {
+            SetCargoPanelRect(
+                cargoTrackImage.rectTransform,
+                Vector2.zero,
+                new Vector2(1f, 0f),
+                new Vector2(5f, 3f),
+                new Vector2(-4f, 8f)
+            );
+            cargoTrackImage.color = new Color(0.025f, 0.065f, 0.085f, 0.96f);
+            cargoTrackImage.raycastTarget = false;
+        }
+
+        RectTransform fillAreaRect = slider != null && slider.fillRect != null
+            ? slider.fillRect.parent as RectTransform
+            : null;
+        if (fillAreaRect != null)
+        {
+            SetCargoPanelRect(
+                fillAreaRect,
+                Vector2.zero,
+                new Vector2(1f, 0f),
+                new Vector2(6f, 4f),
+                new Vector2(-5f, 7f)
+            );
+        }
+        else if (cargoFillImage != null)
+        {
+            SetCargoPanelRect(
+                cargoFillImage.rectTransform,
+                Vector2.zero,
+                new Vector2(1f, 0f),
+                new Vector2(6f, 4f),
+                new Vector2(-5f, 7f)
+            );
+        }
+
+        if (cargoFillImage != null)
+        {
+            cargoFillImage.raycastTarget = false;
+        }
+
+        CargoGaugeTickGraphic tickGraphic = cargoRoot.GetComponentInChildren<CargoGaugeTickGraphic>(true);
+        if (tickGraphic != null)
+        {
+            tickGraphic.gameObject.SetActive(false);
+        }
+
+        ResolveCargoCanvasGroup();
+    }
+
+    private static void SetCargoPanelRect(
+        RectTransform rect,
+        Vector2 anchorMin,
+        Vector2 anchorMax,
+        Vector2 offsetMin,
+        Vector2 offsetMax)
+    {
+        if (rect == null)
+        {
+            return;
+        }
+
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.offsetMin = offsetMin;
+        rect.offsetMax = offsetMax;
+    }
+
+    private void ApplySharedHudLayout()
+    {
+        SetCenteredRect(hpGauge != null ? hpGauge.transform as RectTransform : null,
+            new Vector2(-184f, 123f), new Vector2(96f, 20f));
+        SetCenteredRect(weaponHeatUI != null ? weaponHeatUI.transform as RectTransform : null,
+            new Vector2(-186f, 110f), new Vector2(92f, 4f));
+
+        RectTransform dashRect = dashIcon != null ? dashIcon.rectTransform.parent as RectTransform : null;
+        SetCenteredRect(dashRect, new Vector2(-222f, 96f), new Vector2(20f, 20f));
+
+        RectTransform statusEffectRect = statusEffectPresenter != null
+            ? statusEffectPresenter.transform as RectTransform
+            : null;
+        SetCenteredRect(statusEffectRect, new Vector2(-210f, 96f), new Vector2(136f, 16f), new Vector2(0f, 0.5f));
+
+        SetCenteredRect(menuHintRoot != null ? menuHintRoot.transform as RectTransform : null,
+            new Vector2(-160f, -103f), new Vector2(96f, 24f));
+        SetCenteredRect(reinforcementSlotUI != null ? reinforcementSlotUI.transform as RectTransform : null,
+            new Vector2(-220f, -103f), new Vector2(28f, 28f));
+        SetCenteredRect(cargoRoot != null ? cargoRoot.transform as RectTransform : null,
+            new Vector2(-232f, -82f), new Vector2(104f, 22f), new Vector2(0f, 0.5f));
+    }
+
+    private static void SetCenteredRect(
+        RectTransform rect,
+        Vector2 position,
+        Vector2 size,
+        Vector2? pivot = null)
+    {
+        if (rect == null)
+        {
+            return;
+        }
+
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = pivot ?? new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+    }
+
+    private Image CreateRuntimeImage(string objectName, RectTransform parent, Color color)
+    {
+        GameObject imageObject = new GameObject(
+            objectName,
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image)
+        );
+        imageObject.layer = parent.gameObject.layer;
+        RectTransform rect = imageObject.GetComponent<RectTransform>();
+        rect.SetParent(parent, false);
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        Image image = imageObject.GetComponent<Image>();
+        image.color = color;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private TextMeshProUGUI CreateRuntimeText(
+        string objectName,
+        RectTransform parent,
+        float fontSize,
+        TextAlignmentOptions alignment)
+    {
+        GameObject textObject = new GameObject(
+            objectName,
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(TextMeshProUGUI)
+        );
+        textObject.layer = parent.gameObject.layer;
+        RectTransform rect = textObject.GetComponent<RectTransform>();
+        rect.SetParent(parent, false);
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
+        TMP_FontAsset resolvedFont = uiFont;
+        if (resolvedFont == null)
+        {
+            TextMeshProUGUI source = GetComponentInChildren<TextMeshProUGUI>(true);
+            resolvedFont = source != null ? source.font : null;
+        }
+
+        if (resolvedFont != null)
+        {
+            text.font = resolvedFont;
+        }
+
+        text.fontSize = fontSize;
+        text.alignment = alignment;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Overflow;
+        text.raycastTarget = false;
+        return text;
+    }
+
+    private static void SetRuntimeInset(RectTransform rect, float inset)
+    {
+        rect.offsetMin = new Vector2(inset, inset);
+        rect.offsetMax = new Vector2(-inset, -inset);
     }
 
     private void EnsureCoreTrackingPresentation()
@@ -611,11 +1486,11 @@ public class ExpeditionHUD : MonoBehaviour
         rootRect.anchorMin = new Vector2(0.5f, 0.5f);
         rootRect.anchorMax = new Vector2(0.5f, 0.5f);
         rootRect.pivot = new Vector2(0.5f, 0.5f);
-        rootRect.anchoredPosition = new Vector2(-207f, -113f);
-        rootRect.sizeDelta = new Vector2(58f, 24f);
+        rootRect.anchoredPosition = new Vector2(-160f, -103f);
+        rootRect.sizeDelta = new Vector2(96f, 24f);
 
-        mapHintText = CreateMenuKeyHint(rootRect, "MapHint", mapHintIcon, -14f);
-        inventoryHintText = CreateMenuKeyHint(rootRect, "InventoryHint", inventoryHintIcon, 14f);
+        mapHintText = CreateMenuKeyHint(rootRect, "MapHint", mapHintIcon, -24f);
+        inventoryHintText = CreateMenuKeyHint(rootRect, "InventoryHint", inventoryHintIcon, 10);
     }
 
     private TextMeshProUGUI CreateMenuKeyHint(RectTransform parent, string objectName, Sprite icon, float x)
@@ -642,7 +1517,7 @@ public class ExpeditionHUD : MonoBehaviour
         textRect.anchorMin = new Vector2(0.5f, 0.5f);
         textRect.anchorMax = new Vector2(0.5f, 0.5f);
         textRect.anchoredPosition = new Vector2(x, -6f);
-        textRect.sizeDelta = new Vector2(27f, 8f);
+        textRect.sizeDelta = new Vector2(46f, 8f);
 
         TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
         text.font = uiFont != null ? uiFont : GetComponentInChildren<TextMeshProUGUI>(true)?.font;
@@ -668,12 +1543,14 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void EnsureOperationPresentation()
     {
-        if (operationRoot != null || !createOperationPresentationIfMissing || objectiveRoot == null)
+        if (operationRoot != null || !createOperationPresentationIfMissing)
         {
             return;
         }
 
-        RectTransform objectiveRect = objectiveRoot.transform as RectTransform;
+        RectTransform objectiveRect = objectiveRoot != null
+            ? objectiveRoot.transform as RectTransform
+            : transform as RectTransform;
         if (objectiveRect == null)
         {
             return;
@@ -691,15 +1568,27 @@ public class ExpeditionHUD : MonoBehaviour
 
         RectTransform rootRect = root.GetComponent<RectTransform>();
         rootRect.SetParent(objectiveRect, false);
-        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
-        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
-        rootRect.pivot = new Vector2(0.5f, 0.5f);
-        rootRect.anchoredPosition = new Vector2(0f, 78f);
-        rootRect.sizeDelta = new Vector2(190f, 42f);
+        bool useTutorialGuideLayout = disableObjectiveDirectorAutoResolution;
+        rootRect.anchorMin = useTutorialGuideLayout ? new Vector2(0.5f, 1f) : new Vector2(0.5f, 0.5f);
+        rootRect.anchorMax = rootRect.anchorMin;
+        rootRect.pivot = useTutorialGuideLayout ? new Vector2(0.5f, 1f) : new Vector2(0.5f, 0.5f);
+        rootRect.anchoredPosition = useTutorialGuideLayout ? new Vector2(0f, -14f) : new Vector2(0f, 91f);
+        rootRect.sizeDelta = useTutorialGuideLayout ? new Vector2(214f, 44f) : new Vector2(210f, 40f);
 
         Image background = root.GetComponent<Image>();
-        background.color = new Color(0.025f, 0.04f, 0.055f, 0.72f);
+        background.color = new Color(0.025f, 0.04f, 0.055f, 0.88f);
         background.raycastTarget = false;
+
+        operationAccentImage = CreateRuntimeImage(
+            "Accent",
+            rootRect,
+            new Color(0.42f, 0.9f, 1f, 1f)
+        );
+        RectTransform accentRect = operationAccentImage.rectTransform;
+        accentRect.anchorMin = new Vector2(0f, 0f);
+        accentRect.anchorMax = new Vector2(0f, 1f);
+        accentRect.offsetMin = new Vector2(1f, 2f);
+        accentRect.offsetMax = new Vector2(3f, -2f);
 
         operationCanvasGroup = root.GetComponent<CanvasGroup>();
         operationCanvasGroup.interactable = false;
@@ -709,18 +1598,18 @@ public class ExpeditionHUD : MonoBehaviour
             "Title",
             rootRect,
             fontSource,
-            new Vector2(5f, 24f),
-            new Vector2(-4f, -2f),
-            6.5f,
+            useTutorialGuideLayout ? new Vector2(7f, 25f) : new Vector2(5f, 24f),
+            useTutorialGuideLayout ? new Vector2(-5f, -3f) : new Vector2(-4f, -2f),
+            useTutorialGuideLayout ? 9f : 6.5f,
             FontStyles.Bold
         );
         operationDetailText = CreateOperationText(
             "Detail",
             rootRect,
             fontSource,
-            new Vector2(5f, 3f),
-            new Vector2(-5f, -17f),
-            5.5f,
+            useTutorialGuideLayout ? new Vector2(7f, 4f) : new Vector2(5f, 3f),
+            useTutorialGuideLayout ? new Vector2(-6f, -18f) : new Vector2(-5f, -17f),
+            useTutorialGuideLayout ? 7.5f : 5.5f,
             FontStyles.Normal
         );
         operationDetailText.color = new Color(0.86f, 0.92f, 0.98f, 1f);
@@ -779,6 +1668,12 @@ public class ExpeditionHUD : MonoBehaviour
         if (playerHealth != null)
         {
             playerHealth.Changed += HandleHealthChanged;
+            playerHealth.InvincibilityChanged += HandleInvincibilityChanged;
+        }
+
+        if (componentShield != null)
+        {
+            componentShield.ChargeStateChanged += HandleShieldChargeStateChanged;
         }
 
         if (playerArmor != null)
@@ -803,6 +1698,7 @@ public class ExpeditionHUD : MonoBehaviour
         if (cargoController != null)
         {
             cargoController.CargoChanged += HandleCargoChanged;
+            cargoController.CargoFullRejected += HandleCargoFullRejected;
         }
 
         if (coreTrackingController != null)
@@ -835,6 +1731,12 @@ public class ExpeditionHUD : MonoBehaviour
         if (playerHealth != null)
         {
             playerHealth.Changed -= HandleHealthChanged;
+            playerHealth.InvincibilityChanged -= HandleInvincibilityChanged;
+        }
+
+        if (componentShield != null)
+        {
+            componentShield.ChargeStateChanged -= HandleShieldChargeStateChanged;
         }
 
         if (playerArmor != null)
@@ -859,6 +1761,7 @@ public class ExpeditionHUD : MonoBehaviour
         if (cargoController != null)
         {
             cargoController.CargoChanged -= HandleCargoChanged;
+            cargoController.CargoFullRejected -= HandleCargoFullRejected;
         }
 
         if (coreTrackingController != null)
@@ -960,7 +1863,13 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
-    private void HandleRunStarted(RunContext _) => RefreshAll();
+    private void HandleRunStarted(RunContext _)
+    {
+        cargoPresentationInitialized = false;
+        lastCargoLoad = -1;
+        lastCargoCapacity = -1;
+        RefreshAll();
+    }
     private void HandleWalletChanged(RunWallet wallet) => RefreshWallet(wallet);
     private void HandleHealthChanged(float current, float max) => RefreshHealthAndArmor(
         current,
@@ -968,6 +1877,8 @@ public class ExpeditionHUD : MonoBehaviour
         playerArmor != null ? playerArmor.CurrentArmor : 0f,
         playerArmor != null ? playerArmor.MaxArmor : 1f
     );
+    private void HandleInvincibilityChanged(bool _) => RefreshHealthStateVisual();
+    private void HandleShieldChargeStateChanged(bool _) => RefreshHealthStateVisual();
 
     private void HandleArmorChanged(float current, float max) => RefreshHealthAndArmor(
         playerHealth != null ? playerHealth.CurrentHp : 0f,
@@ -983,7 +1894,28 @@ public class ExpeditionHUD : MonoBehaviour
     private void HandleReinforcementChargesChanged(int _, int __, float ___) => UpdateReinforcementSlot();
     private void HandleReinforcementUsed(ReinforcementDefinition _) => UpdateReinforcementSlot();
     private void HandleReinforcementTimedStatusesChanged() => UpdateReinforcementSlot();
-    private void HandleCargoChanged(int _, int __) => UpdateCargoDisplay();
+    private void HandleCargoChanged(int current, int capacity)
+    {
+        bool actualCargoChanged = cargoPresentationInitialized &&
+                                  (current != lastCargoLoad || capacity != lastCargoCapacity);
+        UpdateCargoDisplay(current, capacity);
+
+        if (!cargoPresentationInitialized)
+        {
+            InitializeCargoVisibilityIfNeeded();
+        }
+        else if (actualCargoChanged)
+        {
+            EmphasizeCargoVisibility();
+        }
+    }
+
+    private void HandleCargoFullRejected()
+    {
+        UpdateCargoDisplay();
+        InitializeCargoVisibilityIfNeeded();
+        EmphasizeCargoVisibility();
+    }
     private void HandleGameSettingsChanged() => RefreshBindingHints();
 
     private void HandleInputActionChange(object changedObject, InputActionChange change)
@@ -1028,6 +1960,50 @@ public class ExpeditionHUD : MonoBehaviour
         {
             legacyArmorGauge.SetVisible(false);
         }
+
+        RefreshHealthStateVisual();
+    }
+
+    private void RefreshHealthStateVisual()
+    {
+        Color stateColor = hpNormalStateColor;
+        if (playerHealth != null && playerHealth.IsInvincible)
+        {
+            stateColor = hpInvulnerableStateColor;
+        }
+        else if (componentShield != null && componentShield.isActiveAndEnabled && componentShield.IsCharged)
+        {
+            stateColor = hpShieldStateColor;
+        }
+
+        if (hpFrameOutline != null)
+        {
+            hpFrameOutline.effectColor = new Color(stateColor.r, stateColor.g, stateColor.b, 0.62f);
+        }
+
+        if (hpAccentImage != null)
+        {
+            hpAccentImage.color = stateColor;
+        }
+
+        if (hpLabelText != null)
+        {
+            hpLabelText.color = Color.Lerp(Color.white, stateColor, 0.58f);
+        }
+
+        if (hpPanelImage != null)
+        {
+            Color panelTint = Color.Lerp(new Color(0.035f, 0.018f, 0.024f, 1f), stateColor, 0.08f);
+            panelTint.a = 0.96f;
+            hpPanelImage.color = panelTint;
+        }
+
+        if (hpTrackImage != null)
+        {
+            Color trackTint = Color.Lerp(new Color(0.1f, 0.025f, 0.035f, 1f), stateColor, 0.1f);
+            trackTint.a = 0.98f;
+            hpTrackImage.color = trackTint;
+        }
     }
 
     private void RefreshArmorFill(float hpRatio, float combinedRatio, bool visible)
@@ -1037,8 +2013,8 @@ public class ExpeditionHUD : MonoBehaviour
             return;
         }
 
-        armorFillRect.anchorMin = new Vector2(hpRatio, 0f);
-        armorFillRect.anchorMax = new Vector2(Mathf.Max(hpRatio, combinedRatio), 1f);
+        armorFillRect.anchorMin = new Vector2(hpRatio, 0.15f);
+        armorFillRect.anchorMax = new Vector2(Mathf.Max(hpRatio, combinedRatio), 0.85f);
         armorFillRect.offsetMin = Vector2.zero;
         armorFillRect.offsetMax = Vector2.zero;
         if (armorFillImage != null)
@@ -1176,7 +2152,10 @@ public class ExpeditionHUD : MonoBehaviour
         stabilizedAlloyCounter?.SetAmount(wallet != null ? wallet.PendingStabilizedAlloy : 0);
         tuningChipCounter?.SetAmount(wallet != null ? wallet.TuningChips : 0);
         RepackVisibleResourceCounters(counters);
-        UpdateCargoDisplay();
+        if (cargoController == null)
+        {
+            UpdateCargoDisplay();
+        }
     }
 
     private void CacheResourceCounterOrigin()
@@ -1328,6 +2307,14 @@ public class ExpeditionHUD : MonoBehaviour
             capacity = runContext.MaxCargoCapacity;
         }
 
+        UpdateCargoDisplay(current, capacity);
+    }
+
+    private void UpdateCargoDisplay(int current, int capacity)
+    {
+        current = Mathf.Max(0, current);
+        capacity = Mathf.Max(0, capacity);
+
         int safeCapacity = Mathf.Max(1, capacity);
         float ratio = Mathf.Clamp01(current / (float)safeCapacity);
         Color color = ratio >= 0.999f
@@ -1335,47 +2322,134 @@ public class ExpeditionHUD : MonoBehaviour
             : ratio >= cargoWarningRatio ? cargoWarningColor : cargoNormalColor;
 
         cargoGauge?.SetValue(current, safeCapacity);
-        cargoGauge?.SetText(string.Format(cargoValueFormat, current, capacity));
+        string cargoText = string.Format(cargoValueFormat, current, capacity);
+        cargoGauge?.SetText(cargoText);
         cargoGauge?.SetFillColor(color);
-        EnsureCargoTickPresentation();
-        cargoTickGraphic?.Configure(capacity, cargoTickInterval, cargoTickColor);
 
         if (cargoValueText != null)
         {
-            cargoValueText.text = string.Format(cargoValueFormat, current, capacity);
-            cargoValueText.color = color;
+            cargoValueText.gameObject.SetActive(true);
+            cargoValueText.text = cargoText;
+            cargoValueText.color = ratio >= cargoWarningRatio
+                ? Color.Lerp(Color.white, color, ratio >= 0.999f ? 0.6f : 0.35f)
+                : Color.white;
+        }
+
+        if (cargoLabelText != null)
+        {
+            cargoLabelText.text = cargoLabel;
+            cargoLabelText.color = ratio >= cargoWarningRatio
+                ? Color.Lerp(new Color(0.62f, 0.74f, 0.79f, 1f), color, 0.35f)
+                : new Color(0.62f, 0.74f, 0.79f, 1f);
+        }
+
+        if (cargoAccentImage != null)
+        {
+            cargoAccentImage.color = new Color(color.r, color.g, color.b, 0.9f);
+        }
+
+        if (cargoFrameOutline != null)
+        {
+            float frameAlpha = ratio >= 0.999f ? 0.78f : ratio >= cargoWarningRatio ? 0.58f : 0.34f;
+            cargoFrameOutline.effectColor = new Color(color.r, color.g, color.b, frameAlpha);
+        }
+
+        lastCargoLoad = current;
+        lastCargoCapacity = capacity;
+    }
+
+    private void ResolveCargoCanvasGroup()
+    {
+        if (cargoRoot == null)
+        {
+            return;
+        }
+
+        if (cargoCanvasGroup == null)
+        {
+            cargoCanvasGroup = cargoRoot.GetComponent<CanvasGroup>();
+        }
+
+        if (cargoCanvasGroup == null && Application.isPlaying)
+        {
+            cargoCanvasGroup = cargoRoot.AddComponent<CanvasGroup>();
+        }
+
+        if (cargoCanvasGroup != null)
+        {
+            cargoCanvasGroup.interactable = false;
+            cargoCanvasGroup.blocksRaycasts = false;
         }
     }
 
-    private void EnsureCargoTickPresentation()
+    private void InitializeCargoVisibilityIfNeeded()
     {
-        if (cargoTickGraphic != null || cargoGauge == null)
+        if (cargoPresentationInitialized)
         {
             return;
         }
 
-        RectTransform gaugeRect = cargoGauge.transform as RectTransform;
-        if (gaugeRect == null)
+        ResolveCargoCanvasGroup();
+        cargoPresentationInitialized = true;
+        SetCargoAlpha(GetCargoIdleAlpha());
+    }
+
+    private void EmphasizeCargoVisibility()
+    {
+        ResolveCargoCanvasGroup();
+        if (cargoCanvasGroup == null)
         {
             return;
         }
 
-        GameObject tickObject = new GameObject(
-            "CargoCapacityTicks",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(CargoGaugeTickGraphic)
+        KillCargoVisibilityTween();
+        SetCargoAlpha(1f);
+        float idleAlpha = GetCargoIdleAlpha();
+
+        if (idleAlpha >= 0.999f)
+        {
+            return;
+        }
+
+        cargoVisibilitySequence = DOTween.Sequence().SetUpdate(true);
+        cargoVisibilitySequence.AppendInterval(Mathf.Max(0f, cargoVisibleDuration));
+        cargoVisibilitySequence.Append(
+            cargoCanvasGroup.DOFade(idleAlpha, Mathf.Max(0.05f, cargoFadeDuration))
+                .SetEase(Ease.OutQuad)
         );
-        tickObject.layer = gaugeRect.gameObject.layer;
-        RectTransform tickRect = tickObject.GetComponent<RectTransform>();
-        tickRect.SetParent(gaugeRect, false);
-        tickRect.anchorMin = Vector2.zero;
-        tickRect.anchorMax = Vector2.one;
-        tickRect.offsetMin = Vector2.zero;
-        tickRect.offsetMax = Vector2.zero;
-        tickRect.SetAsLastSibling();
-        cargoTickGraphic = tickObject.GetComponent<CargoGaugeTickGraphic>();
-        cargoTickGraphic.raycastTarget = false;
+        cargoVisibilitySequence.OnComplete(() => cargoVisibilitySequence = null);
+    }
+
+    private float GetCargoIdleAlpha()
+    {
+        if (lastCargoCapacity <= 0)
+        {
+            return 0f;
+        }
+
+        float ratio = Mathf.Clamp01(lastCargoLoad / (float)lastCargoCapacity);
+        if (ratio >= 0.999f)
+        {
+            return 1f;
+        }
+
+        return ratio >= cargoWarningRatio ? cargoWarningIdleAlpha : 0f;
+    }
+
+    private void SetCargoAlpha(float alpha)
+    {
+        ResolveCargoCanvasGroup();
+        if (cargoCanvasGroup != null)
+        {
+            cargoCanvasGroup.alpha = Mathf.Clamp01(alpha);
+        }
+    }
+
+    private void KillCargoVisibilityTween()
+    {
+        cargoVisibilitySequence?.Kill();
+        cargoVisibilitySequence = null;
+        cargoCanvasGroup?.DOKill();
     }
 
     private void UpdateReinforcementSlot()

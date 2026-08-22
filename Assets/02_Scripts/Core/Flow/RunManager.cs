@@ -450,7 +450,7 @@ public class RunManager : MonoBehaviour
         int collectedCargoLoad = run.CalculateCargoLoad(collectedScrap, collectedCore, collectedAlloy);
         int committedCargoLoad = run.CalculateCargoLoad(committedScrap, committedCore, committedAlloy);
 
-        return new RunResultData
+        RunResultData resultData = new RunResultData
         {
             endReason = reason,
             selectedWeaponTree = run.SelectedWeaponTree,
@@ -484,6 +484,27 @@ public class RunManager : MonoBehaviour
             committedCargoLoad = committedCargoLoad,
             emergencyReturnCargoLimit = emergencyCargoLimit
         };
+
+        resultData.settledResources.Add(new RunSettlementResourceResult(
+            CurrencyType.ScrapParts,
+            collectedScrap,
+            committedScrap,
+            lostScrap
+        ));
+        resultData.settledResources.Add(new RunSettlementResourceResult(
+            CurrencyType.CoreShards,
+            collectedCore,
+            committedCore,
+            lostCore
+        ));
+        resultData.settledResources.Add(new RunSettlementResourceResult(
+            CurrencyType.StabilizedAlloy,
+            collectedAlloy,
+            committedAlloy,
+            lostAlloy
+        ));
+
+        return resultData;
     }
 
     private void CalculateEmergencyReturnCommit(

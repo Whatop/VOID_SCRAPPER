@@ -106,6 +106,7 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private int spreadVolleyCountPhase2 = 3;
     [SerializeField] private int spreadProjectileCount = 5;
     [SerializeField] private float spreadAngle = 70f;
+    [SerializeField] private float spreadVolleyAngleStep = 8f;
     [SerializeField] private float spreadVolleyInterval = 0.25f;
     [SerializeField] private float spreadProjectileDamage = 2f;
     [SerializeField] private float spreadProjectileSpeedOverride = -1f;
@@ -223,11 +224,9 @@ public class BossPatternController : MonoBehaviour
     [SerializeField] private AnimationCurve phase2ManagerMoveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
     [Header("Phase 2 - Hexagon Layout")]
-    [Tooltip("2페이즈에서 기존 4대 관리기체를 직사각형 꼭짓점에서 육각형 어깨 위치로 재배치할 때의 X 배율입니다.")]
-    [SerializeField] private float phase2HexagonSideXScale = 1f;
-
-    [Tooltip("2페이즈 육각형의 좌상/좌하/우하/우상 관리기체 Y 위치 비율입니다. 0.5면 정육각형에 가까운 어깨 위치가 됩니다.")]
-    [SerializeField] private float phase2HexagonShoulderYRatio = 0.5f;
+    [Tooltip("아레나 안에 맞춰 계산한 정육각형 반지름에 적용하는 배율입니다.")]
+    [Range(0.1f, 1f)]
+    [SerializeField] private float phase2HexagonRadiusScale = 1f;
 
     [Header("Phase 2 - Opposite Pair Rotating Lasers")]
     [Tooltip("회전 레이저의 최종 형상이 고정되어 밝아지는 LOCK 시간입니다. 이 동안 피해는 없습니다.")]
@@ -445,8 +444,16 @@ public class BossPatternController : MonoBehaviour
         DeactivateRotatingLasers();
         DeactivatePatternLaserHazards();
         ClearTransientVisualObjects();
-        RestorePhase2PlayerInput();
-        RestorePhase2Presentation(true);
+
+        bool deathPresentationOwnsCinematicState = deathHandled &&
+                                                    GetComponent<BossDeathPresentation>() != null;
+
+        if (!deathPresentationOwnsCinematicState)
+        {
+            RestorePhase2PlayerInput();
+            RestorePhase2Presentation(true);
+        }
+
         SetPhase2ShieldVisualVisible(false);
         SetRegularPhase2HexVisualVisible(false);
 
@@ -768,6 +775,8 @@ public class BossPatternController : MonoBehaviour
 
             Vector2 origin = ResolveFirePosition();
             Vector2 baseDirection = ResolveDirectionToPlayer(origin);
+            float centeredVolleyIndex = i - (volleyCount - 1) * 0.5f;
+            baseDirection = RotateVector(baseDirection, centeredVolleyIndex * spreadVolleyAngleStep).normalized;
 
             AudioManager.PlayAt(SoundEventIds.BossSpreadFire, origin);
             FireSpread(
@@ -1505,20 +1514,39 @@ public class BossPatternController : MonoBehaviour
 
     private Vector2[] GetPhase2HexagonFinalPositionsCounterClockwise()
     {
-        Vector2 half = GetEffectiveHalfExtents();
-        float x = Mathf.Max(0.1f, half.x * Mathf.Max(0.1f, phase2HexagonSideXScale));
-        float y = Mathf.Max(0.1f, half.y);
-        float shoulderY = y * Mathf.Clamp(phase2HexagonShoulderYRatio, 0.05f, 0.95f);
+        Vector2[] localVertices = GetPhase2RegularHexLocalVerticesCounterClockwise();
+
+        for (int i = 0; i < localVertices.Length; i++)
+        {
+            localVertices[i] += arenaCenter;
+        }
+
+        return localVertices;
+    }
+
+    private Vector2[] GetPhase2RegularHexLocalVerticesCounterClockwise()
+    {
+        float radius = GetPhase2RegularHexRadius();
+        float horizontal = radius * 0.8660254f;
+        float shoulderY = radius * 0.5f;
 
         return new[]
         {
-        arenaCenter + new Vector2(0f, y),
-        arenaCenter + new Vector2(-x, shoulderY),
-        arenaCenter + new Vector2(-x, -shoulderY),
-        arenaCenter + new Vector2(0f, -y),
-        arenaCenter + new Vector2(x, -shoulderY),
-        arenaCenter + new Vector2(x, shoulderY)
-    };
+            new Vector2(0f, radius),
+            new Vector2(-horizontal, shoulderY),
+            new Vector2(-horizontal, -shoulderY),
+            new Vector2(0f, -radius),
+            new Vector2(horizontal, -shoulderY),
+            new Vector2(horizontal, shoulderY)
+        };
+    }
+
+    private float GetPhase2RegularHexRadius()
+    {
+        Vector2 half = GetEffectiveHalfExtents();
+        float horizontalRatio = 0.8660254f;
+        float fittedRadius = Mathf.Min(half.y, half.x / horizontalRatio);
+        return Mathf.Max(0.1f, fittedRadius * Mathf.Clamp(phase2HexagonRadiusScale, 0.1f, 1f));
     }
     private float GetManagerRotationForPosition(Vector2 position)
     {
@@ -1914,16 +1942,12 @@ public class BossPatternController : MonoBehaviour
             phase2RegularHexVisualLine.sharedMaterial = material;
         }
 
-        float radius = Mathf.Max(0.1f, GetEffectiveHalfExtents().y);
-        float horizontal = radius * 0.8660254f;
-        float shoulderY = radius * 0.5f;
+        Vector2[] localVertices = GetPhase2RegularHexLocalVerticesCounterClockwise();
 
-        phase2RegularHexVisualLine.SetPosition(0, new Vector3(0f, radius, 0f));
-        phase2RegularHexVisualLine.SetPosition(1, new Vector3(-horizontal, shoulderY, 0f));
-        phase2RegularHexVisualLine.SetPosition(2, new Vector3(-horizontal, -shoulderY, 0f));
-        phase2RegularHexVisualLine.SetPosition(3, new Vector3(0f, -radius, 0f));
-        phase2RegularHexVisualLine.SetPosition(4, new Vector3(horizontal, -shoulderY, 0f));
-        phase2RegularHexVisualLine.SetPosition(5, new Vector3(horizontal, shoulderY, 0f));
+        for (int i = 0; i < localVertices.Length; i++)
+        {
+            phase2RegularHexVisualLine.SetPosition(i, localVertices[i]);
+        }
         phase2RegularHexVisualLine.startWidth = Mathf.Max(0.04f, phase2RegularHexVisualWidth);
         phase2RegularHexVisualLine.endWidth = Mathf.Max(0.04f, phase2RegularHexVisualWidth);
         phase2RegularHexVisualLine.startColor = phase2RegularHexVisualColor;
@@ -2363,6 +2387,11 @@ public class BossPatternController : MonoBehaviour
         ResolvePhase2PresentationReferences();
         ActivatePhase2Shield();
 
+        if (phase2GungeonCamera != null)
+        {
+            phase2GungeonCamera.SetCinematicInputOffsetLocked(true);
+        }
+
         AudioManager.PlayAt(SoundEventIds.BossPhase2, transform.position);
 
         if (logPhaseChange)
@@ -2448,6 +2477,7 @@ public class BossPatternController : MonoBehaviour
         if (phase2GungeonCamera != null)
         {
             phase2GungeonCamera.ClearCinematicFocus(false);
+            phase2GungeonCamera.SetCinematicInputOffsetLocked(false);
         }
 
         if (hideHudDuringPhase2Setup && phase2ExpeditionHUD != null)
@@ -2875,6 +2905,7 @@ public class BossPatternController : MonoBehaviour
         if (phase2GungeonCamera != null)
         {
             phase2GungeonCamera.ClearCinematicFocus(resetCamera);
+            phase2GungeonCamera.SetCinematicInputOffsetLocked(false);
         }
 
         if (resetCamera && phase2CameraZoomController != null)
@@ -3436,6 +3467,11 @@ public class BossPatternController : MonoBehaviour
     }
 
     private void HandleDied(EnemyHealth deadHealth)
+    {
+        StopCombatForDeathPresentation();
+    }
+
+    public void StopCombatForDeathPresentation()
     {
         if (deathHandled)
         {

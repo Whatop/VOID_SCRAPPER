@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uC0F7\uAC74 \uC5D8\uB9AC\uD2B8"
   enemyType: 7
   enemyPrefab: {fileID: 6983035740697639387, guid: 6b003641383fd2c4face90b26dff574c, type: 3}
-  maxHp: 42
+  maxHp: 38
   moveSpeed: 2.5
   visionRange: 10
   attackRange: 8

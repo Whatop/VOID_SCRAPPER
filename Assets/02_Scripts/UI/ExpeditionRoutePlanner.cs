@@ -12,7 +12,7 @@ public sealed class ExpeditionRoutePlanner : MonoBehaviour
     [SerializeField] private MapDiscoveryController mapCoordinates;
 
     [Header("Arrival")]
-    [SerializeField, Min(0.1f)] private float arrivalRadius = 1.5f;
+    [SerializeField, Min(0.1f)] private float arrivalRadius = 2.5f;
 
     [Header("World Guide")]
     [SerializeField] private LineRenderer worldGuide;

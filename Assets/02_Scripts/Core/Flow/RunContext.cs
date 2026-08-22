@@ -463,6 +463,27 @@ public class RunContext
 }
 
 [Serializable]
+public struct RunSettlementResourceResult
+{
+    public CurrencyType currencyType;
+    public int collected;
+    public int committed;
+    public int lost;
+
+    public RunSettlementResourceResult(
+        CurrencyType currencyType,
+        int collected,
+        int committed,
+        int lost)
+    {
+        this.currencyType = currencyType;
+        this.collected = Mathf.Max(0, collected);
+        this.committed = Mathf.Max(0, committed);
+        this.lost = Mathf.Max(0, lost);
+    }
+}
+
+[Serializable]
 public class RunResultData
 {
     public RunEndReason endReason;
@@ -496,4 +517,7 @@ public class RunResultData
     public int collectedCargoLoad;
     public int committedCargoLoad;
     public int emergencyReturnCargoLimit;
+
+    public List<RunSettlementResourceResult> settledResources =
+        new List<RunSettlementResourceResult>();
 }

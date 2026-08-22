@@ -652,6 +652,11 @@ public class RewardPickup : MonoBehaviour
         }
 
         cargoBlockedWarningTimer = 1f;
+        PlayerCargoController cargoController = player != null
+            ? player.GetComponentInParent<PlayerCargoController>()
+            : null;
+        cargoController?.NotifyCargoFullRejected();
+
         ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
 
         if (hud != null)

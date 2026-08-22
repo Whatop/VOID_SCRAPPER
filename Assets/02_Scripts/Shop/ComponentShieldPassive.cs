@@ -30,6 +30,8 @@ public class ComponentShieldPassive : MonoBehaviour
     public bool IsCharged => charged;
     public float RechargeRatio => rechargeInterval <= 0f ? 1f : Mathf.Clamp01(rechargeTimer / rechargeInterval);
 
+    public event System.Action<bool> ChargeStateChanged;
+
     private readonly Collider2D[] projectileBuffer = new Collider2D[96];
     private readonly Collider2D[] knockbackBuffer = new Collider2D[64];
 
@@ -37,6 +39,12 @@ public class ComponentShieldPassive : MonoBehaviour
     {
         charged = startCharged;
         rechargeTimer = charged ? rechargeInterval : 0f;
+        ChargeStateChanged?.Invoke(charged);
+    }
+
+    private void OnDisable()
+    {
+        ChargeStateChanged?.Invoke(false);
     }
 
     private void Update()
@@ -71,8 +79,14 @@ public class ComponentShieldPassive : MonoBehaviour
 
     public void RechargeNow()
     {
+        bool changed = !charged;
         charged = true;
         rechargeTimer = rechargeInterval;
+
+        if (changed)
+        {
+            ChargeStateChanged?.Invoke(true);
+        }
     }
 
     public bool TryBlockDamage(Vector2 hitPoint)
@@ -89,6 +103,7 @@ public class ComponentShieldPassive : MonoBehaviour
 
         charged = false;
         rechargeTimer = 0f;
+        ChargeStateChanged?.Invoke(false);
 
         Vector2 center = transform.position;
 

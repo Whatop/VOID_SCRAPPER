@@ -141,6 +141,35 @@ public class MeteorObstacle : MonoBehaviour
         }
     }
 
+    public void SetRuntimeDriftEnabled(bool enabled)
+    {
+        if (motionMode != MeteorMotionMode.RigidbodyDrift)
+        {
+            return;
+        }
+
+        if (driftBody != null)
+        {
+            driftBody.SetRuntimeMovementEnabled(enabled);
+            return;
+        }
+
+        if (body == null || body.bodyType != RigidbodyType2D.Dynamic)
+        {
+            return;
+        }
+
+        if (enabled)
+        {
+            RandomizeRigidbodyVelocity();
+        }
+        else
+        {
+            body.linearVelocity = Vector2.zero;
+            body.angularVelocity = 0f;
+        }
+    }
+
     public bool CanReceiveProjectileDamage(ProjectileOwner projectileOwner)
     {
         return projectileOwner == ProjectileOwner.Player

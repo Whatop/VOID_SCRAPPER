@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -26,6 +27,7 @@ public class EscSettingsMenuController : MonoBehaviour
     [Header("Shared Options Presentation")]
     [SerializeField] private bool useSharedOptionsPresentation;
     [SerializeField] private bool useKoreanSharedOptions;
+    [SerializeField] private bool showReturnToMainMenuAction;
     [SerializeField] private Button openButton;
     [SerializeField] private AudioMixer masterAudioMixer;
     [SerializeField] private TMP_FontAsset uiFont;
@@ -258,6 +260,7 @@ public class EscSettingsMenuController : MonoBehaviour
         if (sharedOptionsMenu != null)
         {
             sharedOptionsMenu.BackRequested += Close;
+            sharedOptionsMenu.ReturnToMainMenuRequested += ReturnToMainMenu;
             ConfigureCloseButtonSound(sharedOptionsMenu.BackButton);
         }
         else if (closeButton != null)
@@ -277,6 +280,7 @@ public class EscSettingsMenuController : MonoBehaviour
         if (sharedOptionsMenu != null)
         {
             sharedOptionsMenu.BackRequested -= Close;
+            sharedOptionsMenu.ReturnToMainMenuRequested -= ReturnToMainMenu;
         }
         else if (closeButton != null)
         {
@@ -287,6 +291,56 @@ public class EscSettingsMenuController : MonoBehaviour
         {
             openButton.onClick.RemoveListener(Open);
         }
+    }
+
+    private void ReturnToMainMenu()
+    {
+        if (!showReturnToMainMenuAction)
+        {
+            return;
+        }
+
+        GameState state = GameStateManager.Instance != null
+            ? GameStateManager.Instance.CurrentState
+            : GameState.Settlement;
+        if (state != GameState.Settlement)
+        {
+            Debug.LogWarning("메인 화면 복귀는 정착지 설정에서만 사용할 수 있습니다.", this);
+            AudioManager.Play(SoundEventIds.UiDisabled);
+            return;
+        }
+
+        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        {
+            Debug.LogWarning("진행 중인 탐사가 있어 메인 화면으로 이동할 수 없습니다.", this);
+            AudioManager.Play(SoundEventIds.UiDisabled);
+            return;
+        }
+
+        SceneFlowManager flow = SceneFlowManager.Instance ?? FindFirstObjectByType<SceneFlowManager>();
+        if (flow == null)
+        {
+            Debug.LogError("SceneFlowManager가 없어 메인 화면으로 이동할 수 없습니다.", this);
+            AudioManager.Play(SoundEventIds.UiDisabled);
+            return;
+        }
+
+        if (flow.IsLoading)
+        {
+            return;
+        }
+
+        if (SaveManager.Instance == null || PermanentProgress.Instance == null)
+        {
+            Debug.LogError("진행 상황 저장 서비스를 찾을 수 없어 메인 화면 이동을 취소합니다.", this);
+            AudioManager.Play(SoundEventIds.UiDisabled);
+            return;
+        }
+
+        SaveManager.Instance.Save(PermanentProgress.Instance);
+        Close();
+        GameStateManager.Instance?.ChangeState(GameState.Boot);
+        SceneManager.LoadSceneAsync(flow.BootSceneName);
     }
 
     private void ConfigureCloseButtonSound(Button targetButton)
@@ -403,8 +457,9 @@ public class EscSettingsMenuController : MonoBehaviour
             inputActions,
             masterAudioMixer,
             uiFont,
-            useKoreanSharedOptions,
-            true
+            true,
+            true,
+            showReturnToMainMenuAction
         );
 
         // SettlementSettingsPanel closes its root from Awake. Because this UI is

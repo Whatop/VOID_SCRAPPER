@@ -102,6 +102,12 @@ public static class SoundEventIds
     public const string MusicBossLoop = "97_music_boss_loop";
     public const string MusicSettlementLoop = "98_music_settlement_loop";
     public const string MusicShopLoop = "99_music_shop_loop";
+    public const string MusicMainMenuLoop = "105_music_main_menu_loop";
+    public const string MusicTutorialLoop = "106_music_tutorial_loop";
+    public const string MapRoutePlaced = "107_map_route_placed";
+    public const string MapRouteRemoved = "108_map_route_removed";
+    public const string MissionReceived = "109_mission_received";
+    public const string AmbTutorialLoop = "110_amb_tutorial_loop";
 
     // 기존 코드 호환용 별칭
     public const string UiUpgrade = UiUpgradeSuccess;
@@ -209,6 +215,12 @@ public static class SoundEventIds
         new KeyValuePair<string, string>("music_boss_loop", "97_music_boss_loop"),
         new KeyValuePair<string, string>("music_settlement_loop", "98_music_settlement_loop"),
         new KeyValuePair<string, string>("music_shop_loop", "99_music_shop_loop"),
+        new KeyValuePair<string, string>("music_main_menu_loop", "105_music_main_menu_loop"),
+        new KeyValuePair<string, string>("music_tutorial_loop", "106_music_tutorial_loop"),
+        new KeyValuePair<string, string>("map_route_placed", "107_map_route_placed"),
+        new KeyValuePair<string, string>("map_route_removed", "108_map_route_removed"),
+        new KeyValuePair<string, string>("mission_received", "109_mission_received"),
+        new KeyValuePair<string, string>("amb_tutorial_loop", "110_amb_tutorial_loop"),
     };
 
     private static Dictionary<string, string> legacyToNumbered;

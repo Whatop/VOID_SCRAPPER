@@ -66,11 +66,13 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
     private AudioMixer masterAudioMixer;
     private TMP_FontAsset uiFont;
     private Button backButton;
+    private Button returnToMainMenuButton;
     private SettingsMenuTabController tabController;
     private SettlementSettingsPanel settingsPanel;
     private GameObject displayConfirmationRoot;
     private bool useKoreanLabels;
     private bool configureTabButtonSounds;
+    private bool showReturnToMainMenuAction;
     private bool built;
 
     public bool IsOpen => settingsPanel != null && settingsPanel.IsOpen;
@@ -80,26 +82,29 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
     public GameObject DisplayConfirmationRoot => displayConfirmationRoot;
 
     public event Action BackRequested;
+    public event Action ReturnToMainMenuRequested;
 
     public void Configure(
         InputActionAsset actions,
         AudioMixer mixer,
         TMP_FontAsset font,
-        bool koreanLabels = false,
-        bool tabButtonSounds = false)
+        bool koreanLabels = true,
+        bool tabButtonSounds = true,
+        bool includeReturnToMainMenuAction = false)
     {
         inputActions = InputBindingUtility.ResolvePlayerInputActions(actions, this);
         masterAudioMixer = mixer;
         uiFont = font;
         useKoreanLabels = koreanLabels;
         configureTabButtonSounds = tabButtonSounds;
+        showReturnToMainMenuAction = includeReturnToMainMenuAction;
 
         if (!built)
         {
             Build();
         }
 
-        RefreshBackButtonBinding();
+        RefreshActionButtonBindings();
     }
 
     public void Open()
@@ -112,7 +117,7 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
 
         tabController?.ShowTab(0);
         settingsPanel?.Open();
-        EventSystem.current?.SetSelectedGameObject(backButton != null ? backButton.gameObject : null);
+        tabController?.SelectFirstControlInCurrentTab();
     }
 
     public void Close()
@@ -127,7 +132,7 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
 
     private void OnEnable()
     {
-        RefreshBackButtonBinding();
+        RefreshActionButtonBindings();
     }
 
     private void OnDisable()
@@ -136,6 +141,11 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         {
             backButton.onClick.RemoveListener(HandleBackRequested);
         }
+
+        if (returnToMainMenuButton != null)
+        {
+            returnToMainMenuButton.onClick.RemoveListener(HandleReturnToMainMenuRequested);
+        }
     }
 
     private void HandleBackRequested()
@@ -143,18 +153,31 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         BackRequested?.Invoke();
     }
 
-    private void RefreshBackButtonBinding()
+    private void HandleReturnToMainMenuRequested()
     {
-        if (backButton == null)
+        ReturnToMainMenuRequested?.Invoke();
+    }
+
+    private void RefreshActionButtonBindings()
+    {
+        if (backButton != null)
         {
-            return;
+            backButton.onClick.RemoveListener(HandleBackRequested);
+
+            if (isActiveAndEnabled)
+            {
+                backButton.onClick.AddListener(HandleBackRequested);
+            }
         }
 
-        backButton.onClick.RemoveListener(HandleBackRequested);
-
-        if (isActiveAndEnabled)
+        if (returnToMainMenuButton != null)
         {
-            backButton.onClick.AddListener(HandleBackRequested);
+            returnToMainMenuButton.onClick.RemoveListener(HandleReturnToMainMenuRequested);
+
+            if (isActiveAndEnabled)
+            {
+                returnToMainMenuButton.onClick.AddListener(HandleReturnToMainMenuRequested);
+            }
         }
     }
 
@@ -206,10 +229,15 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         BuildDisplayTab(tabRoots[3].transform, out TMP_Dropdown resolution, out TMP_Dropdown fullScreen, out Toggle vSync, out TMP_Dropdown frameLimit, out Button applyDisplay);
         BuildDisplayConfirmation(out TextMeshProUGUI confirmationText, out Button keepDisplay, out Button revertDisplay);
 
-        backButton = CreateButton("OptionsBackButton", transform, Localize("BACK", "설정 닫기"), new Vector2(-179f, -112f), new Vector2(88f, 24f), 9f);
+        backButton = CreateButton("OptionsBackButton", transform, Localize("BACK", "뒤로"), new Vector2(-179f, -112f), new Vector2(88f, 24f), 9f);
 
         tabController = gameObject.AddComponent<SettingsMenuTabController>();
         tabController.Configure(tabRoots, tabButtons, 0);
+        tabController.ConfigureInputGuards(
+            rebindRows.ToArray(),
+            new[] { resolution, fullScreen, frameLimit },
+            new[] { displayConfirmationRoot }
+        );
 
         settingsPanel = gameObject.AddComponent<SettlementSettingsPanel>();
         settingsPanel.ConfigurePanel(gameObject, tabController);
@@ -218,14 +246,32 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         settingsPanel.ConfigureControls(inputActions, resetBindings, rebindRows.ToArray());
         settingsPanel.ConfigureDisplay(resolution, fullScreen, vSync, frameLimit, applyDisplay, displayConfirmationRoot, confirmationText, keepDisplay, revertDisplay);
         settingsPanel.InitializeConfiguredUi();
+        RefreshActionButtonBindings();
     }
 
-    private void BuildGameplayTab(Transform parent, out Toggle showHints, out Slider cameraShake, out Slider warningOpacity)
+    private void BuildGameplayTab(
+        Transform parent,
+        out Toggle showHints,
+        out Slider cameraShake,
+        out Slider warningOpacity)
     {
-        CreateText("GameplayHelp", parent, Localize("Changes apply immediately and are stored as user preferences.", "변경 사항은 즉시 적용되고 자동 저장됩니다."), new Vector2(0f, 59f), new Vector2(410f, 18f), 8f, TextAlignmentOptions.Center, MutedTextColor);
-        showHints = CreateToggleRow("ShowHintsToggle", parent, Localize("Show HUD control hints", "HUD 조작 안내"), 22f);
-        cameraShake = CreateSliderRow("CameraShakeSlider", parent, Localize("Camera shake", "카메라 흔들림"), -16f, 0f, 1f);
-        warningOpacity = CreateSliderRow("WarningOpacitySlider", parent, Localize("Warning intensity", "경고 표시 강도"), -54f, 0.25f, 1f);
+        CreateText("GameplayHelp", parent, Localize("Changes apply immediately and are stored as user preferences.", "변경 사항은 즉시 적용되고 자동 저장됩니다."), new Vector2(0f, 66f), new Vector2(410f, 16f), 7.5f, TextAlignmentOptions.Center, MutedTextColor);
+        showHints = CreateToggleRow("ShowHintsToggle", parent, Localize("Show HUD control hints", "조작 힌트 표시"), 43f);
+        cameraShake = CreateSliderRow("CameraShakeSlider", parent, Localize("Camera shake", "카메라 흔들림"), -9f, 0f, 1f);
+        warningOpacity = CreateSliderRow("WarningOpacitySlider", parent, Localize("Warning opacity", "경고 표시 투명도"), -35f, 0.25f, 1f);
+
+        if (showReturnToMainMenuAction)
+        {
+            returnToMainMenuButton = CreateButton(
+                "ReturnToMainMenuButton",
+                parent,
+                "메인 화면으로 나가기",
+                new Vector2(0f, -63f),
+                new Vector2(150f, 22f),
+                8f
+            );
+            ConfigureCommonButtonSound(returnToMainMenuButton);
+        }
     }
 
     private void BuildSoundTab(Transform parent, out Slider master, out Slider bgm, out Slider sfx, out Slider ambient, out Slider ui)
@@ -241,7 +287,7 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
     {
         List<InputRebindButtonUI> rows = new List<InputRebindButtonUI>(RebindRows.Length);
         CreateText("KeyboardHelp", parent, Localize("Select a binding to rebind. Move uses separate composite parts.", "항목을 선택해 키를 변경합니다. 이동은 방향별로 설정됩니다."), new Vector2(-50f, 68f), new Vector2(320f, 16f), 7.5f, TextAlignmentOptions.Left, MutedTextColor);
-        resetBindings = CreateButton("ResetBindingsButton", parent, Localize("RESET ALL", "전체 초기화"), new Vector2(168f, 67f), new Vector2(72f, 20f), 7f);
+        resetBindings = CreateButton("ResetBindingsButton", parent, Localize("RESET BINDINGS", "키 설정 초기화"), new Vector2(162f, 67f), new Vector2(84f, 20f), 7f);
 
         for (int i = 0; i < RebindRows.Length; i++)
         {
@@ -272,7 +318,7 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         vSync = CreateToggleRow("VSyncToggle", parent, Localize("VSync", "수직 동기화"), -18f, -108f);
         CreateText("FrameLimitLabel", parent, Localize("Frame limit", "프레임 제한"), new Vector2(108f, 3f), new Vector2(180f, 18f), 9f, TextAlignmentOptions.Center, TextColor);
         frameLimit = CreateDropdown("FrameLimitDropdown", parent, new Vector2(108f, -20f), new Vector2(180f, 24f));
-        apply = CreateButton("ApplyDisplayButton", parent, Localize("APPLY DISPLAY", "화면 설정 적용"), new Vector2(0f, -63f), new Vector2(130f, 24f), 9f);
+        apply = CreateButton("ApplyDisplayButton", parent, Localize("APPLY", "적용"), new Vector2(0f, -63f), new Vector2(130f, 24f), 9f);
     }
 
     private void BuildDisplayConfirmation(out TextMeshProUGUI confirmationText, out Button keep, out Button revert)
@@ -281,7 +327,7 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         AddImage(displayConfirmationRoot, new Color(0f, 0f, 0f, 0.78f));
         GameObject panel = CreatePanel("ConfirmationPanel", displayConfirmationRoot.transform, Vector2.zero, new Vector2(310f, 118f), PanelColor);
         confirmationText = CreateText("ConfirmationText", panel.transform, Localize("Keep these display settings?", "이 화면 설정을 유지하시겠습니까?"), new Vector2(0f, 24f), new Vector2(270f, 48f), 11f, TextAlignmentOptions.Center, TextColor);
-        keep = CreateButton("KeepDisplayButton", panel.transform, Localize("KEEP", "유지"), new Vector2(-62f, -34f), new Vector2(100f, 24f), 9f);
+        keep = CreateButton("KeepDisplayButton", panel.transform, Localize("CONFIRM", "확인"), new Vector2(-62f, -34f), new Vector2(100f, 24f), 9f);
         revert = CreateButton("RevertDisplayButton", panel.transform, Localize("REVERT", "되돌리기"), new Vector2(62f, -34f), new Vector2(100f, 24f), 9f);
         displayConfirmationRoot.SetActive(false);
     }
@@ -447,8 +493,23 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         ConfigureDropdownPresentation(target);
         ApplyUiFont(dropdown.captionText);
         ApplyUiFont(dropdown.itemText);
-        if (dropdown.captionText != null) dropdown.captionText.fontSize = 9f;
-        if (dropdown.itemText != null) dropdown.itemText.fontSize = 9f;
+        if (dropdown.captionText != null)
+        {
+            dropdown.captionText.fontSize = 9f;
+            dropdown.captionText.color = Color.white;
+        }
+        if (dropdown.itemText != null)
+        {
+            dropdown.itemText.fontSize = 9f;
+            dropdown.itemText.color = Color.white;
+        }
+
+        TextMeshProUGUI[] dropdownTexts = target.GetComponentsInChildren<TextMeshProUGUI>(true);
+        for (int i = 0; i < dropdownTexts.Length; i++)
+        {
+            ApplyUiFont(dropdownTexts[i]);
+            dropdownTexts[i].color = Color.white;
+        }
         return dropdown;
     }
 

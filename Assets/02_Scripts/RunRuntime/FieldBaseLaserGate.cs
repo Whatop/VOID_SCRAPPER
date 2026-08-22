@@ -1,27 +1,40 @@
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider2D))]
 public class FieldBaseLaserGate : MonoBehaviour
 {
+    public enum GateMode
+    {
+        PlayerBarrier = 0,
+        VisualOnly = 1
+    }
+
     [Header("State")]
     [SerializeField] private bool startsOpen;
-    [SerializeField] private bool allowEnemiesWhenClosed = true;
-    [SerializeField] private bool allowNpcWhenClosed = true;
+
+    [Header("Behavior")]
+    [SerializeField] private GateMode gateMode = GateMode.PlayerBarrier;
 
     [Header("Blocking")]
-    [SerializeField] private Collider2D triggerZone;
-    [Tooltip("끄면 레이저 시각과 전력 상태는 유지되지만 플레이어를 밀어내지 않습니다.")]
-    [SerializeField] private bool pushPlayerWhenClosed = true;
-    [SerializeField] private float pushOutDistance = 0.35f;
+    [FormerlySerializedAs("triggerZone")]
+    [SerializeField] private Collider2D blockingCollider;
+
+    [FormerlySerializedAs("pushPlayerWhenClosed")]
+    [Tooltip("PlayerBarrier 모드에서만 사용합니다. 닫힌 상태일 때 물리 Collider로 플레이어를 막습니다.")]
+    [SerializeField] private bool blockPlayerWhenClosed = true;
+
+    [Tooltip("플레이어가 닫힌 게이트에 닿아 계속 밀고 있을 때 표시할 경고 간격입니다.")]
+    [SerializeField] private float warningCooldown = 0.75f;
+
+    [SerializeField] private string blockedWarning = "레이저 차단막이 활성화되어 있다.";
 
     [Header("Projectile Blocking")]
+    [Tooltip("VisualOnly 모드에서는 아래 설정과 관계없이 모든 투사체가 통과합니다.")]
     [SerializeField] private bool blockPlayerProjectilesWhenClosed = true;
     [SerializeField] private bool blockEnemyProjectilesWhenClosed = true;
     [SerializeField] private bool blockShopDefenseProjectilesWhenClosed = true;
-    [SerializeField] private float warningCooldown = 0.75f;
-    [SerializeField] private string blockedWarning = "레이저 차단막이 활성화되어 있다.";
 
     [Header("Laser Visual")]
     [SerializeField] private bool useLaserVisual = true;
@@ -48,17 +61,21 @@ public class FieldBaseLaserGate : MonoBehaviour
     [SerializeField] private GameObject[] closedVisuals;
     [SerializeField] private GameObject[] openVisuals;
 
-    private readonly Dictionary<int, float> playerBlockingSides = new Dictionary<int, float>(2);
-
     private bool isOpen;
     private float lastWarningTime = -999f;
+    private ExpeditionHUD cachedHud;
 
     public bool IsOpen => isOpen;
-    public bool PushPlayerWhenClosed => pushPlayerWhenClosed;
+    public GateMode Mode => gateMode;
+    public bool BlocksPlayerWhenClosed =>
+        gateMode == GateMode.PlayerBarrier && blockPlayerWhenClosed;
+
+    // 기존 코드 호환용. 더 이상 플레이어를 직접 밀어내지는 않는다.
+    public bool PushPlayerWhenClosed => BlocksPlayerWhenClosed;
 
     public bool ShouldBlockProjectile(ProjectileOwner projectileOwner)
     {
-        if (isOpen)
+        if (isOpen || gateMode == GateMode.VisualOnly)
         {
             return false;
         }
@@ -74,10 +91,11 @@ public class FieldBaseLaserGate : MonoBehaviour
 
     private void Reset()
     {
-        triggerZone = GetComponent<Collider2D>();
-        if (triggerZone != null)
+        blockingCollider = GetComponent<Collider2D>();
+
+        if (blockingCollider != null)
         {
-            triggerZone.isTrigger = true;
+            blockingCollider.isTrigger = false;
         }
 
         if (beamStartPoint == null)
@@ -93,14 +111,9 @@ public class FieldBaseLaserGate : MonoBehaviour
 
     private void Awake()
     {
-        if (triggerZone == null)
+        if (blockingCollider == null)
         {
-            triggerZone = GetComponent<Collider2D>();
-        }
-
-        if (triggerZone != null)
-        {
-            triggerZone.isTrigger = true;
+            blockingCollider = GetComponent<Collider2D>();
         }
 
         if (beamStartPoint == null)
@@ -113,6 +126,7 @@ public class FieldBaseLaserGate : MonoBehaviour
             beamEndPoint = transform;
         }
 
+        ConfigureBlockingCollider();
         EnsureLineRenderer();
         SetGateOpen(startsOpen, true);
     }
@@ -126,252 +140,119 @@ public class FieldBaseLaserGate : MonoBehaviour
     {
         isOpen = open;
 
-        if (isOpen)
-        {
-            playerBlockingSides.Clear();
-        }
+        RefreshBlockingCollider();
         SetObjectsActive(closedVisuals, !isOpen);
         SetObjectsActive(openVisuals, isOpen);
         UpdateLaserVisual();
 
         if (!immediate)
         {
-            AudioManager.PlayAt(isOpen ? SoundEventIds.EventComplete : SoundEventIds.ActionDenied, transform.position, 0.7f);
-        }
-    }
-
-    public void SetPlayerPushEnabled(bool enabled)
-    {
-        pushPlayerWhenClosed = enabled;
-    }
-
-    private void OnDisable()
-    {
-        playerBlockingSides.Clear();
-    }
-
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        PlayerController2D player = ResolveBlockedPlayer(other);
-        if (player != null)
-        {
-            CapturePlayerBlockingSide(player);
-        }
-
-        HandleClosedGateOverlap(other, player);
-    }
-
-    private void OnTriggerStay2D(Collider2D other)
-    {
-        HandleClosedGateOverlap(other, null);
-    }
-
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        PlayerController2D player = other != null
-            ? other.GetComponentInParent<PlayerController2D>()
-            : null;
-
-        if (player != null)
-        {
-            playerBlockingSides.Remove(player.GetInstanceID());
-        }
-    }
-
-    private void HandleClosedGateOverlap(Collider2D other, PlayerController2D resolvedPlayer)
-    {
-        PlayerController2D player = resolvedPlayer != null
-            ? resolvedPlayer
-            : ResolveBlockedPlayer(other);
-
-        if (player == null)
-        {
-            return;
-        }
-
-        int playerId = player.GetInstanceID();
-        if (!playerBlockingSides.ContainsKey(playerId))
-        {
-            CapturePlayerBlockingSide(player);
-        }
-
-        if (!TryPushPlayerFromBeam(player, other))
-        {
-            PushPlayerFromTriggerFallback(player);
-        }
-
-        if (Time.time - lastWarningTime >= warningCooldown)
-        {
-            lastWarningTime = Time.time;
-            ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
-            if (hud != null)
-            {
-                hud.ShowWarning(blockedWarning);
-            }
-
-            AudioManager.PlayAt(SoundEventIds.ActionDenied, transform.position, 0.8f);
-        }
-    }
-
-    private PlayerController2D ResolveBlockedPlayer(Collider2D other)
-    {
-        if (isOpen || !pushPlayerWhenClosed || other == null)
-        {
-            return null;
-        }
-
-        if (allowEnemiesWhenClosed && other.GetComponentInParent<EnemyHealth>() != null)
-        {
-            return null;
-        }
-
-        if (allowNpcWhenClosed && other.GetComponentInParent<FieldNpcObjective>() != null)
-        {
-            return null;
-        }
-
-        return other.GetComponentInParent<PlayerController2D>();
-    }
-
-    private void CapturePlayerBlockingSide(PlayerController2D player)
-    {
-        if (player == null || beamStartPoint == null || beamEndPoint == null)
-        {
-            return;
-        }
-
-        Vector2 start = beamStartPoint.position;
-        Vector2 end = beamEndPoint.position;
-        Vector2 line = end - start;
-
-        if (line.sqrMagnitude <= 0.0001f)
-        {
-            return;
-        }
-
-        Vector2 normal = new Vector2(-line.y, line.x).normalized;
-        float signedDistance = Vector2.Dot((Vector2)player.transform.position - start, normal);
-        float side;
-
-        if (Mathf.Abs(signedDistance) > 0.001f)
-        {
-            side = Mathf.Sign(signedDistance);
-        }
-        else
-        {
-            Rigidbody2D playerRb = player.GetComponent<Rigidbody2D>();
-            float normalVelocity = playerRb != null
-                ? Vector2.Dot(playerRb.linearVelocity, normal)
-                : 0f;
-
-            side = normalVelocity < 0f ? 1f : -1f;
-        }
-
-        playerBlockingSides[player.GetInstanceID()] = side;
-    }
-
-    private bool TryPushPlayerFromBeam(PlayerController2D player, Collider2D playerCollider)
-    {
-        if (player == null || beamStartPoint == null || beamEndPoint == null)
-        {
-            return false;
-        }
-
-        Vector2 start = beamStartPoint.position;
-        Vector2 end = beamEndPoint.position;
-        Vector2 line = end - start;
-        float lineSqrLength = line.sqrMagnitude;
-
-        if (lineSqrLength <= 0.0001f)
-        {
-            return false;
-        }
-
-        int playerId = player.GetInstanceID();
-        if (!playerBlockingSides.TryGetValue(playerId, out float side))
-        {
-            CapturePlayerBlockingSide(player);
-            playerBlockingSides.TryGetValue(playerId, out side);
-        }
-
-        if (Mathf.Abs(side) < 0.5f)
-        {
-            side = 1f;
-        }
-
-        Vector2 playerPosition = player.transform.position;
-        float segmentT = Mathf.Clamp01(Vector2.Dot(playerPosition - start, line) / lineSqrLength);
-        Vector2 closestOnBeam = start + line * segmentT;
-        Vector2 normal = new Vector2(-line.y, line.x).normalized * Mathf.Sign(side);
-
-        float playerExtent = 0.25f;
-        if (playerCollider != null)
-        {
-            Vector2 extents = playerCollider.bounds.extents;
-            playerExtent = Mathf.Max(
-                0.05f,
-                Mathf.Abs(normal.x) * extents.x + Mathf.Abs(normal.y) * extents.y
+            AudioManager.PlayAt(
+                isOpen ? SoundEventIds.EventComplete : SoundEventIds.ActionDenied,
+                transform.position,
+                0.7f
             );
         }
-
-        float requiredSeparation = Mathf.Max(0.05f, laserWidth * 0.5f) +
-                                   playerExtent +
-                                   Mathf.Max(0.05f, pushOutDistance);
-        Vector2 correctedPosition = closestOnBeam + normal * requiredSeparation;
-        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
-
-        if (rb != null)
-        {
-            Vector2 velocity = rb.linearVelocity;
-            float inwardVelocity = Vector2.Dot(velocity, normal);
-
-            if (inwardVelocity < 0f)
-            {
-                velocity -= normal * inwardVelocity;
-            }
-
-            rb.position = correctedPosition;
-            rb.linearVelocity = velocity;
-        }
-        else
-        {
-            player.transform.position = correctedPosition;
-        }
-
-        return true;
     }
 
-    private void PushPlayerFromTriggerFallback(PlayerController2D player)
+    public void SetGateMode(GateMode mode)
     {
+        gateMode = mode;
+        ConfigureBlockingCollider();
+        RefreshBlockingCollider();
+        UpdateLaserVisual();
+    }
+
+    public void SetPlayerBlockingEnabled(bool enabled)
+    {
+        blockPlayerWhenClosed = enabled;
+        RefreshBlockingCollider();
+    }
+
+    // 기존 호출부 호환용.
+    public void SetPlayerPushEnabled(bool enabled)
+    {
+        SetPlayerBlockingEnabled(enabled);
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        HandleBlockedPlayerCollision(collision);
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        HandleBlockedPlayerCollision(collision);
+    }
+
+    private void HandleBlockedPlayerCollision(Collision2D collision)
+    {
+        if (isOpen ||
+            gateMode != GateMode.PlayerBarrier ||
+            !blockPlayerWhenClosed ||
+            collision == null ||
+            collision.collider == null)
+        {
+            return;
+        }
+
+        PlayerController2D player =
+            collision.collider.GetComponentInParent<PlayerController2D>();
+
         if (player == null)
         {
             return;
         }
 
-        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
-        Vector2 origin = player.transform.position;
-        Vector2 closest = triggerZone != null
-            ? triggerZone.ClosestPoint(origin)
-            : (Vector2)transform.position;
-        Vector2 pushDirection = origin - closest;
-
-        if (pushDirection.sqrMagnitude <= 0.0001f)
+        if (Time.time - lastWarningTime < warningCooldown)
         {
-            pushDirection = transform.up;
+            return;
         }
 
-        pushDirection.Normalize();
-        Vector2 correctedPosition = closest + pushDirection * Mathf.Max(0.05f, pushOutDistance);
+        lastWarningTime = Time.time;
 
-        if (rb != null)
+        if (cachedHud == null)
         {
-            rb.position = correctedPosition;
-            rb.linearVelocity = Vector2.zero;
+            cachedHud = FindFirstObjectByType<ExpeditionHUD>();
         }
-        else
+
+        if (cachedHud != null && !string.IsNullOrWhiteSpace(blockedWarning))
         {
-            player.transform.position = correctedPosition;
+            cachedHud.ShowWarning(blockedWarning);
         }
+
+        AudioManager.PlayAt(
+            SoundEventIds.ActionDenied,
+            transform.position,
+            0.8f
+        );
+    }
+
+    private void ConfigureBlockingCollider()
+    {
+        if (blockingCollider == null)
+        {
+            return;
+        }
+
+        // 실제 물리 충돌로 막기 때문에 Trigger가 아니어야 한다.
+        blockingCollider.isTrigger = false;
+    }
+
+    private void RefreshBlockingCollider()
+    {
+        if (blockingCollider == null)
+        {
+            return;
+        }
+
+        bool shouldBlock =
+            !isOpen &&
+            gateMode == GateMode.PlayerBarrier &&
+            blockPlayerWhenClosed;
+
+        blockingCollider.isTrigger = false;
+        blockingCollider.enabled = shouldBlock;
     }
 
     private void EnsureLineRenderer()
@@ -398,7 +279,8 @@ public class FieldBaseLaserGate : MonoBehaviour
         lineRenderer.textureMode = LineTextureMode.Stretch;
         lineRenderer.numCapVertices = 2;
         lineRenderer.numCornerVertices = 2;
-        lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        lineRenderer.shadowCastingMode =
+            UnityEngine.Rendering.ShadowCastingMode.Off;
         lineRenderer.receiveShadows = false;
         lineRenderer.loop = false;
         lineRenderer.positionCount = Mathf.Max(2, laserSegments);
@@ -433,6 +315,7 @@ public class FieldBaseLaserGate : MonoBehaviour
             {
                 lineRenderer.enabled = false;
             }
+
             return;
         }
 
@@ -446,7 +329,11 @@ public class FieldBaseLaserGate : MonoBehaviour
             return;
         }
 
-        bool shouldShow = !isOpen && beamStartPoint != null && beamEndPoint != null;
+        bool shouldShow =
+            !isOpen &&
+            beamStartPoint != null &&
+            beamEndPoint != null;
+
         lineRenderer.enabled = shouldShow;
 
         if (!shouldShow)
@@ -455,6 +342,7 @@ public class FieldBaseLaserGate : MonoBehaviour
         }
 
         int segmentCount = Mathf.Max(2, laserSegments);
+
         if (lineRenderer.positionCount != segmentCount)
         {
             lineRenderer.positionCount = segmentCount;
@@ -462,8 +350,10 @@ public class FieldBaseLaserGate : MonoBehaviour
 
         lineRenderer.startWidth = laserWidth;
         lineRenderer.endWidth = laserWidth;
-        lineRenderer.startColor = Color.Lerp(laserGlowColor, laserColor, 0.7f);
-        lineRenderer.endColor = Color.Lerp(laserGlowColor, laserColor, 0.7f);
+        lineRenderer.startColor =
+            Color.Lerp(laserGlowColor, laserColor, 0.7f);
+        lineRenderer.endColor =
+            Color.Lerp(laserGlowColor, laserColor, 0.7f);
         lineRenderer.colorGradient = BuildGradient();
 
         Vector3 start = beamStartPoint.position;
@@ -479,17 +369,26 @@ public class FieldBaseLaserGate : MonoBehaviour
         }
 
         Vector3 direction = line / length;
-        Vector3 normal = Vector3.Cross(direction, Vector3.forward).normalized;
+        Vector3 normal =
+            Vector3.Cross(direction, Vector3.forward).normalized;
         float time = useUnscaledTime ? Time.unscaledTime : Time.time;
 
         for (int i = 0; i < segmentCount; i++)
         {
-            float t = segmentCount <= 1 ? 0f : i / (float)(segmentCount - 1);
+            float t =
+                segmentCount <= 1
+                    ? 0f
+                    : i / (float)(segmentCount - 1);
+
             Vector3 position = Vector3.Lerp(start, end, t);
 
-            if (i != 0 && i != segmentCount - 1 && zigzagAmplitude > 0f)
+            if (i != 0 &&
+                i != segmentCount - 1 &&
+                zigzagAmplitude > 0f)
             {
-                float wave = Mathf.Sin((t * 8f) + (time * zigzagScrollSpeed));
+                float wave =
+                    Mathf.Sin((t * 8f) + (time * zigzagScrollSpeed));
+
                 position += normal * wave * zigzagAmplitude;
             }
 
@@ -500,6 +399,7 @@ public class FieldBaseLaserGate : MonoBehaviour
     private Gradient BuildGradient()
     {
         Gradient gradient = new Gradient();
+
         gradient.SetKeys(
             new[]
             {
@@ -518,6 +418,7 @@ public class FieldBaseLaserGate : MonoBehaviour
                 new GradientAlphaKey(laserGlowColor.a, 1f)
             }
         );
+
         return gradient;
     }
 

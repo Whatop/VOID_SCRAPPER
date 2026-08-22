@@ -196,6 +196,7 @@ public sealed class ExpeditionOperationController : MonoBehaviour
         directionLabel = ResolveDirectionLabel(generatedMap.StartPosition, searchRegionCenter);
         BindTarget();
         RefreshPresentation();
+        AudioManager.Play(SoundEventIds.MissionReceived);
     }
 
     private void CollectEligibleCandidates(ExpeditionMapGenerator generatedMap, float minimumDistance)

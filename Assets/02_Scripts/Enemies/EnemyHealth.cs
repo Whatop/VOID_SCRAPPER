@@ -52,6 +52,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
     private Rigidbody2D rb;
     private bool isBoss;
+    private bool configuredDropRewardOnDeath;
     private BossPatternController bossPatternController;
     private Coroutine releaseRoutine;
     private Coroutine knockbackRoutine;
@@ -65,6 +66,11 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     public event Action<EnemyHealth> Died;
     public event Action<EnemyHealth, float, float> HealthChanged;
 
+    public void SetRewardDropEnabled(bool enabled)
+    {
+        dropRewardOnDeath = enabled;
+    }
+
     private void Reset()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -75,6 +81,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        configuredDropRewardOnDeath = dropRewardOnDeath;
         bossPatternController = GetComponent<BossPatternController>();
         isBoss = bossPatternController != null;
 
@@ -101,6 +108,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
     private void OnEnable()
     {
+        dropRewardOnDeath = configuredDropRewardOnDeath;
         ResetHealth();
     }
 

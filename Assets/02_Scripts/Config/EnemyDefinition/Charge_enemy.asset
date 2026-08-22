@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uCC28\uC9D5 \uC801"
   enemyType: 2
   enemyPrefab: {fileID: 6983035740697639387, guid: 6d6ab1ffbc7a62c44b72878be7f98509, type: 3}
-  maxHp: 14
+  maxHp: 12
   moveSpeed: 2.5
   visionRange: 9
   attackRange: 8
@@ -29,7 +29,7 @@ MonoBehaviour:
   secondaryProjectileDefinition: {fileID: 0}
   secondaryProjectileCount: 1
   secondarySpreadAngle: 0
-  predictiveShotChance: 0.0
+  predictiveShotChance: 0.6
   predictiveMinimumTargetSpeed: 0.5
   predictiveMaxLeadTime: 0.65
   predictiveVelocityMultiplier: 1.0

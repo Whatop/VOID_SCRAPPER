@@ -498,7 +498,7 @@ MonoBehaviour:
   dashDuration: 0.36
   dashDamage: 5
   dashHitRadius: 0.55
-  recoveryDuration: 0.7
+  recoveryDuration: 1.4
   dashObstacleMask:
     serializedVersion: 2
     m_Bits: 0

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5315246725813711978}
   - component: {fileID: 3525678277131728043}
   - component: {fileID: 1477889315928163149}
-  m_Layer: 11
+  m_Layer: 16
   m_Name: VisualRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -129,7 +129,7 @@ GameObject:
   - component: {fileID: 4050673858259871014}
   - component: {fileID: 5021425564774195704}
   - component: {fileID: 1306955088439679751}
-  m_Layer: 11
+  m_Layer: 16
   m_Name: Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -285,7 +285,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8022731468659551582}
-  m_Layer: 11
+  m_Layer: 16
   m_Name: PF_Meteor_Large_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}

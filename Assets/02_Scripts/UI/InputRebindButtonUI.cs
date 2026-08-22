@@ -24,6 +24,8 @@ public class InputRebindButtonUI : MonoBehaviour
     private InputAction activeAction;
     private bool actionWasEnabled;
 
+    public bool IsRebinding => rebindOperation != null;
+
     private void Reset()
     {
         rebindButton = GetComponent<Button>();

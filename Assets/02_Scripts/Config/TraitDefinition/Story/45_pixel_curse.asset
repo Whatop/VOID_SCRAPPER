@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: 45_pixel_curse
   m_EditorClassIdentifier: 
   traitId: pixel_curse
-  displayName: 픽셀 저주
-  description: 플레이어에게 결속된 영구적인 데이터 오염입니다.
-  icon: {fileID: -8173519150137954632, guid: 82aabd5b11a4e984db1e75bed82be3d8, type: 3}
+  displayName: "\uD53D\uC140 \uC800\uC8FC"
+  description: "\uD50C\uB808\uC774\uC5B4\uC5D0\uAC8C \uACB0\uC18D\uB41C \uC601\uAD6C\uC801\uC778
+    \uB370\uC774\uD130 \uC624\uC5FC\uC785\uB2C8\uB2E4."
+  icon: {fileID: -193735190694296275, guid: d0e6cdf232193c34d9b69706792996ae, type: 3}
   rarity: 3
   category: 0
   weaponTreeType: 0
@@ -26,3 +27,5 @@ MonoBehaviour:
   preventDismantle: 1
   maxLevel: 1
   levelEffects: []
+  isCapstone: 0
+  prerequisites: []

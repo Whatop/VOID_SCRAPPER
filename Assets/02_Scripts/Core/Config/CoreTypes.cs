@@ -115,7 +115,8 @@ public enum RadarMarkerType
     Boss,
     Core,
     ReturnBeacon,
-    EnemyBase
+    EnemyBase,
+    FieldNpc
 }
 
 public enum EnemyType

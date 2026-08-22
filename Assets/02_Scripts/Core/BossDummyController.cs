@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -6,7 +7,9 @@ public class BossDummyController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private EnemyHealth enemyHealth;
-    [SerializeField] private RewardDropper rewardDropper;
+    [SerializeField] private BossDeathPresentation deathPresentation;
+
+    private BossPatternController bossPatternController;
 
     [Header("Campaign")]
     [SerializeField] private BossCampaignDefinition campaignDefinition;
@@ -32,16 +35,6 @@ public class BossDummyController : MonoBehaviour
     [SerializeField] private bool hasConfiguredWormholePosition;
     [SerializeField] private Vector3 configuredWormholePosition;
 
-    [Header("Core Shard World Pickup")]
-    [Tooltip("보스 처치 후 코어 조각을 즉시 지급하지 않고 방전된 월드 코어 위치에 물리 드랍합니다.")]
-    [SerializeField] private bool dropCoreShardsAsWorldPickup = true;
-    [SerializeField] private int normalCoreShards = 1;
-    [SerializeField] private int deepZoneAdditionalCoreShards = 1;
-    [Tooltip("켜두면 RewardPickup 연결이 잘못되어도 코어를 즉시 지급하지 않고 오류를 드러냅니다.")]
-    [SerializeField] private bool forceWorldPickupOnly = true;
-    [Tooltip("디버그용 레거시 옵션입니다. Force World Pickup Only가 꺼져 있을 때만 사용됩니다.")]
-    [SerializeField] private bool fallbackToDirectCoreGrant;
-
     [Header("Selectable Boss Reward")]
     [Tooltip("보스 처치 후 귀환 오브젝트를 열기 전에 선택형 장비 보상을 지급합니다.")]
     [SerializeField] private bool grantSelectableBossReward = true;
@@ -56,13 +49,11 @@ public class BossDummyController : MonoBehaviour
     [SerializeField] private bool changeStateToExpeditionAfterDeath = true;
 
     private bool deathHandled;
-    private bool hasConfiguredCoreShardRewardPosition;
-    private Vector3 configuredCoreShardRewardPosition;
-
     private void Reset()
     {
         enemyHealth = GetComponent<EnemyHealth>();
-        rewardDropper = GetComponent<RewardDropper>();
+        deathPresentation = GetComponent<BossDeathPresentation>();
+        bossPatternController = GetComponent<BossPatternController>();
     }
 
     private void Awake()
@@ -72,9 +63,14 @@ public class BossDummyController : MonoBehaviour
             enemyHealth = GetComponent<EnemyHealth>();
         }
 
-        if (rewardDropper == null)
+        if (deathPresentation == null)
         {
-            rewardDropper = GetComponent<RewardDropper>();
+            deathPresentation = GetComponent<BossDeathPresentation>();
+        }
+
+        if (bossPatternController == null)
+        {
+            bossPatternController = GetComponent<BossPatternController>();
         }
     }
 
@@ -99,12 +95,6 @@ public class BossDummyController : MonoBehaviour
     public void ConfigureCampaignDefinition(BossCampaignDefinition definition)
     {
         campaignDefinition = definition;
-    }
-
-    public void ConfigureCoreShardRewardPoint(Vector3 worldPosition)
-    {
-        configuredCoreShardRewardPosition = worldPosition;
-        hasConfiguredCoreShardRewardPosition = true;
     }
 
     // 기존 CoreObject 코드와 호환용.
@@ -141,7 +131,25 @@ public class BossDummyController : MonoBehaviour
         }
 
         deathHandled = true;
+        bossPatternController?.StopCombatForDeathPresentation();
 
+        if (deathPresentation != null)
+        {
+            StartCoroutine(CompleteBossDeathAfterPresentation());
+            return;
+        }
+
+        CompleteBossDeath();
+    }
+
+    private IEnumerator CompleteBossDeathAfterPresentation()
+    {
+        yield return deathPresentation.PlayRoutine(transform.position);
+        CompleteBossDeath();
+    }
+
+    private void CompleteBossDeath()
+    {
         BossCampaignDefinition resolvedDefinition = ResolveCampaignDefinition();
         CampaignBossId bossId = ResolveCampaignBossId(resolvedDefinition);
 
@@ -161,8 +169,6 @@ public class BossDummyController : MonoBehaviour
                 RunManager.Instance.CompleteRun(RunEndReason.FinalVictory);
                 return;
             }
-
-            DropOrGrantCoreShards(resolvedDefinition);
         }
 
         CreateRewardExitCoordinator();
@@ -173,71 +179,6 @@ public class BossDummyController : MonoBehaviour
         {
             GameStateManager.Instance.ChangeState(GameState.Expedition);
         }
-    }
-
-    private void DropOrGrantCoreShards(BossCampaignDefinition resolvedDefinition)
-    {
-        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
-        {
-            return;
-        }
-
-        ExpeditionDepth depth = RunManager.Instance.CurrentRun.ExpeditionDepth;
-        int amount = resolvedDefinition != null
-            ? resolvedDefinition.CoreShardReward
-            : CampaignProgressionCatalog.GetCoreShardReward(depth);
-
-        // 캠페인 정의가 없을 때만 기존 인스펙터 값을 호환용으로 사용합니다.
-        if (resolvedDefinition == null && amount <= 0)
-        {
-            amount = Mathf.Max(0, normalCoreShards);
-
-            if (depth != ExpeditionDepth.Normal)
-            {
-                amount += Mathf.Max(0, deepZoneAdditionalCoreShards);
-            }
-        }
-
-        if (amount <= 0)
-        {
-            return;
-        }
-
-        if (rewardDropper == null)
-        {
-            rewardDropper = GetComponent<RewardDropper>();
-        }
-
-        bool dropped = false;
-
-        if (dropCoreShardsAsWorldPickup && rewardDropper != null)
-        {
-            dropped = rewardDropper.TryDropCurrencyRewardAt(
-                ResolveCoreShardRewardPosition(),
-                CurrencyType.CoreShards,
-                amount
-            );
-        }
-
-        if (!dropped)
-        {
-            Debug.LogWarning(
-                "코어 조각 월드 픽업 드랍에 실패했습니다. 보스 RewardDropper와 RewardPickup Prefab 연결을 확인하세요.",
-                this
-            );
-
-            if (!forceWorldPickupOnly && fallbackToDirectCoreGrant)
-            {
-                RunManager.Instance.AddCurrency(CurrencyType.CoreShards, amount);
-            }
-        }
-    }
-
-    private Vector3 ResolveCoreShardRewardPosition()
-    {
-        return hasConfiguredCoreShardRewardPosition
-            ? configuredCoreShardRewardPosition
-            : transform.position;
     }
 
     private BossCampaignDefinition ResolveCampaignDefinition()

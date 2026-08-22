@@ -63,21 +63,27 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     [Header("State")]
     [Tooltip("활성화 후 방전된 코어 외형을 남깁니다. 켜져 있으면 기존 Destroy/Hide 옵션보다 우선합니다.")]
-    [SerializeField] private bool preserveSpentCoreVisualAfterActivation = true;
+    [SerializeField] private bool preserveSpentCoreVisualAfterActivation;
     [SerializeField] private bool destroyCoreAfterActivation;
     [SerializeField] private bool hideCoreInsteadOfDisable = true;
     [SerializeField] private RadarTarget radarTarget;
     [SerializeField] private CoreActivationPresentation coreActivationPresentation;
 
-    [Header("Core Shard Reward Point")]
-    [Tooltip("보스 처치 후 코어 조각이 생성될 위치입니다. 비워두면 코어 루트 위치를 사용합니다.")]
-    [SerializeField] private Transform coreShardRewardPoint;
+    [Header("Completed Core Pickup")]
+    [Tooltip("활성화 연출이 끝난 직후 생성할 기존 RewardPickup 프리팹입니다.")]
+    [SerializeField] private GameObject completedCorePickupPrefab;
+    [FormerlySerializedAs("coreShardRewardPoint")]
+    [Tooltip("완성된 코어 픽업 생성 위치입니다. 비워두면 코어 루트 위치를 사용합니다.")]
+    [SerializeField] private Transform completedCoreDropPoint;
+    [SerializeField] private Vector2 completedCoreInitialVelocity = new Vector2(0f, 0.85f);
 
     private readonly Collider2D[] enemyBuffer = new Collider2D[128];
 
     private Coroutine activationRoutine;
     private bool activated;
     private bool activating;
+    private bool completedCorePickupSpawned;
+    private bool worldPresenceRetired;
     private GameObject spawnedBoss;
 
     private ExpeditionObjectiveDirector objectiveDirector;
@@ -92,6 +98,7 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     public bool IsLocationRevealed => IsCoreLocationRevealed();
     public bool IsInteractionUnlocked => IsObjectiveGateSatisfied();
+    public bool IsActivated => activated;
     public RadarTarget RadarTarget => radarTarget;
 
     public string InteractionText
@@ -169,6 +176,8 @@ public class CoreObject : MonoBehaviour, IInteractable
         {
             RaiseActivationProgress(0f, false);
         }
+
+        bossIntroSequence?.CancelCoreActivationCameraLock();
     }
 
     public bool CanInteract(GameObject interactor)
@@ -184,6 +193,12 @@ public class CoreObject : MonoBehaviour, IInteractable
         if (!CanInteract(interactor))
         {
             return;
+        }
+
+        if (useBossIntroSequence)
+        {
+            EnsureIntroSequence();
+            bossIntroSequence?.BeginCoreActivationCameraLock();
         }
 
         AudioManager.PlayAt(SoundEventIds.CoreInteractLoop, transform.position);
@@ -235,6 +250,7 @@ public class CoreObject : MonoBehaviour, IInteractable
         activating = false;
         activationRoutine = null;
         RaiseActivationProgress(0f, false);
+        bossIntroSequence?.CancelCoreActivationCameraLock();
     }
 
     private void RaiseActivationProgress(float ratio, bool visible)
@@ -250,6 +266,13 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         activated = true;
+
+        if (useBossIntroSequence)
+        {
+            EnsureIntroSequence();
+            bossIntroSequence?.BeginCoreActivationCameraLock();
+        }
+
         AudioManager.PlayAt(SoundEventIds.CoreActivate, transform.position);
 
         if (radarTarget != null)
@@ -279,6 +302,7 @@ public class CoreObject : MonoBehaviour, IInteractable
                 }
 
                 Debug.LogError("Final Boss Prefab이 없어 중앙 물류망 보스전을 시작할 수 없습니다.", this);
+                bossIntroSequence?.CancelCoreActivationCameraLock();
                 yield break;
             }
 
@@ -286,6 +310,9 @@ public class CoreObject : MonoBehaviour, IInteractable
                 $"{CampaignProgressionCatalog.GetRegionShortName(currentDepth)} 보스 프리팹이 없어 귀환 비콘만 생성합니다.",
                 this
             );
+            yield return PlayActivationPresentationWithoutIntro();
+            DropCompletedCorePickup();
+            bossIntroSequence?.CancelCoreActivationCameraLock();
             SpawnReturnBeaconDirectly();
             HandleCoreAfterActivation();
             yield break;
@@ -306,6 +333,7 @@ public class CoreObject : MonoBehaviour, IInteractable
                     resolvedBossPrefab,
                     ResolveBossSpawnPosition(),
                     transform.position,
+                    DropCompletedCorePickup,
                     HandleBossCreatedByIntro,
                     HandleBossReveal,
                     HandleBossBattleStart
@@ -313,6 +341,8 @@ public class CoreObject : MonoBehaviour, IInteractable
             }
             else
             {
+                yield return PlayActivationPresentationWithoutIntro();
+                DropCompletedCorePickup();
                 SpawnBossImmediate(interactor);
                 HandleBossReveal();
                 HandleBossBattleStart();
@@ -320,6 +350,8 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
         else
         {
+            yield return PlayActivationPresentationWithoutIntro();
+            DropCompletedCorePickup();
             SpawnBossImmediate(interactor);
             HandleBossReveal();
             HandleBossBattleStart();
@@ -481,7 +513,6 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         bossController.ConfigureCampaignDefinition(ResolveBossCampaignDefinition());
-        bossController.ConfigureCoreShardRewardPoint(ResolveCoreShardRewardPosition());
 
         if (ResolveCurrentDepth() == ExpeditionDepth.FinalNetwork)
         {
@@ -578,11 +609,100 @@ public class CoreObject : MonoBehaviour, IInteractable
         return transform.position + (Vector3)bossSpawnOffset;
     }
 
-    private Vector3 ResolveCoreShardRewardPosition()
+    private IEnumerator PlayActivationPresentationWithoutIntro()
     {
-        return coreShardRewardPoint != null
-            ? coreShardRewardPoint.position
+        if (coreActivationPresentation == null)
+        {
+            coreActivationPresentation = GetComponent<CoreActivationPresentation>();
+        }
+
+        if (coreActivationPresentation != null)
+        {
+            yield return coreActivationPresentation.PlayActivationRoutine();
+        }
+    }
+
+    private void DropCompletedCorePickup()
+    {
+        if (completedCorePickupSpawned)
+        {
+            return;
+        }
+
+        BossCampaignDefinition definition = ResolveBossCampaignDefinition();
+        int amount = CampaignBossRewardService.ResolveCoreShardReward(
+            definition,
+            ResolveCurrentDepth()
+        );
+
+        if (amount <= 0)
+        {
+            completedCorePickupSpawned = true;
+            return;
+        }
+
+        if (completedCorePickupPrefab == null)
+        {
+            Debug.LogWarning("완성된 코어 RewardPickup 프리팹이 연결되지 않았습니다.", this);
+            return;
+        }
+
+        Vector3 spawnPosition = completedCoreDropPoint != null
+            ? completedCoreDropPoint.position
             : transform.position;
+        GameObject pickupObject = Instantiate(
+            completedCorePickupPrefab,
+            spawnPosition,
+            Quaternion.identity
+        );
+        RewardPickup pickup = pickupObject != null
+            ? pickupObject.GetComponent<RewardPickup>()
+            : null;
+
+        if (pickup == null)
+        {
+            if (pickupObject != null)
+            {
+                Destroy(pickupObject);
+            }
+
+            Debug.LogWarning("완성된 코어 프리팹에 RewardPickup이 없습니다.", this);
+            return;
+        }
+
+        pickup.InitializeCurrency(
+            CurrencyType.CoreShards,
+            amount,
+            completedCoreInitialVelocity
+        );
+        completedCorePickupSpawned = true;
+        RetireOriginalCoreWorldPresence();
+    }
+
+    private void RetireOriginalCoreWorldPresence()
+    {
+        if (worldPresenceRetired)
+        {
+            return;
+        }
+
+        worldPresenceRetired = true;
+        HideCoreVisualsAndColliders();
+
+        ParticleSystem[] particles = GetComponentsInChildren<ParticleSystem>(true);
+        for (int i = 0; i < particles.Length; i++)
+        {
+            if (particles[i] != null)
+            {
+                particles[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+        }
+
+        if (radarTarget != null)
+        {
+            radarTarget.SetVisible(false);
+            radarTarget.enabled = false;
+        }
     }
 
     private Vector3 ResolveReturnBeaconSpawnPosition()

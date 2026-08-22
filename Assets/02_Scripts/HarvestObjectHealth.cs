@@ -116,6 +116,11 @@ public class HarvestObjectHealth : MonoBehaviour, IDamageable, IKnockbackReceive
     public event Action<HarvestObjectHealth> Damaged;
     public event Action<HarvestObjectHealth> Died;
 
+    public void SetReinforcementSpawnChance(float chance)
+    {
+        reinforcementSpawnChance = Mathf.Clamp01(chance);
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetActiveRegistry()
     {

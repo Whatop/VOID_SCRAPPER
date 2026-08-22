@@ -153,6 +153,7 @@ public class CoreBossIntroSequence : MonoBehaviour
     private PlayerLockState playerLockState;
     private EnemyHealth trackedBossHealth;
     private GameObject spawnedBoss;
+    private bool cameraInputOffsetLockHeld;
     private Animator spawnedBossAnimator;
     private Vector3 spawnedBossBaseScale = Vector3.one;
     private bool isPlaying;
@@ -221,6 +222,8 @@ public class CoreBossIntroSequence : MonoBehaviour
             gungeonCamera.ClearCinematicFocus(true);
         }
 
+        ReleaseCameraInputOffsetLock();
+
         ReleaseIntroWideZoomHold(false);
 
         if (returnCameraZoomAfterIntro || resetCameraZoomOnBattleStart)
@@ -246,6 +249,7 @@ public class CoreBossIntroSequence : MonoBehaviour
         GameObject bossPrefab,
         Vector3 bossBattlePosition,
         Vector3 arenaCenter,
+        Action coreActivationCompletedCallback,
         Action<GameObject> bossCreatedCallback,
         Action bossRevealCallback,
         Action battleStartCallback)
@@ -261,6 +265,8 @@ public class CoreBossIntroSequence : MonoBehaviour
         spawnedBossBaseScale = Vector3.one;
 
         ResolveReferences();
+
+        AcquireCameraInputOffsetLock();
 
         Vector3 effectiveArenaCenter = arenaCenter + (Vector3)arenaCenterOffset;
         Vector3 effectiveBossBattlePosition = bossBattlePosition + (Vector3)bossBattlePositionOffset;
@@ -313,6 +319,8 @@ public class CoreBossIntroSequence : MonoBehaviour
             GungeonStyleCamera2D.RequestShake(0.12f, 0.18f);
         }
 
+        coreActivationCompletedCallback?.Invoke();
+
         if (delayAfterCorePulse > 0f)
         {
             yield return Wait(delayAfterCorePulse);
@@ -342,6 +350,28 @@ public class CoreBossIntroSequence : MonoBehaviour
         // 시각적으로는 아직 화면 밖이므로 기존 등장 순서는 유지된다.
         spawnedBoss = SpawnBossForIntro(bossPrefab, effectiveBossBattlePosition);
         bossCreatedCallback?.Invoke(spawnedBoss);
+
+        if (spawnedBoss == null)
+        {
+            Debug.LogError("Boss intro could not continue because the Boss failed to spawn.", this);
+            RestorePlayer();
+
+            if (hideStatusAndResourceUIDuringIntro && expeditionHUD != null)
+            {
+                expeditionHUD.SetCinematicMode(false);
+            }
+
+            if (gungeonCamera != null)
+            {
+                gungeonCamera.ClearCinematicFocus(true);
+            }
+
+            ReleaseIntroWideZoomHold(false);
+            ResetCameraZoom();
+            ReleaseCameraInputOffsetLock();
+            isPlaying = false;
+            yield break;
+        }
 
         BossPatternController bossPatternController = spawnedBoss != null
             ? spawnedBoss.GetComponent<BossPatternController>()
@@ -471,6 +501,44 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
 
         isPlaying = false;
+        ReleaseCameraInputOffsetLock();
+    }
+
+    public void BeginCoreActivationCameraLock()
+    {
+        ResolveReferences();
+        AcquireCameraInputOffsetLock();
+    }
+
+    public void CancelCoreActivationCameraLock()
+    {
+        ReleaseCameraInputOffsetLock();
+    }
+
+    private void AcquireCameraInputOffsetLock()
+    {
+        if (cameraInputOffsetLockHeld || gungeonCamera == null)
+        {
+            return;
+        }
+
+        gungeonCamera.SetCinematicInputOffsetLocked(true);
+        cameraInputOffsetLockHeld = true;
+    }
+
+    private void ReleaseCameraInputOffsetLock()
+    {
+        if (!cameraInputOffsetLockHeld)
+        {
+            return;
+        }
+
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.SetCinematicInputOffsetLocked(false);
+        }
+
+        cameraInputOffsetLockHeld = false;
     }
 
     private void ResolveReferences()

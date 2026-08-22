@@ -171,8 +171,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5a4f79ab4bf51c847b4591b9c63a6417, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   iconImage: {fileID: 387985803}
   amountText: {fileID: 531418363}
   labelText: {fileID: 1485974376}
@@ -1561,7 +1561,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC783\uC5B4\uBC84\uB9B0 \uCF54\uC5B4 \uC870\uAC01"
+  m_text: "\uC783\uC5B4\uBC84\uB9B0 \uCF54\uC5B4"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
   m_sharedMaterial: {fileID: -1651241253263036495, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
@@ -2910,6 +2910,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   scrapParts: 0
   coreShards: 0
+  stabilizedAlloy: 0
   totalRunCount: 0
   safeReturnCount: 0
   emergencyReturnCount: 0
@@ -2917,12 +2918,15 @@ MonoBehaviour:
   bossDefeatCount: 0
   totalCollectedScrapParts: 0
   totalCollectedCoreShards: 0
+  totalCollectedStabilizedAlloy: 0
   totalCommittedScrapParts: 0
   totalCommittedCoreShards: 0
+  totalCommittedStabilizedAlloy: 0
   lastSelectedWeaponTree: 0
   selectedShipId: basic_ship
   buildingLevels: []
   traitLevels: []
+  sectorTechnologyLevels: []
   disabledPermanentTraitIds: []
   unlockFlags: []
   defeatedCampaignBosses: 
@@ -3033,6 +3037,7 @@ MonoBehaviour:
       credits: 0
       pendingScrapParts: 0
       pendingCoreShards: 0
+      pendingStabilizedAlloy: 0
       tuningChips: 0
     currentLevel: 1
     bossDefeated: 0
@@ -5544,7 +5549,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uD68D\uB4DD\uD55C \uCF54\uC5B4 \uC870\uAC01"
+  m_text: "\uD68D\uB4DD\uD55C \uCF54\uC5B4"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
   m_sharedMaterial: {fileID: -1651241253263036495, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
@@ -5756,7 +5761,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uCD1D \uCF54\uC5B4 \uC870\uAC01"
+  m_text: "\uCD1D \uCF54\uC5B4"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
   m_sharedMaterial: {fileID: -1651241253263036495, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
@@ -6165,13 +6170,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f226523d5834ebf98bec1faf3f2dc9d, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   bootstrap: {fileID: 1101664543}
   sceneFlowManager: {fileID: 1101664541}
   inputActions: {fileID: -944628639613478452, guid: 99f22a85a3f432e418ee7d4a8d4a77ce, type: 3}
   masterAudioMixer: {fileID: 24100000, guid: becf2b14273120442b18c1aad1db79a1, type: 2}
   uiFont: {fileID: 11400000, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
+  backgroundAsteroidSprites:
+  - {fileID: 21300000, guid: 4d19d038afdafd741ae1705f155b8c3a, type: 3}
+  - {fileID: 21300000, guid: 4f417af06ad83164a902e08c9218de65, type: 3}
+  - {fileID: 21300000, guid: 458f0bcd30a877744a06942e9c20dc6c, type: 3}
+  - {fileID: 21300000, guid: 1c47953dec518824d8314e185c5f92e0, type: 3}
+  cursedBackgroundSprite: {fileID: 0}
   canvasSortOrder: 200
 --- !u!1001 &2140000100
 PrefabInstance:
@@ -6223,7 +6234,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 11426072, guid: 93d09f947d904f21b1fe0d650458dba2, type: 3}
       propertyPath: initialDatabase
-      value:
+      value: 
       objectReference: {fileID: 11400000, guid: 95ece8a39e4c82a4ea5fa1e00e2ff1e0, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

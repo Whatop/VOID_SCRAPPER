@@ -64,6 +64,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
     [SerializeField] private float cinematicFocusSmoothSpeed = 9f;
 
     private bool cinematicFocusActive;
+    private bool cinematicInputOffsetLocked;
     private Vector3 cinematicFocusWorldPosition;
 
     private float shakeRemaining;
@@ -94,6 +95,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
     private void OnDisable()
     {
         cinematicFocusActive = false;
+        cinematicInputOffsetLocked = false;
 
         if (Instance == this)
         {
@@ -256,6 +258,12 @@ public class GungeonStyleCamera2D : MonoBehaviour
         {
             Vector2 focusOffset = cinematicFocusWorldPosition - player.position;
             return new Vector3(focusOffset.x, focusOffset.y, 0f);
+        }
+
+        if (cinematicInputOffsetLocked)
+        {
+            currentMoveBiasOffset = Vector2.zero;
+            return Vector3.zero;
         }
 
         Vector2 aimOffset = GetMouseAimOffset();
@@ -471,6 +479,27 @@ public class GungeonStyleCamera2D : MonoBehaviour
         runtimeMouseDistanceMultiplier = Mathf.Max(0.01f, mouseDistanceMultiplier);
     }
 
+    public void SetCinematicInputOffsetLocked(bool locked)
+    {
+        cinematicInputOffsetLocked = locked;
+
+        if (locked)
+        {
+            currentMoveBiasOffset = Vector2.zero;
+
+            if (!cinematicFocusActive)
+            {
+                currentOffset = Vector3.zero;
+                ResolveReferences();
+
+                if (follow != null)
+                {
+                    follow.FollowOffset = new Vector3(0f, 0f, cameraDistanceZ);
+                }
+            }
+        }
+    }
+
     public void ResetAimOffsetAssist()
     {
         runtimeAimOffsetMultiplier = 1f;
@@ -478,4 +507,5 @@ public class GungeonStyleCamera2D : MonoBehaviour
     }
 
     public bool IsCinematicFocusActive => cinematicFocusActive;
+    public bool IsCinematicInputOffsetLocked => cinematicInputOffsetLocked;
 }

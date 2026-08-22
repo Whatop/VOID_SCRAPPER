@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 1761812676681879149}
   - component: {fileID: 3502317198863337295}
   - component: {fileID: 3581830052298949385}
+  - component: {fileID: 7794216501824382361}
   m_Layer: 0
   m_Name: Boss
   m_TagString: Untagged
@@ -168,14 +169,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2726d4fc5be9bb841ba5675e6538f102, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   maxHp: 140
   rewardDropper: {fileID: 3661430779231122687}
-  hitEffectPrefab: {fileID: 0}
-  hitEffectDuration: 0.12
-  useProceduralHitEffectWhenPrefabMissing: 1
-  hitEffectIntensity: 0.9
+  spriteHitFlash: {fileID: 0}
+  autoCreateSpriteHitFlash: 1
+  useProceduralHitFeedback: 0
+  proceduralHitIntensity: 1
   hitShakeAmplitude: 0.04
   hitShakeDuration: 0.065
   deathShakeAmplitude: 0.11
@@ -185,9 +186,12 @@ MonoBehaviour:
   knockbackDuration: 0.14
   knockbackDistanceMultiplier: 1
   clearVelocityDuringKnockback: 1
+  deathEffectPrefab: {fileID: 0}
+  deathEffectLifeTime: 0.45
+  useProceduralDeathEffectWhenPrefabMissing: 1
   dropRewardOnDeath: 1
   releaseOnDeath: 1
-  releaseDelayOnDeath: 0.25
+  releaseDelayOnDeath: 2.2
   disableCollidersOnDeath: 1
   collidersToDisableOnDeath:
   - {fileID: 6086505907805828678}
@@ -225,6 +229,7 @@ MonoBehaviour:
   creditsAmountPerShard: 5
   scrapAmountPerShard: 1
   coreAmountPerShard: 1
+  stabilizedAlloyAmountPerShard: 1
   tuningChipAmountPerShard: 1
   experienceAmountPerShard: 3
   amountPerShard: 1
@@ -254,6 +259,9 @@ MonoBehaviour:
   markerSprite: {fileID: 0}
   markerColor: {r: 1, g: 1, b: 1, a: 1}
   markerScale: 1
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 1
   alertOnMachineGunScan: 0
@@ -272,7 +280,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyHealth: {fileID: 2632113334545552604}
-  rewardDropper: {fileID: 0}
+  deathPresentation: {fileID: 7794216501824382361}
   campaignDefinition: {fileID: 11400000, guid: 81a700d18502403b9cb3725cb1b3cafc, type: 2}
   completeFinalBossAsVictory: 1
   returnBeaconPrefab: {fileID: 790382445115629925, guid: 01366ec2ea978ea4fb283152e5de9f91, type: 3}
@@ -284,16 +292,41 @@ MonoBehaviour:
   configuredReturnBeaconPosition: {x: 0, y: 0, z: 0}
   hasConfiguredWormholePosition: 0
   configuredWormholePosition: {x: 0, y: 0, z: 0}
-  dropCoreShardsAsWorldPickup: 1
-  normalCoreShards: 1
-  deepZoneAdditionalCoreShards: 1
-  forceWorldPickupOnly: 1
-  fallbackToDirectCoreGrant: 0
   grantSelectableBossReward: 1
   bossRewardChoiceCount: 3
   bossRewardCapsulePrefab: {fileID: 836675783878838890, guid: 49de27477305b04449089acc93c26e73, type: 3}
   bossRewardCapsuleSpawnOffset: {x: 0, y: 0}
   changeStateToExpeditionAfterDeath: 1
+--- !u!114 &7794216501824382361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2869722714546691079}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7c9fda6e0b34a6486c2e9f175a42d31, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  bodyRenderer: {fileID: 6647307915473033264}
+  bossRigidbody: {fileID: 8658258371103763465}
+  destabilizeDuration: 0.45
+  breakupHoldDuration: 0.7
+  finalEmphasisDelay: 0.32
+  positionJitter: 0.055
+  rotationJitter: 3
+  destabilizeColor: {r: 1, g: 0.35, b: 0.82, a: 1}
+  breakupColumns: 3
+  breakupRows: 2
+  fragmentMinSpeed: 1.8
+  fragmentMaxSpeed: 3.8
+  fragmentAngularSpeed: 240
+  fragmentLifetime: 1.35
+  initialShakeAmplitude: 0.12
+  initialShakeDuration: 0.16
+  breakupShakeAmplitude: 0.2
+  breakupShakeDuration: 0.24
 --- !u!114 &3581830052298949385
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -363,6 +396,7 @@ MonoBehaviour:
   spreadVolleyCountPhase2: 3
   spreadProjectileCount: 5
   spreadAngle: 70
+  spreadVolleyAngleStep: 8
   spreadVolleyInterval: 0.25
   spreadProjectileDamage: 2
   spreadProjectileSpeedOverride: -1
@@ -386,6 +420,81 @@ MonoBehaviour:
   chargeAimLineLength: 24
   phase2HpRatio: 0.5
   logPhaseChange: 1
+  usePhase2ShieldTransition: 1
+  phase2ShieldHpRatio: 0.22
+  phase2ShieldMinHp: 24
+  phase2ShieldRadius: 1.45
+  phase2ShieldLineWidth: 0.12
+  phase2ShieldSegments: 48
+  phase2ShieldColor: {r: 0.2, g: 0.85, b: 1, a: 0.95}
+  phase2ShieldLowColor: {r: 0.95, g: 0.25, b: 0.85, a: 0.95}
+  phase2ShieldMaterial: {fileID: 0}
+  phase2ShieldVisualRoot: {fileID: 0}
+  phase2ShieldBreakShakeAmplitude: 0.18
+  phase2ShieldBreakShakeDuration: 0.2
+  phase2ShieldBreakSettleTime: 0.25
+  phase2CameraZoomController: {fileID: 0}
+  phase2GungeonCamera: {fileID: 0}
+  phase2SpaceBackgroundGenerator: {fileID: 0}
+  phase2ExpeditionHUD: {fileID: 0}
+  usePhase2Letterbox: 1
+  phase2LetterboxHeightRatio: 0.085
+  phase2LetterboxInDuration: 0.18
+  phase2LetterboxOutDuration: 0.22
+  phase2WideZoomMultiplier: 2.5
+  phase2ZoomOutDuration: 0.9
+  phase2ZoomInDuration: 0.85
+  phase2ZoomOutCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  phase2ZoomInCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  phase2CinematicSettleTime: 0.16
+  lockPlayerDuringPhase2Setup: 1
+  hideHudDuringPhase2Setup: 1
   laserManagerShipPrefab: {fileID: 9075188055483279069, guid: 9b16b9571380dec4286fb3a2ecbcef64, type: 3}
   phase2LaserManagerShipPrefab: {fileID: 9075188055483279069, guid: 9b16b9571380dec4286fb3a2ecbcef64, type: 3}
   createRuntimeManagerIfMissing: 1
@@ -430,7 +539,7 @@ MonoBehaviour:
   phase1BoundaryLaserColor: {r: 1, g: 1, b: 1, a: 1}
   phase2BoundaryLaserColor: {r: 0.55, g: 0.55, b: 0.75, a: 1}
   phase2GameplayBoundaryVisualAlpha: 0.35
-  useRegularPhase2HexVisual: 1
+  useRegularPhase2HexVisual: 0
   phase2RegularHexVisualColor: {r: 0.65, g: 0.65, b: 0.9, a: 0.82}
   phase2RegularHexVisualWidth: 0.16
   boundaryWallLayerName: Default
@@ -461,8 +570,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  phase2HexagonSideXScale: 1
-  phase2HexagonShoulderYRatio: 0.5
+  phase2HexagonRadiusScale: 1
   phase2HexagonLaserWarmup: 0.2
   phase2RotatingLaserRepeatCount: 3
   phase2RotatingLaserOneSlotAngle: 60

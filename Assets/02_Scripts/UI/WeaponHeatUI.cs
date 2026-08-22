@@ -1,3 +1,4 @@
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,9 +16,54 @@ public class WeaponHeatUI : MonoBehaviour
     [SerializeField] private Color normalColor = new Color(0.35f, 0.9f, 1f, 1f);
     [SerializeField] private Color warningColor = new Color(1f, 0.75f, 0.2f, 1f);
     [SerializeField] private Color overheatColor = new Color(1f, 0.2f, 0.12f, 1f);
+    [SerializeField, Range(0f, 1f)] private float warningStartRatio = 0.65f;
+    [SerializeField, Range(0f, 1f)] private float dangerStartRatio = 0.85f;
+    [SerializeField, Min(0f)] private float zeroHeatHoldDuration = 0.25f;
+    [SerializeField, Min(0.05f)] private float zeroHeatFadeDuration = 0.2f;
 
     private MachineGunWeapon machineGunWeapon;
     private bool externalVisible = true;
+    private bool presentationVisible;
+    private Sequence visibilitySequence;
+
+    public void ConfigureRuntime(
+        GameObject presentationRoot,
+        CanvasGroup presentationCanvasGroup,
+        PlayerWeaponController controller,
+        Image presentationFill,
+        TextMeshProUGUI presentationText)
+    {
+        rootObject = presentationRoot != null ? presentationRoot : gameObject;
+        canvasGroup = presentationCanvasGroup;
+        weaponController = controller;
+        fillImage = presentationFill;
+        stateText = presentationText;
+        heatGauge ??= rootObject.GetComponent<GaugeBarUI>();
+
+        if (fillImage != null)
+        {
+            bool usesSlider = rootObject.GetComponent<Slider>() != null;
+            fillImage.type = usesSlider ? Image.Type.Simple : Image.Type.Filled;
+            if (!usesSlider)
+            {
+                fillImage.fillMethod = Image.FillMethod.Horizontal;
+                fillImage.fillOrigin = (int)Image.OriginHorizontal.Left;
+                fillImage.fillClockwise = true;
+            }
+
+            fillImage.raycastTarget = false;
+        }
+
+        if (stateText != null)
+        {
+            stateText.text = string.Empty;
+            stateText.raycastTarget = false;
+            stateText.gameObject.SetActive(false);
+        }
+
+        ResolveController();
+        Refresh();
+    }
 
     private void Awake()
     {
@@ -49,12 +95,14 @@ public class WeaponHeatUI : MonoBehaviour
         }
         else
         {
-            SetVisibleInternal(false);
+            SetVisibleInternal(false, true);
         }
     }
 
     private void OnDisable()
     {
+        KillVisibilityTween();
+
         if (weaponController != null)
         {
             weaponController.WeaponEquipped -= HandleWeaponEquipped;
@@ -66,6 +114,12 @@ public class WeaponHeatUI : MonoBehaviour
     public void SetExternalVisible(bool visible)
     {
         externalVisible = visible;
+        if (!externalVisible)
+        {
+            SetVisibleInternal(false, true);
+            return;
+        }
+
         Refresh();
     }
 
@@ -96,7 +150,6 @@ public class WeaponHeatUI : MonoBehaviour
         }
 
         machineGunWeapon = weapon;
-
         if (machineGunWeapon != null)
         {
             machineGunWeapon.HeatChanged += HandleHeatChanged;
@@ -112,46 +165,65 @@ public class WeaponHeatUI : MonoBehaviour
     {
         if (machineGunWeapon == null || !machineGunWeapon.UsesHeatSystem)
         {
-            SetVisibleInternal(false);
+            SetVisibleInternal(false, true);
             return;
         }
 
-        float ratio = machineGunWeapon.HeatRatio;
-        bool visible = externalVisible && (!hideAtZeroHeat || ratio > 0.001f || machineGunWeapon.IsOverheated);
-        SetVisibleInternal(visible);
+        float heatRatio = machineGunWeapon.HeatRatio;
+        bool overheated = machineGunWeapon.IsOverheated;
+        bool visible = externalVisible && (!hideAtZeroHeat || heatRatio > 0.001f || overheated);
+        SetVisibleInternal(visible, false);
 
-        heatGauge?.SetRatio(ratio);
-        heatGauge?.SetText(machineGunWeapon.IsOverheated ? "OVERHEAT" : $"HEAT {ratio * 100f:0}%");
+        heatGauge?.SetRatio(heatRatio);
+        heatGauge?.SetText(string.Empty);
 
-        Color color = machineGunWeapon.IsOverheated
-            ? overheatColor
-            : ratio >= 0.75f ? warningColor : normalColor;
-
+        Color color = ResolveHeatColor(heatRatio, overheated);
         heatGauge?.SetFillColor(color);
 
         if (fillImage != null)
         {
-            fillImage.fillAmount = ratio;
+            fillImage.fillAmount = heatRatio;
             fillImage.color = color;
         }
 
         if (stateText != null)
         {
-            stateText.text = machineGunWeapon.IsOverheated ? "OVERHEAT" : string.Empty;
-            stateText.color = color;
+            stateText.text = string.Empty;
+            stateText.gameObject.SetActive(false);
         }
     }
 
-    private void SetVisibleInternal(bool visible)
+    private Color ResolveHeatColor(float heatRatio, bool overheated)
+    {
+        if (overheated)
+        {
+            return overheatColor;
+        }
+
+        float warningStart = Mathf.Clamp01(warningStartRatio);
+        float dangerStart = Mathf.Clamp(dangerStartRatio, warningStart, 1f);
+        if (heatRatio >= dangerStart)
+        {
+            float dangerT = Mathf.InverseLerp(dangerStart, 1f, heatRatio);
+            return Color.Lerp(warningColor, overheatColor, dangerT);
+        }
+
+        if (heatRatio >= warningStart)
+        {
+            float warningT = Mathf.InverseLerp(warningStart, dangerStart, heatRatio);
+            return Color.Lerp(normalColor, warningColor, warningT);
+        }
+
+        return normalColor;
+    }
+
+    private void SetVisibleInternal(bool visible, bool immediate)
     {
         if (rootObject == null)
         {
             rootObject = gameObject;
         }
 
-        // 이 컴포넌트가 붙은 오브젝트 자체를 끄면 HeatChanged 구독도 끊겨
-        // 이후 열이 올라가도 다시 표시할 수 없습니다. 같은 오브젝트를 루트로 쓸 때는
-        // CanvasGroup으로만 숨기고 컴포넌트는 활성 상태를 유지합니다.
         if (rootObject == gameObject)
         {
             if (canvasGroup == null)
@@ -163,15 +235,56 @@ public class WeaponHeatUI : MonoBehaviour
                 }
             }
 
-            canvasGroup.alpha = visible ? 1f : 0f;
             canvasGroup.interactable = false;
             canvasGroup.blocksRaycasts = false;
+            if (visible)
+            {
+                KillVisibilityTween();
+                canvasGroup.alpha = 1f;
+                presentationVisible = true;
+                return;
+            }
+
+            if (immediate || !presentationVisible)
+            {
+                KillVisibilityTween();
+                canvasGroup.alpha = 0f;
+                presentationVisible = false;
+                return;
+            }
+
+            if (visibilitySequence != null)
+            {
+                return;
+            }
+
+            visibilitySequence = DOTween.Sequence().SetUpdate(true);
+            visibilitySequence.AppendInterval(Mathf.Max(0f, zeroHeatHoldDuration));
+            visibilitySequence.Append(
+                canvasGroup.DOFade(0f, Mathf.Max(0.05f, zeroHeatFadeDuration))
+                    .SetEase(Ease.OutQuad)
+            );
+            visibilitySequence.OnComplete(() =>
+            {
+                presentationVisible = false;
+                visibilitySequence = null;
+            });
             return;
         }
 
+        KillVisibilityTween();
         if (rootObject.activeSelf != visible)
         {
             rootObject.SetActive(visible);
         }
+
+        presentationVisible = visible;
+    }
+
+    private void KillVisibilityTween()
+    {
+        visibilitySequence?.Kill();
+        visibilitySequence = null;
+        canvasGroup?.DOKill();
     }
 }

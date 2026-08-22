@@ -25,6 +25,33 @@ public class ExpeditionMapGenerator : MonoBehaviour
         SpecialPassiveContainer
     }
 
+    private enum PoiType
+    {
+        SalvageField,
+        HighValueSalvage,
+        FieldBase,
+        Shop,
+        Event,
+        Core
+    }
+
+    private enum EnemyPoiPreference
+    {
+        AnySalvage,
+        HighValueOnly
+    }
+
+    private sealed class PoiAnchor
+    {
+        public PoiType Type;
+        public Vector2 Center;
+        public float Radius;
+        public bool IsLowRisk;
+        public float ThreatCapacity;
+        public float AssignedThreat;
+        public int AssignedHarvest;
+    }
+
     [Header("Config")]
     [SerializeField] private MapGenerationConfig config;
     [SerializeField] private bool generateOnStart = true;
@@ -216,6 +243,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [Tooltip("대형 운석의 추가 랜덤 스케일입니다.")]
     [SerializeField] private Vector2 largeMeteorScaleRange = new Vector2(0.95f, 1.2f);
 
+    [Header("Environment Dressing Visuals")]
+    [SerializeField] private Sprite[] environmentDebrisSprites;
+    [SerializeField] private Sprite[] environmentWreckSprites;
+    [SerializeField] private int environmentDressingSortingOrder = -10;
+
     [Header("Physics Block Check Optional")]
     [SerializeField] private bool useBlockedLayerCheck;
     [SerializeField] private LayerMask blockedLayer;
@@ -244,6 +276,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private readonly List<Bounds> reservedPlacementBounds = new List<Bounds>(16);
     private readonly List<FieldBaseController> spawnedFieldBases = new List<FieldBaseController>(4);
     private readonly List<ShopStructure> spawnedShopStructures = new List<ShopStructure>(4);
+    private readonly List<PoiAnchor> poiAnchors = new List<PoiAnchor>(16);
+    private readonly List<PoiAnchor> salvagePoiAnchors = new List<PoiAnchor>(4);
+    private readonly List<PoiAnchor> highValuePoiAnchors = new List<PoiAnchor>(4);
+    private readonly List<Vector2> environmentDressingPositions = new List<Vector2>(160);
 
     private Vector2 mapSize = new Vector2(80f, 80f);
     private Vector2 startPosition;
@@ -252,6 +288,16 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private TraitCatalog runtimeTraitCatalog;
     private ReinforcementCatalog runtimeReinforcementCatalog;
     private static Sprite runtimeFallbackNpcSprite;
+    private int clusteredHarvestPlaced;
+    private int scatteredHarvestPlaced;
+    private int clusteredEnemiesPlaced;
+    private int roamingEnemiesPlaced;
+    private bool poiPlacementFallbackUsed;
+    private int salvageDressingPlaced;
+    private int highValueDressingPlaced;
+    private int transitDressingPlaced;
+    private int otherPoiDressingPlaced;
+    private int failedDressingPlacements;
 
     public Bounds MapBounds { get; private set; }
     public Bounds CorePlacementSafeBounds { get; private set; }
@@ -261,6 +307,53 @@ public class ExpeditionMapGenerator : MonoBehaviour
     public IReadOnlyList<ExpeditionEventObject> SpawnedEventObjects => spawnedEventObjects;
     public IReadOnlyList<CoreObject> SpawnedCoreObjects => spawnedCoreObjects;
     public IReadOnlyList<FieldBaseController> SpawnedFieldBases => spawnedFieldBases;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public bool TryPrepareCoreForDebug(out CoreObject core)
+    {
+        core = null;
+
+        for (int i = 0; i < spawnedCoreObjects.Count; i++)
+        {
+            CoreObject candidate = spawnedCoreObjects[i];
+
+            if (candidate == null || candidate.IsActivated)
+            {
+                continue;
+            }
+
+            core = candidate;
+            break;
+        }
+
+        if (core == null)
+        {
+            int previousCount = spawnedCoreObjects.Count;
+            PlaceCoreBatch(1);
+
+            for (int i = spawnedCoreObjects.Count - 1; i >= previousCount; i--)
+            {
+                CoreObject candidate = spawnedCoreObjects[i];
+
+                if (candidate != null && !candidate.IsActivated)
+                {
+                    core = candidate;
+                    break;
+                }
+            }
+        }
+
+        if (core == null)
+        {
+            return false;
+        }
+
+        core.gameObject.SetActive(true);
+        core.SetTrackingLocked(false);
+        core.MarkCoreLocationDiscovered(false);
+        return true;
+    }
+#endif
 
     private void Reset()
     {
@@ -298,8 +391,22 @@ public class ExpeditionMapGenerator : MonoBehaviour
         reservedPlacementBounds.Clear();
         spawnedFieldBases.Clear();
         spawnedShopStructures.Clear();
+        poiAnchors.Clear();
+        salvagePoiAnchors.Clear();
+        highValuePoiAnchors.Clear();
+        environmentDressingPositions.Clear();
 
         basicEnemiesInsideStartSafeRadius = 0;
+        clusteredHarvestPlaced = 0;
+        scatteredHarvestPlaced = 0;
+        clusteredEnemiesPlaced = 0;
+        roamingEnemiesPlaced = 0;
+        poiPlacementFallbackUsed = false;
+        salvageDressingPlaced = 0;
+        highValueDressingPlaced = 0;
+        transitDressingPlaced = 0;
+        otherPoiDressingPlaced = 0;
+        failedDressingPlacements = 0;
         startPosition = ResolveStartPosition();
 
         if (movePlayerToStart && player != null)
@@ -312,8 +419,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
         SyncBackgroundGenerator();
 
         PlaceImportantObjects();
+        BuildPoiLayout();
         PlaceHarvestObjects();
         PlaceEnemies();
+        PlaceEnvironmentDressing();
 
         if (logGenerationResult)
         {
@@ -324,6 +433,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 $"SeaRegion: {seaText}, Spawned Positions: {occupiedPositions.Count}",
                 this
             );
+
+            LogPoiGenerationSummary();
         }
 
         MapGenerated?.Invoke();
@@ -484,6 +595,232 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         int fieldNpcCount = config != null ? config.FieldNpcCount : 2;
         PlaceFieldNpcBatch(fieldNpcCount);
+    }
+
+    private void BuildPoiLayout()
+    {
+        if (config == null || !config.EnablePoiClusterLayout)
+        {
+            return;
+        }
+
+        RegisterExistingPoiAnchors();
+
+        for (int i = 0; i < config.SalvagePoiCount; i++)
+        {
+            bool lowRisk = i == 0;
+
+            if (!TryCreateSalvagePoi(PoiType.SalvageField, config.SalvagePoiRadius, lowRisk))
+            {
+                poiPlacementFallbackUsed = true;
+            }
+        }
+
+        for (int i = 0; i < config.HighValuePoiCount; i++)
+        {
+            if (!TryCreateSalvagePoi(PoiType.HighValueSalvage, config.HighValuePoiRadius, false))
+            {
+                poiPlacementFallbackUsed = true;
+            }
+        }
+    }
+
+    private void RegisterExistingPoiAnchors()
+    {
+        float fieldBaseRadius = Mathf.Max(fieldBaseReservationSize.x, fieldBaseReservationSize.y) * 0.5f;
+        float shopRadius = Mathf.Max(shopZoneReservationSize.x, shopZoneReservationSize.y) * 0.5f;
+
+        for (int i = 0; i < spawnedFieldBases.Count; i++)
+        {
+            FieldBaseController fieldBase = spawnedFieldBases[i];
+            if (fieldBase != null)
+            {
+                AddPoiAnchor(PoiType.FieldBase, fieldBase.transform.position, fieldBaseRadius, false);
+            }
+        }
+
+        for (int i = 0; i < spawnedShopStructures.Count; i++)
+        {
+            ShopStructure shop = spawnedShopStructures[i];
+            if (shop != null)
+            {
+                AddPoiAnchor(PoiType.Shop, shop.transform.position, shopRadius, false);
+            }
+        }
+
+        for (int i = 0; i < spawnedEventObjects.Count; i++)
+        {
+            ExpeditionEventObject eventObject = spawnedEventObjects[i];
+            if (eventObject != null)
+            {
+                AddPoiAnchor(PoiType.Event, eventObject.transform.position, 4f, false);
+            }
+        }
+
+        float coreRadius = config != null
+            ? Mathf.Max(config.BossArenaHalfExtents.x, config.BossArenaHalfExtents.y)
+            : 14f;
+
+        for (int i = 0; i < spawnedCoreObjects.Count; i++)
+        {
+            CoreObject core = spawnedCoreObjects[i];
+            if (core != null)
+            {
+                AddPoiAnchor(PoiType.Core, core.transform.position, coreRadius, false);
+            }
+        }
+    }
+
+    private bool TryCreateSalvagePoi(PoiType type, float radius, bool lowRisk)
+    {
+        radius = Mathf.Max(1f, radius);
+        bool found = TryFindPoiPosition(radius, lowRisk, out Vector2 position);
+
+        if (!found)
+        {
+            if (logGenerationResult)
+            {
+                Debug.LogWarning($"POI placement failed for {type}; content will use general placement fallback.", this);
+            }
+
+            return false;
+        }
+
+        PoiAnchor anchor = AddPoiAnchor(type, position, radius, lowRisk);
+
+        if (type == PoiType.SalvageField)
+        {
+            salvagePoiAnchors.Add(anchor);
+        }
+        else
+        {
+            highValuePoiAnchors.Add(anchor);
+        }
+
+        return true;
+    }
+
+    private PoiAnchor AddPoiAnchor(PoiType type, Vector2 center, float radius, bool lowRisk)
+    {
+        radius = Mathf.Max(1f, radius);
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            PoiAnchor existing = poiAnchors[i];
+            float mergeDistance = Mathf.Max(existing.Radius, radius);
+
+            if (existing.Type == type &&
+                (existing.Center - center).sqrMagnitude < mergeDistance * mergeDistance)
+            {
+                return existing;
+            }
+        }
+
+        PoiAnchor anchor = new PoiAnchor
+        {
+            Type = type,
+            Center = center,
+            Radius = radius,
+            IsLowRisk = lowRisk
+        };
+
+        poiAnchors.Add(anchor);
+        return anchor;
+    }
+
+    private bool TryFindPoiPosition(float radius, bool preferNearStart, out Vector2 position)
+    {
+        position = Vector2.zero;
+        float halfWidth = mapSize.x * 0.5f - edgePadding - radius;
+        float halfHeight = mapSize.y * 0.5f - edgePadding - radius;
+
+        if (halfWidth <= 0f || halfHeight <= 0f)
+        {
+            return false;
+        }
+
+        float safeRadius = config != null ? config.StartSafeRadius : 10f;
+        float minimumStartDistance = safeRadius + radius + 1.5f;
+        float bestScore = preferNearStart ? float.PositiveInfinity : float.NegativeInfinity;
+        bool found = false;
+
+        for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
+        {
+            Vector2 candidate = new Vector2(
+                UnityEngine.Random.Range(-halfWidth, halfWidth),
+                UnityEngine.Random.Range(-halfHeight, halfHeight)
+            );
+
+            float startDistance = Vector2.Distance(candidate, startPosition);
+            if (startDistance < minimumStartDistance)
+            {
+                continue;
+            }
+
+            Bounds candidateBounds = new Bounds(candidate, new Vector3(radius * 2f, radius * 2f, 0f));
+            if (IntersectsReservedPlacementBounds(candidateBounds, 1f))
+            {
+                continue;
+            }
+
+            if (!IsPoiSpacingValid(candidate, radius))
+            {
+                continue;
+            }
+
+            if (useBlockedLayerCheck && Physics2D.OverlapCircle(candidate, radius, blockedLayer) != null)
+            {
+                continue;
+            }
+
+            float score = preferNearStart
+                ? startDistance
+                : GetNearestPoiDistance(candidate);
+
+            if (!found ||
+                (preferNearStart && score < bestScore) ||
+                (!preferNearStart && score > bestScore))
+            {
+                found = true;
+                bestScore = score;
+                position = candidate;
+            }
+        }
+
+        return found;
+    }
+
+    private bool IsPoiSpacingValid(Vector2 candidate, float radius)
+    {
+        float configuredSpacing = config != null ? config.PoiMinSpacing : 14f;
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            PoiAnchor other = poiAnchors[i];
+            float otherInfluence = other.Type == PoiType.SalvageField || other.Type == PoiType.HighValueSalvage
+                ? other.Radius
+                : Mathf.Min(other.Radius, 5f);
+            float required = Mathf.Max(configuredSpacing, radius + otherInfluence + 1f);
+
+            if ((candidate - other.Center).sqrMagnitude < required * required)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private float GetNearestPoiDistance(Vector2 candidate)
+    {
+        float nearest = Vector2.Distance(candidate, startPosition);
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            nearest = Mathf.Min(nearest, Vector2.Distance(candidate, poiAnchors[i].Center));
+        }
+
+        return nearest;
     }
 
     private void PlaceFieldBaseBatch(int count)
@@ -916,7 +1253,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             radar = spawned.AddComponent<RadarTarget>();
         }
 
-        radar.SetMarkerType(RadarMarkerType.Event);
+        radar.SetMarkerType(RadarMarkerType.FieldNpc);
         radar.SetMarkerVisual(fieldNpcRadarMarkerSprite, fallbackFieldNpcColor, 1.15f);
 
         FieldNpcServiceType serviceType = ResolveFieldNpcService(index);
@@ -1007,67 +1344,83 @@ public class ExpeditionMapGenerator : MonoBehaviour
             smallMeteorCount = ApplyCountModifier(smallMeteorCount, currentSeaRegion.ExtraMeteorCount);
         }
 
-        PlaceHarvestPrefabBatch(
+        PlaceHarvestPrefabBatchDistributed(
             specialActiveContainerPrefabs,
             specialActiveContainerPrefab,
             Mathf.Max(0, specialActiveContainerCount),
             generalMinDistance,
             "SpecialActiveContainer",
-            MapSpawnCategory.SpecialActiveContainer
+            MapSpawnCategory.SpecialActiveContainer,
+            1f,
+            true
         );
 
-        PlaceHarvestPrefabBatch(
+        PlaceHarvestPrefabBatchDistributed(
             specialPassiveContainerPrefabs,
             specialPassiveContainerPrefab,
             Mathf.Max(0, specialPassiveContainerCount),
             generalMinDistance,
             "SpecialPassiveContainer",
-            MapSpawnCategory.SpecialPassiveContainer
+            MapSpawnCategory.SpecialPassiveContainer,
+            1f,
+            true
         );
 
-        PlaceHarvestPrefabBatch(
+        PlaceHarvestPrefabBatchDistributed(
             highValueWreckPrefabs,
             highValueWreckPrefab,
             highValueWreckCount,
             generalMinDistance,
             "HighValueWreck",
-            MapSpawnCategory.HighValueWreck
+            MapSpawnCategory.HighValueWreck,
+            1f,
+            true
         );
 
-        PlaceHarvestPrefabBatch(
+        float clusteredHarvestRatio = config != null ? config.ClusteredHarvestRatio : 0.75f;
+
+        PlaceHarvestPrefabBatchDistributed(
             supplyContainerPrefabs,
             supplyContainerPrefab,
             supplyContainerCount,
             generalMinDistance,
             "SupplyContainer",
-            MapSpawnCategory.SupplyContainer
+            MapSpawnCategory.SupplyContainer,
+            clusteredHarvestRatio,
+            false
         );
 
-        PlaceHarvestPrefabBatch(
+        PlaceHarvestPrefabBatchDistributed(
             destroyedHullPrefabs,
             destroyedHullPrefab,
             destroyedHullCount,
             generalMinDistance,
             "DestroyedHull",
-            MapSpawnCategory.DestroyedHull
+            MapSpawnCategory.DestroyedHull,
+            clusteredHarvestRatio,
+            false
         );
 
-        PlaceHarvestPrefabBatch(
+        PlaceHarvestPrefabBatchDistributed(
             meteorPrefabs,
             meteorPrefab,
             smallMeteorCount,
             generalMinDistance,
             "SmallMeteor",
-            MapSpawnCategory.Meteor
+            MapSpawnCategory.Meteor,
+            0.58f,
+            false
         );
 
-        PlaceHarvestPrefabBatch(
+        PlaceHarvestPrefabBatchDistributed(
             largeMeteorPrefabs,
             largeMeteorPrefab,
             largeMeteorCount,
             Mathf.Max(generalMinDistance, 3f),
             "LargeMeteor",
-            MapSpawnCategory.LargeMeteor
+            MapSpawnCategory.LargeMeteor,
+            0f,
+            false
         );
     }
 
@@ -1164,54 +1517,92 @@ public class ExpeditionMapGenerator : MonoBehaviour
             basicCount -= placedScavengers;
         }
 
-        PlaceEnemyBatch(
+        float clusteredEnemyRatio = config != null ? config.ClusteredEnemyRatio : 0.75f;
+        float clusteredThreat =
+            GetClusteredCount(basicCount, clusteredEnemyRatio) +
+            GetClusteredCount(shotgunCount, clusteredEnemyRatio) * 1.2f +
+            GetClusteredCount(chargingCount, clusteredEnemyRatio) * 1.3f +
+            GetClusteredCount(meleeChargerCount, clusteredEnemyRatio) * 1.4f +
+            GetClusteredCount(eliteMachineGunCount, clusteredEnemyRatio) * 2f +
+            GetClusteredCount(eliteShotgunCount, clusteredEnemyRatio) * 2f +
+            GetClusteredCount(eliteChargingCount, clusteredEnemyRatio) * 2f;
+
+        PreparePoiThreatBudgets(clusteredThreat);
+
+        PlaceEnemyBatchDistributed(
             basicEnemyDefinition,
             basicCount,
             false,
-            "BasicEnemy"
+            "BasicEnemy",
+            EnemyPoiPreference.AnySalvage,
+            1f,
+            clusteredEnemyRatio
         );
 
-        PlaceEnemyBatch(
+        PlaceEnemyBatchDistributed(
             shotgunEnemyDefinition,
             shotgunCount,
             true,
-            "ShotgunEnemy"
+            "ShotgunEnemy",
+            EnemyPoiPreference.HighValueOnly,
+            1.2f,
+            clusteredEnemyRatio
         );
 
-        PlaceEnemyBatch(
+        PlaceEnemyBatchDistributed(
             chargingEnemyDefinition,
             chargingCount,
             true,
-            "ChargingEnemy"
+            "ChargingEnemy",
+            EnemyPoiPreference.HighValueOnly,
+            1.3f,
+            clusteredEnemyRatio
         );
 
-        PlaceEnemyBatch(
+        PlaceEnemyBatchDistributed(
             meleeChargerDefinition,
             meleeChargerCount,
             true,
-            "MeleeCharger"
+            "MeleeCharger",
+            EnemyPoiPreference.HighValueOnly,
+            1.4f,
+            clusteredEnemyRatio
         );
 
-        PlaceEnemyBatch(
+        PlaceEnemyBatchDistributed(
             eliteMachineGunDefinition,
             eliteMachineGunCount,
             true,
-            "EliteMachineGun"
+            "EliteMachineGun",
+            EnemyPoiPreference.HighValueOnly,
+            2f,
+            clusteredEnemyRatio
         );
 
-        PlaceEnemyBatch(
+        PlaceEnemyBatchDistributed(
             eliteShotgunDefinition,
             eliteShotgunCount,
             true,
-            "EliteShotgun"
+            "EliteShotgun",
+            EnemyPoiPreference.HighValueOnly,
+            2f,
+            clusteredEnemyRatio
         );
 
-        PlaceEnemyBatch(
+        PlaceEnemyBatchDistributed(
             eliteChargingDefinition,
             eliteChargingCount,
             true,
-            "EliteCharging"
+            "EliteCharging",
+            EnemyPoiPreference.HighValueOnly,
+            2f,
+            clusteredEnemyRatio
         );
+    }
+
+    private static int GetClusteredCount(int count, float ratio)
+    {
+        return Mathf.Clamp(Mathf.RoundToInt(count * Mathf.Clamp01(ratio)), 0, count);
     }
 
     private int ApplyCountModifier(int baseCount, int flatBonus)
@@ -1507,6 +1898,209 @@ public class ExpeditionMapGenerator : MonoBehaviour
         );
     }
 
+    private void PlaceHarvestPrefabBatchDistributed(
+        GameObject[] prefabs,
+        GameObject fallbackPrefab,
+        int count,
+        float minDistance,
+        string label,
+        MapSpawnCategory category,
+        float clusteredRatio,
+        bool highValueOnly)
+    {
+        if (!HasValidPrefab(prefabs, fallbackPrefab) || count <= 0)
+        {
+            return;
+        }
+
+        bool usePoiLayout = config != null && config.EnablePoiClusterLayout;
+        if (!usePoiLayout)
+        {
+            PlaceHarvestPrefabBatch(prefabs, fallbackPrefab, count, minDistance, label, category);
+            return;
+        }
+
+        int clusteredTarget = Mathf.Clamp(
+            Mathf.RoundToInt(count * Mathf.Clamp01(clusteredRatio)),
+            0,
+            count
+        );
+
+        for (int i = 0; i < count; i++)
+        {
+            bool requestedCluster = i < clusteredTarget;
+            Vector2 position = Vector2.zero;
+            PoiAnchor assignedPoi = null;
+            bool clustered = requestedCluster && TryFindPositionNearPoi(
+                highValueOnly,
+                minDistance,
+                out position,
+                out assignedPoi
+            );
+
+            if (!clustered && !TryFindScatteredPosition(category, minDistance, out position))
+            {
+                if (logGenerationResult)
+                {
+                    Debug.LogWarning($"{label} placement failed. Requested: {count}, placed: {i}", this);
+                }
+
+                poiPlacementFallbackUsed = true;
+                continue;
+            }
+
+            if (requestedCluster && !clustered)
+            {
+                poiPlacementFallbackUsed = true;
+            }
+
+            GameObject prefab = PickPrefab(prefabs, fallbackPrefab);
+            GameObject spawned = Spawn(prefab, position, $"{label}_{i:00}");
+
+            if (spawned == null)
+            {
+                continue;
+            }
+
+            ApplySpawnVariation(spawned, category);
+            ConfigureSpawnedObject(spawned, category);
+            occupiedPositions.Add(position);
+
+            if (clustered)
+            {
+                assignedPoi.AssignedHarvest++;
+                if (IsHarvestContentCategory(category))
+                {
+                    clusteredHarvestPlaced++;
+                }
+            }
+            else if (IsHarvestContentCategory(category))
+            {
+                scatteredHarvestPlaced++;
+            }
+        }
+    }
+
+    private bool TryFindPositionNearPoi(
+        bool highValueOnly,
+        float minDistance,
+        out Vector2 position,
+        out PoiAnchor assignedPoi)
+    {
+        position = Vector2.zero;
+        assignedPoi = SelectPoiForHarvest(highValueOnly);
+
+        if (assignedPoi == null)
+        {
+            return false;
+        }
+
+        float innerRadius = Mathf.Min(2f, assignedPoi.Radius * 0.3f);
+
+        for (int attempt = 0; attempt < Mathf.Max(clusterCandidateAttempts, 12); attempt++)
+        {
+            Vector2 direction = UnityEngine.Random.insideUnitCircle;
+            if (direction.sqrMagnitude <= 0.001f)
+            {
+                direction = Vector2.right;
+            }
+
+            direction.Normalize();
+            float distance = Mathf.Sqrt(UnityEngine.Random.value) *
+                Mathf.Max(0.1f, assignedPoi.Radius - innerRadius) + innerRadius;
+            Vector2 candidate = assignedPoi.Center + direction * distance;
+
+            if (IsPositionValid(candidate, true, false, minDistance, out _))
+            {
+                position = candidate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private PoiAnchor SelectPoiForHarvest(bool highValueOnly)
+    {
+        PoiAnchor selected = null;
+        float bestScore = float.PositiveInfinity;
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            PoiAnchor poi = poiAnchors[i];
+            bool eligible = highValueOnly
+                ? poi.Type == PoiType.HighValueSalvage
+                : poi.Type == PoiType.SalvageField || poi.Type == PoiType.HighValueSalvage;
+
+            if (!eligible)
+            {
+                continue;
+            }
+
+            float score = poi.AssignedHarvest + UnityEngine.Random.value * 0.25f;
+            if (score < bestScore)
+            {
+                selected = poi;
+                bestScore = score;
+            }
+        }
+
+        return selected;
+    }
+
+    private bool TryFindScatteredPosition(
+        MapSpawnCategory category,
+        float minDistance,
+        out Vector2 position)
+    {
+        for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
+        {
+            Vector2 candidate = GetRandomPointInMap();
+            bool avoidStart = category == MapSpawnCategory.LargeMeteor;
+
+            if (!IsPositionValid(candidate, avoidStart, false, minDistance, out _))
+            {
+                continue;
+            }
+
+            if (category == MapSpawnCategory.LargeMeteor && !IsOutsidePoiApproach(candidate, 2f))
+            {
+                continue;
+            }
+
+            position = candidate;
+            return true;
+        }
+
+        position = Vector2.zero;
+        return false;
+    }
+
+    private bool IsOutsidePoiApproach(Vector2 position, float padding)
+    {
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            PoiAnchor poi = poiAnchors[i];
+            float exclusionRadius = poi.Radius + Mathf.Max(0f, padding);
+
+            if ((position - poi.Center).sqrMagnitude < exclusionRadius * exclusionRadius)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsHarvestContentCategory(MapSpawnCategory category)
+    {
+        return category == MapSpawnCategory.HighValueWreck ||
+            category == MapSpawnCategory.SupplyContainer ||
+            category == MapSpawnCategory.DestroyedHull ||
+            category == MapSpawnCategory.SpecialActiveContainer ||
+            category == MapSpawnCategory.SpecialPassiveContainer;
+    }
+
     private void PlacePrefabBatch(
         GameObject[] prefabs,
         GameObject fallbackPrefab,
@@ -1569,7 +2163,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 importantPositions.Add(position);
             }
 
-            if (category != MapSpawnCategory.None &&
+            if ((config == null || !config.EnablePoiClusterLayout) &&
+                category != MapSpawnCategory.None &&
                 category != MapSpawnCategory.LargeMeteor)
             {
                 harvestClusterAnchors.Add(position);
@@ -1654,6 +2249,233 @@ public class ExpeditionMapGenerator : MonoBehaviour
         {
             Debug.LogWarning($"{label} 일부 배치 실패. 요청: {count}, 배치: {placed}", this);
         }
+    }
+
+    private void PreparePoiThreatBudgets(float totalThreat)
+    {
+        float totalWeight = 0f;
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            PoiAnchor poi = poiAnchors[i];
+            poi.AssignedThreat = 0f;
+            poi.ThreatCapacity = 0f;
+
+            if (poi.Type == PoiType.SalvageField)
+            {
+                totalWeight += poi.IsLowRisk ? 0.55f : 1f;
+            }
+            else if (poi.Type == PoiType.HighValueSalvage)
+            {
+                totalWeight += 3f;
+            }
+        }
+
+        if (totalWeight <= 0f || totalThreat <= 0f)
+        {
+            return;
+        }
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            PoiAnchor poi = poiAnchors[i];
+            float weight = poi.Type switch
+            {
+                PoiType.SalvageField => poi.IsLowRisk ? 0.55f : 1f,
+                PoiType.HighValueSalvage => 3f,
+                _ => 0f
+            };
+
+            // Small packing slack prevents fractional budgets from forcing otherwise valid
+            // enemies into transit space while the weighted distribution still limits density.
+            poi.ThreatCapacity = totalThreat * weight / totalWeight + 0.75f;
+        }
+    }
+
+    private void PlaceEnemyBatchDistributed(
+        EnemyDefinition definition,
+        int count,
+        bool avoidStartSafeRadius,
+        string label,
+        EnemyPoiPreference preference,
+        float threatCost,
+        float clusteredRatio)
+    {
+        if (definition == null || definition.EnemyPrefab == null || count <= 0)
+        {
+            return;
+        }
+
+        bool usePoiLayout = config != null && config.EnablePoiClusterLayout;
+        if (!usePoiLayout)
+        {
+            PlaceEnemyBatch(definition, count, avoidStartSafeRadius, label);
+            return;
+        }
+
+        int clusteredTarget = GetClusteredCount(count, clusteredRatio);
+        int placed = 0;
+        int attempts = 0;
+        int maxTotalAttempts = Mathf.Max(maxPlacementAttempts, count * maxPlacementAttempts);
+
+        while (placed < count && attempts < maxTotalAttempts)
+        {
+            attempts++;
+            bool requestedCluster = placed < clusteredTarget;
+            PoiAnchor assignedPoi = null;
+            Vector2 position = Vector2.zero;
+            bool clustered = requestedCluster && TryFindEnemyPositionNearPoi(
+                preference,
+                threatCost,
+                out position,
+                out assignedPoi
+            );
+
+            bool insideStartSafeRadius = false;
+            if (!clustered && !TryFindPosition(
+                    avoidStartSafeRadius,
+                    false,
+                    enemyMinDistance,
+                    out position,
+                    out insideStartSafeRadius))
+            {
+                break;
+            }
+
+            if (insideStartSafeRadius)
+            {
+                if (basicEnemiesInsideStartSafeRadius >= maxBasicEnemiesInsideStartSafeRadius)
+                {
+                    continue;
+                }
+
+                basicEnemiesInsideStartSafeRadius++;
+            }
+
+            GameObject spawned = SpawnConfiguredEnemy(
+                definition,
+                position,
+                $"{label}_{placed:00}"
+            );
+
+            if (spawned == null)
+            {
+                continue;
+            }
+
+            if (definition.EnemyType == EnemyType.MeleeCharger &&
+                spawned.GetComponent<EnemyMeleeChargeController2D>() == null)
+            {
+                spawned.AddComponent<EnemyMeleeChargeController2D>();
+            }
+
+            BeginEnemyArrival(spawned, position);
+            occupiedPositions.Add(position);
+
+            if (clustered)
+            {
+                assignedPoi.AssignedThreat += threatCost;
+                clusteredEnemiesPlaced++;
+            }
+            else
+            {
+                roamingEnemiesPlaced++;
+                if (requestedCluster)
+                {
+                    poiPlacementFallbackUsed = true;
+                }
+            }
+
+            placed++;
+        }
+
+        if (placed < count)
+        {
+            Debug.LogWarning($"{label} placement failed. Requested: {count}, placed: {placed}", this);
+        }
+    }
+
+    private bool TryFindEnemyPositionNearPoi(
+        EnemyPoiPreference preference,
+        float threatCost,
+        out Vector2 position,
+        out PoiAnchor assignedPoi)
+    {
+        position = Vector2.zero;
+        assignedPoi = SelectPoiForEnemy(preference, threatCost);
+
+        if (assignedPoi == null)
+        {
+            return false;
+        }
+
+        float innerRadius = Mathf.Min(2.5f, assignedPoi.Radius * 0.35f);
+
+        for (int attempt = 0; attempt < Mathf.Max(clusterCandidateAttempts, 16); attempt++)
+        {
+            Vector2 direction = UnityEngine.Random.insideUnitCircle;
+            if (direction.sqrMagnitude <= 0.001f)
+            {
+                direction = Vector2.up;
+            }
+
+            direction.Normalize();
+            float distance = Mathf.Sqrt(UnityEngine.Random.value) *
+                Mathf.Max(0.1f, assignedPoi.Radius - innerRadius) + innerRadius;
+            Vector2 candidate = assignedPoi.Center + direction * distance;
+
+            if (IsPositionValid(candidate, true, false, enemyMinDistance, out _))
+            {
+                position = candidate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private PoiAnchor SelectPoiForEnemy(EnemyPoiPreference preference, float threatCost)
+    {
+        int passCount = preference == EnemyPoiPreference.AnySalvage ? 2 : 1;
+
+        for (int pass = 0; pass < passCount; pass++)
+        {
+            PoiAnchor selected = null;
+            float bestScore = float.NegativeInfinity;
+
+            for (int i = 0; i < poiAnchors.Count; i++)
+            {
+                PoiAnchor poi = poiAnchors[i];
+                bool eligible = preference == EnemyPoiPreference.HighValueOnly || pass == 1
+                    ? poi.Type == PoiType.HighValueSalvage
+                    : poi.Type == PoiType.SalvageField;
+
+                if (!eligible || poi.ThreatCapacity <= 0f)
+                {
+                    continue;
+                }
+
+                float remaining = poi.ThreatCapacity - poi.AssignedThreat;
+                if (remaining + 0.01f < threatCost)
+                {
+                    continue;
+                }
+
+                float score = remaining / poi.ThreatCapacity + UnityEngine.Random.value * 0.08f;
+                if (score > bestScore)
+                {
+                    selected = poi;
+                    bestScore = score;
+                }
+            }
+
+            if (selected != null)
+            {
+                return selected;
+            }
+        }
+
+        return null;
     }
 
     private int PlaceDefenderBatch(
@@ -1741,12 +2563,18 @@ public class ExpeditionMapGenerator : MonoBehaviour
         while (placed < count && attempts < maxAttempts)
         {
             attempts++;
+            float poiPreferenceChance = roleType == EnemyRoleType.RivalHarvester ? 0.7f : 0.55f;
+            Vector2 position = Vector2.zero;
+            bool placedNearPoi = config != null &&
+                config.EnablePoiClusterLayout &&
+                UnityEngine.Random.value < poiPreferenceChance &&
+                TryFindRolePositionNearSalvagePoi(out position);
 
-            if (!TryFindPosition(
+            if (!placedNearPoi && !TryFindPosition(
                     true,
                     false,
                     enemyMinDistance,
-                    out Vector2 position,
+                    out position,
                     out _))
             {
                 break;
@@ -1804,6 +2632,35 @@ public class ExpeditionMapGenerator : MonoBehaviour
         }
 
         return placed;
+    }
+
+    private bool TryFindRolePositionNearSalvagePoi(out Vector2 position)
+    {
+        position = Vector2.zero;
+        PoiAnchor selected = null;
+        int eligibleCount = 0;
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            PoiAnchor poi = poiAnchors[i];
+            if (poi.Type != PoiType.SalvageField && poi.Type != PoiType.HighValueSalvage)
+            {
+                continue;
+            }
+
+            eligibleCount++;
+            if (UnityEngine.Random.Range(0, eligibleCount) == 0)
+            {
+                selected = poi;
+            }
+        }
+
+        if (selected == null)
+        {
+            return false;
+        }
+
+        return TryFindRolePositionNear(selected.Center, out position);
     }
 
     private HarvestObjectHealth FindNextDefenderTarget(
@@ -2454,6 +3311,17 @@ public class ExpeditionMapGenerator : MonoBehaviour
                     true
                 );
                 meteor.SetRoamingBounds(MapBounds);
+
+                if (category == MapSpawnCategory.Meteor)
+                {
+                    float startSafeRadius = config != null ? config.StartSafeRadius : 10f;
+                    Vector2 offsetFromStart = (Vector2)spawned.transform.position - startPosition;
+
+                    if (offsetFromStart.sqrMagnitude < startSafeRadius * startSafeRadius)
+                    {
+                        meteor.SetRuntimeDriftEnabled(false);
+                    }
+                }
             }
         }
     }
@@ -2488,6 +3356,450 @@ public class ExpeditionMapGenerator : MonoBehaviour
         return spawned;
     }
 
+    private void PlaceEnvironmentDressing()
+    {
+        if (config == null ||
+            !config.EnableEnvironmentDressing ||
+            !HasEnvironmentDressingSprites())
+        {
+            return;
+        }
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            PoiAnchor poi = poiAnchors[i];
+            int count = GetPoiDressingCount(poi.Type);
+
+            for (int dressingIndex = 0; dressingIndex < count; dressingIndex++)
+            {
+                if (!TryFindDressingPositionNearPoi(poi, out Vector2 position))
+                {
+                    failedDressingPlacements++;
+                    continue;
+                }
+
+                if (CreateEnvironmentDressing(position, poi.Type, false, dressingIndex) == null)
+                {
+                    failedDressingPlacements++;
+                    continue;
+                }
+
+                environmentDressingPositions.Add(position);
+
+                switch (poi.Type)
+                {
+                    case PoiType.SalvageField:
+                        salvageDressingPlaced++;
+                        break;
+
+                    case PoiType.HighValueSalvage:
+                        highValueDressingPlaced++;
+                        break;
+
+                    default:
+                        otherPoiDressingPlaced++;
+                        break;
+                }
+            }
+        }
+
+        PlaceTransitEnvironmentDressing(config.TransitDressingCount);
+    }
+
+    private int GetPoiDressingCount(PoiType type)
+    {
+        int salvageCount = config != null ? config.SalvageDressingCount : 12;
+
+        return type switch
+        {
+            PoiType.SalvageField => salvageCount,
+            PoiType.HighValueSalvage => config != null ? config.HighValueDressingCount : 18,
+            PoiType.FieldBase => Mathf.Max(3, salvageCount / 2),
+            PoiType.Shop => Mathf.Max(1, salvageCount / 6),
+            PoiType.Event => Mathf.Max(2, salvageCount / 3),
+            PoiType.Core => Mathf.Max(1, salvageCount / 6),
+            _ => 0
+        };
+    }
+
+    private bool TryFindDressingPositionNearPoi(PoiAnchor poi, out Vector2 position)
+    {
+        position = Vector2.zero;
+        float radiusMultiplier = config != null ? config.PoiDressingRadiusMultiplier : 1.15f;
+        float innerRadius;
+        float outerRadius;
+
+        switch (poi.Type)
+        {
+            case PoiType.FieldBase:
+                innerRadius = poi.Radius + 1.5f;
+                outerRadius = poi.Radius + 5f;
+                break;
+
+            case PoiType.Shop:
+                innerRadius = poi.Radius + 2f;
+                outerRadius = poi.Radius + 4f;
+                break;
+
+            case PoiType.Core:
+                innerRadius = poi.Radius + 2f;
+                outerRadius = poi.Radius + 4f;
+                break;
+
+            case PoiType.Event:
+                innerRadius = 2.75f;
+                outerRadius = Mathf.Max(5f, poi.Radius * radiusMultiplier);
+                break;
+
+            default:
+                innerRadius = Mathf.Min(2.5f, poi.Radius * 0.35f);
+                outerRadius = poi.Radius * radiusMultiplier;
+                break;
+        }
+
+        for (int attempt = 0; attempt < 24; attempt++)
+        {
+            Vector2 direction = UnityEngine.Random.insideUnitCircle;
+            if (direction.sqrMagnitude <= 0.001f)
+            {
+                direction = Vector2.right;
+            }
+
+            direction.Normalize();
+            float distance = Mathf.Lerp(innerRadius, outerRadius, Mathf.Sqrt(UnityEngine.Random.value));
+            Vector2 candidate = poi.Center + direction * distance;
+
+            if (IsDressingPositionValid(candidate, 1.15f, 0.7f))
+            {
+                position = candidate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void PlaceTransitEnvironmentDressing(int count)
+    {
+        count = Mathf.Max(0, count);
+
+        for (int i = 0; i < count; i++)
+        {
+            bool found = false;
+            Vector2 position = Vector2.zero;
+
+            for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
+            {
+                Vector2 candidate = GetRandomPointInMap();
+
+                if (!IsOutsidePoiDressingRegions(candidate) ||
+                    !IsDressingPositionValid(candidate, 1.4f, 0.9f))
+                {
+                    continue;
+                }
+
+                position = candidate;
+                found = true;
+                break;
+            }
+
+            if (!found || CreateEnvironmentDressing(position, PoiType.SalvageField, true, i) == null)
+            {
+                failedDressingPlacements++;
+                continue;
+            }
+
+            environmentDressingPositions.Add(position);
+            transitDressingPlaced++;
+        }
+    }
+
+    private bool IsOutsidePoiDressingRegions(Vector2 position)
+    {
+        float radiusMultiplier = config != null ? config.PoiDressingRadiusMultiplier : 1.15f;
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            PoiAnchor poi = poiAnchors[i];
+            float clearance = poi.Radius * radiusMultiplier + 3f;
+
+            if ((position - poi.Center).sqrMagnitude < clearance * clearance)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool IsDressingPositionValid(
+        Vector2 position,
+        float gameplayClearance,
+        float dressingClearance)
+    {
+        float halfWidth = mapSize.x * 0.5f - edgePadding;
+        float halfHeight = mapSize.y * 0.5f - edgePadding;
+
+        if (Mathf.Abs(position.x) > halfWidth || Mathf.Abs(position.y) > halfHeight)
+        {
+            return false;
+        }
+
+        float safeRadius = config != null ? config.StartSafeRadius : 10f;
+        if ((position - startPosition).sqrMagnitude < safeRadius * safeRadius)
+        {
+            return false;
+        }
+
+        if (!HasMinimumDistance(position, occupiedPositions, gameplayClearance) ||
+            !HasMinimumDistance(position, environmentDressingPositions, dressingClearance) ||
+            IsPointBlockedByReservedPlacement(position, 0.35f))
+        {
+            return false;
+        }
+
+        if (useBlockedLayerCheck &&
+            Physics2D.OverlapCircle(position, blockedCheckRadius, blockedLayer) != null)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private GameObject CreateEnvironmentDressing(
+        Vector2 position,
+        PoiType poiType,
+        bool transit,
+        int index)
+    {
+        bool useWreck = !transit && ShouldUseWreckDressing(poiType);
+        Sprite sprite = PickEnvironmentDressingSprite(useWreck);
+
+        if (sprite == null)
+        {
+            return null;
+        }
+
+        GameObject dressing = new GameObject(
+            transit ? $"TransitDressing_{index:000}" : $"{poiType}Dressing_{index:000}"
+        );
+        dressing.transform.SetParent(generatedRoot, false);
+        dressing.transform.position = position;
+        dressing.transform.rotation = Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f));
+
+        Vector2 scaleRange = GetDressingScaleRange(poiType, transit, useWreck);
+        float scale = UnityEngine.Random.Range(
+            Mathf.Min(scaleRange.x, scaleRange.y),
+            Mathf.Max(scaleRange.x, scaleRange.y)
+        );
+        dressing.transform.localScale = new Vector3(scale, scale, 1f);
+
+        SpriteRenderer renderer = dressing.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite;
+        renderer.color = GetDressingColor(poiType, transit);
+        renderer.sortingOrder = environmentDressingSortingOrder + UnityEngine.Random.Range(0, 3);
+        renderer.flipX = UnityEngine.Random.value < 0.5f;
+        renderer.flipY = UnityEngine.Random.value < 0.2f;
+        return dressing;
+    }
+
+    private bool ShouldUseWreckDressing(PoiType poiType)
+    {
+        float chance = poiType switch
+        {
+            PoiType.HighValueSalvage => 0.38f,
+            PoiType.FieldBase => 0.18f,
+            PoiType.Event => 0.1f,
+            _ => 0f
+        };
+
+        return UnityEngine.Random.value < chance;
+    }
+
+    private Vector2 GetDressingScaleRange(PoiType poiType, bool transit, bool wreck)
+    {
+        if (transit)
+        {
+            return new Vector2(0.45f, 0.85f);
+        }
+
+        if (wreck)
+        {
+            return poiType == PoiType.HighValueSalvage
+                ? new Vector2(0.8f, 1.35f)
+                : new Vector2(0.65f, 1f);
+        }
+
+        return poiType switch
+        {
+            PoiType.HighValueSalvage => new Vector2(0.7f, 1.2f),
+            PoiType.SalvageField => new Vector2(0.55f, 1f),
+            PoiType.Shop => new Vector2(0.45f, 0.7f),
+            PoiType.Core => new Vector2(0.5f, 0.8f),
+            _ => new Vector2(0.5f, 0.9f)
+        };
+    }
+
+    private Color GetDressingColor(PoiType poiType, bool transit)
+    {
+        if (transit)
+        {
+            return new Color(0.48f, 0.55f, 0.62f, UnityEngine.Random.Range(0.2f, 0.34f));
+        }
+
+        return poiType switch
+        {
+            PoiType.SalvageField => new Color(0.62f, 0.7f, 0.76f, UnityEngine.Random.Range(0.4f, 0.58f)),
+            PoiType.HighValueSalvage => new Color(0.75f, 0.78f, 0.82f, UnityEngine.Random.Range(0.52f, 0.7f)),
+            PoiType.FieldBase => new Color(0.55f, 0.64f, 0.72f, UnityEngine.Random.Range(0.34f, 0.5f)),
+            PoiType.Shop => new Color(0.62f, 0.75f, 0.78f, UnityEngine.Random.Range(0.24f, 0.36f)),
+            PoiType.Event => new Color(0.5f, 0.7f, 0.76f, UnityEngine.Random.Range(0.32f, 0.48f)),
+            PoiType.Core => new Color(0.62f, 0.44f, 0.74f, UnityEngine.Random.Range(0.2f, 0.32f)),
+            _ => new Color(0.58f, 0.65f, 0.72f, 0.4f)
+        };
+    }
+
+    private bool HasEnvironmentDressingSprites()
+    {
+        return HasValidSprite(environmentDebrisSprites) ||
+            HasValidSprite(environmentWreckSprites) ||
+            HasValidPrefab(meteorPrefabs, meteorPrefab) ||
+            HasValidPrefab(destroyedHullPrefabs, destroyedHullPrefab) ||
+            HasValidPrefab(highValueWreckPrefabs, highValueWreckPrefab);
+    }
+
+    private Sprite PickEnvironmentDressingSprite(bool useWreck)
+    {
+        Sprite sprite = PickEnvironmentSprite(useWreck ? environmentWreckSprites : environmentDebrisSprites);
+
+        if (sprite != null)
+        {
+            return sprite;
+        }
+
+        GameObject sourcePrefab;
+
+        if (useWreck)
+        {
+            bool preferHighValue = UnityEngine.Random.value < 0.5f;
+            sourcePrefab = preferHighValue
+                ? PickPrefab(highValueWreckPrefabs, highValueWreckPrefab)
+                : PickPrefab(destroyedHullPrefabs, destroyedHullPrefab);
+
+            sprite = GetPrefabSprite(sourcePrefab);
+            if (sprite == null)
+            {
+                sourcePrefab = preferHighValue
+                    ? PickPrefab(destroyedHullPrefabs, destroyedHullPrefab)
+                    : PickPrefab(highValueWreckPrefabs, highValueWreckPrefab);
+                sprite = GetPrefabSprite(sourcePrefab);
+            }
+        }
+        else
+        {
+            sourcePrefab = PickPrefab(meteorPrefabs, meteorPrefab);
+            sprite = GetPrefabSprite(sourcePrefab);
+        }
+
+        if (sprite != null)
+        {
+            return sprite;
+        }
+
+        return PickEnvironmentSprite(useWreck ? environmentDebrisSprites : environmentWreckSprites);
+    }
+
+    private static Sprite GetPrefabSprite(GameObject prefab)
+    {
+        if (prefab == null)
+        {
+            return null;
+        }
+
+        SpriteRenderer renderer = prefab.GetComponentInChildren<SpriteRenderer>(true);
+        return renderer != null ? renderer.sprite : null;
+    }
+
+    private static bool HasValidSprite(Sprite[] sprites)
+    {
+        if (sprites == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < sprites.Length; i++)
+        {
+            if (sprites[i] != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Sprite PickEnvironmentSprite(Sprite[] sprites)
+    {
+        if (sprites == null || sprites.Length == 0)
+        {
+            return null;
+        }
+
+        int startIndex = UnityEngine.Random.Range(0, sprites.Length);
+
+        for (int i = 0; i < sprites.Length; i++)
+        {
+            Sprite candidate = sprites[(startIndex + i) % sprites.Length];
+            if (candidate != null)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private void LogPoiGenerationSummary()
+    {
+        if (config == null || !config.EnablePoiClusterLayout)
+        {
+            return;
+        }
+
+        Debug.Log(
+            "POI layout: " +
+            $"Salvage {CountPoiType(PoiType.SalvageField)}, " +
+            $"HighValue {CountPoiType(PoiType.HighValueSalvage)}, " +
+            $"FieldBase {CountPoiType(PoiType.FieldBase)}, " +
+            $"Shop {CountPoiType(PoiType.Shop)}, " +
+            $"Event {CountPoiType(PoiType.Event)}, " +
+            $"Core {CountPoiType(PoiType.Core)} | " +
+            $"Harvest clustered {clusteredHarvestPlaced}, scattered {scatteredHarvestPlaced} | " +
+            $"Enemies clustered {clusteredEnemiesPlaced}, roaming {roamingEnemiesPlaced} | " +
+            $"Dressing salvage {salvageDressingPlaced}, high-value {highValueDressingPlaced}, " +
+            $"other POI {otherPoiDressingPlaced}, transit {transitDressingPlaced}, " +
+            $"failed {failedDressingPlacements}" +
+            (poiPlacementFallbackUsed ? " | fallback used" : string.Empty),
+            this
+        );
+    }
+
+    private int CountPoiType(PoiType type)
+    {
+        int count = 0;
+
+        for (int i = 0; i < poiAnchors.Count; i++)
+        {
+            if (poiAnchors[i].Type == type)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     private void OnDrawGizmosSelected()
     {
         if (!drawMapBounds)
@@ -2520,6 +3832,26 @@ public class ExpeditionMapGenerator : MonoBehaviour
             Bounds safeBounds = ResolveCorePlacementSafeBounds(size);
             Gizmos.color = new Color(1f, 0.75f, 0.1f, 1f);
             Gizmos.DrawWireCube(safeBounds.center, safeBounds.size);
+        }
+
+        if (config != null && config.EnablePoiClusterLayout)
+        {
+            for (int i = 0; i < poiAnchors.Count; i++)
+            {
+                PoiAnchor poi = poiAnchors[i];
+                if (poi.Type == PoiType.SalvageField)
+                {
+                    Gizmos.color = poi.IsLowRisk
+                        ? new Color(0.3f, 1f, 0.65f, 0.8f)
+                        : new Color(0.25f, 0.8f, 1f, 0.8f);
+                    Gizmos.DrawWireSphere(poi.Center, poi.Radius);
+                }
+                else if (poi.Type == PoiType.HighValueSalvage)
+                {
+                    Gizmos.color = new Color(1f, 0.55f, 0.15f, 0.85f);
+                    Gizmos.DrawWireSphere(poi.Center, poi.Radius);
+                }
+            }
         }
     }
 }

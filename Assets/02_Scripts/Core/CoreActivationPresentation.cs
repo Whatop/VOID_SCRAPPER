@@ -25,7 +25,7 @@ public class CoreActivationPresentation : MonoBehaviour
     [SerializeField] private bool forceIdleStateOnEnable = true;
     [SerializeField] private string idleStateName = "Idle";
     [Tooltip("활성화 후 코어를 숨기지 않고 방전된 모습으로 유지합니다.")]
-    [SerializeField] private bool keepSpentVisualAfterActivation = true;
+    [SerializeField] private bool keepSpentVisualAfterActivation;
     [SerializeField] private string spentStateName = "Spent";
     [Tooltip("Spent 상태가 없으면 Activate 애니메이션의 마지막 프레임을 정지해 유지합니다.")]
     [SerializeField] private bool freezeLastFrameWhenSpentStateMissing = true;

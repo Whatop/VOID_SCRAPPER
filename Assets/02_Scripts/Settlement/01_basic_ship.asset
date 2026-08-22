@@ -17,7 +17,7 @@ MonoBehaviour:
   description: "\uAE30\uBCF8 \uC218\uD655\uC6A9 \uAE30\uCCB4. \uC911\uAC70\uB9AC
     \uAE30\uAD00\uCD1D\uC73C\uB85C \uC801\uC744 \uBC00\uC5B4\uB0B4\uACE0 \uC794\uD574\uC640
     \uCEE8\uD14C\uC774\uB108\uB97C \uC548\uC815\uC801\uC73C\uB85C \uD30C\uAD34\uD55C\uB2E4."
-  previewSprite: {fileID: 21300000, guid: 0f8f39aa88efb5a4786554a25cfec650, type: 3}
+  previewSprite: {fileID: 1210419459, guid: 82aabd5b11a4e984db1e75bed82be3d8, type: 3}
   machineGunSprite: {fileID: -1300307241, guid: 2da69cc1c7dfd1642ae26cc7f68a2c85, type: 3}
   shotgunSprite: {fileID: 0}
   sniperSprite: {fileID: 0}

@@ -59,6 +59,7 @@ public sealed class MapDiscoveryController : MonoBehaviour
     public Bounds MapBounds => mapBounds;
     public bool IsInitialized => initialized;
     public IReadOnlyCollection<RadarTarget> DiscoveredTargets => discoveredTargets;
+    public float TraversalRevealRadius => Mathf.Max(worldUnitsPerCell, initialRevealRadius);
 
     public event Action DiscoveryChanged;
     public event Action<RadarTarget> TargetDiscovered;
@@ -244,6 +245,44 @@ public sealed class MapDiscoveryController : MonoBehaviour
     {
         return target != null && (target.IsMapDiscovered || discoveredTargets.Contains(target));
     }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public bool RevealAllForDebug()
+    {
+        EnsureInitialized();
+
+        if (!initialized || discoveredCells == null || discoveryTexture == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < discoveredCells.Length; i++)
+        {
+            discoveredCells[i] = true;
+        }
+
+        FillMask(discoveredColor);
+
+        foreach (RadarTarget target in RadarTarget.ActiveTargets)
+        {
+            if (target == null)
+            {
+                continue;
+            }
+
+            bool added = discoveredTargets.Add(target);
+            target.SetMapDiscovered(true);
+
+            if (added)
+            {
+                TargetDiscovered?.Invoke(target);
+            }
+        }
+
+        DiscoveryChanged?.Invoke();
+        return true;
+    }
+#endif
 
     public bool IsWorldPositionDiscovered(Vector2 worldPosition)
     {

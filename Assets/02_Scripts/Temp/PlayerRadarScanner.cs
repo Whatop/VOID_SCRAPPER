@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public class PlayerRadarScanner : MonoBehaviour
@@ -30,6 +31,15 @@ public class PlayerRadarScanner : MonoBehaviour
     [SerializeField] private float scanRadius = 15f;
     [SerializeField] private LayerMask radarTargetLayer = ~0;
 
+    [Header("Passive Local Radar")]
+    [FormerlySerializedAs("enablePassiveDiscovery")]
+    [SerializeField] private bool enablePassiveRadar = true;
+    [FormerlySerializedAs("passiveDiscoveryRadiusRatio")]
+    [SerializeField, Range(0.1f, 1f)] private float passiveRadarRadiusRatio = 0.5f;
+    [FormerlySerializedAs("passiveDiscoveryTravelStep")]
+    [SerializeField, Min(0.1f)] private float passiveRadarTravelStep = 0.75f;
+    [SerializeField, Min(0.1f)] private float passiveRadarRefreshInterval = 0.35f;
+
     [Tooltip("레이더가 열려 있을 때 Q를 짧게 누르면 닫습니다. 길게 누르면 다시 스캔합니다.")]
     [SerializeField] private bool shortPressClosesRadar = true;
 
@@ -54,12 +64,18 @@ public class PlayerRadarScanner : MonoBehaviour
     private float holdTimer;
     private float lastScanTime = -999f;
     private float lastNormalScanRadius;
+    private float lastPassiveRadarRadius;
+    private float nextPassiveRadarRefreshTime;
+    private Vector2 lastPassiveRadarPosition;
+    private bool hasPassiveRadarPosition;
 
     private readonly Collider2D[] scanBuffer = new Collider2D[256];
     private readonly List<RadarTarget> scannedTargets = new List<RadarTarget>(128);
     private readonly HashSet<RadarTarget> scannedSet = new HashSet<RadarTarget>();
     private readonly List<RadarTarget> displayedTargets = new List<RadarTarget>(128);
     private readonly HashSet<RadarTarget> displayedSet = new HashSet<RadarTarget>();
+    private readonly List<RadarTarget> passiveRadarTargets = new List<RadarTarget>(64);
+    private readonly HashSet<RadarTarget> passiveRadarSet = new HashSet<RadarTarget>();
     private readonly HashSet<RadarTarget> temporaryPulseSet = new HashSet<RadarTarget>();
     private readonly Dictionary<UnityEngine.Object, TemporaryRevealState> temporaryRevealStates =
         new Dictionary<UnityEngine.Object, TemporaryRevealState>(2);
@@ -77,6 +93,7 @@ public class PlayerRadarScanner : MonoBehaviour
     public bool IsRadarPanelOpen => radarPanelAnimator != null ? radarPanelAnimator.IsOpen : isRadarOpen;
     public float HoldRatio => holdTime <= 0f ? 1f : Mathf.Clamp01(holdTimer / holdTime);
     public float ScanRadius => ResolveEffectiveScanRadius();
+    public float PassiveRadarRadius => ResolveEffectiveScanRadius() * Mathf.Clamp01(passiveRadarRadiusRatio);
     public float LastScanTime => lastScanTime;
     public float SniperLingerTime => sniperLingerTime + (runtimeBonusState != null ? runtimeBonusState.RadarStealthDurationBonus : 0f);
     public IReadOnlyList<RadarTarget> LastScannedTargets => scannedTargets;
@@ -99,6 +116,9 @@ public class PlayerRadarScanner : MonoBehaviour
     private void OnEnable()
     {
         BindInput();
+        lastPassiveRadarPosition = transform.position;
+        hasPassiveRadarPosition = true;
+        nextPassiveRadarRefreshTime = 0f;
         objectiveDirector ??= ExpeditionObjectiveDirector.Instance;
 
         if (includeGloballyRevealedCore && objectiveDirector != null)
@@ -117,6 +137,8 @@ public class PlayerRadarScanner : MonoBehaviour
         radarAction?.Disable();
         CancelHold();
         ClearAllTemporaryReveals();
+        passiveRadarTargets.Clear();
+        passiveRadarSet.Clear();
         CloseRadar();
     }
 
@@ -135,7 +157,101 @@ public class PlayerRadarScanner : MonoBehaviour
             return;
         }
 
+        UpdatePassiveRadar();
         UpdateHoldInput();
+    }
+
+    private void UpdatePassiveRadar()
+    {
+        if (!enablePassiveRadar)
+        {
+            return;
+        }
+
+        Vector2 currentPosition = transform.position;
+        if (!hasPassiveRadarPosition)
+        {
+            lastPassiveRadarPosition = currentPosition;
+            hasPassiveRadarPosition = true;
+            return;
+        }
+
+        float travelStep = Mathf.Max(0.1f, passiveRadarTravelStep);
+        bool movedEnough = (currentPosition - lastPassiveRadarPosition).sqrMagnitude >= travelStep * travelStep;
+        bool intervalElapsed = Time.time >= nextPassiveRadarRefreshTime;
+        if (!movedEnough && !intervalElapsed)
+        {
+            return;
+        }
+
+        lastPassiveRadarPosition = currentPosition;
+        nextPassiveRadarRefreshTime = Time.time + Mathf.Max(0.1f, passiveRadarRefreshInterval);
+        lastPassiveRadarRadius = PassiveRadarRadius;
+        passiveRadarTargets.Clear();
+        passiveRadarSet.Clear();
+
+        int count = Physics2D.OverlapCircleNonAlloc(
+            currentPosition,
+            lastPassiveRadarRadius,
+            scanBuffer,
+            radarTargetLayer
+        );
+
+        for (int i = 0; i < count; i++)
+        {
+            RadarTarget target = scanBuffer[i] != null
+                ? scanBuffer[i].GetComponentInParent<RadarTarget>()
+                : null;
+
+            if (target == null || !target.IsRadarVisible || !passiveRadarSet.Add(target))
+            {
+                continue;
+            }
+
+            passiveRadarTargets.Add(target);
+        }
+
+        mapDiscoveryController ??= MapDiscoveryController.Instance;
+        if (mapDiscoveryController != null)
+        {
+            mapDiscoveryController.RevealCircle(
+                currentPosition,
+                mapDiscoveryController.TraversalRevealRadius
+            );
+        }
+
+        RefreshPassiveRadarPresentation();
+    }
+
+    private void RefreshPassiveRadarPresentation()
+    {
+        if (passiveRadarTargets.Count > 0)
+        {
+            if (isRadarOpen)
+            {
+                RefreshRadarPresentation();
+            }
+            else
+            {
+                OpenRadar(lastPassiveRadarRadius, false);
+            }
+
+            return;
+        }
+
+        if (!isRadarOpen)
+        {
+            return;
+        }
+
+        if (hasNormalRadarPresentation || HasActiveTemporaryReveals())
+        {
+            RefreshRadarPresentation();
+        }
+        else
+        {
+            CloseRadar(false);
+        }
     }
 
     private void CacheReferences()
@@ -331,7 +447,11 @@ public class PlayerRadarScanner : MonoBehaviour
         {
             ShowWarning(noTargetMessage);
 
-            if (HasActiveTemporaryReveals())
+            if (passiveRadarTargets.Count > 0)
+            {
+                RefreshPassiveRadarPresentation();
+            }
+            else if (HasActiveTemporaryReveals())
             {
                 RefreshRadarPresentation();
             }
@@ -413,6 +533,37 @@ public class PlayerRadarScanner : MonoBehaviour
         return revealedCount;
     }
 
+    public bool RegisterNearbyTarget(RadarTarget target, float maximumDistance, bool revealMapCell = true)
+    {
+        if (!isActiveAndEnabled || target == null || !target.IsRadarVisible || maximumDistance <= 0f)
+        {
+            return false;
+        }
+
+        Vector2 offset = target.WorldPosition - transform.position;
+        if (offset.sqrMagnitude > maximumDistance * maximumDistance)
+        {
+            return false;
+        }
+
+        bool added = scannedSet.Add(target);
+        if (added)
+        {
+            scannedTargets.Add(target);
+        }
+
+        mapDiscoveryController ??= MapDiscoveryController.Instance;
+        mapDiscoveryController?.DiscoverTarget(target, revealMapCell);
+        hasNormalRadarPresentation = scannedTargets.Count > 0;
+
+        if (isRadarOpen)
+        {
+            RefreshRadarPresentation();
+        }
+
+        return added;
+    }
+
     public void PlayTacticalPulse(float radius)
     {
         radarVFX?.PlayPulse(radius > 0f ? radius : ResolveEffectiveScanRadius());
@@ -475,7 +626,7 @@ public class PlayerRadarScanner : MonoBehaviour
         mapDiscoveryController?.DiscoverTarget(target, false);
     }
 
-    private void OpenRadar(float effectiveRadius)
+    private void OpenRadar(float effectiveRadius, bool animatePanel = true)
     {
         BuildDisplayedTargets();
 
@@ -487,13 +638,28 @@ public class PlayerRadarScanner : MonoBehaviour
 
         if (!isRadarOpen)
         {
-            radarPanelAnimator?.Open();
+            if (radarPanelAnimator != null)
+            {
+                if (animatePanel)
+                {
+                    radarPanelAnimator.Open();
+                }
+                else
+                {
+                    radarPanelAnimator.OpenImmediate();
+                }
+            }
         }
 
         isRadarOpen = true;
     }
 
     public void CloseRadar()
+    {
+        CloseRadar(true);
+    }
+
+    private void CloseRadar(bool animatePanel)
     {
         if (!isRadarOpen)
         {
@@ -510,7 +676,14 @@ public class PlayerRadarScanner : MonoBehaviour
 
         if (radarPanelAnimator != null)
         {
-            radarPanelAnimator.Close();
+            if (animatePanel)
+            {
+                radarPanelAnimator.Close();
+            }
+            else
+            {
+                radarPanelAnimator.CloseImmediate();
+            }
         }
 
         isRadarOpen = false;
@@ -672,6 +845,16 @@ public class PlayerRadarScanner : MonoBehaviour
             }
         }
 
+        for (int i = 0; i < passiveRadarTargets.Count; i++)
+        {
+            RadarTarget target = passiveRadarTargets[i];
+
+            if (target != null && target.IsRadarVisible && displayedSet.Add(target))
+            {
+                displayedTargets.Add(target);
+            }
+        }
+
         foreach (RadarTarget target in RadarTarget.ActiveTargets)
         {
             if (target != null && target.IsTemporarilyRevealed && displayedSet.Add(target))
@@ -697,7 +880,9 @@ public class PlayerRadarScanner : MonoBehaviour
     {
         float radius = hasNormalRadarPresentation
             ? Mathf.Max(0.1f, lastNormalScanRadius)
-            : Mathf.Max(0.1f, fallbackRadius);
+            : passiveRadarTargets.Count > 0
+                ? Mathf.Max(0.1f, lastPassiveRadarRadius)
+                : Mathf.Max(0.1f, fallbackRadius);
 
         foreach (TemporaryRevealState state in temporaryRevealStates.Values)
         {
@@ -763,6 +948,16 @@ public class PlayerRadarScanner : MonoBehaviour
         }
 
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, Application.isPlaying ? ResolveEffectiveScanRadius() : scanRadius);
+        float activeRadius = Application.isPlaying ? ResolveEffectiveScanRadius() : Mathf.Max(0.1f, scanRadius);
+        Gizmos.DrawWireSphere(transform.position, activeRadius);
+
+        if (enablePassiveRadar)
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(
+                transform.position,
+                activeRadius * Mathf.Clamp01(passiveRadarRadiusRatio)
+            );
+        }
     }
 }

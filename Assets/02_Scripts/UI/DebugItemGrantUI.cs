@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -212,6 +213,13 @@ public sealed class DebugItemGrantUI : MonoBehaviour
             return;
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (TryExecuteDevelopmentCommand(id))
+        {
+            return;
+        }
+#endif
+
         ItemKind kind = itemTypeDropdown != null
             ? (ItemKind)Mathf.Clamp(itemTypeDropdown.value, 0, 2)
             : ItemKind.Auto;
@@ -251,6 +259,266 @@ public sealed class DebugItemGrantUI : MonoBehaviour
 
         SetResult($"ERROR\nUnknown {kind} ID: {id}", false);
     }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    private bool TryExecuteDevelopmentCommand(string input)
+    {
+        string[] tokens = input.Split(
+            new[] { ' ', '\t' },
+            StringSplitOptions.RemoveEmptyEntries
+        );
+
+        if (tokens.Length == 0)
+        {
+            return false;
+        }
+
+        switch (tokens[0].ToLowerInvariant())
+        {
+            case "corespawn":
+                ExecuteCoreSpawnCommand();
+                return true;
+
+            case "bossreward":
+                ExecuteBossRewardCommand();
+                return true;
+
+            case "shop":
+                ExecuteShopCommand();
+                return true;
+
+            case "teleport":
+                ExecuteTeleportCommand(tokens);
+                return true;
+
+            case "revealmap":
+                ExecuteRevealMapCommand();
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private void ExecuteCoreSpawnCommand()
+    {
+        if (!HasActiveRunForCommand("corespawn"))
+        {
+            return;
+        }
+
+        ExpeditionMapGenerator generator = FindFirstObjectByType<ExpeditionMapGenerator>();
+
+        if (generator == null || !generator.TryPrepareCoreForDebug(out CoreObject core))
+        {
+            FailCommand("corespawn", "Core generator/prefab is unavailable.");
+            return;
+        }
+
+        MapDiscoveryController.Instance?.DiscoverTarget(core.RadarTarget);
+        Debug.Log($"[DevCommand] corespawn prepared Core at {core.transform.position}.", core);
+        Close();
+    }
+
+    private void ExecuteBossRewardCommand()
+    {
+        if (!HasActiveRunForCommand("bossreward"))
+        {
+            return;
+        }
+
+        RunLevelTraitSelectionUI rewardUI =
+            FindFirstObjectByType<RunLevelTraitSelectionUI>(FindObjectsInactive.Include);
+
+        if (rewardUI == null)
+        {
+            FailCommand("bossreward", "RunLevelTraitSelectionUI was not found.");
+            return;
+        }
+
+        ResolveCurrentPlayer();
+        Vector2 sourcePosition = playerObject != null
+            ? playerObject.transform.position
+            : Vector2.zero;
+        ExpeditionObjectiveDirector director = ExpeditionObjectiveDirector.Instance;
+        int choiceCount = director != null ? director.ResolveBossChoiceCount(3) : 3;
+        bool rareGuaranteed = director == null || director.BossRareGuaranteed;
+
+        Close();
+
+        bool opened = rewardUI.ShowBossRewardChoices(
+            choiceCount,
+            rareGuaranteed,
+            sourcePosition,
+            result => Debug.Log($"[DevCommand] bossreward selected {result.Option?.Id}.")
+        );
+
+        if (!opened)
+        {
+            Debug.LogWarning("[DevCommand] bossreward FAILED: reward options could not be generated or the panel is already open.", this);
+        }
+    }
+
+    private void ExecuteShopCommand()
+    {
+        if (!HasActiveRunForCommand("shop") || !ResolveCurrentPlayer())
+        {
+            if (playerObject == null)
+            {
+                FailCommand("shop", "No current Player was found.");
+            }
+
+            return;
+        }
+
+        ShopStructure[] shops = FindObjectsByType<ShopStructure>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None
+        );
+        ShopStructure selectedShop = null;
+
+        for (int i = 0; i < shops.Length; i++)
+        {
+            if (shops[i] != null && shops[i].CanInteract(playerObject))
+            {
+                selectedShop = shops[i];
+                break;
+            }
+        }
+
+        if (selectedShop == null)
+        {
+            FailCommand("shop", "No neutral active Shop is available.");
+            return;
+        }
+
+        Close();
+        selectedShop.Interact(playerObject);
+        Debug.Log($"[DevCommand] shop opened {selectedShop.DisplayName}.", selectedShop);
+    }
+
+    private void ExecuteTeleportCommand(string[] tokens)
+    {
+        if (!HasActiveRunForCommand("teleport") || !ResolveCurrentPlayer())
+        {
+            if (playerObject == null)
+            {
+                FailCommand("teleport", "No current Player was found.");
+            }
+
+            return;
+        }
+
+        if (!TryResolveTeleportTarget(tokens, out Vector2 targetPosition, out string targetLabel))
+        {
+            FailCommand("teleport", "Use: teleport, teleport x y, teleport core, teleport shop, or teleport boss.");
+            return;
+        }
+
+        Rigidbody2D body = playerObject.GetComponent<Rigidbody2D>();
+
+        if (body != null)
+        {
+            body.linearVelocity = Vector2.zero;
+            body.position = targetPosition;
+        }
+        else
+        {
+            playerObject.transform.position = targetPosition;
+        }
+
+        Physics2D.SyncTransforms();
+        Debug.Log($"[DevCommand] teleport moved Player to {targetLabel} at {targetPosition}.", playerObject);
+        Close();
+    }
+
+    private bool TryResolveTeleportTarget(
+        string[] tokens,
+        out Vector2 targetPosition,
+        out string targetLabel)
+    {
+        targetPosition = Vector2.zero;
+        targetLabel = string.Empty;
+
+        if (tokens.Length == 1)
+        {
+            ExpeditionMapGenerator generator = FindFirstObjectByType<ExpeditionMapGenerator>();
+
+            if (generator == null || generator.MapBounds.size.sqrMagnitude <= 0.01f)
+            {
+                return false;
+            }
+
+            targetPosition = generator.MapBounds.center;
+            targetLabel = "map center";
+            return true;
+        }
+
+        if (tokens.Length >= 3 &&
+            float.TryParse(tokens[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) &&
+            float.TryParse(tokens[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float y))
+        {
+            targetPosition = new Vector2(x, y);
+            targetLabel = "coordinates";
+            return true;
+        }
+
+        string targetKind = tokens[1].ToLowerInvariant();
+        Transform target = targetKind switch
+        {
+            "core" => FindFirstObjectByType<CoreObject>(FindObjectsInactive.Include)?.transform,
+            "shop" => FindFirstObjectByType<ShopStructure>(FindObjectsInactive.Include)?.transform,
+            "boss" => FindFirstObjectByType<BossDummyController>(FindObjectsInactive.Include)?.transform,
+            _ => null
+        };
+
+        if (target == null)
+        {
+            return false;
+        }
+
+        targetPosition = (Vector2)target.position + Vector2.right * 1.5f;
+        targetLabel = targetKind;
+        return true;
+    }
+
+    private void ExecuteRevealMapCommand()
+    {
+        if (!HasActiveRunForCommand("revealmap"))
+        {
+            return;
+        }
+
+        MapDiscoveryController discovery = MapDiscoveryController.Instance;
+
+        if (discovery == null || !discovery.RevealAllForDebug())
+        {
+            FailCommand("revealmap", "Map discovery is unavailable or not initialized.");
+            return;
+        }
+
+        Debug.Log("[DevCommand] revealmap revealed the current run map and active targets.", discovery);
+        Close();
+    }
+
+    private bool HasActiveRunForCommand(string command)
+    {
+        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        {
+            return true;
+        }
+
+        FailCommand(command, "No active Expedition run exists.");
+        return false;
+    }
+
+    private void FailCommand(string command, string reason)
+    {
+        string message = $"[DevCommand] {command} FAILED: {reason}";
+        Debug.LogWarning(message, this);
+        SetResult($"ERROR\n{command}: {reason}", false);
+    }
+#endif
 
     private void GrantTrait(TraitDefinition trait, int amount)
     {
@@ -454,12 +722,21 @@ public sealed class DebugItemGrantUI : MonoBehaviour
         allowPersistentStoryToggle = CreateToggle("AllowPersistentStoryToggle", panel.transform, new Vector2(57f, 52f));
         CreateText("AllowPersistentStoryLabel", panel.transform, "Persistent Story 허용", new Vector2(127f, 52f), new Vector2(130f, 20f), 8f, TextAlignmentOptions.Left, TextColor);
 
-        idInputField = CreateInputField("IdInputField", panel.transform, "Trait / Reinforcement ID", new Vector2(0f, 18f), new Vector2(330f, 27f), false);
+        idInputField = CreateInputField("IdInputField", panel.transform, "Trait / Reinforcement ID / command", new Vector2(0f, 18f), new Vector2(330f, 27f), false);
         amountInputField = CreateInputField("AmountOrLevelInput", panel.transform, "Count", new Vector2(-105f, -18f), new Vector2(120f, 24f), true);
         amountInputField.text = "1";
         CreateText("AmountHelpText", panel.transform, "Trait 반복 횟수 (1-100)", new Vector2(63f, -18f), new Vector2(190f, 20f), 8f, TextAlignmentOptions.Left, new Color(0.68f, 0.75f, 0.82f, 1f));
 
-        resultText = CreateText("ResultText", panel.transform, "ID를 입력하고 Grant를 누르세요.", new Vector2(0f, -55f), new Vector2(340f, 44f), 9f, TextAlignmentOptions.Center, TextColor);
+        resultText = CreateText(
+            "ResultText",
+            panel.transform,
+            "ID 또는 corespawn / bossreward / shop / teleport / revealmap",
+            new Vector2(0f, -55f),
+            new Vector2(340f, 44f),
+            9f,
+            TextAlignmentOptions.Center,
+            TextColor
+        );
         resultText.textWrappingMode = TextWrappingModes.Normal;
 
         grantButton = CreateButton("GrantButton", panel.transform, "GRANT", new Vector2(-62f, -91f), new Vector2(110f, 26f));

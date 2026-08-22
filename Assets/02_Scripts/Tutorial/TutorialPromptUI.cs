@@ -72,6 +72,21 @@ public sealed class TutorialPromptUI : MonoBehaviour
         Refresh();
     }
 
+    public string ResolveInstruction(
+        string instructionTemplate,
+        string actionMapName,
+        string actionName,
+        string fallbackBinding,
+        bool useCompositeParts)
+    {
+        currentTemplate = instructionTemplate;
+        currentActionMapName = actionMapName;
+        currentActionName = actionName;
+        currentFallbackBinding = fallbackBinding;
+        currentUsesCompositeParts = useCompositeParts;
+        return BuildCurrentInstruction();
+    }
+
     public void SetProgress(int currentStepNumber, int totalStepCount)
     {
         if (progressText == null)
@@ -99,8 +114,18 @@ public sealed class TutorialPromptUI : MonoBehaviour
             return;
         }
 
+        instructionText.text = BuildCurrentInstruction();
+    }
+
+    private string BuildCurrentInstruction()
+    {
+        if (string.IsNullOrWhiteSpace(currentTemplate))
+        {
+            return string.Empty;
+        }
+
         string bindingDisplay = ResolveBindingDisplay();
-        instructionText.text = currentTemplate.Contains("{0}")
+        return currentTemplate.Contains("{0}")
             ? string.Format(currentTemplate, bindingDisplay)
             : currentTemplate;
     }

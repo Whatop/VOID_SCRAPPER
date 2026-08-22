@@ -17,12 +17,15 @@ public static class RadarMarkerPresentation
         Color enemyColor,
         Color rewardColor,
         Color meteorColor,
+        Color eventColor,
         Color specialColor,
         Color coreColor)
     {
-        if (markerType == RadarMarkerType.Meteor)
+        // Enemy roles share one hostile visual language. Role controllers may still
+        // carry legacy custom colors, but radar/map presentation must remain red.
+        if (markerType == RadarMarkerType.Enemy || markerType == RadarMarkerType.EnemyBase)
         {
-            return Color.white;
+            return enemyColor;
         }
 
         if (customColor.a > 0f && customColor != Color.white)
@@ -38,7 +41,8 @@ public static class RadarMarkerPresentation
             RadarMarkerType.RewardObject => rewardColor,
             RadarMarkerType.Meteor => meteorColor,
             RadarMarkerType.Shop => specialColor,
-            RadarMarkerType.Event => specialColor,
+            RadarMarkerType.Event => eventColor,
+            RadarMarkerType.FieldNpc => specialColor,
             RadarMarkerType.Core => coreColor,
             RadarMarkerType.ReturnBeacon => coreColor,
             _ => Color.white
@@ -69,6 +73,11 @@ public static class RadarMarkerPresentation
             case RadarMarkerType.Event:
                 shape = RadarMarkerShape.Circle;
                 return true;
+
+            case RadarMarkerType.FieldNpc:
+                // Field NPCs provide their own icon so they remain distinct from shops/events.
+                shape = RadarMarkerShape.Circle;
+                return false;
 
             case RadarMarkerType.Meteor:
                 shape = RadarMarkerShape.Circle;

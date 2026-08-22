@@ -107,6 +107,7 @@ public class InteractionPromptUI : MonoBehaviour
     private LayoutGroup layoutGroup;
     private Image simplePromptBackground;
     private bool compactPromptConfigured;
+    private bool fieldLootPresentationConfigured;
     private bool lastProgressVisible;
     private bool wasGameplayPaused;
     private readonly Vector3[] lootDetailWorldCorners = new Vector3[4];
@@ -147,6 +148,7 @@ public class InteractionPromptUI : MonoBehaviour
     {
         CacheReferences();
         ConfigureCompactPromptPresentation();
+        ConfigureFieldLootPresentation();
 
         if (playerInteractor == null)
         {
@@ -162,6 +164,7 @@ public class InteractionPromptUI : MonoBehaviour
     private void OnEnable()
     {
         CacheReferences();
+        ConfigureFieldLootPresentation();
         ResolveInputActions();
         InputSystem.onActionChange += HandleInputActionChange;
 
@@ -684,6 +687,7 @@ public class InteractionPromptUI : MonoBehaviour
             : null;
         bool hasCurrentEquipment = currentDefinition != null;
         SetCurrentItemVisible(hasCurrentEquipment);
+        ApplyOwnedStateLayout(!hasCurrentEquipment);
 
         if (hasCurrentEquipment)
         {
@@ -739,6 +743,7 @@ public class InteractionPromptUI : MonoBehaviour
         SetLootDetailVisible(true);
         SetLootIcon(definition.Icon);
         SetCurrentItemVisible(false);
+        ApplyOwnedStateLayout(false);
         SetText(lootNameText, LocalizeFieldLootText(definition.DisplayName));
         SetText(lootCategoryText, definition.GetCategoryText());
         SetText(
@@ -961,6 +966,114 @@ public class InteractionPromptUI : MonoBehaviour
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(lootDetailRectTransform);
         ClampLootDetailToCanvas();
+    }
+
+    private void ConfigureFieldLootPresentation()
+    {
+        if (fieldLootPresentationConfigured || lootDetailRoot == null)
+        {
+            return;
+        }
+
+        fieldLootPresentationConfigured = true;
+        ConfigureSingleLineLootText(lootNameText, 8f, 6f);
+        ConfigureSingleLineLootText(lootCategoryText, 6.5f, 5.5f);
+        ConfigureSingleLineLootText(lootRarityText, 6.5f, 5.5f);
+        ConfigureWrappedLootText(lootDescriptionText, TextAlignmentOptions.TopLeft, 7f, 5.5f);
+        ConfigureWrappedLootText(lootOwnedStateText, TextAlignmentOptions.Midline, 6.5f, 5.5f);
+        ConfigureSingleLineLootText(lootCurrentNameText, 6.5f, 5.5f);
+        ConfigureWrappedLootText(lootCurrentDescriptionText, TextAlignmentOptions.TopLeft, 6f, 5f);
+
+        SetLootRect(lootDetailRectTransform, new Vector2(0f, 60f), new Vector2(236f, 142f));
+        SetLootRect(lootIconImage != null ? lootIconImage.rectTransform : null,
+            new Vector2(-96f, 119f), new Vector2(30f, 30f));
+        SetLootRect(lootNameText != null ? lootNameText.rectTransform : null,
+            new Vector2(-25f, 130f), new Vector2(104f, 16f));
+        SetLootRect(lootCategoryText != null ? lootCategoryText.rectTransform : null,
+            new Vector2(-18f, 113f), new Vector2(118f, 14f));
+        SetLootRect(lootRarityText != null ? lootRarityText.rectTransform : null,
+            new Vector2(88f, 130f), new Vector2(48f, 14f));
+        SetLootRect(lootDescriptionText != null ? lootDescriptionText.rectTransform : null,
+            new Vector2(8f, 87f), new Vector2(204f, 28f));
+        SetLootRect(lootPrimaryActionText != null ? lootPrimaryActionText.rectTransform : null,
+            new Vector2(-56f, 10f), new Vector2(104f, 16f));
+        SetLootRect(lootDismantleActionText != null ? lootDismantleActionText.rectTransform : null,
+            new Vector2(57f, 10f), new Vector2(108f, 16f));
+        SetLootRect(lootCurrentItemRoot != null ? lootCurrentItemRoot.transform as RectTransform : null,
+            new Vector2(0f, 38f), new Vector2(216f, 34f));
+        SetLootRect(lootCurrentIconImage != null ? lootCurrentIconImage.rectTransform : null,
+            new Vector2(-91f, 0f), new Vector2(28f, 28f));
+        SetLootRect(lootCurrentNameText != null ? lootCurrentNameText.rectTransform : null,
+            new Vector2(8f, 9f), new Vector2(164f, 14f));
+        SetLootRect(lootCurrentDescriptionText != null ? lootCurrentDescriptionText.rectTransform : null,
+            new Vector2(8f, -8f), new Vector2(164f, 18f));
+
+        ApplyOwnedStateLayout(false);
+    }
+
+    private static void SetLootRect(RectTransform rect, Vector2 position, Vector2 size)
+    {
+        if (rect == null)
+        {
+            return;
+        }
+
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+    }
+
+    private static void ConfigureSingleLineLootText(
+        TextMeshProUGUI text,
+        float maximumSize,
+        float minimumSize)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.enableAutoSizing = true;
+        text.fontSizeMax = maximumSize;
+        text.fontSizeMin = minimumSize;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.raycastTarget = false;
+    }
+
+    private static void ConfigureWrappedLootText(
+        TextMeshProUGUI text,
+        TextAlignmentOptions alignment,
+        float maximumSize,
+        float minimumSize)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.enableAutoSizing = true;
+        text.fontSizeMax = maximumSize;
+        text.fontSizeMin = minimumSize;
+        text.alignment = alignment;
+        text.textWrappingMode = TextWrappingModes.Normal;
+        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.raycastTarget = false;
+    }
+
+    private void ApplyOwnedStateLayout(bool emptyEquipmentSlot)
+    {
+        if (lootOwnedStateText == null)
+        {
+            return;
+        }
+
+        RectTransform ownedRect = lootOwnedStateText.rectTransform;
+        ownedRect.anchoredPosition = emptyEquipmentSlot
+            ? new Vector2(0f, 52f)
+            : new Vector2(0f, 64f);
+        ownedRect.sizeDelta = emptyEquipmentSlot
+            ? new Vector2(216f, 18f)
+            : new Vector2(216f, 14f);
     }
 
     private void ClampLootDetailToCanvas()

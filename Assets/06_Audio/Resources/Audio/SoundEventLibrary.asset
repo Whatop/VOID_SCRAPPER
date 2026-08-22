@@ -16,9 +16,9 @@ MonoBehaviour:
   - eventId: 01_ui_click
     clips:
     - {fileID: 8300000, guid: f5c3cac00fb5206edddf56e229f7b453, type: 3}
-    volume: 0.72
-    pitchMin: 0.98
-    pitchMax: 1.04
+    volume: 0.37
+    pitchMin: 1
+    pitchMax: 1
     loop: 0
     priority: 128
     spatialMode: 0
@@ -28,7 +28,7 @@ MonoBehaviour:
     rolloffMode: 1
     dopplerLevel: 0
     hardCullOutsideMaxDistance: 1
-    useOcclusion: 1
+    useOcclusion: 0
     oneOccluderVolumeMultiplier: 0.6
     multipleOccluderVolumeMultiplier: 0.3
     oneOccluderLowPassCutoff: 3500
@@ -36,10 +36,11 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 02_ui_hover
-    clips: []
-    volume: 0.38
-    pitchMin: 0.98
-    pitchMax: 1.05
+    clips:
+    - {fileID: 8300000, guid: 8a7e4115b38c89545a7d718dd84edd1c, type: 3}
+    volume: 0.11
+    pitchMin: 1
+    pitchMax: 1
     loop: 0
     priority: 128
     spatialMode: 0
@@ -58,8 +59,8 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 03_ui_back
     clips:
-    - {fileID: 8300000, guid: 7a75902f548576567dec930b09de4d48, type: 3}
-    volume: 0.62
+    - {fileID: 8300000, guid: ff89f840d9c5f3547a263ecda0f09ca5, type: 3}
+    volume: 0.37
     pitchMin: 0.97
     pitchMax: 1.03
     loop: 0
@@ -80,7 +81,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 04_ui_panel_open
     clips:
-    - {fileID: 8300000, guid: 7bd67af3e313e995de00ba9a5cf9b51b, type: 3}
+    - {fileID: 8300000, guid: ad804cb1f9e45c44ba3e27e7896b91ce, type: 3}
     volume: 0.72
     pitchMin: 0.98
     pitchMax: 1.02
@@ -102,7 +103,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 05_ui_panel_close
     clips:
-    - {fileID: 8300000, guid: ae756f74c2b191a347560cae4ffe1a44, type: 3}
+    - {fileID: 8300000, guid: ff89f840d9c5f3547a263ecda0f09ca5, type: 3}
     volume: 0.68
     pitchMin: 0.98
     pitchMax: 1.02
@@ -146,7 +147,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 07_ui_upgrade_success
     clips:
-    - {fileID: 8300000, guid: 71a5f0163356dd3600cbd65b3746f01a, type: 3}
+    - {fileID: 8300000, guid: ad804cb1f9e45c44ba3e27e7896b91ce, type: 3}
     volume: 0.6
     pitchMin: 0.98
     pitchMax: 1.03
@@ -190,7 +191,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 09_ui_unlock
     clips:
-    - {fileID: 8300000, guid: aa04bb1d56ff49ef9e634730d9bd2e91, type: 3}
+    - {fileID: 8300000, guid: 5be40c4fbeb1bff4f9b13bdf98344384, type: 3}
     volume: 0.74
     pitchMin: 0.97
     pitchMax: 1.03
@@ -212,7 +213,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 10_ui_activate
     clips:
-    - {fileID: 8300000, guid: 2185978fc14441188b863e8f4dcf98e5, type: 3}
+    - {fileID: 8300000, guid: 7cff839e2a880fe4a811006a21cbdda4, type: 3}
     volume: 0.72
     pitchMin: 0.98
     pitchMax: 1.04
@@ -234,7 +235,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 11_ui_deactivate
     clips:
-    - {fileID: 8300000, guid: 455b34c7433546c3b615e6be1d3183f3, type: 3}
+    - {fileID: 8300000, guid: d99b2f0f76e2e0947bd75750499f825c, type: 3}
     volume: 0.64
     pitchMin: 0.97
     pitchMax: 1.03
@@ -277,8 +278,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 13_ui_settings
-    clips:
-    - {fileID: 8300000, guid: ad0a9029cc484bd1b4ef808d42e5ffe3, type: 3}
+    clips: []
     volume: 0.68
     pitchMin: 0.98
     pitchMax: 1.03
@@ -300,7 +300,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 14_ui_pause
     clips:
-    - {fileID: 8300000, guid: 452f7f5b2eee4b25be63edb4474085b3, type: 3}
+    - {fileID: 8300000, guid: ad804cb1f9e45c44ba3e27e7896b91ce, type: 3}
     volume: 0.72
     pitchMin: 0.98
     pitchMax: 1.02
@@ -322,7 +322,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 15_ui_launch
     clips:
-    - {fileID: 8300000, guid: 122823fb15c941b4f8edc30d1948fba4, type: 3}
+    - {fileID: 8300000, guid: fe3e840cc2119cf4e8c2dac3739170ae, type: 3}
     volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
@@ -343,9 +343,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 16_shop_open
-    clips:
-    - {fileID: 8300000, guid: ef49c793321c35790948f667c0771375, type: 3}
-    - {fileID: 8300000, guid: 6d971e10bee4c69ac4412f6c9ef1349f, type: 3}
+    clips: []
     volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
@@ -366,10 +364,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 17_shop_buy_success
-    clips:
-    - {fileID: 8300000, guid: 42d77031271836702986d6a46e96882c, type: 3}
-    - {fileID: 8300000, guid: 9a3041aba3e787385a8a05ee43360036, type: 3}
-    - {fileID: 8300000, guid: 2d8508fc452085185b02d7de5bf57aef, type: 3}
+    clips: []
     volume: 0.82
     pitchMin: 0.98
     pitchMax: 1.03
@@ -390,10 +385,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 18_shop_buy_fail
-    clips:
-    - {fileID: 8300000, guid: 01edb5dc00f6beabb98ca44202b0d720, type: 3}
-    - {fileID: 8300000, guid: 96f12a4f15e90c991ae8e3f9a9493c68, type: 3}
-    - {fileID: 8300000, guid: 11978a25641ce4acdb78e0716eebfb30, type: 3}
+    clips: []
     volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
@@ -414,10 +406,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 19_shop_item_sold
-    clips:
-    - {fileID: 8300000, guid: 9d69b3d37a0e76a7143db69b4cdb6682, type: 3}
-    - {fileID: 8300000, guid: 222fd21572e3888d0f7edb8ad0386ca4, type: 3}
-    - {fileID: 8300000, guid: 46b5fe9357e86b674f149fd676d0dff1, type: 3}
+    clips: []
     volume: 0.76
     pitchMin: 0.98
     pitchMax: 1.02
@@ -438,8 +427,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 20_shop_transaction_complete
-    clips:
-    - {fileID: 8300000, guid: 6cebd07dcd67feabbcd7fc45661c5716, type: 3}
+    clips: []
     volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
@@ -461,8 +449,6 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 21_shop_warning
     clips:
-    - {fileID: 8300000, guid: 6ed60a2086af1a71a60b85d39fc85b60, type: 3}
-    - {fileID: 8300000, guid: f5f3d7704063c1c6197c2e395c76b504, type: 3}
     - {fileID: 8300000, guid: 0ea386e2342a097c7d47eb99bfaf320c, type: 3}
     volume: 0.86
     pitchMin: 0.96
@@ -484,10 +470,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 22_shop_hostile
-    clips:
-    - {fileID: 8300000, guid: 83d24511ea0f4ce20f643f81dcc0a7b5, type: 3}
-    - {fileID: 8300000, guid: 440e2f628e1dcb1a97509585da2de438, type: 3}
-    - {fileID: 8300000, guid: 945489f8336563e4a6f3710216cc8bab, type: 3}
+    clips: []
     volume: 0.78
     pitchMin: 0.96
     pitchMax: 1.02
@@ -745,7 +728,6 @@ MonoBehaviour:
   - eventId: 33_radar_close
     clips:
     - {fileID: 8300000, guid: 7d2ae141d085c283c42a416d5098b38c, type: 3}
-    - {fileID: 8300000, guid: 50e203ddea193bdff515b7037cd170f5, type: 3}
     volume: 0.62
     pitchMin: 0.98
     pitchMax: 1.02
@@ -791,7 +773,6 @@ MonoBehaviour:
   - eventId: 35_radar_fail
     clips:
     - {fileID: 8300000, guid: 90e548c93db5f364ccd7b7fa78c20fd7, type: 3}
-    - {fileID: 8300000, guid: f71c0d7cd3db6ae2db9bf029c3ebd90b, type: 3}
     volume: 0.72
     pitchMin: 0.98
     pitchMax: 1.02
@@ -814,7 +795,6 @@ MonoBehaviour:
   - eventId: 36_pickup_credit
     clips:
     - {fileID: 8300000, guid: 0a36929b3d1c5100e432169beac7b4ba, type: 3}
-    - {fileID: 8300000, guid: 6c53cc7315c772e2be249c5ad4ee956f, type: 3}
     - {fileID: 8300000, guid: 7e2ae0a54427a53f71366bba96bf8eab, type: 3}
     volume: 0.58
     pitchMin: 0.98
@@ -836,8 +816,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 37_pickup_scrap
-    clips:
-    - {fileID: 8300000, guid: 488466bc4650bdb2356300125419c386, type: 3}
+    clips: []
     volume: 0.62
     pitchMin: 0.96
     pitchMax: 1.05
@@ -858,8 +837,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 38_pickup_core
-    clips:
-    - {fileID: 8300000, guid: 41379b804b268fa272ca98c915515ee4, type: 3}
+    clips: []
     volume: 0.88
     pitchMin: 0.98
     pitchMax: 1.02
@@ -902,8 +880,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 40_pickup_experience
-    clips:
-    - {fileID: 8300000, guid: 92d61a43b95e911650c3a18a89306823, type: 3}
+    clips: []
     volume: 0.48
     pitchMin: 0.98
     pitchMax: 1.05
@@ -924,10 +901,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 41_level_up
-    clips:
-    - {fileID: 8300000, guid: 1187878f188fbc87ee07428a71ec3902, type: 3}
-    - {fileID: 8300000, guid: 631426d6bdcc8cb840979734bf284547, type: 3}
-    - {fileID: 8300000, guid: 45733492adb309c46102a28285ade41e, type: 3}
+    clips: []
     volume: 0.9
     pitchMin: 0.98
     pitchMax: 1.02
@@ -950,7 +924,6 @@ MonoBehaviour:
   - eventId: 42_return_choice_open
     clips:
     - {fileID: 8300000, guid: f42db63753db4d22d5724ad981407a15, type: 3}
-    - {fileID: 8300000, guid: bea9b97a8ab4e7b1542402dcae7c9712, type: 3}
     volume: 0.78
     pitchMin: 0.98
     pitchMax: 1.02
@@ -994,7 +967,6 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 44_result_count_tick
     clips:
-    - {fileID: 8300000, guid: 57aeabe379d8a0deab5aa34447c8ae18, type: 3}
     - {fileID: 8300000, guid: d3aca8cd94e3a76ff75af8fa092ecb13, type: 3}
     volume: 0.36
     pitchMin: 0.98
@@ -1787,7 +1759,6 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 79_boss_charge_aim
     clips:
-    - {fileID: 8300000, guid: 4710337639fa597f3a46e3d972a3c13b, type: 3}
     - {fileID: 8300000, guid: fa0a5b14000112b68e99bc00b80a763f, type: 3}
     volume: 0.58
     pitchMin: 0.98
@@ -1810,7 +1781,6 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 80_boss_charge_fire
     clips:
-    - {fileID: 8300000, guid: 68230e98fa672a652d5cd7ed2d260f19, type: 3}
     - {fileID: 8300000, guid: 6d0d5c362fe06f5bd5562b3c64b3a6c6, type: 3}
     volume: 0.85
     pitchMin: 0.93
@@ -1943,7 +1913,6 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 86_shop_shield_break
     clips:
-    - {fileID: 8300000, guid: 72e002de02e738bb9911418a4767fe69, type: 3}
     - {fileID: 8300000, guid: fbccb7b02de6b44d6b433680f75aba71, type: 3}
     - {fileID: 8300000, guid: 2507475045d37d6980771752a1b46736, type: 3}
     volume: 0.82
@@ -1991,9 +1960,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 88_security_drone_spawn
     clips:
-    - {fileID: 8300000, guid: 14d0c385f5a6bfc41c0be00403f8000c, type: 3}
     - {fileID: 8300000, guid: b620f4137dd04cb8e6c9b8349795006f, type: 3}
-    - {fileID: 8300000, guid: 53a9966f22d2c2cf090fdbe8d676d934, type: 3}
     volume: 0.58
     pitchMin: 0.94
     pitchMax: 1.06
@@ -2016,7 +1983,6 @@ MonoBehaviour:
   - eventId: 89_radar_charge_start
     clips:
     - {fileID: 8300000, guid: 4533ecd52f824de1936ef93eb4543848, type: 3}
-    - {fileID: 8300000, guid: 8cc740ebb76a4fb490615d2a30826237, type: 3}
     volume: 0.58
     pitchMin: 0.97
     pitchMax: 1.03
@@ -2060,7 +2026,6 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 91_radar_charge_cancel
     clips:
-    - {fileID: 8300000, guid: 82fd4fd2f9b74ed2a37668d14d1b54c7, type: 3}
     - {fileID: 8300000, guid: eb4f8dce64a949e991df0a0740a1dd8b, type: 3}
     volume: 0.48
     pitchMin: 0.97
@@ -2354,6 +2319,135 @@ MonoBehaviour:
     loop: 1
     priority: 210
     spatialMode: 1
+    spatialBlend: 0
+    minDistance: 1.5
+    maxDistance: 14
+    rolloffMode: 1
+    dopplerLevel: 0
+    hardCullOutsideMaxDistance: 1
+    useOcclusion: 0
+    oneOccluderVolumeMultiplier: 0.6
+    multipleOccluderVolumeMultiplier: 0.3
+    oneOccluderLowPassCutoff: 3500
+    multipleOccluderLowPassCutoff: 1500
+    maxSimultaneousVoices: 1
+    minimumRetriggerInterval: -1
+  - eventId: 105_music_main_menu_loop
+    clips:
+    - {fileID: 8300000, guid: bbfebe6bbe5451248a8514712e17be3d, type: 3}
+    volume: 0.12
+    pitchMin: 1
+    pitchMax: 1
+    loop: 1
+    priority: 220
+    spatialMode: 1
+    spatialBlend: 0
+    minDistance: 1.5
+    maxDistance: 14
+    rolloffMode: 1
+    dopplerLevel: 0
+    hardCullOutsideMaxDistance: 1
+    useOcclusion: 0
+    oneOccluderVolumeMultiplier: 0.6
+    multipleOccluderVolumeMultiplier: 0.3
+    oneOccluderLowPassCutoff: 3500
+    multipleOccluderLowPassCutoff: 1500
+    maxSimultaneousVoices: 1
+    minimumRetriggerInterval: -1
+  - eventId: 106_music_tutorial_loop
+    clips:
+    - {fileID: 8300000, guid: d454434d3ac532e458e92201d6f84c64, type: 3}
+    volume: 0.1
+    pitchMin: 1
+    pitchMax: 1
+    loop: 1
+    priority: 220
+    spatialMode: 1
+    spatialBlend: 0
+    minDistance: 1.5
+    maxDistance: 14
+    rolloffMode: 1
+    dopplerLevel: 0
+    hardCullOutsideMaxDistance: 1
+    useOcclusion: 0
+    oneOccluderVolumeMultiplier: 0.6
+    multipleOccluderVolumeMultiplier: 0.3
+    oneOccluderLowPassCutoff: 3500
+    multipleOccluderLowPassCutoff: 1500
+    maxSimultaneousVoices: 1
+    minimumRetriggerInterval: -1
+  - eventId: 107_map_route_placed
+    clips: []
+    volume: 0.5
+    pitchMin: 1
+    pitchMax: 1
+    loop: 0
+    priority: 128
+    spatialMode: 0
+    spatialBlend: 0
+    minDistance: 1.5
+    maxDistance: 14
+    rolloffMode: 1
+    dopplerLevel: 0
+    hardCullOutsideMaxDistance: 1
+    useOcclusion: 0
+    oneOccluderVolumeMultiplier: 0.6
+    multipleOccluderVolumeMultiplier: 0.3
+    oneOccluderLowPassCutoff: 3500
+    multipleOccluderLowPassCutoff: 1500
+    maxSimultaneousVoices: 1
+    minimumRetriggerInterval: 0.04
+  - eventId: 108_map_route_removed
+    clips: []
+    volume: 0.5
+    pitchMin: 1
+    pitchMax: 1
+    loop: 0
+    priority: 128
+    spatialMode: 0
+    spatialBlend: 0
+    minDistance: 1.5
+    maxDistance: 14
+    rolloffMode: 1
+    dopplerLevel: 0
+    hardCullOutsideMaxDistance: 1
+    useOcclusion: 0
+    oneOccluderVolumeMultiplier: 0.6
+    multipleOccluderVolumeMultiplier: 0.3
+    oneOccluderLowPassCutoff: 3500
+    multipleOccluderLowPassCutoff: 1500
+    maxSimultaneousVoices: 1
+    minimumRetriggerInterval: 0.04
+  - eventId: 109_mission_received
+    clips: []
+    volume: 0.5
+    pitchMin: 1
+    pitchMax: 1
+    loop: 0
+    priority: 128
+    spatialMode: 0
+    spatialBlend: 0
+    minDistance: 1.5
+    maxDistance: 14
+    rolloffMode: 1
+    dopplerLevel: 0
+    hardCullOutsideMaxDistance: 1
+    useOcclusion: 0
+    oneOccluderVolumeMultiplier: 0.6
+    multipleOccluderVolumeMultiplier: 0.3
+    oneOccluderLowPassCutoff: 3500
+    multipleOccluderLowPassCutoff: 1500
+    maxSimultaneousVoices: 1
+    minimumRetriggerInterval: 0.1
+  - eventId: 110_amb_tutorial_loop
+    clips:
+    - {fileID: 8300000, guid: 91c7dda1279941279b4ebd27ea57c3a2, type: 3}
+    volume: 0.05
+    pitchMin: 1
+    pitchMax: 1
+    loop: 1
+    priority: 200
+    spatialMode: 0
     spatialBlend: 0
     minDistance: 1.5
     maxDistance: 14

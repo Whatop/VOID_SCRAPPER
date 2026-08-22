@@ -33,6 +33,8 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
 
     [Header("Runtime Scan State")]
     [SerializeField] private float lastScannedTime = -999f;
+    private Vector2 recordedMapPosition;
+    private bool hasRecordedMapPosition;
 
     public static IReadOnlyCollection<RadarTarget> ActiveTargets => activeTargets;
     public static event Action RegistryChanged;
@@ -83,6 +85,9 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     public bool AlertOnMachineGunScan => alertOnMachineGunScan;
     public bool AlertOnSniperScan => alertOnSniperScan;
     public float LastScannedTime => lastScannedTime;
+    public Vector2 RecordedMapPosition => hasRecordedMapPosition
+        ? recordedMapPosition
+        : (Vector2)WorldPosition;
 
     private void Reset()
     {
@@ -108,6 +113,11 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     private void OnEnable()
     {
         lastScannedTime = -999f;
+        if (mapDiscovered && !hasRecordedMapPosition)
+        {
+            RecordCurrentMapPosition();
+        }
+
         temporaryRevealExpirations.Clear();
         activeTargets.Add(this);
         RegistryChanged?.Invoke();
@@ -153,6 +163,15 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
 
     public void SetMapDiscovered(bool value)
     {
+        if (value)
+        {
+            RecordCurrentMapPosition();
+        }
+        else
+        {
+            hasRecordedMapPosition = false;
+        }
+
         if (mapDiscovered == value)
         {
             return;
@@ -209,6 +228,7 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
         }
 
         lastScannedTime = Time.time;
+        RecordCurrentMapPosition();
         mapDiscovered = true;
         HandleEnemyScanReaction(context);
         RegistryChanged?.Invoke();
@@ -218,6 +238,12 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     public bool WasScannedRecently(float duration)
     {
         return duration > 0f && Time.time - lastScannedTime <= duration;
+    }
+
+    private void RecordCurrentMapPosition()
+    {
+        recordedMapPosition = WorldPosition;
+        hasRecordedMapPosition = true;
     }
 
     private void HandleEnemyScanReaction(RadarScanContext context)

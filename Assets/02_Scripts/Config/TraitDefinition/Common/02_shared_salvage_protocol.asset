@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   traitId: shared_salvage_protocol
   displayName: "수확 프로토콜"
-  description: "스크랩과 코어 조각 회수 효율을 높인다."
+  description: "스크랩과 코어 회수 효율을 높인다."
   icon: {fileID: 21300000, guid: 7c5c2ffb426069a7967deee473b76be3, type: 3}
   rarity: 0
   category: 0

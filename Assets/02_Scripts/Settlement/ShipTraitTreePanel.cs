@@ -2067,19 +2067,19 @@ public class ShipTraitTreePanel : MonoBehaviour
                 return "누적 스크랩 획득";
 
             case ShipTraitUnlockConditionKind.TotalCollectedCoreShards:
-                return "누적 코어 조각 획득";
+                return "누적 코어 획득";
 
             case ShipTraitUnlockConditionKind.TotalCommittedScrapParts:
                 return "누적 스크랩 반입";
 
             case ShipTraitUnlockConditionKind.TotalCommittedCoreShards:
-                return "누적 코어 조각 반입";
+                return "누적 코어 반입";
 
             case ShipTraitUnlockConditionKind.OwnedScrapParts:
                 return "보유 스크랩";
 
             case ShipTraitUnlockConditionKind.OwnedCoreShards:
-                return "보유 코어 조각";
+                return "보유 코어";
 
             default:
                 return "조건";
@@ -2200,7 +2200,7 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         if (coreCost > 0)
         {
-            builder.AppendLine($"코어 조각 {coreCost}");
+            builder.AppendLine($"코어 {coreCost}");
         }
 
         return builder.ToString().TrimEnd();

@@ -97,6 +97,32 @@ public class ReinforcementSlotUI : MonoBehaviour
 
     private ReinforcementDefinition currentDefinition;
 
+    public void ConfigureRuntime(
+        GameObject presentationRoot,
+        CanvasGroup presentationCanvasGroup,
+        Image presentationIcon,
+        Image presentationRechargeFill,
+        Image presentationDurationFill,
+        GameObject presentationReadyGlowRoot,
+        Image presentationReadyGlow,
+        TextMeshProUGUI presentationChargeText,
+        TextMeshProUGUI presentationKeyText,
+        Image presentationDisabledOverlay)
+    {
+        root = presentationRoot != null ? presentationRoot : gameObject;
+        canvasGroup = presentationCanvasGroup;
+        iconImage = presentationIcon;
+        iconRechargeFillImage = presentationRechargeFill;
+        activeDurationFillImage = presentationDurationFill;
+        readyGlowRoot = presentationReadyGlowRoot;
+        readyGlowImage = presentationReadyGlow;
+        chargeText = presentationChargeText;
+        keyText = presentationKeyText;
+        disabledOverlayImage = presentationDisabledOverlay;
+        CacheReferences();
+        SetEmpty();
+    }
+
     private void Reset()
     {
         root = gameObject;

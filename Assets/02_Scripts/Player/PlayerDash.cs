@@ -22,7 +22,6 @@ public class PlayerDash : MonoBehaviour
     [SerializeField] private float dashDistance = 5f;
     [SerializeField] private float dashDuration = 0.12f;
     [SerializeField] private float dashCooldown = 1.1f;
-    [SerializeField] private float invincibleTime = 0.1f;
 
     [Header("Projectile Clear During Dash")]
     [SerializeField] private LayerMask projectileClearLayer;
@@ -238,6 +237,7 @@ public class PlayerDash : MonoBehaviour
 
         isDashing = true;
         lastDashTime = Time.time;
+        health?.SetDashInvincible(true);
 
         DashStarted?.Invoke(direction);
         AudioManager.PlayAt(SoundEventIds.ShipDashStart, transform.position);
@@ -250,11 +250,6 @@ public class PlayerDash : MonoBehaviour
         else if (rb != null)
         {
             rb.linearVelocity = dashVelocity;
-        }
-
-        if (health != null)
-        {
-            health.AddInvincibleTime(invincibleTime);
         }
 
         TriggerDashShockwave(effectProfile);
@@ -312,6 +307,7 @@ public class PlayerDash : MonoBehaviour
         }
 
         isDashing = false;
+        health?.SetDashInvincible(false);
         dashRoutine = null;
 
         DashEnded?.Invoke();
