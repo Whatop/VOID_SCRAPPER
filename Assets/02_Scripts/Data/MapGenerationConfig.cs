@@ -33,10 +33,10 @@ public class MapGenerationConfig : ScriptableObject
 
     [Header("Environment Dressing")]
     [SerializeField] private bool enableEnvironmentDressing = true;
-    [SerializeField] private int salvageDressingCount = 12;
-    [SerializeField] private int highValueDressingCount = 18;
-    [SerializeField] private int transitDressingCount = 24;
-    [SerializeField] private float poiDressingRadiusMultiplier = 1.15f;
+    [SerializeField] private int salvageDressingCount = 16;
+    [SerializeField] private int highValueDressingCount = 24;
+    [SerializeField] private int transitDressingCount = 32;
+    [SerializeField] private float poiDressingRadiusMultiplier = 1.2f;
 
     [Header("Finite World Boundary")]
     [SerializeField] private bool enableFiniteBoundary = true;
@@ -74,8 +74,14 @@ public class MapGenerationConfig : ScriptableObject
     [FormerlySerializedAs("meteorCount")]
     [Tooltip("소형 운석. 수량이 많고 이동 가능한 환경 오브젝트용입니다.")]
     [SerializeField] private int smallMeteorCount = 30;
+    [Range(0f, 1f)]
+    [SerializeField] private float smallMeteorDriftRatio = 0.28f;
     [Tooltip("대형 운석. 수량이 적고 벽/LOS 차단 지형용입니다.")]
     [SerializeField] private int largeMeteorCount = 3;
+
+    [Header("Core / Boss Arena Cover")]
+    [SerializeField] private bool spawnBossArenaCoverMeteors = true;
+    [SerializeField] private Vector2 bossArenaCoverOffset = new Vector2(6.5f, -0.75f);
 
     [Header("Enemies")]
     [SerializeField] private int basicEnemyCount = 20;
@@ -189,7 +195,13 @@ public class MapGenerationConfig : ScriptableObject
     public int SupplyContainerCount => supplyContainerCount;
     public int DestroyedHullCount => destroyedHullCount;
     public int SmallMeteorCount => Mathf.Max(0, smallMeteorCount);
+    public float SmallMeteorDriftRatio => Mathf.Clamp01(smallMeteorDriftRatio);
     public int LargeMeteorCount => Mathf.Max(0, largeMeteorCount);
+    public bool SpawnBossArenaCoverMeteors => spawnBossArenaCoverMeteors;
+    public Vector2 BossArenaCoverOffset => new Vector2(
+        Mathf.Max(2f, Mathf.Abs(bossArenaCoverOffset.x)),
+        bossArenaCoverOffset.y
+    );
 
     // 기존 외부 코드 호환용. 이제 소형 운석 수를 반환합니다.
     public int MeteorCount => SmallMeteorCount;
@@ -305,6 +317,10 @@ public class MapGenerationConfig : ScriptableObject
         highValueDressingCount = Mathf.Max(0, highValueDressingCount);
         transitDressingCount = Mathf.Max(0, transitDressingCount);
         poiDressingRadiusMultiplier = Mathf.Max(0.5f, poiDressingRadiusMultiplier);
+        smallMeteorCount = Mathf.Max(0, smallMeteorCount);
+        smallMeteorDriftRatio = Mathf.Clamp01(smallMeteorDriftRatio);
+        largeMeteorCount = Mathf.Max(0, largeMeteorCount);
+        bossArenaCoverOffset.x = Mathf.Max(2f, Mathf.Abs(bossArenaCoverOffset.x));
         fieldBaseCount = Mathf.Max(0, fieldBaseCount);
         shopCount = Mathf.Max(0, shopCount);
         eventCount = Mathf.Max(0, eventCount);

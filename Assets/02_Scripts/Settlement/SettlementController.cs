@@ -3,56 +3,96 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-public class SettlementRepairViewData
+public enum SettlementRestorationState
+{
+    Locked,
+    Available,
+    Complete
+}
+
+public sealed class SettlementRestorationEvaluation
+{
+    public BuildingType BuildingType { get; }
+    public SettlementRestorationState State { get; }
+    public BossStoryPart RequiredBossStoryPart { get; }
+    public bool HasRequiredBossStoryPart { get; }
+    public int RequiredSynchronizationStage { get; }
+    public int CurrentSynchronizationStage { get; }
+    public bool RequiresPriorRestoration { get; }
+    public BuildingType PriorRestorationBuilding { get; }
+    public bool HasPriorRestoration { get; }
+    public string RequiredUnlockFlag { get; }
+    public bool HasRequiredUnlockFlag { get; }
+
+    public bool IsComplete => State == SettlementRestorationState.Complete;
+    public bool CanComplete => State == SettlementRestorationState.Available;
+
+    public SettlementRestorationEvaluation(
+        BuildingType buildingType,
+        SettlementRestorationState state,
+        BossStoryPart requiredBossStoryPart,
+        bool hasRequiredBossStoryPart,
+        int requiredSynchronizationStage,
+        int currentSynchronizationStage,
+        bool requiresPriorRestoration,
+        BuildingType priorRestorationBuilding,
+        bool hasPriorRestoration,
+        string requiredUnlockFlag,
+        bool hasRequiredUnlockFlag)
+    {
+        BuildingType = buildingType;
+        State = state;
+        RequiredBossStoryPart = requiredBossStoryPart;
+        HasRequiredBossStoryPart = hasRequiredBossStoryPart;
+        RequiredSynchronizationStage = Mathf.Max(0, requiredSynchronizationStage);
+        CurrentSynchronizationStage = Mathf.Max(0, currentSynchronizationStage);
+        RequiresPriorRestoration = requiresPriorRestoration;
+        PriorRestorationBuilding = priorRestorationBuilding;
+        HasPriorRestoration = hasPriorRestoration;
+        RequiredUnlockFlag = requiredUnlockFlag ?? string.Empty;
+        HasRequiredUnlockFlag = hasRequiredUnlockFlag;
+    }
+}
+
+public sealed class SettlementRestorationViewData
 {
     public string Title { get; }
-    public string BodyText { get; }
-    public string CurrentStageText { get; }
-    public string CurrentEffectText { get; }
-    public string NextStageText { get; }
-    public string NextEffectText { get; }
-    public string RequiredCurrencyText { get; }
-    public int RequiredScrapCost { get; }
-    public int RequiredCoreShardCost { get; }
-    public bool IsMaxLevel { get; }
-    public bool CanAffordNextLevel { get; }
+    public string Description { get; }
+    public string StateText { get; }
+    public string RequirementText { get; }
+    public string CompletionResultText { get; }
+    public string ActionLabel { get; }
+    public bool IsComplete { get; }
+    public bool CanComplete { get; }
 
-    public SettlementRepairViewData(
+    public SettlementRestorationViewData(
         string title,
-        string bodyText,
-        string currentStageText,
-        string currentEffectText,
-        string nextStageText,
-        string nextEffectText,
-        string requiredCurrencyText,
-        int requiredScrapCost,
-        int requiredCoreShardCost,
-        bool isMaxLevel,
-        bool canAffordNextLevel)
+        string description,
+        string stateText,
+        string requirementText,
+        string completionResultText,
+        string actionLabel,
+        bool isComplete,
+        bool canComplete)
     {
-        Title = string.IsNullOrWhiteSpace(title) ? "정착지 보수" : title;
-        BodyText = string.IsNullOrWhiteSpace(bodyText) ? "시설 설명이 없습니다." : bodyText;
-        CurrentStageText = currentStageText ?? string.Empty;
-        CurrentEffectText = currentEffectText ?? string.Empty;
-        NextStageText = nextStageText ?? string.Empty;
-        NextEffectText = nextEffectText ?? string.Empty;
-        RequiredCurrencyText = string.IsNullOrWhiteSpace(requiredCurrencyText) ? "비용 없음" : requiredCurrencyText;
-        RequiredScrapCost = Mathf.Max(0, requiredScrapCost);
-        RequiredCoreShardCost = Mathf.Max(0, requiredCoreShardCost);
-        IsMaxLevel = isMaxLevel;
-        CanAffordNextLevel = canAffordNextLevel;
+        Title = string.IsNullOrWhiteSpace(title) ? "정착지 복구" : title;
+        Description = string.IsNullOrWhiteSpace(description) ? "복구 프로젝트 설명이 없습니다." : description;
+        StateText = stateText ?? string.Empty;
+        RequirementText = requirementText ?? string.Empty;
+        CompletionResultText = completionResultText ?? string.Empty;
+        ActionLabel = string.IsNullOrWhiteSpace(actionLabel) ? "조건 미충족" : actionLabel;
+        IsComplete = isComplete;
+        CanComplete = canComplete;
     }
 
     public string BuildFallbackBodyText()
     {
         StringBuilder builder = new StringBuilder();
 
-        AppendSection(builder, BodyText);
-        AppendSection(builder, CurrentStageText);
-        AppendSection(builder, CurrentEffectText);
-        AppendSection(builder, NextStageText);
-        AppendSection(builder, NextEffectText);
-        AppendSection(builder, RequiredCurrencyText);
+        AppendSection(builder, Description);
+        AppendSection(builder, StateText);
+        AppendSection(builder, RequirementText);
+        AppendSection(builder, CompletionResultText);
 
         return builder.ToString().TrimEnd();
     }
@@ -90,7 +130,8 @@ public class SettlementController : MonoBehaviour
     [SerializeField] private List<BuildingDefinition> buildingDefinitions = new List<BuildingDefinition>();
     [SerializeField] private List<TraitDefinition> traitDefinitions = new List<TraitDefinition>();
 
-    [Header("Fallback Building Cost")]
+    [Header("Legacy Building Upgrade Data (Ignored)")]
+    [Tooltip("Retained only so existing scene serialization remains compatible. Restoration does not spend currency.")]
     [SerializeField] private int fallbackBuildingMaxLevel = 3;
     [SerializeField] private int fallbackRepairScrapCost = 5;
     [SerializeField] private int fallbackUpgradeBaseScrapCost = 10;
@@ -119,6 +160,7 @@ public class SettlementController : MonoBehaviour
     public string LastMessage { get; private set; } = "정착지에 도착했다.";
 
     public event Action Changed;
+    public event Action<BuildingType> RestorationCompleted;
 
     private void Awake()
     {
@@ -508,41 +550,46 @@ public class SettlementController : MonoBehaviour
 
         return builder.ToString();
     }
-    public bool TryRepairOrUpgradeBuilding(BuildingType buildingType)
+    public bool TryCompleteRestorationProject(BuildingType buildingType)
     {
         PermanentProgress progress = PermanentProgress.Instance;
 
         if (progress == null)
         {
-            SetMessage("PermanentProgress가 없어 정착지를 보수할 수 없습니다.");
+            SetMessage("복구 진행 정보를 확인할 수 없습니다.");
             return false;
         }
 
-        int currentLevel = progress.GetBuildingLevel(buildingType);
-        int maxLevel = GetBuildingMaxLevel(buildingType);
-
-        if (currentLevel >= maxLevel)
+        SettlementRestorationEvaluation evaluation = EvaluateRestorationProject(buildingType);
+        if (evaluation.IsComplete)
         {
-            SetMessage($"{GetBuildingDisplayName(buildingType)}은 이미 최대 단계입니다.");
+            SetMessage($"{GetBuildingDisplayName(buildingType)}은 이미 복구 완료 상태입니다.");
             return false;
         }
 
-        int nextLevel = currentLevel + 1;
-        int scrapCost = GetBuildingScrapCost(buildingType, nextLevel);
-        int coreCost = GetBuildingCoreCost(buildingType, nextLevel);
-
-        if (!progress.TrySpend(scrapCost, coreCost))
+        if (!evaluation.CanComplete)
         {
-            SetMessage($"재화 부족. 필요: {FormatCost(scrapCost, coreCost)}");
+            SetMessage($"{GetBuildingDisplayName(buildingType)}: 복구 조건이 충족되지 않았습니다.");
             return false;
         }
 
-        progress.SetBuildingLevel(buildingType, nextLevel);
+        string grantedUnlockFlag = GetGrantedRestorationUnlockFlag(buildingType);
+        if (!progress.TryCompleteBuildingRestoration(buildingType, grantedUnlockFlag))
+        {
+            SetMessage($"{GetBuildingDisplayName(buildingType)} 복구 상태를 기록하지 못했습니다.");
+            return false;
+        }
+
         SaveProgress();
-
-        string verb = currentLevel == 0 ? "수리" : "업그레이드";
-        SetMessage($"{GetBuildingDisplayName(buildingType)} {verb} 완료. Lv {currentLevel} → {nextLevel}");
+        RestorationCompleted?.Invoke(buildingType);
+        SetMessage($"{GetBuildingDisplayName(buildingType)} 복구 완료.");
         return true;
+    }
+
+    [Obsolete("Use TryCompleteRestorationProject. Building levels now represent restoration completion.")]
+    public bool TryRepairOrUpgradeBuilding(BuildingType buildingType)
+    {
+        return TryCompleteRestorationProject(buildingType);
     }
 
     public int GetBuildingLevel(BuildingType buildingType)
@@ -573,13 +620,13 @@ public class SettlementController : MonoBehaviour
         PermanentProgress progress = PermanentProgress.Instance;
         if (progress == null)
         {
-            SetMessage("PermanentProgress가 없어 지역 기술을 강화할 수 없습니다.");
+            SetMessage("PermanentProgress가 없어 기체 보강을 진행할 수 없습니다.");
             return false;
         }
 
         if (!SectorTechnologyCatalog.TryGet(technologyId, out SectorTechnologyDefinition definition))
         {
-            SetMessage("지역 기술 데이터를 찾을 수 없습니다.");
+            SetMessage("기체 보강 데이터를 찾을 수 없습니다.");
             return false;
         }
 
@@ -598,163 +645,96 @@ public class SettlementController : MonoBehaviour
         }
 
         SaveProgress();
-        SetMessage($"{definition.DisplayName} 강화 완료. Lv {currentLevel} → {currentLevel + 1}");
+        SetMessage($"{definition.DisplayName} 기체 보강 완료. Lv {currentLevel} → {currentLevel + 1}");
         return true;
-    }
-
-    public int GetBuildingMaxLevel(BuildingType buildingType)
-    {
-        BuildingDefinition definition = FindBuildingDefinition(buildingType);
-        if (definition != null && definition.Levels != null && definition.Levels.Count > 0)
-        {
-            int max = 0;
-            foreach (BuildingLevelDefinition levelDefinition in definition.Levels)
-            {
-                if (levelDefinition != null)
-                {
-                    max = Mathf.Max(max, levelDefinition.Level);
-                }
-            }
-
-            return Mathf.Max(1, max);
-        }
-
-        return Mathf.Max(1, fallbackBuildingMaxLevel);
-    }
-
-    public bool IsBuildingMaxLevel(BuildingType buildingType)
-    {
-        return GetBuildingLevel(buildingType) >= GetBuildingMaxLevel(buildingType);
-    }
-
-    public int GetNextBuildingLevel(BuildingType buildingType)
-    {
-        return Mathf.Min(GetBuildingLevel(buildingType) + 1, GetBuildingMaxLevel(buildingType));
-    }
-
-    public int GetBuildingScrapCost(BuildingType buildingType, int targetLevel)
-    {
-        BuildingLevelDefinition definition = GetBuildingLevelDefinition(buildingType, targetLevel);
-        if (definition != null)
-        {
-            return Mathf.Max(0, definition.ScrapCost);
-        }
-
-        if (targetLevel <= 1)
-        {
-            return Mathf.Max(0, fallbackRepairScrapCost);
-        }
-
-        return Mathf.Max(0, fallbackUpgradeBaseScrapCost + ((targetLevel - 2) * fallbackUpgradeScrapCostStep));
-    }
-
-    public int GetBuildingCoreCost(BuildingType buildingType, int targetLevel)
-    {
-        BuildingLevelDefinition definition = GetBuildingLevelDefinition(buildingType, targetLevel);
-        if (definition != null)
-        {
-            return Mathf.Max(0, definition.CoreShardCost);
-        }
-
-        return targetLevel >= fallbackCoreCostFromLevel ? 1 : 0;
     }
 
     public string GetBuildingActionLabel(BuildingType buildingType)
     {
-        int level = GetBuildingLevel(buildingType);
-
-        if (IsBuildingMaxLevel(buildingType))
+        SettlementRestorationEvaluation evaluation = EvaluateRestorationProject(buildingType);
+        if (evaluation.IsComplete)
         {
-            return "최대 단계";
+            return "복구 완료";
         }
 
-        int nextLevel = level + 1;
-        int scrapCost = GetBuildingScrapCost(buildingType, nextLevel);
-        int coreCost = GetBuildingCoreCost(buildingType, nextLevel);
-
-        if (PermanentProgress.Instance == null || !PermanentProgress.Instance.CanSpend(scrapCost, coreCost))
+        if (!evaluation.CanComplete)
         {
-            return "재화 부족";
+            return "조건 미충족";
         }
 
-        return level == 0 ? "수리" : "업그레이드";
+        BuildingDefinition definition = FindBuildingDefinition(buildingType);
+        return definition != null ? definition.RestorationActionLabel : "복구";
     }
 
     public bool CanExecuteBuildingAction(BuildingType buildingType)
     {
-        if (IsBuildingMaxLevel(buildingType))
-        {
-            return false;
-        }
-
-        PermanentProgress progress = PermanentProgress.Instance;
-        if (progress == null)
-        {
-            return false;
-        }
-
-        int targetLevel = GetBuildingLevel(buildingType) + 1;
-        return progress.CanSpend(GetBuildingScrapCost(buildingType, targetLevel), GetBuildingCoreCost(buildingType, targetLevel));
+        return EvaluateRestorationProject(buildingType).CanComplete;
     }
 
-    public SettlementRepairViewData BuildBuildingRepairViewData(BuildingType buildingType)
+    public SettlementRestorationEvaluation EvaluateRestorationProject(BuildingType buildingType)
     {
-        int level = GetBuildingLevel(buildingType);
-        int maxLevel = GetBuildingMaxLevel(buildingType);
-        bool isMax = level >= maxLevel;
+        PermanentProgress progress = PermanentProgress.Instance;
+        bool complete = progress != null && progress.GetBuildingLevel(buildingType) > 0;
+        BossStoryPart requiredPart = GetRequiredBossStoryPart(buildingType);
+        bool hasPart = requiredPart == BossStoryPart.None ||
+                       (progress != null && progress.HasBossStoryPart(requiredPart));
+        int requiredSynchronization = GetRequiredSynchronizationStage(buildingType);
+        int currentSynchronization = progress != null ? progress.GetCoreSynchronizationStage() : 0;
+        bool synchronizationMet = currentSynchronization >= requiredSynchronization;
+        bool requiresPrior = RequiresPriorRestoration(buildingType);
+        BuildingType priorBuilding = GetPriorRestorationBuilding(buildingType);
+        bool priorMet = !requiresPrior ||
+                        (progress != null && progress.GetBuildingLevel(priorBuilding) > 0);
+        string requiredFlag = GetRequiredRestorationUnlockFlag(buildingType);
+        bool flagMet = string.IsNullOrWhiteSpace(requiredFlag) ||
+                       (progress != null && progress.HasUnlockFlag(requiredFlag));
 
-        string title = GetBuildingDisplayName(buildingType);
-        string bodyText = GetBuildingDescription(buildingType);
-        string currentStageText = $"Lv {level} / {maxLevel}";
-        string currentEffectText = GetBuildingEffectText(buildingType, level);
-        string nextStageText;
-        string nextEffectText;
-        string requiredCurrencyText;
-        int requiredScrapCost = 0;
-        int requiredCoreCost = 0;
-        bool canAffordNextLevel = false;
+        SettlementRestorationState state = complete
+            ? SettlementRestorationState.Complete
+            : hasPart && synchronizationMet && priorMet && flagMet
+                ? SettlementRestorationState.Available
+                : SettlementRestorationState.Locked;
 
-        if (isMax)
+        return new SettlementRestorationEvaluation(
+            buildingType,
+            state,
+            requiredPart,
+            hasPart,
+            requiredSynchronization,
+            currentSynchronization,
+            requiresPrior,
+            priorBuilding,
+            priorMet,
+            requiredFlag,
+            flagMet
+        );
+    }
+
+    public SettlementRestorationViewData BuildRestorationViewData(BuildingType buildingType)
+    {
+        SettlementRestorationEvaluation evaluation = EvaluateRestorationProject(buildingType);
+        string stateText = evaluation.State switch
         {
-            nextStageText = "최대 단계";
-            nextEffectText = "더 이상 업그레이드할 수 없습니다.";
-            requiredCurrencyText = "비용 없음";
-        }
-        else
-        {
-            int nextLevel = level + 1;
-            string nextAction = level == 0 ? "수리" : "업그레이드";
-            requiredScrapCost = GetBuildingScrapCost(buildingType, nextLevel);
-            requiredCoreCost = GetBuildingCoreCost(buildingType, nextLevel);
+            SettlementRestorationState.Complete => "복구 완료",
+            SettlementRestorationState.Available => "복구 가능",
+            _ => "기능 정지"
+        };
 
-            nextStageText = $"Lv {nextLevel} {nextAction}";
-            nextEffectText = GetBuildingEffectText(buildingType, nextLevel);
-            requiredCurrencyText = FormatCostForRepairPanel(requiredScrapCost, requiredCoreCost);
-
-            if (PermanentProgress.Instance != null)
-            {
-                canAffordNextLevel = PermanentProgress.Instance.CanSpend(requiredScrapCost, requiredCoreCost);
-            }
-        }
-
-        return new SettlementRepairViewData(
-            title,
-            bodyText,
-            currentStageText,
-            currentEffectText,
-            nextStageText,
-            nextEffectText,
-            requiredCurrencyText,
-            requiredScrapCost,
-            requiredCoreCost,
-            isMax,
-            canAffordNextLevel
+        return new SettlementRestorationViewData(
+            GetBuildingDisplayName(buildingType),
+            GetBuildingDescription(buildingType),
+            stateText,
+            BuildRestorationRequirementText(evaluation),
+            GetRestorationCompletionResult(buildingType),
+            GetBuildingActionLabel(buildingType),
+            evaluation.IsComplete,
+            evaluation.CanComplete
         );
     }
 
     public string BuildBuildingDetailText(BuildingType buildingType)
     {
-        SettlementRepairViewData viewData = BuildBuildingRepairViewData(buildingType);
+        SettlementRestorationViewData viewData = BuildRestorationViewData(buildingType);
         return viewData != null ? viewData.BuildFallbackBodyText() : string.Empty;
     }
 
@@ -794,7 +774,7 @@ public class SettlementController : MonoBehaviour
 
         if (!progress.TrySpend(scrapCost, coreCost))
         {
-            SetMessage($"재화 부족. 필요: {FormatCost(scrapCost, coreCost)}");
+            SetMessage($"재화 부족. 필요: {FormatTraitCost(scrapCost, coreCost)}");
             return false;
         }
 
@@ -939,7 +919,7 @@ public class SettlementController : MonoBehaviour
         builder.AppendLine($"다음 효과: {FormatTraitEffects(trait, nextLevel)}");
         builder.AppendLine();
         builder.AppendLine("필요 재화:");
-        builder.AppendLine(FormatCost(scrapCost, coreCost));
+        builder.AppendLine(FormatTraitCost(scrapCost, coreCost));
         if (!CanTraitBePurchasedInCurrentSelection(trait))
         {
             builder.AppendLine();
@@ -1054,10 +1034,10 @@ public class SettlementController : MonoBehaviour
 
         return buildingType switch
         {
-            BuildingType.Hangar => "격납고",
-            BuildingType.EngineWorkshop => "엔진 공방",
-            BuildingType.WeaponLab => "화기 연구소",
-            BuildingType.RecoveryProcessor => "회수 처리장",
+            BuildingType.Hangar => "격납고 제어 복구",
+            BuildingType.EngineWorkshop => "추진 공방 복구",
+            BuildingType.WeaponLab => "화기 연구소 복구",
+            BuildingType.RecoveryProcessor => "회수 처리 계통 복구",
             _ => buildingType.ToString()
         };
     }
@@ -1101,16 +1081,22 @@ public class SettlementController : MonoBehaviour
         builder.AppendLine($"Core: {progress.CoreShards}");
         builder.AppendLine();
 
-        builder.AppendLine("[Buildings]");
-        builder.AppendLine($"격납고: Lv {progress.GetBuildingLevel(BuildingType.Hangar)}");
-        builder.AppendLine($"엔진 공방: Lv {progress.GetBuildingLevel(BuildingType.EngineWorkshop)}");
-        builder.AppendLine($"화기 연구소: Lv {progress.GetBuildingLevel(BuildingType.WeaponLab)}");
-        builder.AppendLine($"회수 처리장: Lv {progress.GetBuildingLevel(BuildingType.RecoveryProcessor)}");
+        builder.AppendLine("[Settlement Restoration]");
+        builder.AppendLine($"격납고: {GetRestorationDebugState(progress, BuildingType.Hangar)}");
+        builder.AppendLine($"엔진 공방: {GetRestorationDebugState(progress, BuildingType.EngineWorkshop)}");
+        builder.AppendLine($"화기 연구소: {GetRestorationDebugState(progress, BuildingType.WeaponLab)}");
+        builder.AppendLine($"회수 처리장: {GetRestorationDebugState(progress, BuildingType.RecoveryProcessor)}");
         builder.AppendLine();
         builder.AppendLine("[Campaign]");
         builder.AppendLine(progress.BuildCampaignProgressText());
 
         return builder.ToString();
+    }
+
+    private static string GetRestorationDebugState(PermanentProgress progress, BuildingType buildingType)
+    {
+        int savedLevel = progress != null ? progress.GetBuildingLevel(buildingType) : 0;
+        return savedLevel > 0 ? $"복구 완료 (저장 단계 {savedLevel})" : "기능 정지";
     }
 
     public ShipDefinition GetShipByIndex(int index)
@@ -1199,12 +1185,6 @@ public class SettlementController : MonoBehaviour
         return -1;
     }
 
-    private BuildingLevelDefinition GetBuildingLevelDefinition(BuildingType buildingType, int targetLevel)
-    {
-        BuildingDefinition definition = FindBuildingDefinition(buildingType);
-        return definition != null ? definition.GetLevelDefinition(targetLevel) : null;
-    }
-
     private string GetBuildingDescription(BuildingType buildingType)
     {
         BuildingDefinition definition = FindBuildingDefinition(buildingType);
@@ -1215,63 +1195,192 @@ public class SettlementController : MonoBehaviour
 
         return buildingType switch
         {
-            BuildingType.Hangar => "격납고는 최대 체력과 수리 효율을 담당합니다.",
-            BuildingType.EngineWorkshop => "엔진 공방은 이동속도, 대쉬 거리, 대쉬 쿨다운을 담당합니다.",
-            BuildingType.WeaponLab => "화기 연구소는 공격력, 연사력, 탄속, 사거리를 담당합니다.",
-            BuildingType.RecoveryProcessor => "회수 처리장은 스크랩 획득량, 회복 효율, 회수 편의성을 담당합니다.",
-            _ => "정착지 시설입니다."
+            BuildingType.Hangar => "회수한 안정화 부품을 설치해 격납고 제어 계통을 복구합니다.",
+            BuildingType.EngineWorkshop => "정지한 추진 정비 계통을 캠페인 부품과 동기화합니다.",
+            BuildingType.WeaponLab => "위상 항법 데이터를 연결해 화기 연구소의 전력을 복구합니다.",
+            BuildingType.RecoveryProcessor => "완전 코어 신호와 복구된 시설을 연결해 회수 처리 계통을 정상화합니다.",
+            _ => "정착지 기능을 복구하는 캠페인 프로젝트입니다."
         };
     }
 
-    private string GetBuildingEffectText(BuildingType buildingType, int level)
+    private BossStoryPart GetRequiredBossStoryPart(BuildingType buildingType)
     {
-        if (level <= 0)
+        BuildingDefinition definition = FindBuildingDefinition(buildingType);
+        if (definition != null)
         {
-            return "파손 상태. 효과 없음.";
-        }
-
-        BuildingLevelDefinition definition = GetBuildingLevelDefinition(buildingType, level);
-        if (definition != null && !string.IsNullOrWhiteSpace(definition.EffectDescription))
-        {
-            return definition.EffectDescription;
+            return definition.RequiredBossStoryPart;
         }
 
         return buildingType switch
         {
-            BuildingType.Hangar => level switch
-            {
-                1 => "최대 체력 +2",
-                2 => "최대 체력 +4, 수리 효율 +10%",
-                3 => "최대 체력 +6, 수리 효율 +20%",
-                _ => "최대 단계"
-            },
-
-            BuildingType.EngineWorkshop => level switch
-            {
-                1 => "이동속도 +5%",
-                2 => "이동속도 +5%, 대쉬 거리 +0.5",
-                3 => "이동속도 +8%, 대쉬 거리 +0.5, 대쉬 쿨다운 -0.1초",
-                _ => "최대 단계"
-            },
-
-            BuildingType.WeaponLab => level switch
-            {
-                1 => "전체 공격력 +10%",
-                2 => "전체 공격력 +10%, 탄속 +10%",
-                3 => "전체 공격력 +10%, 탄속 +10%, 연사력 +8%",
-                _ => "최대 단계"
-            },
-
-            BuildingType.RecoveryProcessor => level switch
-            {
-                1 => "스크랩 부품 획득량 +10%",
-                2 => "스크랩 부품 획득량 +10%, 회복 자원 효과 +25%",
-                3 => "스크랩 부품 획득량 +10%, 회복 자원 효과 +25%, 아이템 흡수 범위 +1.5",
-                _ => "최대 단계"
-            },
-
-            _ => "효과 없음"
+            BuildingType.Hangar => BossStoryPart.SectorStabilizer,
+            BuildingType.EngineWorkshop => BossStoryPart.MatterCompressor,
+            BuildingType.WeaponLab => BossStoryPart.PhaseNavigationLens,
+            _ => BossStoryPart.None
         };
+    }
+
+    private int GetRequiredSynchronizationStage(BuildingType buildingType)
+    {
+        BuildingDefinition definition = FindBuildingDefinition(buildingType);
+        if (definition != null)
+        {
+            return definition.RequiredSynchronizationStage;
+        }
+
+        return buildingType switch
+        {
+            BuildingType.Hangar => 2,
+            BuildingType.EngineWorkshop => 3,
+            BuildingType.WeaponLab => 4,
+            BuildingType.RecoveryProcessor => 5,
+            _ => 0
+        };
+    }
+
+    private bool RequiresPriorRestoration(BuildingType buildingType)
+    {
+        BuildingDefinition definition = FindBuildingDefinition(buildingType);
+        if (definition != null)
+        {
+            return definition.RequiresPriorRestoration;
+        }
+
+        return buildingType != BuildingType.Hangar;
+    }
+
+    private BuildingType GetPriorRestorationBuilding(BuildingType buildingType)
+    {
+        BuildingDefinition definition = FindBuildingDefinition(buildingType);
+        if (definition != null && definition.RequiresPriorRestoration)
+        {
+            return definition.PriorRestorationBuilding;
+        }
+
+        return buildingType switch
+        {
+            BuildingType.EngineWorkshop => BuildingType.Hangar,
+            BuildingType.WeaponLab => BuildingType.EngineWorkshop,
+            BuildingType.RecoveryProcessor => BuildingType.WeaponLab,
+            _ => BuildingType.Hangar
+        };
+    }
+
+    private string GetRequiredRestorationUnlockFlag(BuildingType buildingType)
+    {
+        BuildingDefinition definition = FindBuildingDefinition(buildingType);
+        if (definition != null)
+        {
+            return definition.RequiredUnlockFlag;
+        }
+
+        return buildingType == BuildingType.RecoveryProcessor
+            ? "campaign_route_core_assembled"
+            : string.Empty;
+    }
+
+    private string GetGrantedRestorationUnlockFlag(BuildingType buildingType)
+    {
+        BuildingDefinition definition = FindBuildingDefinition(buildingType);
+        if (definition != null && !string.IsNullOrWhiteSpace(definition.GrantedUnlockFlag))
+        {
+            return definition.GrantedUnlockFlag;
+        }
+
+        return buildingType switch
+        {
+            BuildingType.Hangar => "settlement_restoration_hangar_complete",
+            BuildingType.EngineWorkshop => "settlement_restoration_engine_workshop_complete",
+            BuildingType.WeaponLab => "settlement_restoration_weapon_lab_complete",
+            BuildingType.RecoveryProcessor => "settlement_restoration_recovery_processor_complete",
+            _ => string.Empty
+        };
+    }
+
+    public string GetRestorationVisualStateKey(BuildingType buildingType)
+    {
+        BuildingDefinition definition = FindBuildingDefinition(buildingType);
+        if (definition != null && !string.IsNullOrWhiteSpace(definition.VisualStateKey))
+        {
+            return definition.VisualStateKey;
+        }
+
+        return $"restoration_{buildingType}";
+    }
+
+    private string GetRestorationCompletionResult(BuildingType buildingType)
+    {
+        BuildingDefinition definition = FindBuildingDefinition(buildingType);
+        if (definition != null && !string.IsNullOrWhiteSpace(definition.CompletionResultDescription))
+        {
+            return definition.CompletionResultDescription;
+        }
+
+        return buildingType switch
+        {
+            BuildingType.Hangar => "격납고 제어 계통 정상화\n다음 복구 프로젝트 개방",
+            BuildingType.EngineWorkshop => "추진 정비 계통 정상화\n다음 복구 프로젝트 개방",
+            BuildingType.WeaponLab => "화기 연구소 전력 정상화\n다음 복구 프로젝트 개방",
+            BuildingType.RecoveryProcessor => "회수 처리 계통 정상화\n정착지 주요 시설 복구 완료",
+            _ => "정착지 시설 정상화"
+        };
+    }
+
+    private string BuildRestorationRequirementText(SettlementRestorationEvaluation evaluation)
+    {
+        StringBuilder builder = new StringBuilder();
+
+        if (evaluation.RequiredBossStoryPart != BossStoryPart.None)
+        {
+            string partName = evaluation.HasRequiredBossStoryPart
+                ? CampaignProgressionCatalog.GetStoryPartDisplayName(evaluation.RequiredBossStoryPart)
+                : "미확인 보스 부품";
+            AppendRequirement(builder, $"{partName}: {(evaluation.HasRequiredBossStoryPart ? "확보" : "미확보")}", evaluation.HasRequiredBossStoryPart);
+        }
+
+        if (evaluation.RequiredSynchronizationStage > 0)
+        {
+            bool met = evaluation.CurrentSynchronizationStage >= evaluation.RequiredSynchronizationStage;
+            string status = met ? "충족" : $"{evaluation.CurrentSynchronizationStage} / {evaluation.RequiredSynchronizationStage}";
+            AppendRequirement(builder, $"코어 동기화 {evaluation.RequiredSynchronizationStage}단계: {status}", met);
+        }
+
+        if (evaluation.RequiresPriorRestoration)
+        {
+            AppendRequirement(
+                builder,
+                $"선행 복구: {(evaluation.HasPriorRestoration ? "완료" : "필요")}",
+                evaluation.HasPriorRestoration
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(evaluation.RequiredUnlockFlag))
+        {
+            AppendRequirement(
+                builder,
+                evaluation.HasRequiredUnlockFlag ? "선행 신호: 해석 완료" : "미확인 코어 반응: 신호 해석 중",
+                evaluation.HasRequiredUnlockFlag
+            );
+        }
+
+        if (builder.Length == 0)
+        {
+            AppendRequirement(builder, "추가 조건 없음", true);
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private static void AppendRequirement(StringBuilder builder, string text, bool satisfied)
+    {
+        if (builder.Length > 0)
+        {
+            builder.AppendLine();
+        }
+
+        string color = satisfied ? "#74E6D2" : "#D6B36A";
+        string marker = satisfied ? "✓" : "•";
+        builder.Append($"<color={color}>{marker}</color> {text}");
     }
 
     private bool CanTraitBePurchasedInCurrentSelection(TraitDefinition trait)
@@ -1383,31 +1492,6 @@ public class SettlementController : MonoBehaviour
         return $"{sign}{absolute:0.#}%";
     }
 
-    private string FormatCostForRepairPanel(int scrapCost, int coreCost)
-    {
-        scrapCost = Mathf.Max(0, scrapCost);
-        coreCost = Mathf.Max(0, coreCost);
-
-        if (scrapCost <= 0 && coreCost <= 0)
-        {
-            return "비용 없음";
-        }
-
-        StringBuilder builder = new StringBuilder();
-
-        if (scrapCost > 0)
-        {
-            builder.AppendLine($"스크랩 {scrapCost}");
-        }
-
-        if (coreCost > 0)
-        {
-            builder.AppendLine($"코어 {coreCost}");
-        }
-
-        return builder.ToString().TrimEnd();
-    }
-
     private string FormatCost(int scrapCost, int coreCost)
     {
         scrapCost = Mathf.Max(0, scrapCost);
@@ -1419,6 +1503,19 @@ public class SettlementController : MonoBehaviour
         }
 
         return $"스크랩 부품 {scrapCost}";
+    }
+
+    private string FormatTraitCost(int scrapCost, int coreCost)
+    {
+        scrapCost = Mathf.Max(0, scrapCost);
+        coreCost = Mathf.Max(0, coreCost);
+
+        if (coreCost > 0)
+        {
+            return $"스크랩 {scrapCost}, 코어 {coreCost}";
+        }
+
+        return $"스크랩 {scrapCost}";
     }
 
     private string FormatSignedPercent(float value)

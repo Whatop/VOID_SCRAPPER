@@ -52,6 +52,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "RadarQuickScan",
+                    "type": "Button",
+                    "id": "ea3c1960-63f1-4b87-83f6-7bc13f0c2e1a",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "UseReinforcement",
                     "type": "Button",
                     "id": "5c21ecb6-871b-44bb-9f77-4d93a6e8e977",
@@ -194,6 +203,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Radar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e7d4527d-bfea-4ebc-9b2b-41739499da9c",
+                    "path": "<Mouse>/backButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "RadarQuickScan",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

@@ -73,13 +73,19 @@ public class PlayerDash : MonoBehaviour
     private readonly Collider2D[] projectileBuffer = new Collider2D[96];
     private readonly Collider2D[] knockbackBuffer = new Collider2D[64];
     private readonly HashSet<int> processedKnockbackTargets = new HashSet<int>();
+    private readonly Dictionary<object, float> externalCooldownMultipliers =
+        new Dictionary<object, float>();
+    private float externalCooldownMultiplier = 1f;
 
     public bool IsDashing => isDashing;
     public float DashDistance => dashDistance;
     public float DashDuration => dashDuration;
     public float DashCooldown => dashCooldown;
-    public float RemainingCooldown => Mathf.Max(0f, lastDashTime + dashCooldown - Time.time);
-    public float CooldownRatio => dashCooldown <= 0f ? 0f : Mathf.Clamp01(RemainingCooldown / dashCooldown);
+    public float EffectiveDashCooldown => dashCooldown * externalCooldownMultiplier;
+    public float RemainingCooldown => Mathf.Max(0f, lastDashTime + EffectiveDashCooldown - Time.time);
+    public float CooldownRatio => EffectiveDashCooldown <= 0f
+        ? 0f
+        : Mathf.Clamp01(RemainingCooldown / EffectiveDashCooldown);
     public bool CanDash => !isDashing && RemainingCooldown <= 0f;
     public bool ShotgunShockwaveUnlocked => shotgunShockwaveUnlocked;
 
@@ -605,6 +611,39 @@ public class PlayerDash : MonoBehaviour
     public void AddDashCooldown(float amount)
     {
         dashCooldown = Mathf.Max(0.05f, dashCooldown + amount);
+    }
+
+    public void SetExternalCooldownMultiplier(object source, float multiplier)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        externalCooldownMultipliers[source] = Mathf.Max(0.05f, multiplier);
+        RecalculateExternalCooldownMultiplier();
+    }
+
+    public void ClearExternalCooldownMultiplier(object source)
+    {
+        if (source == null || !externalCooldownMultipliers.Remove(source))
+        {
+            return;
+        }
+
+        RecalculateExternalCooldownMultiplier();
+    }
+
+    private void RecalculateExternalCooldownMultiplier()
+    {
+        float multiplier = 1f;
+
+        foreach (KeyValuePair<object, float> entry in externalCooldownMultipliers)
+        {
+            multiplier *= Mathf.Max(0.05f, entry.Value);
+        }
+
+        externalCooldownMultiplier = Mathf.Max(0.05f, multiplier);
     }
 
     public void SetShotgunShockwaveUnlocked(bool unlocked)

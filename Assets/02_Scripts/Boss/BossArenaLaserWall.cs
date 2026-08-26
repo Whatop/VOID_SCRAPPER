@@ -4,6 +4,8 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class BossArenaLaserWall : MonoBehaviour
 {
+    private static Material fallbackLineMaterial;
+
     [Header("Runtime References")]
     [SerializeField] private BoxCollider2D boxCollider;
     [SerializeField] private Rigidbody2D rb;
@@ -192,6 +194,12 @@ public class BossArenaLaserWall : MonoBehaviour
         Destroy(gameObject);
     }
 
+    public LineRenderer GetOrCreateLineRenderer()
+    {
+        EnsureComponents();
+        return lineRenderer;
+    }
+
     private void StoreDamage(float damageAmount, float damageCooldown)
     {
         damage = damageAmount > 0f ? damageAmount : fallbackDamage;
@@ -355,17 +363,33 @@ public class BossArenaLaserWall : MonoBehaviour
 
         if (lineMaterial != null)
         {
-            lineRenderer.material = lineMaterial;
+            lineRenderer.sharedMaterial = lineMaterial;
         }
-        else if (lineRenderer.material == null)
+        else if (lineRenderer.sharedMaterial == null)
         {
-            Shader shader = Shader.Find("Sprites/Default");
-
-            if (shader != null)
-            {
-                lineRenderer.material = new Material(shader);
-            }
+            lineRenderer.sharedMaterial = GetOrCreateFallbackLineMaterial();
         }
+    }
+
+    private static Material GetOrCreateFallbackLineMaterial()
+    {
+        if (fallbackLineMaterial != null)
+        {
+            return fallbackLineMaterial;
+        }
+
+        Shader shader = Shader.Find("Sprites/Default");
+        if (shader == null)
+        {
+            return null;
+        }
+
+        fallbackLineMaterial = new Material(shader)
+        {
+            name = "Runtime_BossArenaLaserWall_Fallback",
+            hideFlags = HideFlags.HideAndDontSave
+        };
+        return fallbackLineMaterial;
     }
 
     private void ApplyLayer(string layerName)

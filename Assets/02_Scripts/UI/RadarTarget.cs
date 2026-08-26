@@ -38,12 +38,14 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
 
     public static IReadOnlyCollection<RadarTarget> ActiveTargets => activeTargets;
     public static event Action RegistryChanged;
+    public static event Action<RadarTarget> PresentationChanged;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
         activeTargets.Clear();
         RegistryChanged = null;
+        PresentationChanged = null;
     }
 
     public RadarMarkerType MarkerType => markerType;
@@ -144,13 +146,13 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     public void SetVisible(bool value)
     {
         visible = value;
-        RegistryChanged?.Invoke();
+        NotifyPresentationChanged();
     }
 
     public void SetMarkerType(RadarMarkerType type)
     {
         markerType = type;
-        RegistryChanged?.Invoke();
+        NotifyPresentationChanged();
     }
 
     public void SetMarkerVisual(Sprite sprite, Color color, float scale = 1f)
@@ -158,7 +160,7 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
         markerSprite = sprite;
         markerColor = color;
         markerScale = Mathf.Max(0.1f, scale);
-        RegistryChanged?.Invoke();
+        NotifyPresentationChanged();
     }
 
     public void SetMapDiscovered(bool value)
@@ -184,7 +186,13 @@ public class RadarTarget : MonoBehaviour, IRadarScannable
     public void SetShowOnMap(bool value)
     {
         showOnMap = value;
+        NotifyPresentationChanged();
+    }
+
+    private void NotifyPresentationChanged()
+    {
         RegistryChanged?.Invoke();
+        PresentationChanged?.Invoke(this);
     }
 
     public bool SetTemporaryReveal(UnityEngine.Object source, float duration)

@@ -9,7 +9,7 @@ public class BuildingPreviewSpriteSet
 {
     [SerializeField] private BuildingType buildingType;
 
-    [Tooltip("0 = 미수리/파손, 1 = 수리 완료, 2 이상 = 업그레이드 단계")]
+    [Tooltip("0 = 기능 정지, 1 이상 = 복구 완료. 기존 저장의 상위 레벨도 완료 상태로 표시합니다.")]
     [SerializeField] private Sprite[] levelSprites;
 
     public BuildingType BuildingType => buildingType;
@@ -83,11 +83,11 @@ public class SettlementHUD : MonoBehaviour
     [Tooltip("기체 선택 원. ShipDefinitions 순서와 동일하게 배치.")]
     [SerializeField] private Image[] shipIndicatorImages;
 
-    [Header("Repair Panel")]
+    [Header("Settlement Restoration Panel")]
     [SerializeField] private TextMeshProUGUI repairTitleText;
     [SerializeField] private TextMeshProUGUI repairActionButtonLabelText;
 
-    [Header("Repair Panel - Detail Text")]
+    [Header("Settlement Restoration Panel - Detail Text")]
     [SerializeField] private TextMeshProUGUI repairDescriptionText;
     [SerializeField] private TextMeshProUGUI repairCurrentStageText;
     [SerializeField] private TextMeshProUGUI repairCurrentEffectText;
@@ -95,10 +95,10 @@ public class SettlementHUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI repairNextEffectText;
     [SerializeField] private TextMeshProUGUI repairRequiredCurrencyText;
 
-    [Header("Repair Panel - Cost Icons")]
-    [Tooltip("수리/강화에 스크랩이 필요할 때 활성화할 아이콘 루트입니다.")]
+    [Header("Legacy Repair Cost Icons (Hidden)")]
+    [Tooltip("레거시 비용 아이콘입니다. 정착지 복구에서는 표시하지 않습니다.")]
     [SerializeField] private GameObject repairScrapCostIconRoot;
-    [Tooltip("수리/강화에 코어 조각이 필요할 때 활성화할 아이콘 루트입니다.")]
+    [Tooltip("레거시 비용 아이콘입니다. 정착지 복구에서는 표시하지 않습니다.")]
     [SerializeField] private GameObject repairCoreShardCostIconRoot;
     [Tooltip("스크랩 아이콘 Image입니다. 비워두면 Root의 Image를 사용합니다.")]
     [SerializeField] private Image repairScrapCostIconImage;
@@ -111,7 +111,7 @@ public class SettlementHUD : MonoBehaviour
     [Header("Repair Panel - Building Preview")]
     [SerializeField] private Image repairPreviewImage;
 
-    [Tooltip("건물별 레벨 이미지. 각 항목의 levelSprites[0]은 미수리, [1]은 수리 완료, [2+]는 업그레이드.")]
+    [Tooltip("시설별 복구 이미지. levelSprites[0]은 기능 정지, [1+]는 복구 완료입니다.")]
     [SerializeField] private BuildingPreviewSpriteSet[] buildingPreviewSprites;
 
     [Header("Repair Panel - Building Page Indicators")]
@@ -276,26 +276,26 @@ public class SettlementHUD : MonoBehaviour
         SetText(repairNextEffectText, string.Empty);
         SetText(repairRequiredCurrencyText, string.Empty);
         SetText(repairActionButtonLabelText, actionLabel);
-        SetRepairCostIconVisuals(null);
+        SetRepairCostIconVisuals(false, false);
     }
 
-    public void SetRepairDetail(SettlementRepairViewData viewData, string actionLabel)
+    public void SetRestorationDetail(SettlementRestorationViewData viewData)
     {
         if (viewData == null)
         {
-            SetRepairDetail("정착지 보수", "시설 데이터가 없습니다.", actionLabel);
+            SetRepairDetail("정착지 복구", "복구 프로젝트 데이터가 없습니다.", "조건 미충족");
             return;
         }
 
         SetText(repairTitleText, viewData.Title);
-        SetText(repairDescriptionText, viewData.BodyText);
-        SetText(repairCurrentStageText, viewData.CurrentStageText);
-        SetText(repairCurrentEffectText, $"현재  {viewData.CurrentEffectText}");
-        SetText(repairNextStageText, viewData.NextStageText);
-        SetText(repairNextEffectText, $"다음  {viewData.NextEffectText}");
-        SetText(repairRequiredCurrencyText, viewData.RequiredCurrencyText);
-        SetText(repairActionButtonLabelText, actionLabel);
-        SetRepairCostIconVisuals(viewData);
+        SetText(repairDescriptionText, viewData.Description);
+        SetText(repairCurrentStageText, "현재 상태");
+        SetText(repairCurrentEffectText, viewData.StateText);
+        SetText(repairNextStageText, "필요 조건");
+        SetText(repairNextEffectText, viewData.RequirementText);
+        SetText(repairRequiredCurrencyText, $"복구 결과\n{viewData.CompletionResultText}");
+        SetText(repairActionButtonLabelText, viewData.ActionLabel);
+        SetRepairCostIconVisuals(false, false);
     }
 
     public void SetRepairPreview(BuildingType buildingType, int currentLevel, int selectedIndex, int totalCount)
@@ -660,11 +660,8 @@ public class SettlementHUD : MonoBehaviour
         return null;
     }
 
-    private void SetRepairCostIconVisuals(SettlementRepairViewData viewData)
+    private void SetRepairCostIconVisuals(bool showScrap, bool showCore)
     {
-        bool showScrap = viewData != null && !viewData.IsMaxLevel && viewData.RequiredScrapCost > 0;
-        bool showCore = viewData != null && !viewData.IsMaxLevel && viewData.RequiredCoreShardCost > 0;
-
         LayoutRepairCostIcons(showScrap, showCore);
 
         SetRepairCostIconActive(
@@ -693,7 +690,7 @@ public class SettlementHUD : MonoBehaviour
             ? root
             : image != null ? image.gameObject : null;
 
-        bool shouldShow = active || !hideRepairCostIconsWhenFree;
+        bool shouldShow = active;
 
         if (targetObject != null)
         {

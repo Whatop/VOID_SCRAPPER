@@ -1,18 +1,16 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using Unity.Cinemachine;
 using UnityEngine;
 
+[DefaultExecutionOrder(9000)]
 [DisallowMultipleComponent]
 public class CameraZoomController2D : MonoBehaviour
 {
     [Header("Reference")]
-    [SerializeField] private CinemachineCamera cinemachineCamera;
     [SerializeField] private Camera targetCamera;
 
     [Header("Zoom")]
-    [SerializeField] private float baseOrthographicSize = 4.2f;
+    [SerializeField] private float baseOrthographicSize = 4.21875f;
     [SerializeField] private float zoomSmoothSpeed = 10f;
 
     [Header("Cinematic Transition")]
@@ -20,21 +18,13 @@ public class CameraZoomController2D : MonoBehaviour
     [SerializeField] private AnimationCurve defaultTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
     [SerializeField] private float baseZoomTolerance = 0.0025f;
 
-    [Header("Pixel Perfect Override")]
-    [SerializeField] private bool disablePixelPerfectWhileZoomedOut = true;
-    [SerializeField] private float pixelPerfectDisableThreshold = 1.01f;
-    [SerializeField] private bool logPixelPerfectOverride;
-
-    private readonly List<MonoBehaviour> pixelPerfectComponents = new List<MonoBehaviour>();
-    private readonly Dictionary<MonoBehaviour, bool> pixelPerfectOriginalStates = new Dictionary<MonoBehaviour, bool>();
-
     private float targetZoomMultiplier = 1f;
     private bool initialized;
-    private bool pixelPerfectScanDone;
-    private bool pixelPerfectOverridden;
     private bool cinematicTransitionActive;
     private int cinematicZoomHoldCount;
     private float cinematicZoomHoldMultiplier = 1f;
+    private object gameplayFramingOwner;
+    private float gameplayFramingMultiplier = 1f;
 
     public float BaseOrthographicSize => baseOrthographicSize;
     public float TargetZoomMultiplier => targetZoomMultiplier;
@@ -44,21 +34,25 @@ public class CameraZoomController2D : MonoBehaviour
         : ResolveCurrentOrthographicSize() / baseOrthographicSize;
     public bool IsCinematicTransitionActive => cinematicTransitionActive;
     public bool IsCinematicZoomHeld => cinematicZoomHoldCount > 0;
+    public float GameplayFramingMultiplier => gameplayFramingMultiplier;
+    public float GameplayOrthographicSize => baseOrthographicSize * gameplayFramingMultiplier;
     public bool IsAtBaseZoom => Mathf.Abs(CurrentZoomMultiplier - 1f) <= Mathf.Max(0.0001f, baseZoomTolerance);
 
-    public bool HasCinemachineCamera
+    public bool IsAtBaseZoomWithin(float orthographicSizeTolerance)
     {
-        get
-        {
-            ResolveReferences();
-            return cinemachineCamera != null;
-        }
+        return Mathf.Abs(CurrentOrthographicSize - BaseOrthographicSize) <=
+               Mathf.Max(0.0001f, orthographicSizeTolerance);
+    }
+
+    public bool IsAtGameplayZoomWithin(float orthographicSizeTolerance)
+    {
+        return Mathf.Abs(CurrentOrthographicSize - GameplayOrthographicSize) <=
+               Mathf.Max(0.0001f, orthographicSizeTolerance);
     }
 
     private void Reset()
     {
-        cinemachineCamera = GetComponent<CinemachineCamera>();
-        targetCamera = GetComponent<Camera>();
+        targetCamera = Camera.main;
     }
 
     private void Awake()
@@ -82,27 +76,7 @@ public class CameraZoomController2D : MonoBehaviour
             targetZoomMultiplier = cinematicZoomHoldMultiplier;
         }
 
-        float currentMultiplier = CurrentZoomMultiplier;
-        bool zoomedOut =
-            cinematicTransitionActive ||
-            targetZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold) ||
-            currentMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold);
-
-        if (zoomedOut)
-        {
-            DisablePixelPerfectComponents();
-        }
-
         ApplyZoom(false);
-
-        currentMultiplier = CurrentZoomMultiplier;
-
-        if (!cinematicTransitionActive &&
-            targetZoomMultiplier <= Mathf.Max(1f, pixelPerfectDisableThreshold) &&
-            currentMultiplier <= Mathf.Max(1f, pixelPerfectDisableThreshold) + baseZoomTolerance)
-        {
-            RestorePixelPerfectComponents();
-        }
     }
 
     private void OnDisable()
@@ -110,22 +84,13 @@ public class CameraZoomController2D : MonoBehaviour
         cinematicTransitionActive = false;
         cinematicZoomHoldCount = 0;
         cinematicZoomHoldMultiplier = 1f;
-        RestorePixelPerfectComponents();
+        gameplayFramingOwner = null;
+        gameplayFramingMultiplier = 1f;
     }
 
-    private void OnDestroy()
+    public void Bind(Camera camera)
     {
-        cinematicTransitionActive = false;
-        cinematicZoomHoldCount = 0;
-        cinematicZoomHoldMultiplier = 1f;
-        RestorePixelPerfectComponents();
-    }
-
-    public void Bind(CinemachineCamera cmCamera, Camera camera)
-    {
-        cinemachineCamera = cmCamera;
         targetCamera = camera;
-        pixelPerfectScanDone = false;
 
         if (!initialized || baseOrthographicSize <= 0f)
         {
@@ -152,21 +117,46 @@ public class CameraZoomController2D : MonoBehaviour
         }
 
         targetZoomMultiplier = Mathf.Max(0.1f, multiplier);
-
-        if (targetZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold) ||
-            CurrentZoomMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold))
-        {
-            DisablePixelPerfectComponents();
-        }
-
         ApplyZoom(immediate);
+    }
 
-        if (!cinematicTransitionActive && immediate &&
-            targetZoomMultiplier <= Mathf.Max(1f, pixelPerfectDisableThreshold) &&
-            IsAtBaseZoom)
+    public void SetEffectiveZoomMultiplier(float multiplier, bool immediate)
+    {
+        float framingMultiplier = Mathf.Max(0.1f, gameplayFramingMultiplier);
+        SetZoomMultiplier(Mathf.Max(0.1f, multiplier) / framingMultiplier, immediate);
+    }
+
+    public bool AcquireGameplayFramingProfile(
+        object owner,
+        float orthographicSizeMultiplier,
+        bool immediate)
+    {
+        if (owner == null)
         {
-            RestorePixelPerfectComponents();
+            return false;
         }
+
+        if (gameplayFramingOwner != null && !ReferenceEquals(gameplayFramingOwner, owner))
+        {
+            return false;
+        }
+
+        gameplayFramingOwner = owner;
+        gameplayFramingMultiplier = Mathf.Max(0.1f, orthographicSizeMultiplier);
+        ApplyZoom(immediate);
+        return true;
+    }
+
+    public void ReleaseGameplayFramingProfile(object owner, bool immediate)
+    {
+        if (owner == null || !ReferenceEquals(gameplayFramingOwner, owner))
+        {
+            return;
+        }
+
+        gameplayFramingOwner = null;
+        gameplayFramingMultiplier = 1f;
+        ApplyZoom(immediate);
     }
 
     public void ResetZoom()
@@ -185,30 +175,14 @@ public class CameraZoomController2D : MonoBehaviour
 
         targetZoomMultiplier = 1f;
         ApplyZoom(immediate);
-
-        if (immediate || IsAtBaseZoom)
-        {
-            RestorePixelPerfectComponents();
-        }
     }
 
-
-    /// <summary>
-    /// 보스 인트로처럼 여러 시스템이 같은 카메라 줌을 공유할 때 외부 ResetZoom 호출로
-    /// 줌이 갑자기 원상복귀하지 않도록 현재 배율을 잠급니다.
-    /// </summary>
     public void BeginCinematicZoomHold(float multiplier)
     {
         cinematicZoomHoldCount++;
         cinematicZoomHoldMultiplier = Mathf.Max(0.1f, multiplier);
         targetZoomMultiplier = cinematicZoomHoldMultiplier;
         cinematicTransitionActive = false;
-
-        if (cinematicZoomHoldMultiplier > Mathf.Max(1f, pixelPerfectDisableThreshold))
-        {
-            DisablePixelPerfectComponents();
-        }
-
         ApplyZoom(true);
     }
 
@@ -220,7 +194,6 @@ public class CameraZoomController2D : MonoBehaviour
         }
 
         cinematicZoomHoldCount--;
-
         if (cinematicZoomHoldCount > 0)
         {
             return;
@@ -228,15 +201,14 @@ public class CameraZoomController2D : MonoBehaviour
 
         if (keepCurrentZoom)
         {
-            targetZoomMultiplier = CurrentZoomMultiplier;
+            targetZoomMultiplier = CurrentZoomMultiplier /
+                                   Mathf.Max(0.1f, gameplayFramingMultiplier);
         }
         else
         {
             targetZoomMultiplier = 1f;
             ApplyZoom(true);
         }
-
-        TryRestorePixelPerfectAtBase();
     }
 
     public void ClearCinematicZoomHold(bool restoreBaseZoom)
@@ -251,10 +223,9 @@ public class CameraZoomController2D : MonoBehaviour
         }
         else
         {
-            targetZoomMultiplier = CurrentZoomMultiplier;
+            targetZoomMultiplier = CurrentZoomMultiplier /
+                                   Mathf.Max(0.1f, gameplayFramingMultiplier);
         }
-
-        TryRestorePixelPerfectAtBase();
     }
 
     public IEnumerator AnimateZoomMultiplier(
@@ -274,23 +245,16 @@ public class CameraZoomController2D : MonoBehaviour
 
         cinematicTransitionActive = true;
 
-        if (Mathf.Max(startMultiplier, endMultiplier) > Mathf.Max(1f, pixelPerfectDisableThreshold))
-        {
-            DisablePixelPerfectComponents();
-        }
-
         if (safeDuration <= 0.0001f)
         {
             targetZoomMultiplier = endMultiplier;
             ApplyZoom(true);
             progressCallback?.Invoke(1f, endMultiplier);
             cinematicTransitionActive = false;
-            TryRestorePixelPerfectAtBase();
             yield break;
         }
 
         float elapsed = 0f;
-
         while (elapsed < safeDuration)
         {
             float deltaTime = useUnscaledTimeForTransitions
@@ -298,27 +262,22 @@ public class CameraZoomController2D : MonoBehaviour
                 : Time.deltaTime;
 
             elapsed += Mathf.Max(0f, deltaTime);
-
             float normalized = Mathf.Clamp01(elapsed / safeDuration);
             float eased = transitionCurve != null && transitionCurve.length > 0
                 ? Mathf.Clamp01(transitionCurve.Evaluate(normalized))
                 : Mathf.SmoothStep(0f, 1f, normalized);
-
             float currentMultiplier = Mathf.LerpUnclamped(startMultiplier, endMultiplier, eased);
 
             targetZoomMultiplier = currentMultiplier;
             ApplyZoom(true);
             progressCallback?.Invoke(eased, currentMultiplier);
-
             yield return null;
         }
 
         targetZoomMultiplier = endMultiplier;
         ApplyZoom(true);
         progressCallback?.Invoke(1f, endMultiplier);
-
         cinematicTransitionActive = false;
-        TryRestorePixelPerfectAtBase();
     }
 
     public void CancelCinematicTransition(bool restoreBaseZoom)
@@ -335,8 +294,6 @@ public class CameraZoomController2D : MonoBehaviour
             targetZoomMultiplier = cinematicZoomHoldMultiplier;
             ApplyZoom(true);
         }
-
-        TryRestorePixelPerfectAtBase();
     }
 
     public void SetBaseOrthographicSize(float size)
@@ -352,27 +309,14 @@ public class CameraZoomController2D : MonoBehaviour
 
     public void RebindToCurrentSceneCamera()
     {
-        cinemachineCamera = null;
         targetCamera = null;
-        pixelPerfectScanDone = false;
-
         ResolveReferences();
         CaptureBaseSizeIfPossible();
     }
 
     private void ResolveReferences()
     {
-        if (cinemachineCamera == null)
-        {
-            cinemachineCamera = GetComponent<CinemachineCamera>();
-        }
-
         if (targetCamera == null)
-        {
-            targetCamera = GetComponent<Camera>();
-        }
-
-        if (targetCamera == null && Camera.main != null)
         {
             targetCamera = Camera.main;
         }
@@ -380,12 +324,6 @@ public class CameraZoomController2D : MonoBehaviour
 
     private void CaptureBaseSizeIfPossible()
     {
-        if (cinemachineCamera != null)
-        {
-            baseOrthographicSize = Mathf.Max(0.1f, cinemachineCamera.Lens.OrthographicSize);
-            return;
-        }
-
         if (targetCamera != null && targetCamera.orthographic)
         {
             baseOrthographicSize = Mathf.Max(0.1f, targetCamera.orthographicSize);
@@ -395,11 +333,6 @@ public class CameraZoomController2D : MonoBehaviour
     private float ResolveCurrentOrthographicSize()
     {
         ResolveReferences();
-
-        if (cinemachineCamera != null)
-        {
-            return Mathf.Max(0.1f, cinemachineCamera.Lens.OrthographicSize);
-        }
 
         if (targetCamera != null && targetCamera.orthographic)
         {
@@ -411,155 +344,31 @@ public class CameraZoomController2D : MonoBehaviour
 
     private void ApplyZoom(bool immediate)
     {
+        ResolveReferences();
+
         if (!initialized)
         {
             CaptureBaseSizeIfPossible();
             initialized = true;
         }
 
-        float targetSize = Mathf.Max(0.1f, baseOrthographicSize * targetZoomMultiplier);
-
-        if (cinemachineCamera != null)
-        {
-            if (immediate || zoomSmoothSpeed <= 0f)
-            {
-                cinemachineCamera.Lens.OrthographicSize = targetSize;
-            }
-            else
-            {
-                float current = cinemachineCamera.Lens.OrthographicSize;
-                float t = 1f - Mathf.Exp(-zoomSmoothSpeed * Time.deltaTime);
-                cinemachineCamera.Lens.OrthographicSize = Mathf.Lerp(current, targetSize, t);
-            }
-
-            return;
-        }
-
-        if (targetCamera != null && targetCamera.orthographic)
-        {
-            if (immediate || zoomSmoothSpeed <= 0f)
-            {
-                targetCamera.orthographicSize = targetSize;
-            }
-            else
-            {
-                float t = 1f - Mathf.Exp(-zoomSmoothSpeed * Time.deltaTime);
-                targetCamera.orthographicSize = Mathf.Lerp(targetCamera.orthographicSize, targetSize, t);
-            }
-        }
-    }
-
-    private void TryRestorePixelPerfectAtBase()
-    {
-        if (!cinematicTransitionActive &&
-            targetZoomMultiplier <= Mathf.Max(1f, pixelPerfectDisableThreshold) &&
-            IsAtBaseZoom)
-        {
-            RestorePixelPerfectComponents();
-        }
-    }
-
-    private void DisablePixelPerfectComponents()
-    {
-        if (!disablePixelPerfectWhileZoomedOut)
+        if (targetCamera == null || !targetCamera.orthographic)
         {
             return;
         }
 
-        RefreshPixelPerfectComponentCacheIfNeeded();
-
-        for (int i = 0; i < pixelPerfectComponents.Count; i++)
+        float resolvedMultiplier = IsCinematicZoomHeld
+            ? cinematicZoomHoldMultiplier
+            : targetZoomMultiplier * gameplayFramingMultiplier;
+        float targetSize = Mathf.Max(0.1f, baseOrthographicSize * resolvedMultiplier);
+        if (immediate || zoomSmoothSpeed <= 0f)
         {
-            MonoBehaviour component = pixelPerfectComponents[i];
-
-            if (component == null)
-            {
-                continue;
-            }
-
-            if (!pixelPerfectOriginalStates.ContainsKey(component))
-            {
-                pixelPerfectOriginalStates.Add(component, component.enabled);
-            }
-
-            component.enabled = false;
-        }
-
-        if (!pixelPerfectOverridden && pixelPerfectComponents.Count > 0 && logPixelPerfectOverride)
-        {
-            Debug.Log("Pixel Perfect 컴포넌트를 줌아웃 동안 임시 비활성화합니다.", this);
-        }
-
-        pixelPerfectOverridden = pixelPerfectComponents.Count > 0;
-    }
-
-    private void RestorePixelPerfectComponents()
-    {
-        if (!pixelPerfectOverridden && pixelPerfectOriginalStates.Count == 0)
-        {
+            targetCamera.orthographicSize = targetSize;
             return;
         }
 
-        foreach (KeyValuePair<MonoBehaviour, bool> pair in pixelPerfectOriginalStates)
-        {
-            if (pair.Key != null)
-            {
-                pair.Key.enabled = pair.Value;
-            }
-        }
-
-        pixelPerfectOriginalStates.Clear();
-        pixelPerfectOverridden = false;
-    }
-
-    private void RefreshPixelPerfectComponentCacheIfNeeded()
-    {
-        if (pixelPerfectScanDone)
-        {
-            RemoveNullPixelPerfectEntries();
-            return;
-        }
-
-        pixelPerfectComponents.Clear();
-
-        MonoBehaviour[] behaviours = FindObjectsByType<MonoBehaviour>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
-
-        for (int i = 0; i < behaviours.Length; i++)
-        {
-            MonoBehaviour behaviour = behaviours[i];
-
-            if (behaviour == null || behaviour == this)
-            {
-                continue;
-            }
-
-            if (IsPixelPerfectComponent(behaviour))
-            {
-                pixelPerfectComponents.Add(behaviour);
-            }
-        }
-
-        pixelPerfectScanDone = true;
-    }
-
-    private void RemoveNullPixelPerfectEntries()
-    {
-        for (int i = pixelPerfectComponents.Count - 1; i >= 0; i--)
-        {
-            if (pixelPerfectComponents[i] == null)
-            {
-                pixelPerfectComponents.RemoveAt(i);
-            }
-        }
-    }
-
-    private bool IsPixelPerfectComponent(MonoBehaviour component)
-    {
-        string typeName = component.GetType().Name;
-        return typeName == "PixelPerfectCamera" || typeName == "CinemachinePixelPerfect";
+        float blend = 1f - Mathf.Exp(-zoomSmoothSpeed * Mathf.Max(0f, Time.deltaTime));
+        targetCamera.orthographicSize = Mathf.Lerp(targetCamera.orthographicSize, targetSize, blend);
     }
 
 #if UNITY_EDITOR
@@ -567,7 +376,6 @@ public class CameraZoomController2D : MonoBehaviour
     {
         baseOrthographicSize = Mathf.Max(0.1f, baseOrthographicSize);
         zoomSmoothSpeed = Mathf.Max(0f, zoomSmoothSpeed);
-        pixelPerfectDisableThreshold = Mathf.Max(1f, pixelPerfectDisableThreshold);
         baseZoomTolerance = Mathf.Max(0.0001f, baseZoomTolerance);
 
         if (defaultTransitionCurve == null || defaultTransitionCurve.length == 0)

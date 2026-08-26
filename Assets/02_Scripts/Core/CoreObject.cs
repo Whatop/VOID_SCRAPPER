@@ -20,6 +20,13 @@ public class CoreObject : MonoBehaviour, IInteractable
     [SerializeField] private GameObject region2BossPrefab;
     [SerializeField] private GameObject region3BossPrefab;
     [SerializeField] private GameObject finalBossPrefab;
+    [Header("Region 1 Repeat Encounter")]
+    [SerializeField] private GameObject region1RepeatBossPrefab;
+    [SerializeField] private BossCampaignDefinition region1RepeatBossDefinition;
+    [SerializeField] private string region1RepeatSignalSubtitle = "약탈자 지휘 신호 감지";
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [SerializeField] private bool forceRegion1RepeatBoss;
+#endif
     [SerializeField] private Transform bossSpawnPoint;
     [SerializeField] private Vector2 bossSpawnOffset = new Vector2(0f, 3f);
     [Tooltip("기존 1해역 표시명 호환용입니다.")]
@@ -29,6 +36,10 @@ public class CoreObject : MonoBehaviour, IInteractable
     [Header("Boss Intro")]
     [SerializeField] private bool useBossIntroSequence = true;
     [SerializeField] private CoreBossIntroSequence bossIntroSequence;
+
+    [Header("Boss Background Presentation")]
+    [SerializeField] private bool useTemporaryBossBackgroundPresentation = true;
+    [SerializeField] private SpaceBackgroundGenerator2D spaceBackgroundGenerator;
 
     [Header("Return Beacon")]
     [SerializeField] private GameObject returnBeaconPrefab;
@@ -84,7 +95,11 @@ public class CoreObject : MonoBehaviour, IInteractable
     private bool activating;
     private bool completedCorePickupSpawned;
     private bool worldPresenceRetired;
+    private bool temporaryBossPresentationRequested;
+    private bool temporaryBossPresentationHandedOff;
     private GameObject spawnedBoss;
+    private ResolvedBossEncounter resolvedBossEncounter;
+    private bool hasResolvedBossEncounter;
 
     private ExpeditionObjectiveDirector objectiveDirector;
     private Transform directDiscoveryPlayer;
@@ -95,6 +110,29 @@ public class CoreObject : MonoBehaviour, IInteractable
     private bool[] objectiveGateRendererStates;
     private bool trackingLockOverrideActive;
     private bool trackingLocked;
+
+    private readonly struct ResolvedBossEncounter
+    {
+        public GameObject Prefab { get; }
+        public BossCampaignDefinition CampaignDefinition { get; }
+        public string DisplayName { get; }
+        public string SignalSubtitle { get; }
+        public bool IsRepeatReplacement { get; }
+
+        public ResolvedBossEncounter(
+            GameObject prefab,
+            BossCampaignDefinition campaignDefinition,
+            string displayName,
+            string signalSubtitle,
+            bool isRepeatReplacement)
+        {
+            Prefab = prefab;
+            CampaignDefinition = campaignDefinition;
+            DisplayName = displayName;
+            SignalSubtitle = signalSubtitle;
+            IsRepeatReplacement = isRepeatReplacement;
+        }
+    }
 
     public bool IsLocationRevealed => IsCoreLocationRevealed();
     public bool IsInteractionUnlocked => IsObjectiveGateSatisfied();
@@ -153,6 +191,7 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     private void OnEnable()
     {
+        hasResolvedBossEncounter = false;
         BindObjectiveDirector();
         ApplyObjectiveGateState();
     }
@@ -178,6 +217,11 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         bossIntroSequence?.CancelCoreActivationCameraLock();
+
+        if (temporaryBossPresentationRequested && !temporaryBossPresentationHandedOff)
+        {
+            AbortTemporaryBossBackgroundPresentation();
+        }
     }
 
     public bool CanInteract(GameObject interactor)
@@ -280,7 +324,8 @@ public class CoreObject : MonoBehaviour, IInteractable
             radarTarget.SetVisible(false);
         }
 
-        GameObject resolvedBossPrefab = ResolveBossPrefab();
+        ResolvedBossEncounter encounter = ResolveBossEncounter();
+        GameObject resolvedBossPrefab = encounter.Prefab;
 
         if (resolvedBossPrefab == null)
         {
@@ -320,6 +365,7 @@ public class CoreObject : MonoBehaviour, IInteractable
 
         // 코어 활성화가 완료된 즉시 보스 음악으로 전환한다.
         // 실제 BossBattle GameState 전환은 인트로 종료 시점에 유지한다.
+        BeginTemporaryBossBackgroundPresentation();
         GameAudioLoopController.EnterBossIntroMusic();
 
         if (useBossIntroSequence)
@@ -328,12 +374,16 @@ public class CoreObject : MonoBehaviour, IInteractable
 
             if (bossIntroSequence != null)
             {
+                bossIntroSequence.ConfigureEncounterSignalSubtitle(encounter.SignalSubtitle);
+                bossIntroSequence.ConfigureEncounterIntroVariant(
+                    encounter.IsRepeatReplacement
+                );
                 yield return bossIntroSequence.PlayIntroRoutine(
                     interactor,
                     resolvedBossPrefab,
                     ResolveBossSpawnPosition(),
                     transform.position,
-                    DropCompletedCorePickup,
+                    HandleCoreActivationPresentationCompleted,
                     HandleBossCreatedByIntro,
                     HandleBossReveal,
                     HandleBossBattleStart
@@ -342,7 +392,7 @@ public class CoreObject : MonoBehaviour, IInteractable
             else
             {
                 yield return PlayActivationPresentationWithoutIntro();
-                DropCompletedCorePickup();
+                HandleCoreActivationPresentationCompleted();
                 SpawnBossImmediate(interactor);
                 HandleBossReveal();
                 HandleBossBattleStart();
@@ -351,10 +401,15 @@ public class CoreObject : MonoBehaviour, IInteractable
         else
         {
             yield return PlayActivationPresentationWithoutIntro();
-            DropCompletedCorePickup();
+            HandleCoreActivationPresentationCompleted();
             SpawnBossImmediate(interactor);
             HandleBossReveal();
             HandleBossBattleStart();
+        }
+
+        if (spawnedBoss == null)
+        {
+            AbortTemporaryBossBackgroundPresentation();
         }
 
         HandleCoreAfterActivation();
@@ -388,6 +443,13 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     private void HandleBossBattleStart()
     {
+        if (spawnedBoss != null)
+        {
+            PirateCommanderBossController raiderCommander =
+                spawnedBoss.GetComponent<PirateCommanderBossController>();
+            raiderCommander?.BeginCombat();
+        }
+
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.ChangeState(
@@ -473,7 +535,7 @@ public class CoreObject : MonoBehaviour, IInteractable
 
     private void SpawnBossImmediate(GameObject interactor)
     {
-        GameObject resolvedBossPrefab = ResolveBossPrefab();
+        GameObject resolvedBossPrefab = ResolveBossEncounter().Prefab;
 
         if (resolvedBossPrefab == null)
         {
@@ -512,7 +574,27 @@ public class CoreObject : MonoBehaviour, IInteractable
             bossController = bossObject.AddComponent<BossDummyController>();
         }
 
-        bossController.ConfigureCampaignDefinition(ResolveBossCampaignDefinition());
+        ResolvedBossEncounter encounter = ResolveBossEncounter();
+        bossController.ConfigureCampaignDefinition(encounter.CampaignDefinition);
+
+        PirateCommanderBossController raiderCommander =
+            bossObject.GetComponent<PirateCommanderBossController>();
+        if (raiderCommander != null)
+        {
+            Vector3 arenaCenter = bossIntroSequence != null
+                ? bossIntroSequence.ResolveEncounterArenaCenter(transform.position)
+                : transform.position;
+            Vector2 arenaHalfExtents = bossIntroSequence != null
+                ? bossIntroSequence.ResolveRaiderEncounterArenaHalfExtents()
+                : new Vector2(8.4f, 8.4f);
+            raiderCommander.ConfigureEncounter(arenaCenter, arenaHalfExtents, interactor);
+        }
+        ResolveSpaceBackgroundGenerator();
+        bossController.ConfigureEncounterBackgroundPresentation(
+            temporaryBossPresentationRequested ? spaceBackgroundGenerator : null
+        );
+        temporaryBossPresentationHandedOff = temporaryBossPresentationRequested &&
+                                               spaceBackgroundGenerator != null;
 
         if (ResolveCurrentDepth() == ExpeditionDepth.FinalNetwork)
         {
@@ -561,9 +643,16 @@ public class CoreObject : MonoBehaviour, IInteractable
             : ExpeditionDepth.Normal;
     }
 
-    private GameObject ResolveBossPrefab()
+    private ResolvedBossEncounter ResolveBossEncounter()
     {
-        return ResolveCurrentDepth() switch
+        if (hasResolvedBossEncounter)
+        {
+            return resolvedBossEncounter;
+        }
+
+        ExpeditionDepth depth = ResolveCurrentDepth();
+        BossCampaignDefinition definition = CampaignProgressionCatalog.GetBossDefinition(depth);
+        GameObject prefab = depth switch
         {
             ExpeditionDepth.Normal => bossPrefab,
             ExpeditionDepth.DeepZone1 => region2BossPrefab != null ? region2BossPrefab : bossPrefab,
@@ -571,23 +660,50 @@ public class CoreObject : MonoBehaviour, IInteractable
             ExpeditionDepth.FinalNetwork => finalBossPrefab,
             _ => bossPrefab
         };
+
+        bool useRepeatReplacement = depth == ExpeditionDepth.Normal && ShouldUseRegion1RepeatBoss();
+        if (useRepeatReplacement &&
+            region1RepeatBossPrefab != null &&
+            region1RepeatBossDefinition != null)
+        {
+            prefab = region1RepeatBossPrefab;
+            definition = region1RepeatBossDefinition;
+        }
+        else
+        {
+            useRepeatReplacement = false;
+        }
+
+        string displayName = definition != null
+            ? definition.DisplayName
+            : ResolveFallbackBossDisplayName(depth);
+        string signalSubtitle = useRepeatReplacement
+            ? region1RepeatSignalSubtitle
+            : string.Empty;
+
+        resolvedBossEncounter = new ResolvedBossEncounter(
+            prefab,
+            definition,
+            displayName,
+            signalSubtitle,
+            useRepeatReplacement
+        );
+        hasResolvedBossEncounter = true;
+        return resolvedBossEncounter;
     }
 
     private BossCampaignDefinition ResolveBossCampaignDefinition()
     {
-        return CampaignProgressionCatalog.GetBossDefinition(ResolveCurrentDepth());
+        return ResolveBossEncounter().CampaignDefinition;
     }
 
     private string ResolveBossDisplayName()
     {
-        BossCampaignDefinition definition = ResolveBossCampaignDefinition();
+        return ResolveBossEncounter().DisplayName;
+    }
 
-        if (definition != null)
-        {
-            return definition.DisplayName;
-        }
-
-        ExpeditionDepth depth = ResolveCurrentDepth();
+    private string ResolveFallbackBossDisplayName(ExpeditionDepth depth)
+    {
 
         if (depth == ExpeditionDepth.Normal && !string.IsNullOrWhiteSpace(bossDisplayName))
         {
@@ -597,6 +713,21 @@ public class CoreObject : MonoBehaviour, IInteractable
         return CampaignProgressionCatalog.GetBossDisplayName(
             CampaignProgressionCatalog.GetBossId(depth)
         );
+    }
+
+    private bool ShouldUseRegion1RepeatBoss()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (forceRegion1RepeatBoss)
+        {
+            return true;
+        }
+#endif
+
+        return PermanentProgress.Instance != null &&
+               PermanentProgress.Instance.HasDefeatedCampaignBoss(
+                   CampaignBossId.SectorAdministrator
+               );
     }
 
     private Vector3 ResolveBossSpawnPosition()
@@ -619,6 +750,61 @@ public class CoreObject : MonoBehaviour, IInteractable
         if (coreActivationPresentation != null)
         {
             yield return coreActivationPresentation.PlayActivationRoutine();
+        }
+    }
+
+    private void BeginTemporaryBossBackgroundPresentation()
+    {
+        if (!useTemporaryBossBackgroundPresentation || temporaryBossPresentationRequested)
+        {
+            return;
+        }
+
+        ResolveSpaceBackgroundGenerator();
+
+        if (spaceBackgroundGenerator == null)
+        {
+            return;
+        }
+
+        temporaryBossPresentationHandedOff = false;
+        temporaryBossPresentationRequested =
+            spaceBackgroundGenerator.BeginBossEncounterPresentation() != null;
+    }
+
+    private void HandleCoreActivationPresentationCompleted()
+    {
+        DropCompletedCorePickup();
+
+        if (temporaryBossPresentationRequested && spaceBackgroundGenerator != null)
+        {
+            spaceBackgroundGenerator.ReleaseCoreActivationScreenOverlay();
+        }
+    }
+
+    private void AbortTemporaryBossBackgroundPresentation()
+    {
+        if (!temporaryBossPresentationRequested)
+        {
+            return;
+        }
+
+        if (spaceBackgroundGenerator != null)
+        {
+            spaceBackgroundGenerator.RestoreExplorationPresentation(-1f, false);
+        }
+
+        temporaryBossPresentationRequested = false;
+        temporaryBossPresentationHandedOff = false;
+    }
+
+    private void ResolveSpaceBackgroundGenerator()
+    {
+        if (spaceBackgroundGenerator == null)
+        {
+            spaceBackgroundGenerator = FindFirstObjectByType<SpaceBackgroundGenerator2D>(
+                FindObjectsInactive.Include
+            );
         }
     }
 

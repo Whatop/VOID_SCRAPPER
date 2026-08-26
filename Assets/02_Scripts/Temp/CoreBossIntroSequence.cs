@@ -1,12 +1,22 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.Cinemachine;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class CoreBossIntroSequence : MonoBehaviour
 {
+    private enum IntroPhase
+    {
+        Inactive,
+        CoreFocus,
+        ArenaWide,
+        FormationArrival,
+        BossReveal,
+        PlayerHandoff,
+        Complete
+    }
+
     [Header("Warning")]
     [SerializeField] private WarningMessageUI warningMessageUI;
     [SerializeField] private string activationWarningMessage = "고 에너지 방출 감지!";
@@ -54,15 +64,18 @@ public class CoreBossIntroSequence : MonoBehaviour
     [Min(0.05f)]
     [SerializeField] private float zoomOutDuration = 1.35f;
 
-    [Tooltip("보스 시야에서 기존 플레이 시야로 천천히 돌아오는 시간입니다.")]
+    [Tooltip("보스 시야에서 플레이어 중심과 기본 줌으로 함께 복귀하는 시간입니다.")]
     [Min(0.05f)]
-    [SerializeField] private float zoomInDuration = 1.65f;
+    [SerializeField] private float zoomInDuration = 1.05f;
 
     [SerializeField] private AnimationCurve zoomOutCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
     [SerializeField] private AnimationCurve zoomInCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
     [SerializeField] private bool resetCameraZoomOnBattleStart = true;
     [SerializeField] private bool returnCameraZoomAfterIntro = true;
     [SerializeField] private bool createCameraZoomControllerIfMissing = true;
+    [SerializeField, Min(0.001f)] private float gameplayFramingPositionTolerance = 0.02f;
+    [SerializeField, Min(0.0001f)] private float gameplayFramingZoomTolerance = 0.008f;
+    [SerializeField, Min(0.05f)] private float gameplayFramingSettleTimeout = 0.4f;
 
     [Header("Background Coverage")]
     [SerializeField] private SpaceBackgroundGenerator2D spaceBackgroundGenerator;
@@ -92,6 +105,30 @@ public class CoreBossIntroSequence : MonoBehaviour
     [SerializeField] private float managerShipMoveDuration = 0.9f;
     [SerializeField] private AnimationCurve managerShipMoveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
+    [Header("Raider Barricade Carriers")]
+    [SerializeField] private RaiderBarricadeCarrier raiderBarricadeCarrierPrefab;
+    [Tooltip("Raider-only arena scale relative to the authored shared Boss arena.")]
+    [SerializeField, Range(0.5f, 1f)] private float raiderArenaSizeMultiplier = 0.7f;
+    [SerializeField] private Material raiderBarrierMaterial;
+    [SerializeField, Min(0f)] private float raiderCarrierStartExtraDistance = 7f;
+    [SerializeField, Min(0.05f)] private float raiderCarrierMoveDuration = 0.9f;
+    [SerializeField] private AnimationCurve raiderCarrierMoveCurve =
+        AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [SerializeField] private Color raiderBarrierColor = new Color(0.92f, 0.12f, 0.035f, 0.58f);
+    [SerializeField] private Color raiderBarrierFieldColor = new Color(0.42f, 0.025f, 0.012f, 0.07f);
+    [SerializeField] private Color raiderBarrierNoiseColor = new Color(1f, 0.28f, 0.06f, 0.5f);
+    [SerializeField, Min(0.01f)] private float raiderBarrierThickness = 0.32f;
+    [SerializeField, Min(0.01f)] private float raiderBarrierCoreWidth = 0.04f;
+    [SerializeField, Min(0.01f)] private float raiderBarrierFieldWidth = 0.28f;
+    [SerializeField, Min(0.01f)] private float raiderBarrierNoiseWidth = 0.22f;
+    [SerializeField, Min(0.1f)] private float raiderBarrierPulseDuration = 2.1f;
+
+    [Header("Raider Arena Covers")]
+    [SerializeField] private Vector2 raiderLeftCoverNormalizedOffset = new Vector2(-0.42f, -0.10f);
+    [SerializeField] private Vector2 raiderRightCoverNormalizedOffset = new Vector2(0.42f, -0.10f);
+    [SerializeField, Min(0f)] private float raiderCoverWallClearance = 1f;
+    [SerializeField, Min(0f)] private float raiderCoverMinimumPassage = 1.5f;
+
     [Header("Runtime Placeholder")]
     [SerializeField] private Color runtimePlaceholderColor = new Color(0.15f, 0.8f, 1f, 1f);
     [SerializeField] private float runtimePlaceholderSize = 0.45f;
@@ -116,16 +153,19 @@ public class CoreBossIntroSequence : MonoBehaviour
     [SerializeField] private Vector2 bossArrivalDirection = Vector2.up;
     [SerializeField] private float bossArrivalDistance = 11f;
     [SerializeField] private float bossArrivalDuration = 1.15f;
+    [Tooltip("보스 공개 시 아레나 중심에서 고정된 도착 지점 쪽으로 카메라 초점을 치우치는 비율입니다.")]
+    [Range(0f, 0.65f)]
+    [SerializeField] private float bossArrivalFocusBias = 0.35f;
+    [Tooltip("넓은 아레나 시야를 유지한 채 보스 쪽으로 초점을 이동하는 시간입니다.")]
+    [Min(0.05f)]
+    [SerializeField] private float bossRevealFocusPanDuration = 0.75f;
+    [SerializeField] private AnimationCurve bossRevealFocusPanCurve =
+        AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
     [SerializeField] private AnimationCurve bossMoveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
     [SerializeField] private bool faceBossToPlayerWhenArrived = true;
     [SerializeField] private float bossRotationOffset = -90f;
 
     [Header("Boss Reveal")]
-    [Range(0.45f, 2f)]
-    [SerializeField] private float bossRevealZoomMultiplier = 0.82f;
-    [Min(0.05f)]
-    [SerializeField] private float bossRevealZoomDuration = 0.5f;
-    [SerializeField] private AnimationCurve bossRevealZoomCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
     [Min(0f)]
     [SerializeField] private float bossHealthBarLeadTime = 0.55f;
     [SerializeField] private bool useBossAnimatorTriggers = true;
@@ -139,25 +179,38 @@ public class CoreBossIntroSequence : MonoBehaviour
     [SerializeField] private float bossRevealOvershootScale = 1.08f;
     [Min(0.05f)]
     [SerializeField] private float bossRevealScaleDuration = 0.36f;
-    [SerializeField] private float bossRevealShakeAmplitude = 0.18f;
+    [SerializeField] private float bossRevealShakeAmplitude;
     [SerializeField] private float bossRevealShakeDuration = 0.22f;
 
     [Header("Debug")]
     [SerializeField] private bool logSequence;
 
     private readonly List<LaserGuardianDrone> spawnedManagerShips = new List<LaserGuardianDrone>(4);
+    private readonly List<RaiderBarricadeCarrier> spawnedRaiderCarriers =
+        new List<RaiderBarricadeCarrier>(4);
     private readonly List<GameObject> spawnedWallObjects = new List<GameObject>(4);
     private readonly List<MonoBehaviour> disabledBossComponents = new List<MonoBehaviour>();
     private readonly List<ComponentEnabledState> extraDisabledPlayerComponents = new List<ComponentEnabledState>();
+    private readonly BossArenaCover[] raiderEncounterCovers = new BossArenaCover[2];
+    private readonly Collider2D[] raiderCoverOverlapResults = new Collider2D[16];
 
     private PlayerLockState playerLockState;
     private EnemyHealth trackedBossHealth;
     private GameObject spawnedBoss;
     private bool cameraInputOffsetLockHeld;
     private Animator spawnedBossAnimator;
+    private Transform spawnedBossVisualRoot;
     private Vector3 spawnedBossBaseScale = Vector3.one;
     private bool isPlaying;
     private bool introWideZoomHoldActive;
+    private bool introCancellationRequested;
+    private RunManager observedRunManager;
+    private bool cinematicHudModeHeld;
+    private bool cinematicHudRestoreInProgress;
+    private bool coreActivationTitlePresented;
+    private string encounterSignalSubtitleOverride;
+    private bool useRaiderIntroVariant;
+    private IntroPhase currentPhase;
 
     public GameObject SpawnedBoss => spawnedBoss;
     public bool IsPlaying => isPlaying;
@@ -206,25 +259,33 @@ public class CoreBossIntroSequence : MonoBehaviour
 
     private void OnDisable()
     {
+        introCancellationRequested = true;
+        UnbindRunEnd();
+        SetIntroPhase(IntroPhase.Inactive);
+        StopAllCoroutines();
+        CloseCoreActivationPresentation();
+
         if (trackedBossHealth != null)
         {
             trackedBossHealth.Died -= HandleTrackedBossDied;
             trackedBossHealth = null;
         }
 
-        if (hideStatusAndResourceUIDuringIntro && expeditionHUD != null)
-        {
-            expeditionHUD.SetCinematicMode(false);
-        }
+        ReleaseCinematicHudMode();
 
         if (gungeonCamera != null)
         {
+            gungeonCamera.CancelCinematicFocusBlend();
             gungeonCamera.ClearCinematicFocus(true);
         }
 
         ReleaseCameraInputOffsetLock();
 
         ReleaseIntroWideZoomHold(false);
+        ReleaseRaiderBattleCameraProfile(true);
+        DestroySpawnedRaiderCarriers();
+        DestroySpawnedWalls();
+        ClearRaiderCoverReferences();
 
         if (returnCameraZoomAfterIntro || resetCameraZoomOnBattleStart)
         {
@@ -233,9 +294,9 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (isPlaying)
         {
-            if (spawnedBoss != null)
+            if (spawnedBossVisualRoot != null)
             {
-                spawnedBoss.transform.localScale = spawnedBossBaseScale;
+                spawnedBossVisualRoot.localScale = spawnedBossBaseScale;
             }
 
             RestorePlayer();
@@ -260,26 +321,34 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
 
         isPlaying = true;
+        introCancellationRequested = false;
+        SetIntroPhase(IntroPhase.CoreFocus);
         spawnedBoss = null;
         spawnedBossAnimator = null;
+        spawnedBossVisualRoot = null;
         spawnedBossBaseScale = Vector3.one;
+        coreActivationTitlePresented = false;
 
         ResolveReferences();
+        BindRunEnd();
 
         AcquireCameraInputOffsetLock();
 
         Vector3 effectiveArenaCenter = arenaCenter + (Vector3)arenaCenterOffset;
         Vector3 effectiveBossBattlePosition = bossBattlePosition + (Vector3)bossBattlePositionOffset;
+        Vector3 resolvedWideArenaCameraCenter = ResolveWideArenaCameraCenter(effectiveArenaCenter);
+
+        if (useRaiderIntroVariant)
+        {
+            PrepareRaiderArenaCovers(effectiveArenaCenter);
+        }
 
         if (logSequence)
         {
             Debug.Log("코어 보스 인트로 시작", this);
         }
 
-        if (hideStatusAndResourceUIDuringIntro && expeditionHUD != null)
-        {
-            expeditionHUD.SetCinematicMode(true);
-        }
+        AcquireCinematicHudMode();
 
         if (lockPlayerInput)
         {
@@ -305,9 +374,19 @@ public class CoreBossIntroSequence : MonoBehaviour
             coreFocusZoomCurve
         );
 
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
+
         if (coreFocusSettleDuration > 0f)
         {
             yield return Wait(coreFocusSettleDuration);
+        }
+
+        if (ShouldAbortIntro())
+        {
+            yield break;
         }
 
         if (coreActivationPresentation != null)
@@ -319,6 +398,11 @@ public class CoreBossIntroSequence : MonoBehaviour
             GungeonStyleCamera2D.RequestShake(0.12f, 0.18f);
         }
 
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
+
         coreActivationCompletedCallback?.Invoke();
 
         if (delayAfterCorePulse > 0f)
@@ -326,25 +410,63 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield return Wait(delayAfterCorePulse);
         }
 
-        yield return PlayCoreActivationNoticeRoutine();
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
+
+        if (!useRaiderIntroVariant)
+        {
+            yield return PlayCoreActivationNoticeRoutine();
+        }
+
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
 
         // 2. 전장 전체가 보이도록 카메라를 넓히고 관리 기체가 봉쇄선을 만든다.
+        SetIntroPhase(IntroPhase.ArenaWide);
         if (gungeonCamera != null)
         {
-            gungeonCamera.SetCinematicFocus(effectiveArenaCenter);
+            gungeonCamera.SetCinematicFocus(resolvedWideArenaCameraCenter);
         }
 
         PrepareBackgroundForWideZoom();
         yield return AnimateCameraAndBackgroundZoomRoutine(
-            wideZoomMultiplier,
+            ResolveIntroWideZoomMultiplier(),
             zoomOutDuration,
             zoomOutCurve,
             true
         );
 
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
+
         // 스나이퍼 차징 취소나 무기 컴포넌트 상태 변경이 ResetZoom을 호출해도
         // 관리 기체 진입과 보스 등장 전까지 넓어진 화면을 유지한다.
         HoldIntroWideZoom();
+
+        // 마지막 줌 값은 Update에서 기록되고 실제 카메라 중심/경계 보정은 LateUpdate에 적용됩니다.
+        // 관리 기체를 같은 프레임에 만들지 않고 실제 렌더 카메라가 안정된 뒤 진입을 시작합니다.
+        yield return WaitForWideArenaFramingSettleRoutine(resolvedWideArenaCameraCenter);
+
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
+
+        if (useRaiderIntroVariant)
+        {
+            yield return PlayCoreActivationNoticeRoutine();
+
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+        }
 
         // 보스 오브젝트는 화면 밖에서 먼저 생성해 관리 기체 시스템을 하나로 통합한다.
         // 시각적으로는 아직 화면 밖이므로 기존 등장 순서는 유지된다.
@@ -354,12 +476,9 @@ public class CoreBossIntroSequence : MonoBehaviour
         if (spawnedBoss == null)
         {
             Debug.LogError("Boss intro could not continue because the Boss failed to spawn.", this);
-            RestorePlayer();
 
-            if (hideStatusAndResourceUIDuringIntro && expeditionHUD != null)
-            {
-                expeditionHUD.SetCinematicMode(false);
-            }
+            CloseCoreActivationPresentation();
+            ReleaseCinematicHudMode();
 
             if (gungeonCamera != null)
             {
@@ -369,6 +488,7 @@ public class CoreBossIntroSequence : MonoBehaviour
             ReleaseIntroWideZoomHold(false);
             ResetCameraZoom();
             ReleaseCameraInputOffsetLock();
+            RestorePlayer();
             isPlaying = false;
             yield break;
         }
@@ -377,13 +497,41 @@ public class CoreBossIntroSequence : MonoBehaviour
             ? spawnedBoss.GetComponent<BossPatternController>()
             : null;
 
-        bool useBossOwnedManagers = useBossPatternGuardianSystem && bossPatternController != null;
+        bool useRaiderBarricadeIntro = useRaiderIntroVariant &&
+                                       spawnedBoss.GetComponent<PirateCommanderBossController>() != null;
+        bool useBossOwnedManagers = !useRaiderBarricadeIntro &&
+                                    useBossPatternGuardianSystem &&
+                                    bossPatternController != null;
 
         DisableBossForIntro(spawnedBoss);
         CacheBossPresentation(spawnedBoss);
         TriggerBossAnimator(bossIntroEnterTrigger);
+        SetIntroPhase(IntroPhase.FormationArrival);
 
-        if (useBossOwnedManagers)
+        if (useRaiderBarricadeIntro)
+        {
+            DestroySpawnedWalls();
+            DestroySpawnedManagerShips();
+            yield return SpawnAndMoveRaiderBarricadeCarriersRoutine(effectiveArenaCenter);
+
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
+            if (delayBeforeWallActivation > 0f)
+            {
+                yield return Wait(delayBeforeWallActivation);
+            }
+
+            ActivateRaiderBarrier(effectiveArenaCenter);
+
+            if (delayAfterWallActivation > 0f)
+            {
+                yield return Wait(delayAfterWallActivation);
+            }
+        }
+        else if (useBossOwnedManagers)
         {
             // 과거 IntroSequence가 별도로 만들던 4대를 제거하고 보스 패턴 쪽 4대만 사용한다.
             DestroySpawnedWalls();
@@ -402,55 +550,84 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield return SpawnAndMoveManagerShipsRoutine(effectiveArenaCenter);
         }
 
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
+
         // 3. 보스를 화면 밖에서 중앙으로 진입시킨다.
-        yield return MoveBossArrivalRoutine(spawnedBoss, effectiveBossBattlePosition, interactor);
+        yield return MoveBossArrivalRoutine(
+            spawnedBoss,
+            effectiveBossBattlePosition,
+            interactor
+        );
 
-        if (delayBeforeWallActivation > 0f)
+        if (ShouldAbortIntro())
         {
-            yield return Wait(delayBeforeWallActivation);
+            yield break;
         }
 
-        if (useBossOwnedManagers)
+        if (!useRaiderBarricadeIntro)
         {
-            bossPatternController.ActivatePhase1BoundaryLasers();
-        }
-        else
-        {
-            ActivateLaserWallsFromManagerShips();
+            if (delayBeforeWallActivation > 0f)
+            {
+                yield return Wait(delayBeforeWallActivation);
+            }
+
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
+            if (useBossOwnedManagers)
+            {
+                bossPatternController.ActivatePhase1BoundaryLasers();
+            }
+            else
+            {
+                ActivateLaserWallsFromManagerShips();
+            }
         }
 
         TrackBossDeathForCleanup(spawnedBoss);
 
-        if (delayAfterWallActivation > 0f)
+        if (!useRaiderBarricadeIntro && delayAfterWallActivation > 0f)
         {
             yield return Wait(delayAfterWallActivation);
         }
 
-        // 4. 보스에게 다시 줌인하고 등장 애니메이션을 재생한다.
-        ReleaseIntroWideZoomHold(true);
-
-        if (spawnedBoss != null && gungeonCamera != null)
+        if (ShouldAbortIntro())
         {
-            gungeonCamera.SetCinematicFocus(spawnedBoss.transform.position);
+            yield break;
+        }
+
+        // 4. 넓은 아레나 줌을 유지한 채 보스 쪽으로 초점만 치우쳐 등장 연출을 재생한다.
+        SetIntroPhase(IntroPhase.BossReveal);
+        yield return BlendBossRevealFocusRoutine(
+            effectiveArenaCenter,
+            effectiveBossBattlePosition
+        );
+
+        if (ShouldAbortIntro())
+        {
+            yield break;
         }
 
         TriggerBossAnimator(bossIntroRevealTrigger);
         yield return PlayBossRevealScaleRoutine();
+
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
 
         AudioManager.PlayAt(
             SoundEventIds.BossSpawn,
             spawnedBoss != null ? spawnedBoss.transform.position : effectiveBossBattlePosition
         );
 
-        yield return AnimateCameraAndBackgroundZoomRoutine(
-            bossRevealZoomMultiplier,
-            bossRevealZoomDuration,
-            bossRevealZoomCurve,
-            false
-        );
-
         // 코어 활성화 Motion을 이미 사용하므로 별도의 보스 Motion 타이틀은 재생하지 않습니다.
-        // 보스 줌/스케일 연출이 끝난 직후 체력바의 가로 펼침/HP 채움 연출을 시작합니다.
+        // 보스 스케일 연출이 끝난 직후 체력바의 가로 펼침/HP 채움 연출을 시작합니다.
         bossRevealCallback?.Invoke();
 
         if (bossHealthBarLeadTime > 0f)
@@ -458,25 +635,35 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield return Wait(bossHealthBarLeadTime);
         }
 
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
+
         TriggerBossAnimator(bossIntroReadyTrigger);
 
-        // 5. 플레이 카메라로 복귀한 뒤 실제 보스 AI와 플레이어 입력을 동시에 연다.
-        if (gungeonCamera != null)
+        CloseCoreActivationPresentation();
+        PrepareRaiderBattleCameraProfile();
+        ReleaseIntroWideZoomHold(true);
+
+        // 5. 실제 카메라 중심에서 플레이어 중심과 기본 줌을 같은 진행도로 복귀시킨다.
+        SetIntroPhase(IntroPhase.PlayerHandoff);
+        Transform playerCameraTarget = ResolvePlayerCameraTarget(interactor);
+        yield return AnimateCameraHandoffToPlayerRoutine(playerCameraTarget);
+
+        if (ShouldAbortIntro())
         {
-            gungeonCamera.ClearCinematicFocus(false);
+            yield break;
         }
 
-        if (resetCameraZoomOnBattleStart || returnCameraZoomAfterIntro)
+        // 플레이어 프레이밍이 완성된 뒤 HUD를 먼저 복구하고 전투/입력을 순서대로 연다.
+        yield return ReleaseCinematicHudModeRoutine();
+
+        if (ShouldAbortIntro())
         {
-            yield return AnimateCameraAndBackgroundZoomRoutine(
-                1f,
-                zoomInDuration,
-                zoomInCurve,
-                false
-            );
+            yield break;
         }
 
-        // 실제 전투 상태와 주변 적 경계는 인트로 카메라가 복귀한 뒤 시작한다.
         battleStartCallback?.Invoke();
         EnableBossForBattle();
 
@@ -485,10 +672,7 @@ public class CoreBossIntroSequence : MonoBehaviour
             RestorePlayer();
         }
 
-        if (hideStatusAndResourceUIDuringIntro && expeditionHUD != null)
-        {
-            expeditionHUD.SetCinematicMode(false);
-        }
+        SetIntroPhase(IntroPhase.Complete);
 
         if (!keepManagerShipsUntilBossDeath)
         {
@@ -502,6 +686,106 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         isPlaying = false;
         ReleaseCameraInputOffsetLock();
+    }
+
+    public void ConfigureEncounterSignalSubtitle(string subtitle)
+    {
+        encounterSignalSubtitleOverride = subtitle ?? string.Empty;
+    }
+
+    public void ConfigureEncounterIntroVariant(bool useRaiderBarricadeIntro)
+    {
+        useRaiderIntroVariant = useRaiderBarricadeIntro;
+    }
+
+    public Vector3 ResolveEncounterArenaCenter(Vector3 coreWorldPosition)
+    {
+        return coreWorldPosition + (Vector3)arenaCenterOffset;
+    }
+
+    public Vector2 ResolveRaiderEncounterArenaHalfExtents()
+    {
+        return GetRaiderEffectiveHalfExtents();
+    }
+
+    private void AcquireCinematicHudMode()
+    {
+        cinematicHudModeHeld = false;
+
+        if (!hideStatusAndResourceUIDuringIntro ||
+            expeditionHUD == null ||
+            !expeditionHUD.isActiveAndEnabled)
+        {
+            return;
+        }
+
+        expeditionHUD.SetCinematicMode(this, true);
+        cinematicHudModeHeld = true;
+    }
+
+    private void ReleaseCinematicHudMode()
+    {
+        if (cinematicHudRestoreInProgress)
+        {
+            cinematicHudRestoreInProgress = false;
+
+            if (expeditionHUD != null &&
+                expeditionHUD.gameObject.scene.IsValid() &&
+                expeditionHUD.gameObject.scene.isLoaded)
+            {
+                expeditionHUD.CompleteCinematicVisibilityTransition();
+            }
+        }
+
+        if (!cinematicHudModeHeld)
+        {
+            return;
+        }
+
+        cinematicHudModeHeld = false;
+
+        if (expeditionHUD == null ||
+            !expeditionHUD.gameObject.scene.IsValid() ||
+            !expeditionHUD.gameObject.scene.isLoaded)
+        {
+            return;
+        }
+
+        expeditionHUD.SetCinematicMode(this, false);
+    }
+
+    private IEnumerator ReleaseCinematicHudModeRoutine()
+    {
+        if (!cinematicHudModeHeld)
+        {
+            yield break;
+        }
+
+        cinematicHudModeHeld = false;
+
+        if (expeditionHUD == null ||
+            !expeditionHUD.gameObject.scene.IsValid() ||
+            !expeditionHUD.gameObject.scene.isLoaded)
+        {
+            yield break;
+        }
+
+        cinematicHudRestoreInProgress = true;
+        expeditionHUD.ReleaseCinematicMode(this);
+
+        while (expeditionHUD != null &&
+               expeditionHUD.isActiveAndEnabled &&
+               expeditionHUD.IsCinematicVisibilityTransitionActive)
+        {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        cinematicHudRestoreInProgress = false;
     }
 
     public void BeginCoreActivationCameraLock()
@@ -555,26 +839,26 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (cameraZoomController == null && createCameraZoomControllerIfMissing)
         {
-            CinemachineCamera cmCamera = FindFirstObjectByType<CinemachineCamera>(FindObjectsInactive.Include);
-
-            if (cmCamera != null)
+            if (gungeonCamera == null)
             {
-                cameraZoomController = cmCamera.GetComponent<CameraZoomController2D>();
+                gungeonCamera = GungeonStyleCamera2D.Instance;
+            }
+
+            Camera mainCamera = Camera.main;
+            GameObject zoomOwner = gungeonCamera != null
+                ? gungeonCamera.gameObject
+                : mainCamera != null ? mainCamera.gameObject : null;
+
+            if (zoomOwner != null)
+            {
+                cameraZoomController = zoomOwner.GetComponent<CameraZoomController2D>();
 
                 if (cameraZoomController == null)
                 {
-                    cameraZoomController = cmCamera.gameObject.AddComponent<CameraZoomController2D>();
+                    cameraZoomController = zoomOwner.AddComponent<CameraZoomController2D>();
                 }
-            }
-        }
 
-        if (cameraZoomController == null && createCameraZoomControllerIfMissing && Camera.main != null)
-        {
-            cameraZoomController = Camera.main.GetComponent<CameraZoomController2D>();
-
-            if (cameraZoomController == null)
-            {
-                cameraZoomController = Camera.main.gameObject.AddComponent<CameraZoomController2D>();
+                cameraZoomController.Bind(mainCamera);
             }
         }
 
@@ -621,6 +905,305 @@ public class CoreBossIntroSequence : MonoBehaviour
             Mathf.Max(0.1f, arenaHalfExtents.x),
             Mathf.Max(0.1f, arenaHalfExtents.y * verticalSpaceScale)
         );
+    }
+
+    private Vector2 GetRaiderEffectiveHalfExtents()
+    {
+        return GetEffectiveHalfExtents() * Mathf.Clamp(raiderArenaSizeMultiplier, 0.5f, 1f);
+    }
+
+    private void PrepareRaiderArenaCovers(Vector2 arenaCenter)
+    {
+        ResolveNearestRaiderArenaCovers(arenaCenter);
+
+        Vector2 halfExtents = GetRaiderEffectiveHalfExtents();
+        MoveRaiderArenaCover(
+            raiderEncounterCovers[0],
+            arenaCenter,
+            halfExtents,
+            raiderLeftCoverNormalizedOffset
+        );
+        MoveRaiderArenaCover(
+            raiderEncounterCovers[1],
+            arenaCenter,
+            halfExtents,
+            raiderRightCoverNormalizedOffset
+        );
+
+        Physics2D.SyncTransforms();
+        ValidateRaiderCoverPassage();
+    }
+
+    private void ResolveNearestRaiderArenaCovers(Vector2 arenaCenter)
+    {
+        ClearRaiderCoverReferences();
+        BossArenaCover[] covers = FindObjectsByType<BossArenaCover>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < covers.Length; i++)
+        {
+            BossArenaCover cover = covers[i];
+            if (cover == null || !cover.IsValid)
+            {
+                continue;
+            }
+
+            int index = cover.Side == BossArenaCoverSide.Left ? 0 : 1;
+            BossArenaCover current = raiderEncounterCovers[index];
+            if (current == null ||
+                Vector2.SqrMagnitude((Vector2)cover.transform.position - arenaCenter) <
+                Vector2.SqrMagnitude((Vector2)current.transform.position - arenaCenter))
+            {
+                raiderEncounterCovers[index] = cover;
+            }
+        }
+    }
+
+    private void MoveRaiderArenaCover(
+        BossArenaCover cover,
+        Vector2 arenaCenter,
+        Vector2 arenaHalfExtents,
+        Vector2 normalizedOffset)
+    {
+        if (cover == null || !cover.IsValid)
+        {
+            return;
+        }
+
+        Bounds coverBounds = cover.WorldBounds;
+        Vector2 colliderExtents = coverBounds.extents;
+        Vector2 colliderCenterOffset = (Vector2)coverBounds.center - (Vector2)cover.transform.position;
+        Vector2 desiredRootPosition = arenaCenter + Vector2.Scale(arenaHalfExtents, normalizedOffset);
+        Vector2 desiredColliderLocalPosition = desiredRootPosition + colliderCenterOffset - arenaCenter;
+        Vector2 safeColliderHalfExtents = new Vector2(
+            Mathf.Max(0f, arenaHalfExtents.x - raiderCoverWallClearance - colliderExtents.x),
+            Mathf.Max(0f, arenaHalfExtents.y - raiderCoverWallClearance - colliderExtents.y)
+        );
+        Vector2 clampedColliderLocalPosition = new Vector2(
+            Mathf.Clamp(
+                desiredColliderLocalPosition.x,
+                -safeColliderHalfExtents.x,
+                safeColliderHalfExtents.x
+            ),
+            Mathf.Clamp(
+                desiredColliderLocalPosition.y,
+                -safeColliderHalfExtents.y,
+                safeColliderHalfExtents.y
+            )
+        );
+        Vector2 resolvedRootPosition =
+            arenaCenter + clampedColliderLocalPosition - colliderCenterOffset;
+        bool adjusted = Vector2.SqrMagnitude(resolvedRootPosition - desiredRootPosition) > 0.0001f;
+        bool placementClear = false;
+
+        const float inwardStep = 0.25f;
+        for (int attempt = 0; attempt < 8; attempt++)
+        {
+            if (IsRaiderCoverPositionClear(cover, resolvedRootPosition, coverBounds))
+            {
+                placementClear = true;
+                break;
+            }
+
+            Vector2 local = resolvedRootPosition - arenaCenter;
+            local.x = Mathf.MoveTowards(local.x, 0f, inwardStep);
+            resolvedRootPosition = arenaCenter + local;
+            adjusted = true;
+        }
+
+        if (!placementClear)
+        {
+            placementClear = IsRaiderCoverPositionClear(
+                cover,
+                resolvedRootPosition,
+                coverBounds
+            );
+        }
+
+        cover.SetEncounterPosition(resolvedRootPosition);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (adjusted && logSequence)
+        {
+            Debug.Log(
+                $"[BossIntro] Raider cover '{cover.name}' adjusted from " +
+                $"{desiredRootPosition} to {resolvedRootPosition} for arena clearance.",
+                cover
+            );
+        }
+
+        if (!placementClear)
+        {
+            Debug.LogWarning(
+                $"[BossIntro] Raider cover '{cover.name}' could not find a fully clear normalized " +
+                $"position near {resolvedRootPosition}. Inspect the generated arena layout.",
+                cover
+            );
+        }
+#endif
+    }
+
+    private bool IsRaiderCoverPositionClear(
+        BossArenaCover movingCover,
+        Vector2 rootPosition,
+        Bounds currentBounds)
+    {
+        Vector2 centerOffset = (Vector2)currentBounds.center - (Vector2)movingCover.transform.position;
+        ContactFilter2D filter = new ContactFilter2D
+        {
+            useTriggers = false
+        };
+        filter.SetLayerMask(Physics2D.AllLayers);
+        int count = Physics2D.OverlapBox(
+            rootPosition + centerOffset,
+            currentBounds.size,
+            0f,
+            filter,
+            raiderCoverOverlapResults
+        );
+        bool blocked = false;
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider2D collider = raiderCoverOverlapResults[i];
+            raiderCoverOverlapResults[i] = null;
+            if (collider == null || collider.isTrigger)
+            {
+                continue;
+            }
+
+            BossArenaCover otherCover = collider.GetComponentInParent<BossArenaCover>();
+            if (otherCover != null)
+            {
+                continue;
+            }
+
+            if (!collider.transform.IsChildOf(transform))
+            {
+                blocked = true;
+            }
+        }
+
+        return !blocked;
+    }
+
+    private void ValidateRaiderCoverPassage()
+    {
+        BossArenaCover left = raiderEncounterCovers[0];
+        BossArenaCover right = raiderEncounterCovers[1];
+        if (left == null || right == null)
+        {
+            return;
+        }
+
+        float passage = right.WorldBounds.min.x - left.WorldBounds.max.x;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (passage < raiderCoverMinimumPassage)
+        {
+            Debug.LogWarning(
+                $"[BossIntro] Raider cover passage is {passage:0.00} world units; " +
+                $"the configured minimum is {raiderCoverMinimumPassage:0.00}.",
+                this
+            );
+        }
+#endif
+    }
+
+    private void ClearRaiderCoverReferences()
+    {
+        raiderEncounterCovers[0] = null;
+        raiderEncounterCovers[1] = null;
+    }
+
+    private Vector2 GetCurrentEncounterHalfExtents()
+    {
+        return useRaiderIntroVariant
+            ? GetRaiderEffectiveHalfExtents()
+            : GetEffectiveHalfExtents();
+    }
+
+    private float ResolveIntroWideZoomMultiplier()
+    {
+        float multiplier = Mathf.Max(1f, wideZoomMultiplier);
+        return useRaiderIntroVariant
+            ? Mathf.Max(1f, multiplier * Mathf.Clamp(raiderArenaSizeMultiplier, 0.5f, 1f))
+            : multiplier;
+    }
+
+    private Vector3 ResolveWideArenaCameraCenter(Vector3 arenaCenter)
+    {
+        if (gungeonCamera == null)
+        {
+            return arenaCenter;
+        }
+
+        float introWideZoomMultiplier = ResolveIntroWideZoomMultiplier();
+        float wideOrthographicSize = cameraZoomController != null
+            ? cameraZoomController.BaseOrthographicSize * introWideZoomMultiplier
+            : Camera.main != null
+                ? Camera.main.orthographicSize * introWideZoomMultiplier
+                : 0f;
+
+        return gungeonCamera.ResolveClampedCameraCenter(arenaCenter, wideOrthographicSize);
+    }
+
+    private IEnumerator WaitForWideArenaFramingSettleRoutine(Vector3 resolvedArenaCenter)
+    {
+        // Ensure the final zoom write has passed through the direct camera rig's LateUpdate once.
+        yield return null;
+
+        float timeout = Mathf.Max(0.05f, gameplayFramingSettleTimeout);
+        float elapsed = 0f;
+        float targetOrthographicSize = cameraZoomController != null
+            ? cameraZoomController.BaseOrthographicSize * ResolveIntroWideZoomMultiplier()
+            : 0f;
+
+        while (elapsed < timeout)
+        {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
+            bool cameraSettled = gungeonCamera == null ||
+                                 gungeonCamera.IsAtCinematicFocusCenter(
+                                     resolvedArenaCenter,
+                                     gameplayFramingPositionTolerance
+                                 );
+            bool zoomSettled = cameraZoomController == null ||
+                               Mathf.Abs(
+                                   cameraZoomController.CurrentOrthographicSize - targetOrthographicSize
+                               ) <= Mathf.Max(0.0001f, gameplayFramingZoomTolerance);
+
+            if (cameraSettled && zoomSettled)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (logSequence)
+                {
+                    Debug.Log(
+                        $"[BossIntro] Wide arena framing settled before manager arrival: " +
+                        $"camera={(gungeonCamera != null ? gungeonCamera.transform.position : resolvedArenaCenter):F2}, " +
+                        $"target={resolvedArenaCenter:F2}, " +
+                        $"ortho={(cameraZoomController != null ? cameraZoomController.CurrentOrthographicSize : 0f):F3}",
+                        this
+                    );
+                }
+#endif
+                yield break;
+            }
+
+            elapsed += Mathf.Max(0f, Time.unscaledDeltaTime);
+            yield return null;
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (logSequence)
+        {
+            Debug.LogWarning(
+                "[BossIntro] Wide arena framing settle timed out; manager arrival continues without changing camera ownership.",
+                this
+            );
+        }
+#endif
     }
 
     private IEnumerator SpawnAndMoveManagerShipsRoutine(Vector3 arenaCenter)
@@ -685,6 +1268,11 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         while (timer < duration)
         {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
             timer += Time.deltaTime;
             float t = Mathf.Clamp01(timer / duration);
             float eased = managerShipMoveCurve != null ? managerShipMoveCurve.Evaluate(t) : t;
@@ -717,6 +1305,167 @@ public class CoreBossIntroSequence : MonoBehaviour
             ship.transform.position = endPositions[i];
             ship.ApplySlotRotation(rotationZ[i]);
         }
+    }
+
+    private IEnumerator SpawnAndMoveRaiderBarricadeCarriersRoutine(Vector3 arenaCenter)
+    {
+        DestroySpawnedRaiderCarriers();
+
+        if (raiderBarricadeCarrierPrefab == null)
+        {
+            Debug.LogError(
+                "Raider intro requires a RaiderBarricadeCarrier prefab.",
+                this
+            );
+            yield break;
+        }
+
+        Vector2 half = GetRaiderEffectiveHalfExtents();
+        Vector3[] outwardDirections =
+        {
+            Vector3.up,
+            Vector3.down,
+            Vector3.right,
+            Vector3.left
+        };
+        Vector3[] anchorPositions =
+        {
+            arenaCenter + Vector3.up * half.y,
+            arenaCenter + Vector3.down * half.y,
+            arenaCenter + Vector3.right * half.x,
+            arenaCenter + Vector3.left * half.x
+        };
+        string[] carrierNames =
+        {
+            "RaiderBarricadeCarrier_North",
+            "RaiderBarricadeCarrier_South",
+            "RaiderBarricadeCarrier_East",
+            "RaiderBarricadeCarrier_West"
+        };
+        RaiderBarricadeCarrier.ArenaSide[] carrierSides =
+        {
+            RaiderBarricadeCarrier.ArenaSide.North,
+            RaiderBarricadeCarrier.ArenaSide.South,
+            RaiderBarricadeCarrier.ArenaSide.East,
+            RaiderBarricadeCarrier.ArenaSide.West
+        };
+
+        float extraDistance = Mathf.Max(0f, raiderCarrierStartExtraDistance);
+        float duration = Mathf.Max(0.05f, raiderCarrierMoveDuration);
+
+        for (int i = 0; i < anchorPositions.Length; i++)
+        {
+            Vector3 startPosition = anchorPositions[i] + outwardDirections[i] * extraDistance;
+            RaiderBarricadeCarrier carrier = Instantiate(
+                raiderBarricadeCarrierPrefab,
+                startPosition,
+                Quaternion.identity
+            );
+            carrier.name = carrierNames[i];
+            carrier.BeginArrival(
+                startPosition,
+                anchorPositions[i],
+                carrierSides[i],
+                duration,
+                raiderCarrierMoveCurve
+            );
+            spawnedRaiderCarriers.Add(carrier);
+        }
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
+            elapsed += Mathf.Max(0f, Time.unscaledDeltaTime);
+            yield return null;
+        }
+
+        for (int i = 0; i < spawnedRaiderCarriers.Count; i++)
+        {
+            RaiderBarricadeCarrier carrier = spawnedRaiderCarriers[i];
+            if (carrier != null)
+            {
+                carrier.CompleteArrival();
+            }
+        }
+    }
+
+    private void ActivateRaiderBarrier(Vector3 arenaCenter)
+    {
+        DestroySpawnedWalls();
+
+        for (int i = 0; i < spawnedRaiderCarriers.Count; i++)
+        {
+            RaiderBarricadeCarrier carrier = spawnedRaiderCarriers[i];
+            if (carrier != null)
+            {
+                carrier.PlayBarrierDeployment();
+            }
+        }
+
+        Vector2 half = GetRaiderEffectiveHalfExtents();
+        Vector2 bottomLeft = (Vector2)arenaCenter + new Vector2(-half.x, -half.y);
+        Vector2 topLeft = (Vector2)arenaCenter + new Vector2(-half.x, half.y);
+        Vector2 topRight = (Vector2)arenaCenter + new Vector2(half.x, half.y);
+        Vector2 bottomRight = (Vector2)arenaCenter + new Vector2(half.x, -half.y);
+
+        CreateRaiderArenaWallBetween("RaiderArenaBarrier_Left", bottomLeft, topLeft);
+        CreateRaiderArenaWallBetween("RaiderArenaBarrier_Top", topLeft, topRight);
+        CreateRaiderArenaWallBetween("RaiderArenaBarrier_Right", topRight, bottomRight);
+        CreateRaiderArenaWallBetween("RaiderArenaBarrier_Bottom", bottomRight, bottomLeft);
+    }
+
+    private void CreateRaiderArenaWallBetween(string objectName, Vector2 start, Vector2 end)
+    {
+        BossArenaLaserWall wall = CreateArenaWallBetween(
+            objectName,
+            start,
+            end,
+            raiderBarrierColor,
+            raiderBarrierThickness
+        );
+        if (wall == null)
+        {
+            return;
+        }
+
+        float length = Vector2.Distance(start, end);
+        LineRenderer authoritativeLine = wall.GetOrCreateLineRenderer();
+        if (authoritativeLine == null)
+        {
+            Debug.LogError(
+                $"Raider arena wall '{wall.name}' could not provide its authoritative LineRenderer. " +
+                "The initialized physical wall will remain active without the enhanced Raider visuals.",
+                wall
+            );
+            return;
+        }
+
+        RaiderArenaBoundaryPresentation presentation =
+            wall.gameObject.GetComponent<RaiderArenaBoundaryPresentation>();
+        if (presentation == null)
+        {
+            presentation = wall.gameObject.AddComponent<RaiderArenaBoundaryPresentation>();
+        }
+
+        presentation.Configure(
+            authoritativeLine,
+            length,
+            raiderBarrierMaterial,
+            laserSortingLayerName,
+            laserSortingOrder,
+            raiderBarrierColor,
+            raiderBarrierFieldColor,
+            raiderBarrierNoiseColor,
+            raiderBarrierCoreWidth,
+            raiderBarrierFieldWidth,
+            raiderBarrierNoiseWidth,
+            raiderBarrierPulseDuration
+        );
     }
 
     private LaserGuardianDrone CreateManagerShip(
@@ -827,14 +1576,28 @@ public class CoreBossIntroSequence : MonoBehaviour
             return;
         }
 
-        Vector2 start = startDrone.transform.position;
-        Vector2 end = endDrone.transform.position;
+        CreateArenaWallBetween(
+            objectName,
+            startDrone.transform.position,
+            endDrone.transform.position,
+            laserLineColor,
+            wallThickness
+        );
+    }
+
+    private BossArenaLaserWall CreateArenaWallBetween(
+        string objectName,
+        Vector2 start,
+        Vector2 end,
+        Color lineColor,
+        float thickness)
+    {
         Vector2 delta = end - start;
         float length = delta.magnitude;
 
         if (length <= 0.001f)
         {
-            return;
+            return null;
         }
 
         Vector2 center = (start + end) * 0.5f;
@@ -857,18 +1620,19 @@ public class CoreBossIntroSequence : MonoBehaviour
             center,
             direction,
             length,
-            wallThickness,
+            thickness,
             createSolidLaserWalls,
             wallDamage,
             wallDamageInterval,
             laserLineMaterial,
-            laserLineColor,
+            lineColor,
             laserSortingLayerName,
             laserSortingOrder,
             laserWallLayerName
         );
 
         spawnedWallObjects.Add(wall.gameObject);
+        return wall;
     }
 
     private GameObject SpawnBossForIntro(GameObject bossPrefab, Vector3 bossBattlePosition)
@@ -921,6 +1685,11 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         while (timer < duration)
         {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
             timer += Time.deltaTime;
             float t = Mathf.Clamp01(timer / duration);
             float eased = bossMoveCurve != null ? bossMoveCurve.Evaluate(t) : t;
@@ -951,6 +1720,62 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
     }
 
+    private IEnumerator BlendBossRevealFocusRoutine(
+        Vector3 arenaCenter,
+        Vector3 fixedBossArrivalDestination)
+    {
+        if (gungeonCamera == null)
+        {
+            yield break;
+        }
+
+        Vector3 requestedFocusPosition = Vector3.Lerp(
+            arenaCenter,
+            fixedBossArrivalDestination,
+            Mathf.Clamp01(bossArrivalFocusBias)
+        );
+        Vector2 safeArenaHalfExtents = GetCurrentEncounterHalfExtents();
+        requestedFocusPosition.x = Mathf.Clamp(
+            requestedFocusPosition.x,
+            arenaCenter.x - safeArenaHalfExtents.x,
+            arenaCenter.x + safeArenaHalfExtents.x
+        );
+        requestedFocusPosition.y = Mathf.Clamp(
+            requestedFocusPosition.y,
+            arenaCenter.y - safeArenaHalfExtents.y,
+            arenaCenter.y + safeArenaHalfExtents.y
+        );
+        Vector3 resolvedFocusPosition = gungeonCamera.BeginCinematicFocusBlend(
+            requestedFocusPosition,
+            bossRevealFocusPanDuration,
+            bossRevealFocusPanCurve
+        );
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (logSequence)
+        {
+            Debug.Log(
+                $"[BossIntro] Boss focus pan: arrival={fixedBossArrivalDestination:F2}, " +
+                $"requested={requestedFocusPosition:F2}, resolved={resolvedFocusPosition:F2}, " +
+                $"start={gungeonCamera.transform.position:F2}, " +
+                $"ortho={(Camera.main != null ? Camera.main.orthographicSize : 0f):F3}",
+                this
+            );
+        }
+#endif
+
+        while (gungeonCamera != null && gungeonCamera.IsCinematicFocusBlendActive)
+        {
+            if (ShouldAbortIntro())
+            {
+                gungeonCamera.CancelCinematicFocusBlend();
+                yield break;
+            }
+
+            yield return null;
+        }
+    }
+
     private void DisableBossForIntro(GameObject bossObject)
     {
         disabledBossComponents.Clear();
@@ -974,6 +1799,11 @@ public class CoreBossIntroSequence : MonoBehaviour
             if (!ShouldDisableBossComponentForIntro(component))
             {
                 continue;
+            }
+
+            if (component is BossPatternController bossPatternController)
+            {
+                bossPatternController.SetExternalIntroPresentationOwnership(true);
             }
 
             component.enabled = false;
@@ -1007,6 +1837,11 @@ public class CoreBossIntroSequence : MonoBehaviour
             if (component != null)
             {
                 component.enabled = true;
+
+                if (component is BossPatternController bossPatternController)
+                {
+                    bossPatternController.SetExternalIntroPresentationOwnership(false);
+                }
             }
         }
 
@@ -1022,6 +1857,23 @@ public class CoreBossIntroSequence : MonoBehaviour
                 rb.angularVelocity = 0f;
             }
         }
+    }
+
+    private void SetIntroPhase(IntroPhase phase)
+    {
+        if (currentPhase == phase)
+        {
+            return;
+        }
+
+        currentPhase = phase;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (logSequence)
+        {
+            Debug.Log($"[BossIntro] Phase -> {currentPhase}", this);
+        }
+#endif
     }
 
     private void TrackBossDeathForCleanup(GameObject bossObject)
@@ -1055,6 +1907,8 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         DestroySpawnedWalls();
         DestroySpawnedManagerShips();
+        DestroySpawnedRaiderCarriers();
+        ClearRaiderCoverReferences();
     }
 
     private void DestroySpawnedWalls()
@@ -1098,6 +1952,20 @@ public class CoreBossIntroSequence : MonoBehaviour
         spawnedManagerShips.Clear();
     }
 
+    private void DestroySpawnedRaiderCarriers()
+    {
+        for (int i = spawnedRaiderCarriers.Count - 1; i >= 0; i--)
+        {
+            RaiderBarricadeCarrier carrier = spawnedRaiderCarriers[i];
+            if (carrier != null)
+            {
+                carrier.Retire();
+            }
+        }
+
+        spawnedRaiderCarriers.Clear();
+    }
+
     private void ShowWarning()
     {
         if (warningMessageUI != null)
@@ -1125,10 +1993,13 @@ public class CoreBossIntroSequence : MonoBehaviour
             director.Show(
                 coreActivationTitleType,
                 coreActivationTitle,
-                coreActivationSubtitle
+                string.IsNullOrWhiteSpace(encounterSignalSubtitleOverride)
+                    ? coreActivationSubtitle
+                    : encounterSignalSubtitleOverride
             );
 
             titlePlayed = true;
+            coreActivationTitlePresented = true;
         }
         else if (fallbackToWarningMessageIfTitleMissing)
         {
@@ -1142,6 +2013,24 @@ public class CoreBossIntroSequence : MonoBehaviour
         if (waitTime > 0f)
         {
             yield return new WaitForSeconds(waitTime);
+        }
+    }
+
+    private void CloseCoreActivationPresentation()
+    {
+        if (!coreActivationTitlePresented)
+        {
+            return;
+        }
+
+        coreActivationTitlePresented = false;
+        EventTitleDirector director = coreActivationTitleDirector != null
+            ? coreActivationTitleDirector
+            : EventTitleDirector.Instance;
+
+        if (director != null)
+        {
+            director.StopCurrentAndClear();
         }
     }
 
@@ -1160,16 +2049,327 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield break;
         }
 
-        yield return cameraZoomController.AnimateZoomMultiplier(
-            targetMultiplier,
-            Mathf.Max(0.05f, duration),
-            curve
+        float startMultiplier = cameraZoomController.CurrentZoomMultiplier;
+        float endMultiplier = Mathf.Max(0.1f, targetMultiplier);
+        float safeDuration = Mathf.Max(0.05f, duration);
+        float elapsed = 0f;
+
+        while (elapsed < safeDuration)
+        {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
+            elapsed += Mathf.Max(0f, Time.unscaledDeltaTime);
+            float normalized = Mathf.Clamp01(elapsed / safeDuration);
+            float eased = curve != null && curve.length > 0
+                ? Mathf.Clamp01(curve.Evaluate(normalized))
+                : Mathf.SmoothStep(0f, 1f, normalized);
+            cameraZoomController.SetZoomMultiplier(
+                Mathf.LerpUnclamped(startMultiplier, endMultiplier, eased),
+                true
+            );
+            yield return null;
+        }
+
+        cameraZoomController.SetZoomMultiplier(endMultiplier, true);
+    }
+
+    private IEnumerator AnimateCameraHandoffToPlayerRoutine(Transform playerTarget)
+    {
+        if (gungeonCamera == null || cameraZoomController == null)
+        {
+            ResolveReferences();
+        }
+
+        float duration = Mathf.Max(0.05f, zoomInDuration);
+        Vector3 startCameraCenter = gungeonCamera != null
+            ? gungeonCamera.transform.position
+            : playerTarget != null ? playerTarget.position : transform.position;
+        float startZoomMultiplier = cameraZoomController != null
+            ? cameraZoomController.CurrentZoomMultiplier
+            : 1f;
+        float endZoomMultiplier = cameraZoomController != null
+            ? cameraZoomController.GameplayFramingMultiplier
+            : 1f;
+
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.SetCinematicFocus(startCameraCenter, true);
+        }
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
+            elapsed += Mathf.Max(0f, Time.unscaledDeltaTime);
+            float normalized = Mathf.Clamp01(elapsed / duration);
+            float eased = zoomInCurve != null && zoomInCurve.length > 0
+                ? Mathf.Clamp01(zoomInCurve.Evaluate(normalized))
+                : Mathf.SmoothStep(0f, 1f, normalized);
+            Vector3 playerPosition = playerTarget != null && gungeonCamera != null
+                ? gungeonCamera.ResolveGameplayFramingCenter(playerTarget.position)
+                : playerTarget != null
+                    ? playerTarget.position
+                : startCameraCenter;
+
+            if (cameraZoomController != null &&
+                (resetCameraZoomOnBattleStart || returnCameraZoomAfterIntro))
+            {
+                float zoomMultiplier = Mathf.LerpUnclamped(
+                    startZoomMultiplier,
+                    endZoomMultiplier,
+                    eased
+                );
+                cameraZoomController.SetEffectiveZoomMultiplier(zoomMultiplier, true);
+            }
+
+            if (gungeonCamera != null)
+            {
+                Vector3 focusPosition = Vector3.LerpUnclamped(
+                    startCameraCenter,
+                    playerPosition,
+                    eased
+                );
+                gungeonCamera.SetCinematicFocus(focusPosition, true);
+            }
+
+            SyncBackgroundZoomForPlayerHandoff(eased);
+            yield return null;
+        }
+
+        if (cameraZoomController != null &&
+            (resetCameraZoomOnBattleStart || returnCameraZoomAfterIntro))
+        {
+            cameraZoomController.SetEffectiveZoomMultiplier(endZoomMultiplier, true);
+        }
+
+        if (gungeonCamera != null)
+        {
+            Vector3 finalPlayerPosition = playerTarget != null
+                ? gungeonCamera.ResolveGameplayFramingCenter(playerTarget.position)
+                : startCameraCenter;
+            gungeonCamera.SetCinematicFocus(finalPlayerPosition, true);
+        }
+
+        CompleteBackgroundZoomForPlayerHandoff();
+
+        yield return new WaitForEndOfFrame();
+        yield return WaitForActualGameplayFramingRoutine(playerTarget, true);
+
+        if (ShouldAbortIntro())
+        {
+            yield break;
+        }
+
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.ClearCinematicFocus(true);
+        }
+
+        yield return new WaitForEndOfFrame();
+        yield return WaitForActualGameplayFramingRoutine(playerTarget, false);
+    }
+
+    private IEnumerator WaitForActualGameplayFramingRoutine(
+        Transform playerTarget,
+        bool requireCinematicFocusAtTarget)
+    {
+        if (playerTarget == null)
+        {
+            yield break;
+        }
+
+        float timeout = Mathf.Max(0.05f, gameplayFramingSettleTimeout);
+        float elapsed = 0f;
+
+        while (elapsed < timeout)
+        {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
+            bool cameraSettled = gungeonCamera == null ||
+                gungeonCamera.IsAtGameplayFraming(
+                    playerTarget,
+                    gameplayFramingPositionTolerance,
+                    requireCinematicFocusAtTarget
+                );
+            bool zoomSettled = cameraZoomController == null ||
+                cameraZoomController.IsAtGameplayZoomWithin(gameplayFramingZoomTolerance);
+
+            if (cameraSettled && zoomSettled)
+            {
+                yield break;
+            }
+
+            yield return new WaitForEndOfFrame();
+            elapsed += Mathf.Max(0f, Time.unscaledDeltaTime);
+        }
+
+        if (cameraZoomController != null &&
+            (resetCameraZoomOnBattleStart || returnCameraZoomAfterIntro))
+        {
+            cameraZoomController.SetEffectiveZoomMultiplier(
+                cameraZoomController.GameplayFramingMultiplier,
+                true
+            );
+        }
+
+        if (gungeonCamera != null)
+        {
+            if (requireCinematicFocusAtTarget)
+            {
+                gungeonCamera.SetCinematicFocus(
+                    gungeonCamera.ResolveGameplayFramingCenter(playerTarget.position),
+                    true
+                );
+            }
+            else
+            {
+                gungeonCamera.SnapToPlayer();
+            }
+        }
+
+        yield return new WaitForEndOfFrame();
+    }
+
+    private void SyncBackgroundZoomForPlayerHandoff(float normalizedProgress)
+    {
+        if (!syncStarfieldScaleWithCameraZoom || spaceBackgroundGenerator == null ||
+            !spaceBackgroundGenerator.IsCameraZoomTransitionActive)
+        {
+            return;
+        }
+
+        spaceBackgroundGenerator.SetCameraZoomTransitionProgress(
+            1f - Mathf.Clamp01(normalizedProgress)
         );
+    }
+
+    private void CompleteBackgroundZoomForPlayerHandoff()
+    {
+        if (spaceBackgroundGenerator == null ||
+            !spaceBackgroundGenerator.IsCameraZoomTransitionActive)
+        {
+            return;
+        }
+
+        spaceBackgroundGenerator.SetCameraZoomTransitionProgress(0f);
+        spaceBackgroundGenerator.EndCameraZoomTransition(true);
+        spaceBackgroundGenerator.ForceSyncNow();
+    }
+
+    private Transform ResolvePlayerCameraTarget(GameObject interactor)
+    {
+        if (playerLockState.rb != null)
+        {
+            return playerLockState.rb.transform;
+        }
+
+        Rigidbody2D playerRigidbody = interactor != null
+            ? interactor.GetComponentInParent<Rigidbody2D>()
+            : null;
+        return playerRigidbody != null
+            ? playerRigidbody.transform
+            : interactor != null ? interactor.transform : null;
+    }
+
+    private void PrepareRaiderBattleCameraProfile()
+    {
+        if (!useRaiderIntroVariant || spawnedBoss == null)
+        {
+            return;
+        }
+
+        PirateCommanderBossController commander =
+            spawnedBoss.GetComponent<PirateCommanderBossController>();
+        if (commander != null)
+        {
+            commander.PrepareBattleCameraProfile();
+        }
+    }
+
+    private void ReleaseRaiderBattleCameraProfile(bool immediate)
+    {
+        if (spawnedBoss == null)
+        {
+            return;
+        }
+
+        PirateCommanderBossController commander =
+            spawnedBoss.GetComponent<PirateCommanderBossController>();
+        if (commander != null)
+        {
+            commander.ReleaseBattleCameraProfile(immediate);
+        }
+    }
+
+    private bool ShouldAbortIntro()
+    {
+        return introCancellationRequested ||
+               !isActiveAndEnabled ||
+               (RunManager.Instance != null && RunManager.Instance.IsCompletingRun);
+    }
+
+    private void BindRunEnd()
+    {
+        RunManager currentRunManager = RunManager.Instance;
+        if (observedRunManager == currentRunManager)
+        {
+            return;
+        }
+
+        UnbindRunEnd();
+        observedRunManager = currentRunManager;
+        if (observedRunManager != null)
+        {
+            observedRunManager.RunEnded += HandleRunEnded;
+        }
+    }
+
+    private void UnbindRunEnd()
+    {
+        if (observedRunManager == null)
+        {
+            return;
+        }
+
+        observedRunManager.RunEnded -= HandleRunEnded;
+        observedRunManager = null;
+    }
+
+    private void HandleRunEnded(RunResultData _)
+    {
+        introCancellationRequested = true;
+        StopAllCoroutines();
+        CloseCoreActivationPresentation();
+        ReleaseIntroWideZoomHold(false);
+        ReleaseRaiderBattleCameraProfile(true);
+        DestroySpawnedRaiderCarriers();
+        DestroySpawnedWalls();
+        DestroySpawnedManagerShips();
+        ClearRaiderCoverReferences();
+        ReleaseCameraInputOffsetLock();
+
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.CancelCinematicFocusBlend();
+            gungeonCamera.ClearCinematicFocus(true);
+        }
     }
 
     private void CacheBossPresentation(GameObject bossObject)
     {
         spawnedBossAnimator = null;
+        spawnedBossVisualRoot = null;
         spawnedBossBaseScale = Vector3.one;
 
         if (bossObject == null)
@@ -1177,8 +2377,12 @@ public class CoreBossIntroSequence : MonoBehaviour
             return;
         }
 
-        spawnedBossBaseScale = bossObject.transform.localScale;
         spawnedBossAnimator = bossObject.GetComponentInChildren<Animator>(true);
+        SpriteRenderer bodyRenderer = bossObject.GetComponentInChildren<SpriteRenderer>(true);
+        spawnedBossVisualRoot = bodyRenderer != null
+            ? bodyRenderer.transform
+            : bossObject.transform;
+        spawnedBossBaseScale = spawnedBossVisualRoot.localScale;
     }
 
     private void TriggerBossAnimator(string triggerName)
@@ -1227,7 +2431,9 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield break;
         }
 
-        Transform bossTransform = spawnedBoss.transform;
+        Transform bossTransform = spawnedBossVisualRoot != null
+            ? spawnedBossVisualRoot
+            : spawnedBoss.transform;
         Vector3 baseScale = spawnedBossBaseScale;
 
         if (!useFallbackBossRevealScale)
@@ -1255,6 +2461,11 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         while (elapsed < firstPhaseDuration)
         {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
             elapsed += Time.unscaledDeltaTime;
             float normalized = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, firstPhaseDuration));
             float eased = 1f - Mathf.Pow(1f - normalized, 3f);
@@ -1266,6 +2477,11 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         while (elapsed < secondPhaseDuration)
         {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
             elapsed += Time.unscaledDeltaTime;
             float normalized = Mathf.Clamp01(elapsed / secondPhaseDuration);
             float eased = normalized * normalized * (3f - 2f * normalized);
@@ -1298,7 +2514,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (spaceBackgroundGenerator != null)
         {
-            spaceBackgroundGenerator.BeginCameraZoomTransition(wideZoomMultiplier);
+            spaceBackgroundGenerator.BeginCameraZoomTransition(ResolveIntroWideZoomMultiplier());
         }
     }
 
@@ -1316,7 +2532,7 @@ public class CoreBossIntroSequence : MonoBehaviour
         if (cameraZoomController == null)
         {
             Debug.LogWarning(
-                "CameraZoomController2D를 찾지 못했습니다. CinemachineCamera 또는 Main Camera에 CameraZoomController2D를 붙이세요.",
+                "CameraZoomController2D를 찾지 못했습니다. GameplayCameraRig에 CameraZoomController2D를 연결하세요.",
                 this
             );
 
@@ -1334,28 +2550,42 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield break;
         }
 
-        Action<float, float> progressCallback = null;
+        float startMultiplier = cameraZoomController.CurrentZoomMultiplier;
+        float endMultiplier = Mathf.Max(0.1f, targetMultiplier);
+        float safeDuration = Mathf.Max(0.05f, duration);
+        float elapsed = 0f;
 
-        if (syncStarfieldScaleWithCameraZoom &&
-            spaceBackgroundGenerator != null &&
-            spaceBackgroundGenerator.IsCameraZoomTransitionActive)
+        while (elapsed < safeDuration)
         {
-            progressCallback = (normalized, currentMultiplier) =>
+            if (ShouldAbortIntro())
             {
-                float backgroundProgress = zoomingOut
-                    ? normalized
-                    : 1f - normalized;
+                yield break;
+            }
 
+            elapsed += Mathf.Max(0f, Time.unscaledDeltaTime);
+            float normalized = Mathf.Clamp01(elapsed / safeDuration);
+            float eased = curve != null && curve.length > 0
+                ? Mathf.Clamp01(curve.Evaluate(normalized))
+                : Mathf.SmoothStep(0f, 1f, normalized);
+            float currentMultiplier = Mathf.LerpUnclamped(
+                startMultiplier,
+                endMultiplier,
+                eased
+            );
+            cameraZoomController.SetZoomMultiplier(currentMultiplier, true);
+
+            if (syncStarfieldScaleWithCameraZoom &&
+                spaceBackgroundGenerator != null &&
+                spaceBackgroundGenerator.IsCameraZoomTransitionActive)
+            {
+                float backgroundProgress = zoomingOut ? eased : 1f - eased;
                 spaceBackgroundGenerator.SetCameraZoomTransitionProgress(backgroundProgress);
-            };
+            }
+
+            yield return null;
         }
 
-        yield return cameraZoomController.AnimateZoomMultiplier(
-            targetMultiplier,
-            Mathf.Max(0.05f, duration),
-            curve,
-            progressCallback
-        );
+        cameraZoomController.SetZoomMultiplier(endMultiplier, true);
 
         if (spaceBackgroundGenerator != null &&
             spaceBackgroundGenerator.IsCameraZoomTransitionActive)
@@ -1385,7 +2615,7 @@ public class CoreBossIntroSequence : MonoBehaviour
             return;
         }
 
-        cameraZoomController.BeginCinematicZoomHold(wideZoomMultiplier);
+        cameraZoomController.BeginCinematicZoomHold(ResolveIntroWideZoomMultiplier());
         introWideZoomHoldActive = true;
     }
 
@@ -1605,7 +2835,6 @@ public class CoreBossIntroSequence : MonoBehaviour
             delayBeforeWallActivation +
             delayAfterWallActivation +
             bossRevealScaleDuration +
-            bossRevealZoomDuration +
             bossHealthBarLeadTime +
             zoomInDuration +
             playerInvincibleExtraTime;
@@ -1642,6 +2871,11 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         while (timer < duration)
         {
+            if (ShouldAbortIntro())
+            {
+                yield break;
+            }
+
             timer += Time.deltaTime;
             yield return null;
         }
@@ -1673,10 +2907,11 @@ public class CoreBossIntroSequence : MonoBehaviour
     private void OnValidate()
     {
         wideZoomMultiplier = Mathf.Max(1f, wideZoomMultiplier);
+        raiderArenaSizeMultiplier = Mathf.Clamp(raiderArenaSizeMultiplier, 0.5f, 1f);
         zoomOutDuration = Mathf.Max(0.05f, zoomOutDuration);
         zoomInDuration = Mathf.Max(0.05f, zoomInDuration);
         coreFocusZoomDuration = Mathf.Max(0.05f, coreFocusZoomDuration);
-        bossRevealZoomDuration = Mathf.Max(0.05f, bossRevealZoomDuration);
+        bossRevealFocusPanDuration = Mathf.Max(0.05f, bossRevealFocusPanDuration);
         bossRevealScaleDuration = Mathf.Max(0.05f, bossRevealScaleDuration);
 
         if (zoomOutCurve == null || zoomOutCurve.length == 0)
@@ -1694,10 +2929,11 @@ public class CoreBossIntroSequence : MonoBehaviour
             coreFocusZoomCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
         }
 
-        if (bossRevealZoomCurve == null || bossRevealZoomCurve.length == 0)
+        if (bossRevealFocusPanCurve == null || bossRevealFocusPanCurve.length == 0)
         {
-            bossRevealZoomCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+            bossRevealFocusPanCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
         }
+
     }
 #endif
 

@@ -51,6 +51,7 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         new RebindRowDefinition("Fire", "사격", "Player", "Fire", 0, "LMB"),
         new RebindRowDefinition("Dash", "대시", "Player", "Dash", 0, "RMB"),
         new RebindRowDefinition("Radar", "레이더", "Player", "Radar", 0, "Q"),
+        new RebindRowDefinition("Quick Radar Scan", "즉시 레이더 탐색", "Player", "RadarQuickScan", 0, "Mouse 4"),
         new RebindRowDefinition("Interact", "상호작용", "Player", "Interact", 0, "F"),
         new RebindRowDefinition("Inventory", "인벤토리", "Player", "Inventory", 0, "E"),
         new RebindRowDefinition("Map", "지도", "Player", "Map", 0, "Tab"),
@@ -59,7 +60,14 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         new RebindRowDefinition("Cancel / Menu", "취소 / 메뉴", "UI", "Cancel", 0, "Esc"),
         new RebindRowDefinition("Route Add", "경로 추가", "Map", "MapRouteAdd", 0, "LMB"),
         new RebindRowDefinition("Route Remove", "경로 제거", "Map", "MapRouteRemove", 0, "RMB"),
-        new RebindRowDefinition("Route Clear", "경로 초기화", "Map", "MapRouteClear", 0, "C")
+        new RebindRowDefinition("Route Clear", "경로 초기화", "Map", "MapRouteClear", 0, "C"),
+        new RebindRowDefinition(
+            "Dialogue Advance",
+            "대화 진행 / 선택 확정",
+            "Player",
+            "DialogueAdvance",
+            0,
+            "Space")
     };
 
     private InputActionAsset inputActions;
@@ -441,16 +449,23 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
     {
         CreateText(objectName + "Label", parent, label, new Vector2(-145f, y), new Vector2(110f, 20f), 9f, TextAlignmentOptions.Left, TextColor);
         GameObject sliderObject = CreateRectObject(objectName, parent, new Vector2(55f, y), new Vector2(260f, 16f));
-        Image background = AddImage(sliderObject, new Color(0.08f, 0.1f, 0.14f, 1f));
+        Image hitArea = AddImage(sliderObject, new Color(0f, 0f, 0f, 0.001f));
+        GameObject backgroundObject = CreateRectObject(
+            "Background",
+            sliderObject.transform,
+            Vector2.zero,
+            new Vector2(248f, 5f)
+        );
+        Image background = AddImage(backgroundObject, new Color(0.08f, 0.1f, 0.14f, 1f));
         GameObject fillArea = CreateStretchObject("Fill Area", sliderObject.transform);
-        fillArea.GetComponent<RectTransform>().offsetMin = new Vector2(4f, 4f);
-        fillArea.GetComponent<RectTransform>().offsetMax = new Vector2(-4f, -4f);
+        fillArea.GetComponent<RectTransform>().offsetMin = new Vector2(6f, 6f);
+        fillArea.GetComponent<RectTransform>().offsetMax = new Vector2(-6f, -6f);
         GameObject fill = CreateStretchObject("Fill", fillArea.transform);
         Image fillImage = AddImage(fill, AccentColor);
         GameObject handleArea = CreateStretchObject("Handle Slide Area", sliderObject.transform);
         handleArea.GetComponent<RectTransform>().offsetMin = new Vector2(6f, 0f);
         handleArea.GetComponent<RectTransform>().offsetMax = new Vector2(-6f, 0f);
-        GameObject handle = CreateRectObject("Handle", handleArea.transform, Vector2.zero, new Vector2(12f, 18f));
+        GameObject handle = CreateRectObject("Handle", handleArea.transform, Vector2.zero, new Vector2(8f, 14f));
         Image handleImage = AddImage(handle, TextColor);
         Slider slider = sliderObject.AddComponent<Slider>();
         slider.targetGraphic = handleImage;
@@ -460,7 +475,8 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         slider.minValue = minimum;
         slider.maxValue = maximum;
         slider.value = maximum;
-        background.raycastTarget = true;
+        hitArea.raycastTarget = true;
+        background.raycastTarget = false;
         fillImage.raycastTarget = false;
         return slider;
     }

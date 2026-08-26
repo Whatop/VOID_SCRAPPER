@@ -483,14 +483,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2726d4fc5be9bb841ba5675e6538f102, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   maxHp: 30
   rewardDropper: {fileID: 0}
-  hitEffectPrefab: {fileID: 0}
-  hitEffectDuration: 0.12
-  useProceduralHitEffectWhenPrefabMissing: 1
-  hitEffectIntensity: 0.9
+  spriteHitFlash: {fileID: 0}
+  autoCreateSpriteHitFlash: 1
+  useProceduralHitFeedback: 0
+  proceduralHitIntensity: 1
   hitShakeAmplitude: 0.04
   hitShakeDuration: 0.065
   deathShakeAmplitude: 0.11
@@ -500,6 +500,9 @@ MonoBehaviour:
   knockbackDuration: 0.14
   knockbackDistanceMultiplier: 0
   clearVelocityDuringKnockback: 1
+  deathEffectPrefab: {fileID: 0}
+  deathEffectLifeTime: 0.45
+  useProceduralDeathEffectWhenPrefabMissing: 1
   dropRewardOnDeath: 1
   releaseOnDeath: 1
   releaseDelayOnDeath: 0.25
@@ -518,8 +521,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 49457bfbf6ef7b34fbb08fbc3d0a8625, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   enemyDefinition: {fileID: 11400000, guid: e6e5bef48873ddd4488e1def09de0b86, type: 2}
   firePoint: {fileID: 7187754585451843859}
   runtimeCenterFirePoint: {fileID: 0}
@@ -558,11 +561,14 @@ MonoBehaviour:
   predictiveMaxLeadTime: 0.65
   predictiveVelocityMultiplier: 1
   showAimLineDuringCharge: 1
-  lockAimDirectionOnChargeStart: 1
+  trackAimDuringEarlyCharge: 1
+  chargeAimLockFraction: 0.75
   aimLineRenderer: {fileID: 0}
   autoCreateAimLineRenderer: 1
   aimLineColor: {r: 1, g: 0.05, b: 0.05, a: 0.85}
+  lockedAimLineColor: {r: 1, g: 0.82, b: 0.18, a: 1}
   aimLineWidth: 0.045
+  lockedAimLineWidthMultiplier: 1.65
   aimLineLength: 12
   aimLineBlockLayer:
     serializedVersion: 2
@@ -579,8 +585,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cfaba80fb9347b041a9ec5ee990153da, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   turretDefinition: {fileID: 11400000, guid: e6e5bef48873ddd4488e1def09de0b86, type: 2}
   attackController: {fileID: 6249281648082033461}
   turretHealth: {fileID: 8777496687107800868}
@@ -595,12 +601,15 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 68608
   requireLineOfSight: 1
+  fieldBaseOwner: {fileID: 0}
+  exteriorFieldBaseDefense: 0
   shopOwner: {fileID: 0}
   neutralEnemyTargetLayer:
     serializedVersion: 2
     m_Bits: 0
   targetRefreshInterval: 0.2
   requireThreateningEnemy: 1
+  playerDeploymentOffset: 0.9
   turnSpeed: 360
   headRotationOffset: -90
   requireAimAlignment: 1
@@ -619,14 +628,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5241710740ea26f448b2b4eac76326f8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  markerType: 1
+  m_Name:
+  m_EditorClassIdentifier:
+  markerType: 0
   markerTransform: {fileID: 4120115157706738655}
   visible: 1
-  markerSprite: {fileID: 0}
-  markerColor: {r: 1, g: 1, b: 1, a: 1}
+  markerSprite: {fileID: 1372502235, guid: cfcc9b2d60e4e634799b705f383d0863, type: 3}
+  markerColor: {r: 1, g: 0, b: 0, a: 1}
   markerScale: 1
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 1
   alertOnMachineGunScan: 0

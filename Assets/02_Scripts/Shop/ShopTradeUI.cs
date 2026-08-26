@@ -44,6 +44,10 @@ public class ShopTradeUI : MonoBehaviour
         public ShopOptionKind Kind;
         public string Title;
         public string ConditionText;
+        public string RarityText;
+        public string CategoryText;
+        public Color RarityColor;
+        public bool HasRarity;
         public string DescriptionText;
         public int Cost;
         public Sprite Icon;
@@ -132,6 +136,8 @@ public class ShopTradeUI : MonoBehaviour
     private bool isOpen;
     private bool pauseRequested;
     private bool shopAudioModeRequested;
+    private Color itemNameBaseColor = Color.white;
+    private Color conditionBaseColor = Color.white;
 
     public bool IsOpen => isOpen;
 
@@ -143,6 +149,18 @@ public class ShopTradeUI : MonoBehaviour
         }
 
         ConfigureShopTypography();
+
+        if (itemNameText != null)
+        {
+            itemNameBaseColor = itemNameText.color;
+        }
+
+        if (conditionText != null)
+        {
+            conditionBaseColor = conditionText.color;
+            conditionText.richText = true;
+        }
+
         BindButtons();
         ConfigureOptionSelectionRelays();
         ConfigureExplicitResultButtonSound(buyButton);
@@ -607,7 +625,9 @@ public class ShopTradeUI : MonoBehaviour
             repairButtonNameText,
             repairButtonPriceText,
             false,
-            affordable
+            affordable,
+            Color.white,
+            false
         );
     }
 
@@ -654,7 +674,9 @@ public class ShopTradeUI : MonoBehaviour
                 GetArrayItem(reinforcementButtonNameTexts, i),
                 GetArrayItem(reinforcementButtonPriceTexts, i),
                 purchased || soldOut,
-                affordable
+                affordable,
+                definition.GetRarityColor(),
+                true
             );
         }
     }
@@ -702,7 +724,9 @@ public class ShopTradeUI : MonoBehaviour
                 GetArrayItem(traitButtonNameTexts, i),
                 GetArrayItem(traitButtonPriceTexts, i),
                 purchased || soldOut,
-                affordable
+                affordable,
+                definition.GetRarityColor(),
+                true
             );
         }
     }
@@ -765,7 +789,7 @@ public class ShopTradeUI : MonoBehaviour
 
         SetText(selectedItemLabelText, "선택된 아이템");
         SetText(itemNameText, option.Title);
-        SetText(conditionText, option.ConditionText);
+        ApplySelectedOptionRarity(option);
         SetText(bodyText, option.DescriptionText);
         SetText(priceText, option.Cost > 0 ? $"{option.Cost}C" : "무료");
 
@@ -810,6 +834,17 @@ public class ShopTradeUI : MonoBehaviour
         SetText(selectedItemLabelText, "선택된 아이템");
         SetText(itemNameText, "상품 없음");
         SetText(conditionText, string.Empty);
+
+        if (itemNameText != null)
+        {
+            itemNameText.color = itemNameBaseColor;
+        }
+
+        if (conditionText != null)
+        {
+            conditionText.color = conditionBaseColor;
+        }
+
         SetText(bodyText, "구매 가능한 상품이 없습니다.");
         SetText(priceText, string.Empty);
 
@@ -976,6 +1011,10 @@ public class ShopTradeUI : MonoBehaviour
             Kind = ShopOptionKind.Reinforcement,
             Title = definition.DisplayName,
             ConditionText = $"{definition.GetRarityText()} / {definition.GetUseTypeText()}",
+            RarityText = definition.GetRarityText(),
+            CategoryText = definition.GetUseTypeText(),
+            RarityColor = definition.GetRarityColor(),
+            HasRarity = true,
             DescriptionText =
                 $"{definition.GetAvailabilityText()}\n\n" +
                 $"{definition.Description}\n\n" +
@@ -999,6 +1038,10 @@ public class ShopTradeUI : MonoBehaviour
             Kind = ShopOptionKind.Trait,
             Title = definition.DisplayName,
             ConditionText = $"{definition.GetRarityText()} / {definition.GetCategoryText()}",
+            RarityText = definition.GetRarityText(),
+            CategoryText = definition.GetCategoryText(),
+            RarityColor = definition.GetRarityColor(),
+            HasRarity = true,
             DescriptionText = definition.Description,
             Cost = currentStock != null ? currentStock.TraitCost : 0,
             Icon = definition.Icon != null ? definition.Icon : traitFallbackIcon,
@@ -1161,7 +1204,9 @@ public class ShopTradeUI : MonoBehaviour
         TextMeshProUGUI name,
         TextMeshProUGUI price,
         bool purchased,
-        bool affordable)
+        bool affordable,
+        Color rarityColor,
+        bool useRarityColor)
     {
         Color contentColor = purchased
             ? new Color(0.48f, 0.52f, 0.56f, 0.72f)
@@ -1179,18 +1224,53 @@ public class ShopTradeUI : MonoBehaviour
 
         if (legacyText != null)
         {
-            legacyText.color = contentColor;
+            legacyText.color = purchased || !useRarityColor
+                ? contentColor
+                : rarityColor;
         }
 
         if (name != null)
         {
-            name.color = contentColor;
+            name.color = purchased || !useRarityColor
+                ? contentColor
+                : rarityColor;
         }
 
         if (price != null)
         {
             price.color = priceColor;
         }
+    }
+
+    private void ApplySelectedOptionRarity(ShopOption option)
+    {
+        bool muted = IsSelectedOptionPurchased() || IsSelectedCategorySoldOut();
+        Color mutedColor = new Color(0.48f, 0.52f, 0.56f, 0.72f);
+
+        if (itemNameText != null)
+        {
+            itemNameText.color = muted
+                ? mutedColor
+                : option.HasRarity
+                    ? option.RarityColor
+                    : itemNameBaseColor;
+        }
+
+        if (conditionText == null)
+        {
+            return;
+        }
+
+        conditionText.color = muted ? mutedColor : conditionBaseColor;
+
+        if (!option.HasRarity || muted)
+        {
+            conditionText.text = option.ConditionText;
+            return;
+        }
+
+        string rarityHex = ColorUtility.ToHtmlStringRGB(option.RarityColor);
+        conditionText.text = $"<color=#{rarityHex}>{option.RarityText}</color> / {option.CategoryText}";
     }
 
     private void RequestShopAudioMode()

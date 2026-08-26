@@ -29,10 +29,10 @@ MonoBehaviour:
   clusteredHarvestRatio: 0.75
   clusteredEnemyRatio: 0.75
   enableEnvironmentDressing: 1
-  salvageDressingCount: 12
-  highValueDressingCount: 18
-  transitDressingCount: 24
-  poiDressingRadiusMultiplier: 1.15
+  salvageDressingCount: 16
+  highValueDressingCount: 24
+  transitDressingCount: 32
+  poiDressingRadiusMultiplier: 1.2
   enableFiniteBoundary: 1
   boundaryWarningDistance: 7
   boundaryResistanceDistance: 3
@@ -54,7 +54,10 @@ MonoBehaviour:
   supplyContainerCount: 16
   destroyedHullCount: 8
   smallMeteorCount: 30
+  smallMeteorDriftRatio: 0.28
   largeMeteorCount: 3
+  spawnBossArenaCoverMeteors: 1
+  bossArenaCoverOffset: {x: 6.5, y: -0.75}
   basicEnemyCount: 20
   shotgunEnemyCount: 5
   chargingEnemyCount: 4

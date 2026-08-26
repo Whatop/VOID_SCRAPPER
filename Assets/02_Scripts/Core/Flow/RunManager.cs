@@ -12,9 +12,15 @@ public class RunManager : MonoBehaviour
     [SerializeField] private RunContext currentRun;
 
     private PlayerRuntimeStatApplier currentPlayerStatApplier;
+    private bool runEndingActive;
+    private bool runCompletionFinalized;
+    private bool runEndingPauseOwned;
+    private bool runEndingWorldSfxSuppressed;
+    private RunEndReason runEndingReason = RunEndReason.None;
 
     public RunContext CurrentRun => currentRun;
     public bool HasActiveRun => currentRun != null && currentRun.IsActive;
+    public bool IsCompletingRun => runEndingActive;
 
     public event Action<RunContext> RunStarted;
     public event Action<RunWallet> WalletChanged;
@@ -38,6 +44,7 @@ public class RunManager : MonoBehaviour
     {
         currentPlayerStatApplier = null;
         UnsubscribeWallet();
+        ReleaseRunEndingPresentationOwnership();
     }
 
     public void RegisterCurrentPlayer(PlayerRuntimeStatApplier statApplier)
@@ -84,6 +91,7 @@ public class RunManager : MonoBehaviour
             return;
         }
 
+        ResetRunEndingState();
         UnsubscribeWallet();
         currentPlayerStatApplier = null;
         selectedShipId = ResolveSelectedShipId(selectedShipId);
@@ -191,6 +199,13 @@ public class RunManager : MonoBehaviour
     public bool CanAddCargoCurrency(CurrencyType currencyType, int amount = 1)
     {
         return HasActiveRun && currentRun.GetAcceptedAmountByCargo(currencyType, amount) > 0;
+    }
+
+    public bool TryRemoveCargoCurrency(CurrencyType currencyType, int amount)
+    {
+        return HasActiveRun &&
+               currentRun.UsesCargo(currencyType) &&
+               currentRun.Wallet.TrySpend(currencyType, Mathf.Max(0, amount));
     }
 
     public bool TrySpendCredits(int amount)
@@ -347,6 +362,21 @@ public class RunManager : MonoBehaviour
             return null;
         }
 
+        if (!runEndingActive)
+        {
+            if (!TryBeginRunEnding(reason, true))
+            {
+                return null;
+            }
+        }
+        else if (runCompletionFinalized || runEndingReason != reason)
+        {
+            return null;
+        }
+
+        SuppressRunEndingWorldSfx();
+        runCompletionFinalized = true;
+
         GameAudioLoopController.BeginRunEndMusicTransition();
 
         RunResultData resultData = CreateRunResult(reason, currentRun);
@@ -378,6 +408,64 @@ public class RunManager : MonoBehaviour
         );
 
         return resultData;
+    }
+
+    public bool TryBeginRunEnding(RunEndReason reason, bool suppressWorldSfx = true)
+    {
+        if (!HasActiveRun || runEndingActive || reason == RunEndReason.None)
+        {
+            return false;
+        }
+
+        runEndingActive = true;
+        runEndingReason = reason;
+        GameplayPauseManager.Instance.PushPause(this, $"Run Ending: {reason}");
+        runEndingPauseOwned = true;
+
+        if (suppressWorldSfx)
+        {
+            SuppressRunEndingWorldSfx();
+        }
+
+        return true;
+    }
+
+    public bool AbandonActiveRunWithoutRewards()
+    {
+        if (!HasActiveRun || runEndingActive)
+        {
+            return false;
+        }
+
+        runEndingActive = true;
+        runCompletionFinalized = true;
+        runEndingReason = RunEndReason.None;
+        GameplayPauseManager.Instance.PushPause(this, "Abandon Active Run");
+        runEndingPauseOwned = true;
+        SuppressRunEndingWorldSfx();
+        AudioManager.StopAllLoops();
+
+        UnsubscribeWallet();
+        currentRun.End();
+        currentRun = null;
+        currentPlayerStatApplier = null;
+        return true;
+    }
+
+    public void ReleaseRunEndingPresentationOwnership()
+    {
+        if (runEndingPauseOwned)
+        {
+            GameplayPauseManager pauseManager = GameplayPauseManager.Instance;
+            pauseManager.PopPause(this);
+            runEndingPauseOwned = false;
+        }
+
+        if (runEndingWorldSfxSuppressed)
+        {
+            AudioManager.SetWorldSfxSuppressed(this, false);
+            runEndingWorldSfxSuppressed = false;
+        }
     }
 
     public void CompleteRunAndReturnToSettlement(RunEndReason reason)
@@ -592,6 +680,25 @@ public class RunManager : MonoBehaviour
         lostScrap = Mathf.Max(0, collectedScrap - committedScrap);
         lostCore = collectedCore;
         lostAlloy = Mathf.Max(0, collectedAlloy - committedAlloy);
+    }
+
+    private void SuppressRunEndingWorldSfx()
+    {
+        if (runEndingWorldSfxSuppressed)
+        {
+            return;
+        }
+
+        AudioManager.SetWorldSfxSuppressed(this, true, true);
+        runEndingWorldSfxSuppressed = true;
+    }
+
+    private void ResetRunEndingState()
+    {
+        ReleaseRunEndingPresentationOwnership();
+        runEndingActive = false;
+        runCompletionFinalized = false;
+        runEndingReason = RunEndReason.None;
     }
 
     private string ResolveSelectedShipId(string requestedShipId)

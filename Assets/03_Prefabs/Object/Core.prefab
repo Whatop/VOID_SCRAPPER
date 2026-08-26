@@ -114,12 +114,18 @@ MonoBehaviour:
   requirePlayerStayInRange: 1
   interactionStayRadius: 3
   bossPrefab: {fileID: 2869722714546691079, guid: bd35c3a3a0ce6de45bbb6b45c19770b8, type: 3}
+  region1RepeatBossPrefab: {fileID: 100000, guid: e28d3d3313ed47cf894549274d2b4938, type: 3}
+  region1RepeatBossDefinition: {fileID: 11400000, guid: 33e42a9f02564b98b66245c0a262836c, type: 2}
+  region1RepeatSignalSubtitle: "약탈자 지휘 신호 감지"
+  forceRegion1RepeatBoss: 0
   bossSpawnPoint: {fileID: 6304785954078690802}
   bossSpawnOffset: {x: 0, y: 50}
   bossDisplayName: "\uAD6C\uD68D \uAD00\uB9AC\uC790"
   animateBossHealthBar: 1
   useBossIntroSequence: 1
   bossIntroSequence: {fileID: -6155725199462713330}
+  useTemporaryBossBackgroundPresentation: 1
+  spaceBackgroundGenerator: {fileID: 0}
   returnBeaconPrefab: {fileID: 790382445115629925, guid: 01366ec2ea978ea4fb283152e5de9f91, type: 3}
   returnBeaconSpawnPoint: {fileID: 6959655980572025893, guid: 01366ec2ea978ea4fb283152e5de9f91, type: 3}
   returnBeaconSpawnOffset: {x: 0, y: -2}
@@ -211,7 +217,7 @@ MonoBehaviour:
   cameraZoomController: {fileID: 0}
   wideZoomMultiplier: 3.5
   zoomOutDuration: 1.35
-  zoomInDuration: 1.65
+  zoomInDuration: 1.05
   zoomOutCurve:
     serializedVersion: 2
     m_Curve:
@@ -263,6 +269,9 @@ MonoBehaviour:
   resetCameraZoomOnBattleStart: 0
   returnCameraZoomAfterIntro: 1
   createCameraZoomControllerIfMissing: 1
+  gameplayFramingPositionTolerance: 0.02
+  gameplayFramingZoomTolerance: 0.008
+  gameplayFramingSettleTimeout: 0.4
   spaceBackgroundGenerator: {fileID: 0}
   prepareBackgroundBeforeWideZoom: 1
   syncStarfieldScaleWithCameraZoom: 1
@@ -300,6 +309,47 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  raiderBarricadeCarrierPrefab: {fileID: 200002, guid: b927d804e23a4c299ab7a8c81dd3be7a, type: 3}
+  raiderArenaSizeMultiplier: 0.7
+  raiderBarrierMaterial: {fileID: 2100000, guid: 43a0bc47854b4824b1ba71375975f1c9, type: 2}
+  raiderCarrierStartExtraDistance: 7
+  raiderCarrierMoveDuration: 0.9
+  raiderCarrierMoveCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  raiderBarrierColor: {r: 0.92, g: 0.12, b: 0.035, a: 0.58}
+  raiderBarrierFieldColor: {r: 0.42, g: 0.025, b: 0.012, a: 0.07}
+  raiderBarrierNoiseColor: {r: 1, g: 0.28, b: 0.06, a: 0.5}
+  raiderBarrierThickness: 0.32
+  raiderBarrierCoreWidth: 0.04
+  raiderBarrierFieldWidth: 0.28
+  raiderBarrierNoiseWidth: 0.22
+  raiderBarrierPulseDuration: 2.1
+  raiderLeftCoverNormalizedOffset: {x: -0.42, y: -0.1}
+  raiderRightCoverNormalizedOffset: {x: 0.42, y: -0.1}
+  raiderCoverWallClearance: 1
+  raiderCoverMinimumPassage: 1.5
   runtimePlaceholderColor: {r: 0.15, g: 0.9, b: 1, a: 1}
   runtimePlaceholderSize: 0.55
   runtimePlaceholderLineWidth: 0.06
@@ -319,6 +369,32 @@ MonoBehaviour:
   bossArrivalDirection: {x: 0, y: 1}
   bossArrivalDistance: 11
   bossArrivalDuration: 1.15
+  bossArrivalFocusBias: 0.35
+  bossRevealFocusPanDuration: 0.75
+  bossRevealFocusPanCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   bossMoveCurve:
     serializedVersion: 2
     m_Curve:
@@ -345,32 +421,6 @@ MonoBehaviour:
     m_RotationOrder: 4
   faceBossToPlayerWhenArrived: 1
   bossRotationOffset: -90
-  bossRevealZoomMultiplier: 0.82
-  bossRevealZoomDuration: 0.5
-  bossRevealZoomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
   bossHealthBarLeadTime: 0.55
   useBossAnimatorTriggers: 1
   bossIntroEnterTrigger: BossIntroEnter
@@ -380,7 +430,7 @@ MonoBehaviour:
   bossRevealStartScale: 0.82
   bossRevealOvershootScale: 1.08
   bossRevealScaleDuration: 0.36
-  bossRevealShakeAmplitude: 0.18
+  bossRevealShakeAmplitude: 0
   bossRevealShakeDuration: 0.22
   logSequence: 0
 --- !u!114 &2785288026569375596

@@ -102,6 +102,11 @@ public static class InputBindingUtility
             InputBinding.DisplayStringOptions.DontIncludeInteractions
         );
 
+        if (action.bindings[bindingIndex].effectivePath == "<Mouse>/backButton")
+        {
+            return "Mouse 4";
+        }
+
         return string.IsNullOrWhiteSpace(display) ? fallback : display;
     }
 

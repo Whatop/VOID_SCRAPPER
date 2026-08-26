@@ -68,6 +68,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
 
     [Header("Marker Sizes")]
     [SerializeField, Min(1f)] private float playerMarkerSize = 8f;
+    [SerializeField, Range(0.25f, 1f)] private float enemyMarkerScaleMultiplier = 0.9f;
     [SerializeField, Range(0.25f, 1f)] private float meteorMarkerScaleMultiplier = 0.65f;
 
     [Header("Marker Rules")]
@@ -164,6 +165,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
     private void OnEnable()
     {
         ExpeditionMapGenerator.AnyMapGenerated += HandleMapGenerated;
+        RadarTarget.PresentationChanged += HandleTargetPresentationChanged;
         if (discoveryController == null)
         {
             discoveryController = MapDiscoveryController.Instance;
@@ -190,6 +192,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
     private void OnDisable()
     {
         ExpeditionMapGenerator.AnyMapGenerated -= HandleMapGenerated;
+        RadarTarget.PresentationChanged -= HandleTargetPresentationChanged;
         if (discoveryController != null)
         {
             discoveryController.DiscoveryChanged -= HandleDiscoveryChanged;
@@ -269,6 +272,19 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
         if (visible)
         {
             RefreshAll();
+        }
+    }
+
+    private void HandleTargetPresentationChanged(RadarTarget target)
+    {
+        if (!visible || target == null || discoveryController == null)
+        {
+            return;
+        }
+
+        if (discoveryController.IsTargetDiscovered(target))
+        {
+            RebuildTargetMarkers();
         }
     }
 
@@ -760,7 +776,7 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
             float availableRight = mapLeft - 8f;
             float width = Mathf.Max(80f, availableRight - availableLeft);
             legendRoot.anchoredPosition = new Vector2((availableLeft + availableRight) * 0.5f, -12f);
-            legendRoot.sizeDelta = new Vector2(width, 70f);
+            legendRoot.sizeDelta = new Vector2(width, 62f);
         }
 
         if (legendBuilt)
@@ -796,10 +812,12 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
         legendText.text = "지도 표식";
 
         CreateLegendRow(0, RadarMarkerShape.Diamond, false, playerColor, "플레이어", fontSource);
-        CreateLegendRow(1, RadarMarkerShape.Circle, true, rewardColor, "자원", fontSource);
-        CreateLegendRow(2, RadarMarkerShape.Circle, true, eventColor, "이벤트", fontSource);
-        CreateLegendRow(3, RadarMarkerShape.Diamond, true, specialColor, "상점", fontSource);
-        CreateLegendRow(4, RadarMarkerShape.Hexagon, true, coreColor, "코어", fontSource);
+        CreateTargetLegendRow(1, RadarMarkerType.Enemy, "적", fontSource);
+        CreateTargetLegendRow(2, RadarMarkerType.RewardObject, "자원", fontSource);
+        CreateTargetLegendRow(3, RadarMarkerType.Meteor, "운석", fontSource);
+        CreateTargetLegendRow(4, RadarMarkerType.Event, "이벤트", fontSource);
+        CreateTargetLegendRow(5, RadarMarkerType.Shop, "상점", fontSource);
+        CreateTargetLegendRow(6, RadarMarkerType.Core, "코어", fontSource);
         legendBuilt = true;
     }
 
@@ -965,13 +983,17 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
         string label,
         TextMeshProUGUI fontSource)
     {
+        const int rowsPerColumn = 4;
+        int column = index / rowsPerColumn;
+        int row = index % rowsPerColumn;
+
         GameObject rowObject = new GameObject($"LegendRow_{index}", typeof(RectTransform));
         RectTransform rowRect = rowObject.GetComponent<RectTransform>();
         rowRect.SetParent(legendRoot, false);
-        rowRect.anchorMin = new Vector2(0f, 1f);
-        rowRect.anchorMax = new Vector2(1f, 1f);
+        rowRect.anchorMin = new Vector2(column * 0.5f, 1f);
+        rowRect.anchorMax = new Vector2((column + 1) * 0.5f, 1f);
         rowRect.pivot = new Vector2(0.5f, 1f);
-        rowRect.anchoredPosition = new Vector2(0f, -12f - index * 12f);
+        rowRect.anchoredPosition = new Vector2(0f, -12f - row * 12f);
         rowRect.sizeDelta = new Vector2(0f, 11f);
 
         GameObject markerObject = new GameObject(
@@ -1014,6 +1036,31 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
         labelText.textWrappingMode = TextWrappingModes.NoWrap;
         labelText.raycastTarget = false;
         labelText.text = label;
+    }
+
+    private void CreateTargetLegendRow(
+        int index,
+        RadarMarkerType markerType,
+        string label,
+        TextMeshProUGUI fontSource)
+    {
+        if (!RadarMarkerPresentation.TryResolveShape(markerType, out RadarMarkerShape shape, out bool hollow))
+        {
+            shape = RadarMarkerShape.Circle;
+            hollow = false;
+        }
+
+        Color markerColor = RadarMarkerPresentation.ResolveColor(
+            markerType,
+            Color.white,
+            enemyColor,
+            rewardColor,
+            meteorColor,
+            eventColor,
+            specialColor,
+            coreColor
+        );
+        CreateLegendRow(index, shape, hollow, markerColor, label, fontSource);
     }
 
     private void EnsureRoutePresentation()
@@ -1442,8 +1489,13 @@ public sealed class ExpeditionMapPanelUI : MonoBehaviour, IPointerDownHandler, I
     private float ResolveMarkerScale(RadarTarget target)
     {
         float scale = RadarMarkerPresentation.ResolveScale(target.MarkerType, target.MarkerScale);
-        return target.MarkerType == RadarMarkerType.Meteor
-            ? scale * meteorMarkerScaleMultiplier
+        if (target.MarkerType == RadarMarkerType.Meteor)
+        {
+            return scale * meteorMarkerScaleMultiplier;
+        }
+
+        return target.MarkerType == RadarMarkerType.Enemy
+            ? scale * enemyMarkerScaleMultiplier
             : scale;
     }
 

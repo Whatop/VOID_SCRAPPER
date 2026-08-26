@@ -77,12 +77,22 @@ public class RunResultPanelUI : MonoBehaviour
     {
         if (dontDestroyOnLoad)
         {
-            if (detachFromParentBeforeDontDestroy && transform.parent != null)
+            Transform authoredRoot = transform.root;
+            bool inheritedFromBootstrapRoot = authoredRoot != null &&
+                                                authoredRoot != transform &&
+                                                authoredRoot.GetComponent<GameBootstrap>() != null;
+
+            if (!inheritedFromBootstrapRoot &&
+                detachFromParentBeforeDontDestroy &&
+                transform.parent != null)
             {
                 transform.SetParent(null, true);
             }
 
-            DontDestroyOnLoad(gameObject);
+            if (!inheritedFromBootstrapRoot)
+            {
+                DontDestroyOnLoad(gameObject);
+            }
         }
 
         CacheReferences();
@@ -113,6 +123,13 @@ public class RunResultPanelUI : MonoBehaviour
     {
         showSequence?.Kill();
         showSequence = null;
+
+        RunManager runManager = RunManager.Instance;
+
+        if (runManager != null && runManager.IsCompletingRun)
+        {
+            runManager.ReleaseRunEndingPresentationOwnership();
+        }
 
         UnsubscribeRunManager();
 
@@ -179,6 +196,13 @@ public class RunResultPanelUI : MonoBehaviour
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.ChangeState(GameState.Settlement);
+        }
+
+        RunManager runManager = RunManager.Instance;
+
+        if (runManager != null)
+        {
+            runManager.ReleaseRunEndingPresentationOwnership();
         }
 
         if (continueBlackHoldDuration > 0f)

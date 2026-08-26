@@ -228,7 +228,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     public void TakeDamage(float damage, Vector2 hitPoint, Vector2 incomingDirection)
     {
-        if (isDead)
+        if (isDead || IsRunEnding())
         {
             return;
         }
@@ -380,7 +380,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private void Die()
     {
-        if (isDead)
+        if (isDead || IsRunEnding())
         {
             return;
         }
@@ -434,5 +434,10 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         }
 
         Debug.Log("플레이어 기체가 파괴되었습니다.");
+    }
+
+    private static bool IsRunEnding()
+    {
+        return RunManager.Instance != null && RunManager.Instance.IsCompletingRun;
     }
 }

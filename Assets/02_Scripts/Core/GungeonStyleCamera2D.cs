@@ -1,82 +1,111 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Serialization;
-using Unity.Cinemachine;
 
+[DefaultExecutionOrder(10000)]
 [DisallowMultipleComponent]
 public class GungeonStyleCamera2D : MonoBehaviour
 {
     public static GungeonStyleCamera2D Instance { get; private set; }
 
-    [Header("References")]
+    [Header("Rig References")]
     [SerializeField] private Transform player;
+    [SerializeField] private Transform shakeRoot;
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private CinemachineCamera cinemachineCamera;
+    [SerializeField] private CameraZoomController2D cameraZoomController;
 
-    [Header("Follow")]
-    [SerializeField] private float cameraDistanceZ = -10f;
+    [Header("Direct Follow")]
+    [SerializeField] private float cameraWorldZ = -10f;
+    [Min(0f)]
+    [SerializeField] private float mapBoundsPadding = 0.25f;
 
-    [Header("Aim Offset")]
-    [SerializeField] private float maxAimOffset = 1.5f;
-    [SerializeField] private float offsetSmoothSpeed = 10f;
-    [SerializeField] private float deadZoneRadius = 0.9f;
-    [SerializeField] private float maxMouseDistanceForOffset = 8f;
+    [Header("Screen-Space Move Zone")]
+    [SerializeField] private float maxAimOffset = 0.75f;
+    [Min(0f)]
+    [SerializeField] private float outwardSharpness = 10f;
+    [Min(0f)]
+    [SerializeField] private float recenterSharpness = 14f;
+    [Range(0f, 1f)]
+    [SerializeField] private float lookAheadEnterRadius = 0.2f;
+    [Range(0f, 1f)]
+    [SerializeField] private float lookAheadExitRadius = 0.16f;
+    [Range(0.01f, 2f)]
+    [SerializeField] private float fullOffsetRadius = 0.8f;
+    [Min(0f)]
+    [SerializeField] private float mouseMotionEpsilonPixels = 0.25f;
 
-    [SerializeField]
-    private AnimationCurve offsetCurve = new AnimationCurve(
-        new Keyframe(0f, 0f),
-        new Keyframe(0.25f, 0.05f),
-        new Keyframe(0.55f, 0.35f),
-        new Keyframe(1f, 1f)
-    );
+    [Header("Gameplay Framing Profile")]
+    [Min(0f)]
+    [SerializeField] private float gameplayFramingTransitionSharpness = 10f;
 
-    [Header("Optional Movement Bias")]
-    [SerializeField] private Rigidbody2D playerRb;
-    [SerializeField] private float moveBiasStrength = 0.08f;
-    [SerializeField] private float maxMoveBias = 0.15f;
-    [SerializeField] private float moveBiasSmoothSpeed = 8f;
-    [SerializeField] private float moveBiasVelocityDeadZone = 0.08f;
-
-    [Header("Idle Recentering")]
-    [SerializeField] private float idleRecenteringSmoothSpeed = 5.5f;
+    [Header("Cinematic Focus")]
+    [Min(0f)]
+    [SerializeField] private float cinematicFocusSharpness = 9f;
+    [Min(0f)]
+    [SerializeField] private float cinematicReturnSharpness = 12f;
 
     [Header("Camera Shake")]
     [SerializeField] private bool enableCameraShake = true;
     [SerializeField] private float maxShakeAmplitude = 0.42f;
     [SerializeField] private float shakeFrequency = 30f;
     [SerializeField, Range(0f, 1f)] private float repeatedHitStacking = 0.35f;
-    [SerializeField] private bool useUnscaledTimeForShake = true;
 
-    [Header("Pixel Perfect Stabilization")]
-    [SerializeField] private bool snapOffsetToPixelGrid = true;
-    [FormerlySerializedAs("snapOnlyWhenSettled")]
-    [SerializeField] private bool snapOffsetOnlyWhenSettled = true;
-    [SerializeField] private float pixelSnapSettleDistance = 0.012f;
-    [SerializeField] private int assetsPixelsPerUnit = 32;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [Header("Development Diagnostics")]
+    [SerializeField] private bool enableCameraDiagnostics;
+    [Min(0.1f)]
+    [SerializeField] private float diagnosticLogInterval = 0.5f;
+#endif
 
-    private CinemachineFollow follow;
-    private Vector3 currentOffset;
-    private Vector2 currentMoveBiasOffset;
+    private PlayerController2D playerController;
+    private ExpeditionMapGenerator mapGenerator;
+    private Vector2 currentAimOffset;
+    private Vector2 targetAimOffset;
+    private Vector2 stableMouseScreenPosition;
+    private Vector3 currentCameraCenter;
     private float runtimeAimOffsetMultiplier = 1f;
     private float runtimeMouseDistanceMultiplier = 1f;
-
-    [Header("Cinematic Focus")]
-    [SerializeField] private float cinematicFocusSmoothSpeed = 9f;
+    private object gameplayFramingOwner;
+    private Vector2 currentGameplayFramingOffset;
+    private Vector2 targetGameplayFramingOffset;
+    private float currentGameplayAimOffsetMultiplier = 1f;
+    private float targetGameplayAimOffsetMultiplier = 1f;
+    private bool hasStableMousePosition;
+    private bool mouseLookAheadActive;
+    private bool cameraCenterInitialized;
 
     private bool cinematicFocusActive;
+    private bool cinematicReturnActive;
     private bool cinematicInputOffsetLocked;
     private Vector3 cinematicFocusWorldPosition;
+    private bool cinematicFocusBlendActive;
+    private Vector3 cinematicFocusBlendStart;
+    private Vector3 cinematicFocusBlendTarget;
+    private float cinematicFocusBlendDuration;
+    private float cinematicFocusBlendElapsed;
+    private AnimationCurve cinematicFocusBlendCurve;
 
     private float shakeRemaining;
     private float shakeDuration;
     private float shakeAmplitude;
     private float shakeNoiseTime;
     private Vector2 shakeSeed;
+    private int shakeSequence;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    private float nextDiagnosticLogTime;
+#endif
+
+    public bool IsCinematicFocusActive => cinematicFocusActive;
+    public bool IsCinematicFocusBlendActive => cinematicFocusBlendActive;
+    public bool IsCinematicInputOffsetLocked => cinematicInputOffsetLocked;
+    public bool IsShakeActive => shakeRemaining > 0f ||
+                                 (shakeRoot != null && shakeRoot.localPosition.sqrMagnitude > 0.000001f);
 
     private void Reset()
     {
-        cinemachineCamera = GetComponent<CinemachineCamera>();
         mainCamera = Camera.main;
+        shakeRoot = mainCamera != null ? mainCamera.transform.parent : null;
+        cameraZoomController = GetComponent<CameraZoomController2D>();
     }
 
     private void Awake()
@@ -84,18 +113,37 @@ public class GungeonStyleCamera2D : MonoBehaviour
         Instance = this;
         ResolveReferences();
         ResetShakeNoise();
+        SnapToPlayer();
     }
 
     private void OnEnable()
     {
         Instance = this;
         ResolveReferences();
+        SnapToPlayer();
     }
 
     private void OnDisable()
     {
         cinematicFocusActive = false;
+        cinematicReturnActive = false;
+        CancelCinematicFocusBlend(false);
         cinematicInputOffsetLocked = false;
+        mouseLookAheadActive = false;
+        hasStableMousePosition = false;
+        currentAimOffset = Vector2.zero;
+        targetAimOffset = Vector2.zero;
+        object framingOwner = gameplayFramingOwner;
+        gameplayFramingOwner = null;
+        currentGameplayFramingOffset = Vector2.zero;
+        targetGameplayFramingOffset = Vector2.zero;
+        currentGameplayAimOffsetMultiplier = 1f;
+        targetGameplayAimOffsetMultiplier = 1f;
+        if (cameraZoomController != null && framingOwner != null)
+        {
+            cameraZoomController.ReleaseGameplayFramingProfile(framingOwner, true);
+        }
+        ResetShakeState();
 
         if (Instance == this)
         {
@@ -111,52 +159,48 @@ public class GungeonStyleCamera2D : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void OnValidate()
     {
-        if (GameplayPauseManager.IsPaused)
+        lookAheadEnterRadius = Mathf.Clamp01(lookAheadEnterRadius);
+        lookAheadExitRadius = Mathf.Clamp(lookAheadExitRadius, 0f, lookAheadEnterRadius);
+        fullOffsetRadius = Mathf.Max(lookAheadEnterRadius + 0.01f, fullOffsetRadius);
+        maxAimOffset = Mathf.Max(0f, maxAimOffset);
+        outwardSharpness = Mathf.Max(0f, outwardSharpness);
+        recenterSharpness = Mathf.Max(0f, recenterSharpness);
+        cinematicFocusSharpness = Mathf.Max(0f, cinematicFocusSharpness);
+        cinematicReturnSharpness = Mathf.Max(0f, cinematicReturnSharpness);
+        mouseMotionEpsilonPixels = Mathf.Max(0f, mouseMotionEpsilonPixels);
+        mapBoundsPadding = Mathf.Max(0f, mapBoundsPadding);
+        gameplayFramingTransitionSharpness = Mathf.Max(0f, gameplayFramingTransitionSharpness);
+    }
+
+    private void LateUpdate()
+    {
+        ResolveReferences();
+
+        if (player == null || mainCamera == null || shakeRoot == null)
         {
             return;
         }
 
-        if (player == null || mainCamera == null || cinemachineCamera == null || follow == null)
-        {
-            ResolveReferences();
+        float deltaTime = Mathf.Max(0f, Time.deltaTime);
+        float unscaledDeltaTime = Mathf.Max(0f, Time.unscaledDeltaTime);
+        UpdateGameplayFramingProfile(deltaTime);
+        UpdateAimOffset(deltaTime);
 
-            if (player == null || mainCamera == null || cinemachineCamera == null || follow == null)
-            {
-                return;
-            }
-        }
+        Vector3 playerCenter = player.position +
+                               (Vector3)currentGameplayFramingOffset +
+                               (Vector3)currentAimOffset;
+        Vector3 desiredCenter = ResolveDesiredCameraCenter(playerCenter, deltaTime, unscaledDeltaTime);
+        desiredCenter = ClampToMapBounds(desiredCenter);
+        desiredCenter.z = cameraWorldZ;
 
-        Vector3 targetOffset = CalculateTargetOffset();
+        transform.position = desiredCenter;
+        ApplyShake(deltaTime);
 
-        float activeSmoothSpeed = cinematicFocusActive
-            ? cinematicFocusSmoothSpeed
-            : ResolveOffsetSmoothSpeed(targetOffset);
-
-        if (activeSmoothSpeed <= 0f)
-        {
-            currentOffset = targetOffset;
-        }
-        else
-        {
-            float t = 1f - Mathf.Exp(-activeSmoothSpeed * Time.unscaledDeltaTime);
-            currentOffset = Vector3.Lerp(currentOffset, targetOffset, t);
-        }
-
-        Vector2 shakeOffset = EvaluateShakeOffset();
-        Vector3 outputOffset = currentOffset + new Vector3(shakeOffset.x, shakeOffset.y, 0f);
-
-        bool settledForPixelSnap = !snapOffsetOnlyWhenSettled ||
-                                   (targetOffset - currentOffset).sqrMagnitude <= pixelSnapSettleDistance * pixelSnapSettleDistance;
-
-        if (snapOffsetToPixelGrid && settledForPixelSnap)
-        {
-            outputOffset.x = SnapToPixelGrid(outputOffset.x);
-            outputOffset.y = SnapToPixelGrid(outputOffset.y);
-        }
-
-        follow.FollowOffset = new Vector3(outputOffset.x, outputOffset.y, cameraDistanceZ);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        ReportDiagnostics();
+#endif
     }
 
     public static void RequestShake(float amplitude, float duration)
@@ -171,10 +215,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
             Instance = FindFirstObjectByType<GungeonStyleCamera2D>();
         }
 
-        if (Instance != null)
-        {
-            Instance.AddShake(amplitude, duration);
-        }
+        Instance?.AddShake(amplitude, duration);
     }
 
     public void AddShake(float amplitude, float duration)
@@ -214,75 +255,381 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     public void StopShake()
     {
-        shakeRemaining = 0f;
-        shakeDuration = 0f;
-        shakeAmplitude = 0f;
+        ResetShakeState();
+    }
+
+    public void SetPlayer(Transform target)
+    {
+        player = target;
+        playerController = player != null ? player.GetComponent<PlayerController2D>() : null;
+        SnapToPlayer();
+    }
+
+    public void SnapToPlayer()
+    {
+        ResolveReferences();
+
+        if (player == null)
+        {
+            return;
+        }
+
+        currentAimOffset = Vector2.zero;
+        targetAimOffset = Vector2.zero;
+        mouseLookAheadActive = false;
+        hasStableMousePosition = false;
+        cinematicReturnActive = false;
+        CancelCinematicFocusBlend(false);
+
+        Vector3 center = cinematicFocusActive
+            ? cinematicFocusWorldPosition
+            : player.position + (Vector3)currentGameplayFramingOffset;
+
+        currentCameraCenter = ClampToMapBounds(center);
+        currentCameraCenter.z = cameraWorldZ;
+        cameraCenterInitialized = true;
+        transform.position = currentCameraCenter;
+
+        if (shakeRoot != null)
+        {
+            shakeRoot.localPosition = Vector3.zero;
+        }
+    }
+
+    public void NotifyTargetWarped()
+    {
+        SnapToPlayer();
+    }
+
+    public void SetCinematicFocus(Vector3 worldPosition, bool immediate = false)
+    {
+        ResolveReferences();
+        CancelCinematicFocusBlend(false);
+        cinematicFocusWorldPosition = worldPosition;
+        cinematicFocusActive = true;
+        cinematicReturnActive = false;
+        targetAimOffset = Vector2.zero;
+
+        if (immediate)
+        {
+            currentAimOffset = Vector2.zero;
+            currentCameraCenter = ClampToMapBounds(worldPosition);
+            currentCameraCenter.z = cameraWorldZ;
+            cameraCenterInitialized = true;
+            transform.position = currentCameraCenter;
+        }
+    }
+
+    public void UpdateCinematicFocus(Vector3 worldPosition)
+    {
+        CancelCinematicFocusBlend(false);
+        cinematicFocusWorldPosition = worldPosition;
+    }
+
+    public Vector3 BeginCinematicFocusBlend(
+        Vector3 worldPosition,
+        float duration,
+        AnimationCurve transitionCurve)
+    {
+        ResolveReferences();
+
+        float orthographicSize = mainCamera != null
+            ? mainCamera.orthographicSize
+            : 0f;
+        Vector3 resolvedTarget = ResolveClampedCameraCenter(worldPosition, orthographicSize);
+        Vector3 renderedCenter = transform.position;
+        renderedCenter.z = cameraWorldZ;
+
+        cinematicFocusActive = true;
+        cinematicReturnActive = false;
+        cinematicFocusWorldPosition = resolvedTarget;
+        targetAimOffset = Vector2.zero;
+        currentAimOffset = Vector2.zero;
+        currentCameraCenter = renderedCenter;
+        cameraCenterInitialized = true;
+
+        cinematicFocusBlendStart = renderedCenter;
+        cinematicFocusBlendTarget = resolvedTarget;
+        cinematicFocusBlendDuration = Mathf.Max(0f, duration);
+        cinematicFocusBlendElapsed = 0f;
+        cinematicFocusBlendCurve = transitionCurve;
+        cinematicFocusBlendActive = cinematicFocusBlendDuration > 0.0001f &&
+                                    (cinematicFocusBlendTarget - cinematicFocusBlendStart).sqrMagnitude > 0.000001f;
+
+        if (!cinematicFocusBlendActive)
+        {
+            currentCameraCenter = resolvedTarget;
+            transform.position = resolvedTarget;
+        }
+
+        return resolvedTarget;
+    }
+
+    public void CancelCinematicFocusBlend(bool preserveCurrentFocus = true)
+    {
+        if (preserveCurrentFocus && cinematicFocusBlendActive)
+        {
+            cinematicFocusWorldPosition = currentCameraCenter;
+        }
+
+        cinematicFocusBlendActive = false;
+        cinematicFocusBlendElapsed = 0f;
+        cinematicFocusBlendDuration = 0f;
+        cinematicFocusBlendCurve = null;
+    }
+
+    public Vector3 ResolveClampedCameraCenter(Vector3 worldPosition, float orthographicSize)
+    {
+        ResolveReferences();
+
+        float resolvedOrthographicSize = orthographicSize > 0f
+            ? orthographicSize
+            : mainCamera != null
+                ? mainCamera.orthographicSize
+                : 0f;
+        Vector3 resolvedCenter = ClampToMapBounds(worldPosition, resolvedOrthographicSize);
+        resolvedCenter.z = cameraWorldZ;
+        return resolvedCenter;
+    }
+
+    public void ClearCinematicFocus(bool immediate = false)
+    {
+        CancelCinematicFocusBlend(false);
+        cinematicFocusActive = false;
+
+        if (immediate)
+        {
+            cinematicReturnActive = false;
+            SnapToPlayer();
+        }
+        else
+        {
+            currentCameraCenter = transform.position;
+            currentCameraCenter.z = cameraWorldZ;
+            cameraCenterInitialized = true;
+            cinematicReturnActive = true;
+        }
+    }
+
+    public bool IsAtGameplayFraming(
+        Transform gameplayTarget,
+        float positionTolerance,
+        bool requireCinematicFocusAtTarget)
+    {
+        ResolveReferences();
+
+        if (gameplayTarget == null || mainCamera == null)
+        {
+            return false;
+        }
+
+        float tolerance = Mathf.Max(0.0001f, positionTolerance);
+        float toleranceSquared = tolerance * tolerance;
+        Vector3 expectedCenter = ResolveGameplayFramingCenter(gameplayTarget.position);
+        Vector2 expectedPosition = expectedCenter;
+        Vector2 actualPosition = mainCamera.transform.position;
+
+        if ((actualPosition - expectedPosition).sqrMagnitude > toleranceSquared ||
+            currentAimOffset.sqrMagnitude > toleranceSquared ||
+            targetAimOffset.sqrMagnitude > toleranceSquared ||
+            IsShakeActive)
+        {
+            return false;
+        }
+
+        if (!requireCinematicFocusAtTarget)
+        {
+            return !cinematicFocusActive;
+        }
+
+        Vector2 focusPosition = cinematicFocusWorldPosition;
+        Vector2 targetPosition = expectedCenter;
+        return cinematicFocusActive &&
+               (focusPosition - targetPosition).sqrMagnitude <= toleranceSquared;
+    }
+
+    public bool AcquireGameplayFramingProfile(
+        object owner,
+        Vector2 worldOffset,
+        float aimOffsetMultiplier,
+        float orthographicSizeMultiplier,
+        bool immediate)
+    {
+        if (owner == null)
+        {
+            return false;
+        }
+
+        if (gameplayFramingOwner != null && !ReferenceEquals(gameplayFramingOwner, owner))
+        {
+            return false;
+        }
+
+        ResolveReferences();
+        if (cameraZoomController != null &&
+            !cameraZoomController.AcquireGameplayFramingProfile(
+                owner,
+                orthographicSizeMultiplier,
+                immediate))
+        {
+            return false;
+        }
+
+        gameplayFramingOwner = owner;
+        targetGameplayFramingOffset = worldOffset;
+        targetGameplayAimOffsetMultiplier = Mathf.Max(0.01f, aimOffsetMultiplier);
+
+        if (immediate)
+        {
+            currentGameplayFramingOffset = targetGameplayFramingOffset;
+            currentGameplayAimOffsetMultiplier = targetGameplayAimOffsetMultiplier;
+        }
+
+        return true;
+    }
+
+    public void ReleaseGameplayFramingProfile(object owner, bool immediate)
+    {
+        if (owner == null || !ReferenceEquals(gameplayFramingOwner, owner))
+        {
+            return;
+        }
+
+        gameplayFramingOwner = null;
+        targetGameplayFramingOffset = Vector2.zero;
+        targetGameplayAimOffsetMultiplier = 1f;
+
+        if (immediate)
+        {
+            currentGameplayFramingOffset = Vector2.zero;
+            currentGameplayAimOffsetMultiplier = 1f;
+        }
+
+        ResolveReferences();
+        if (cameraZoomController != null)
+        {
+            cameraZoomController.ReleaseGameplayFramingProfile(owner, immediate);
+        }
+    }
+
+    public Vector3 ResolveGameplayFramingCenter(Vector3 gameplayTargetPosition)
+    {
+        Vector3 center = gameplayTargetPosition + (Vector3)targetGameplayFramingOffset;
+        center = ClampToMapBounds(center);
+        center.z = cameraWorldZ;
+        return center;
+    }
+
+    public bool IsAtCinematicFocusCenter(Vector3 resolvedFocusCenter, float positionTolerance)
+    {
+        ResolveReferences();
+
+        if (!cinematicFocusActive || cinematicFocusBlendActive || mainCamera == null)
+        {
+            return false;
+        }
+
+        float tolerance = Mathf.Max(0.0001f, positionTolerance);
+        float toleranceSquared = tolerance * tolerance;
+        Vector2 expectedPosition = resolvedFocusCenter;
+        Vector2 actualPosition = transform.position;
+        Vector2 focusPosition = cinematicFocusWorldPosition;
+
+        return (actualPosition - expectedPosition).sqrMagnitude <= toleranceSquared &&
+               (focusPosition - expectedPosition).sqrMagnitude <= toleranceSquared &&
+               !IsShakeActive;
+    }
+
+    public void SetAimOffsetAssist(float aimOffsetMultiplier, float mouseDistanceMultiplier)
+    {
+        runtimeAimOffsetMultiplier = Mathf.Max(0.01f, aimOffsetMultiplier);
+        runtimeMouseDistanceMultiplier = Mathf.Max(0.01f, mouseDistanceMultiplier);
+    }
+
+    public void ResetAimOffsetAssist()
+    {
+        runtimeAimOffsetMultiplier = 1f;
+        runtimeMouseDistanceMultiplier = 1f;
+    }
+
+    public void SetCinematicInputOffsetLocked(bool locked)
+    {
+        cinematicInputOffsetLocked = locked;
+
+        if (locked)
+        {
+            mouseLookAheadActive = false;
+            targetAimOffset = Vector2.zero;
+        }
     }
 
     private void ResolveReferences()
     {
-        if (cinemachineCamera == null)
-        {
-            cinemachineCamera = GetComponent<CinemachineCamera>();
-        }
-
         if (mainCamera == null)
         {
             mainCamera = Camera.main;
         }
 
+        if (cameraZoomController == null)
+        {
+            cameraZoomController = GetComponent<CameraZoomController2D>();
+        }
+
+        if (shakeRoot == null && mainCamera != null && mainCamera.transform.parent != transform)
+        {
+            shakeRoot = mainCamera.transform.parent;
+        }
+
         if (player == null)
         {
-            PlayerController2D playerController = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
+            playerController = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
+            player = playerController != null ? playerController.transform : null;
+        }
+        else if (playerController == null)
+        {
+            playerController = player.GetComponent<PlayerController2D>();
+        }
 
-            if (playerController != null)
+        if (mapGenerator == null)
+        {
+            mapGenerator = FindFirstObjectByType<ExpeditionMapGenerator>(FindObjectsInactive.Include);
+        }
+    }
+
+    private void UpdateAimOffset(float deltaTime)
+    {
+        bool inputLocked = cinematicFocusActive ||
+                           cinematicInputOffsetLocked ||
+                           (playerController != null && !playerController.ControlEnabled);
+
+        targetAimOffset = inputLocked ? Vector2.zero : CalculateMouseAimOffset();
+
+        float sharpness = targetAimOffset.sqrMagnitude > currentAimOffset.sqrMagnitude
+            ? outwardSharpness
+            : recenterSharpness;
+
+        if (sharpness <= 0f || deltaTime <= 0f)
+        {
+            if (sharpness <= 0f)
             {
-                player = playerController.transform;
+                currentAimOffset = targetAimOffset;
             }
+
+            return;
         }
 
-        if (player != null && playerRb == null)
-        {
-            playerRb = player.GetComponent<Rigidbody2D>();
-        }
+        float blend = 1f - Mathf.Exp(-sharpness * deltaTime);
+        currentAimOffset = Vector2.Lerp(currentAimOffset, targetAimOffset, blend);
 
-        if (cinemachineCamera != null && follow == null)
+        if (targetAimOffset == Vector2.zero && currentAimOffset.sqrMagnitude <= 0.000001f)
         {
-            follow = cinemachineCamera.GetComponent<CinemachineFollow>();
+            currentAimOffset = Vector2.zero;
         }
     }
 
-    private Vector3 CalculateTargetOffset()
+    private Vector2 CalculateMouseAimOffset()
     {
-        if (cinematicFocusActive && player != null)
-        {
-            Vector2 focusOffset = cinematicFocusWorldPosition - player.position;
-            return new Vector3(focusOffset.x, focusOffset.y, 0f);
-        }
-
-        if (cinematicInputOffsetLocked)
-        {
-            currentMoveBiasOffset = Vector2.zero;
-            return Vector3.zero;
-        }
-
-        Vector2 aimOffset = GetMouseAimOffset();
-        Vector2 moveOffset = GetMoveBiasOffset();
-
-        Vector2 finalOffset = aimOffset + moveOffset;
-        float effectiveMaxAimOffset = Mathf.Max(0f, maxAimOffset * Mathf.Max(0.01f, runtimeAimOffsetMultiplier));
-
-        if (effectiveMaxAimOffset > 0f && finalOffset.magnitude > effectiveMaxAimOffset)
-        {
-            finalOffset = finalOffset.normalized * effectiveMaxAimOffset;
-        }
-
-        return new Vector3(finalOffset.x, finalOffset.y, 0f);
-    }
-
-    private Vector2 GetMouseAimOffset()
-    {
-        if (Mouse.current == null || player == null || mainCamera == null)
+        if (Mouse.current == null || mainCamera == null)
         {
             return Vector2.zero;
         }
@@ -298,214 +645,279 @@ public class GungeonStyleCamera2D : MonoBehaviour
         mouseScreen.x = Mathf.Clamp(mouseScreen.x, pixelRect.xMin, pixelRect.xMax);
         mouseScreen.y = Mathf.Clamp(mouseScreen.y, pixelRect.yMin, pixelRect.yMax);
 
-        Vector2 viewportCenter = pixelRect.center;
-        Vector2 centeredViewport = new Vector2(
-            (mouseScreen.x - viewportCenter.x) / (pixelRect.width * 0.5f),
-            (mouseScreen.y - viewportCenter.y) / (pixelRect.height * 0.5f)
-        );
-
-        float orthographicSize = cinemachineCamera != null
-            ? cinemachineCamera.Lens.OrthographicSize
-            : mainCamera.orthographicSize;
-        float viewportAspect = pixelRect.width / pixelRect.height;
-        Vector2 toMouse = new Vector2(
-            centeredViewport.x * orthographicSize * viewportAspect,
-            centeredViewport.y * orthographicSize
-        );
-        float distance = toMouse.magnitude;
-
-        if (distance <= deadZoneRadius)
+        float epsilon = Mathf.Max(0f, mouseMotionEpsilonPixels);
+        if (!hasStableMousePosition)
         {
-            return Vector2.zero;
+            stableMouseScreenPosition = mouseScreen;
+            hasStableMousePosition = true;
+        }
+        else if (epsilon <= 0f ||
+                 (mouseScreen - stableMouseScreenPosition).sqrMagnitude >= epsilon * epsilon)
+        {
+            stableMouseScreenPosition = mouseScreen;
         }
 
-        float effectiveMouseDistanceForOffset = Mathf.Max(
-            deadZoneRadius + 0.01f,
-            maxMouseDistanceForOffset * Mathf.Max(0.01f, runtimeMouseDistanceMultiplier)
-        );
-        float effectiveMaxAimOffset = Mathf.Max(0f, maxAimOffset * Mathf.Max(0.01f, runtimeAimOffsetMultiplier));
+        Vector2 fromCenterPixels = stableMouseScreenPosition - pixelRect.center;
+        float normalizationRadius = Mathf.Max(1f, Mathf.Min(pixelRect.width, pixelRect.height) * 0.5f);
+        float normalizedRadius = fromCenterPixels.magnitude / normalizationRadius;
 
-        float normalized = Mathf.InverseLerp(deadZoneRadius, effectiveMouseDistanceForOffset, distance);
-        float curved = offsetCurve != null ? offsetCurve.Evaluate(normalized) : normalized;
-
-        return toMouse.normalized * (effectiveMaxAimOffset * curved);
-    }
-
-    private Vector2 GetMoveBiasOffset()
-    {
-        Vector2 targetBias = Vector2.zero;
-
-        if (playerRb != null)
+        if (mouseLookAheadActive)
         {
-            Vector2 velocity = playerRb.linearVelocity;
-            float deadZone = Mathf.Max(0f, moveBiasVelocityDeadZone);
-
-            if (velocity.sqrMagnitude > deadZone * deadZone)
+            if (normalizedRadius <= lookAheadExitRadius)
             {
-                Vector2 bias = velocity.normalized * moveBiasStrength;
-                targetBias = Vector2.ClampMagnitude(bias, maxMoveBias);
+                mouseLookAheadActive = false;
             }
         }
-
-        float smoothSpeed = Mathf.Max(0f, moveBiasSmoothSpeed);
-
-        if (smoothSpeed <= 0f)
+        else if (normalizedRadius >= lookAheadEnterRadius)
         {
-            currentMoveBiasOffset = targetBias;
-            return currentMoveBiasOffset;
+            mouseLookAheadActive = true;
         }
 
-        float t = 1f - Mathf.Exp(-smoothSpeed * Time.unscaledDeltaTime);
-        currentMoveBiasOffset = Vector2.Lerp(currentMoveBiasOffset, targetBias, t);
-        return currentMoveBiasOffset;
-    }
-
-    private float ResolveOffsetSmoothSpeed(Vector3 targetOffset)
-    {
-        bool playerNearlyStopped = playerRb == null ||
-                                   playerRb.linearVelocity.sqrMagnitude <= moveBiasVelocityDeadZone * moveBiasVelocityDeadZone;
-        bool returningTowardTarget = targetOffset.sqrMagnitude < currentOffset.sqrMagnitude;
-
-        if (playerNearlyStopped && returningTowardTarget)
-        {
-            return Mathf.Max(0f, idleRecenteringSmoothSpeed);
-        }
-
-        return Mathf.Max(0f, offsetSmoothSpeed);
-    }
-
-    private Vector2 EvaluateShakeOffset()
-    {
-        if (!enableCameraShake || shakeRemaining <= 0f || shakeAmplitude <= 0f)
+        if (!mouseLookAheadActive || fromCenterPixels.sqrMagnitude <= 0.0001f)
         {
             return Vector2.zero;
         }
 
-        float deltaTime = useUnscaledTimeForShake ? Time.unscaledDeltaTime : Time.deltaTime;
+        float effectiveFullRadius = Mathf.Max(
+            lookAheadEnterRadius + 0.01f,
+            fullOffsetRadius * Mathf.Max(0.01f, runtimeMouseDistanceMultiplier)
+        );
+        float zoneRatio = Mathf.InverseLerp(lookAheadExitRadius, effectiveFullRadius, normalizedRadius);
+        zoneRatio = Mathf.SmoothStep(0f, 1f, zoneRatio);
+
+        float effectiveMaxOffset = maxAimOffset *
+                                   Mathf.Max(0.01f, runtimeAimOffsetMultiplier) *
+                                   Mathf.Max(0.01f, currentGameplayAimOffsetMultiplier);
+        return fromCenterPixels.normalized * (effectiveMaxOffset * zoneRatio);
+    }
+
+    private void UpdateGameplayFramingProfile(float deltaTime)
+    {
+        float sharpness = Mathf.Max(0f, gameplayFramingTransitionSharpness);
+        if (sharpness <= 0f || deltaTime <= 0f)
+        {
+            if (sharpness <= 0f)
+            {
+                currentGameplayFramingOffset = targetGameplayFramingOffset;
+                currentGameplayAimOffsetMultiplier = targetGameplayAimOffsetMultiplier;
+            }
+
+            return;
+        }
+
+        float blend = 1f - Mathf.Exp(-sharpness * deltaTime);
+        currentGameplayFramingOffset = Vector2.Lerp(
+            currentGameplayFramingOffset,
+            targetGameplayFramingOffset,
+            blend
+        );
+        currentGameplayAimOffsetMultiplier = Mathf.Lerp(
+            currentGameplayAimOffsetMultiplier,
+            targetGameplayAimOffsetMultiplier,
+            blend
+        );
+
+        if ((currentGameplayFramingOffset - targetGameplayFramingOffset).sqrMagnitude <= 0.000001f)
+        {
+            currentGameplayFramingOffset = targetGameplayFramingOffset;
+        }
+
+        if (Mathf.Abs(currentGameplayAimOffsetMultiplier - targetGameplayAimOffsetMultiplier) <= 0.0001f)
+        {
+            currentGameplayAimOffsetMultiplier = targetGameplayAimOffsetMultiplier;
+        }
+    }
+
+    private Vector3 ResolveDesiredCameraCenter(
+        Vector3 playerCenter,
+        float deltaTime,
+        float unscaledDeltaTime)
+    {
+        if (!cameraCenterInitialized)
+        {
+            currentCameraCenter = playerCenter;
+            cameraCenterInitialized = true;
+        }
+
+        if (cinematicFocusBlendActive)
+        {
+            cinematicFocusBlendElapsed += unscaledDeltaTime;
+            float normalized = cinematicFocusBlendDuration > 0.0001f
+                ? Mathf.Clamp01(cinematicFocusBlendElapsed / cinematicFocusBlendDuration)
+                : 1f;
+            float eased = cinematicFocusBlendCurve != null && cinematicFocusBlendCurve.length > 0
+                ? Mathf.Clamp01(cinematicFocusBlendCurve.Evaluate(normalized))
+                : Mathf.SmoothStep(0f, 1f, normalized);
+
+            currentCameraCenter = Vector3.LerpUnclamped(
+                cinematicFocusBlendStart,
+                cinematicFocusBlendTarget,
+                eased
+            );
+
+            if (normalized >= 1f)
+            {
+                currentCameraCenter = cinematicFocusBlendTarget;
+                cinematicFocusBlendActive = false;
+                cinematicFocusBlendCurve = null;
+            }
+
+            return currentCameraCenter;
+        }
+
+        if (cinematicFocusActive)
+        {
+            currentCameraCenter = DampPosition(
+                currentCameraCenter,
+                cinematicFocusWorldPosition,
+                cinematicFocusSharpness,
+                deltaTime
+            );
+            return currentCameraCenter;
+        }
+
+        if (cinematicReturnActive)
+        {
+            currentCameraCenter = DampPosition(
+                currentCameraCenter,
+                playerCenter,
+                cinematicReturnSharpness,
+                deltaTime
+            );
+
+            if ((currentCameraCenter - playerCenter).sqrMagnitude <= 0.0001f)
+            {
+                cinematicReturnActive = false;
+                currentCameraCenter = playerCenter;
+            }
+
+            return currentCameraCenter;
+        }
+
+        currentCameraCenter = playerCenter;
+        return currentCameraCenter;
+    }
+
+    private Vector3 ClampToMapBounds(Vector3 center)
+    {
+        float orthographicSize = mainCamera != null ? mainCamera.orthographicSize : 0f;
+        return ClampToMapBounds(center, orthographicSize);
+    }
+
+    private Vector3 ClampToMapBounds(Vector3 center, float orthographicSize)
+    {
+        if (mapGenerator == null || mainCamera == null)
+        {
+            return center;
+        }
+
+        Bounds bounds = mapGenerator.MapBounds;
+        if (bounds.size.x <= 0.01f || bounds.size.y <= 0.01f)
+        {
+            return center;
+        }
+
+        float halfHeight = Mathf.Max(0.01f, orthographicSize);
+        float halfWidth = halfHeight * Mathf.Max(0.01f, mainCamera.aspect);
+        float padding = Mathf.Max(0f, mapBoundsPadding);
+
+        float minX = bounds.min.x + halfWidth + padding;
+        float maxX = bounds.max.x - halfWidth - padding;
+        float minY = bounds.min.y + halfHeight + padding;
+        float maxY = bounds.max.y - halfHeight - padding;
+
+        center.x = minX <= maxX ? Mathf.Clamp(center.x, minX, maxX) : bounds.center.x;
+        center.y = minY <= maxY ? Mathf.Clamp(center.y, minY, maxY) : bounds.center.y;
+        return center;
+    }
+
+    private void ApplyShake(float deltaTime)
+    {
+        if (shakeRoot == null)
+        {
+            return;
+        }
+
+        if (!enableCameraShake || shakeRemaining <= 0f || shakeAmplitude <= 0f)
+        {
+            shakeRoot.localPosition = Vector3.zero;
+            return;
+        }
+
         float safeDuration = Mathf.Max(0.01f, shakeDuration);
         float envelope = Mathf.Clamp01(shakeRemaining / safeDuration);
         envelope *= envelope;
-
         shakeNoiseTime += deltaTime * Mathf.Max(1f, shakeFrequency);
 
         float x = Mathf.PerlinNoise(shakeSeed.x, shakeNoiseTime) * 2f - 1f;
         float y = Mathf.PerlinNoise(shakeSeed.y, shakeNoiseTime + 17.37f) * 2f - 1f;
-
-        Vector2 offset = new Vector2(x, y);
-
-        if (offset.sqrMagnitude > 1f)
-        {
-            offset.Normalize();
-        }
-
-        offset *= shakeAmplitude * envelope;
+        Vector2 offset = Vector2.ClampMagnitude(new Vector2(x, y), 1f) * (shakeAmplitude * envelope);
+        shakeRoot.localPosition = new Vector3(offset.x, offset.y, 0f);
 
         shakeRemaining -= deltaTime;
-
         if (shakeRemaining <= 0f)
         {
-            StopShake();
+            ResetShakeState();
         }
+    }
 
-        return offset;
+    private void ResetShakeState()
+    {
+        shakeRemaining = 0f;
+        shakeDuration = 0f;
+        shakeAmplitude = 0f;
+        shakeNoiseTime = 0f;
+
+        if (shakeRoot != null)
+        {
+            shakeRoot.localPosition = Vector3.zero;
+        }
     }
 
     private void ResetShakeNoise()
     {
-        shakeSeed = new Vector2(
-            Random.Range(-1000f, 1000f),
-            Random.Range(-1000f, 1000f)
+        shakeSequence++;
+        float seed = Mathf.Abs(GetInstanceID() * 0.01357f + shakeSequence * 17.17f);
+        shakeSeed = new Vector2(seed % 997f, (seed * 1.6180339f + 73.1f) % 991f);
+        shakeNoiseTime = 0f;
+    }
+
+    private static Vector3 DampPosition(Vector3 current, Vector3 target, float sharpness, float deltaTime)
+    {
+        if (sharpness <= 0f || deltaTime <= 0f)
+        {
+            return sharpness <= 0f ? target : current;
+        }
+
+        float blend = 1f - Mathf.Exp(-sharpness * deltaTime);
+        return Vector3.Lerp(current, target, blend);
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    private void ReportDiagnostics()
+    {
+        if (!enableCameraDiagnostics || !Application.isPlaying || Time.unscaledTime < nextDiagnosticLogTime)
+        {
+            return;
+        }
+
+        nextDiagnosticLogTime = Time.unscaledTime + Mathf.Max(0.1f, diagnosticLogInterval);
+        Vector3 playerScreen = player != null && mainCamera != null
+            ? mainCamera.WorldToScreenPoint(player.position)
+            : Vector3.zero;
+        int activeControllers = FindObjectsByType<GungeonStyleCamera2D>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None
+        ).Length;
+
+        Debug.Log(
+            $"[GameplayCamera] player={player.position:F3} rig={transform.position:F3} " +
+            $"playerScreen={playerScreen:F2} aim={currentAimOffset:F3}/{targetAimOffset:F3} " +
+            $"focus={cinematicFocusActive} return={cinematicReturnActive} " +
+            $"shake={(shakeRoot != null ? shakeRoot.localPosition : Vector3.zero):F3} " +
+            $"ortho={mainCamera.orthographicSize:F4} owners={activeControllers} worldPixelSnap=false",
+            this
         );
     }
-
-    private float SnapToPixelGrid(float value)
-    {
-        if (assetsPixelsPerUnit <= 0)
-        {
-            return value;
-        }
-
-        float unit = 1f / assetsPixelsPerUnit;
-        return Mathf.Round(value / unit) * unit;
-    }
-
-    public void SetPlayer(Transform target)
-    {
-        player = target;
-        playerRb = player != null ? player.GetComponent<Rigidbody2D>() : null;
-    }
-
-    public void SetCinematicFocus(Vector3 worldPosition, bool immediate = false)
-    {
-        ResolveReferences();
-        cinematicFocusActive = true;
-        cinematicFocusWorldPosition = worldPosition;
-
-        if (immediate && player != null)
-        {
-            Vector2 offset = worldPosition - player.position;
-            currentOffset = new Vector3(offset.x, offset.y, 0f);
-
-            if (follow != null)
-            {
-                follow.FollowOffset = new Vector3(currentOffset.x, currentOffset.y, cameraDistanceZ);
-            }
-        }
-    }
-
-    public void UpdateCinematicFocus(Vector3 worldPosition)
-    {
-        cinematicFocusWorldPosition = worldPosition;
-    }
-
-    public void ClearCinematicFocus(bool immediate = false)
-    {
-        cinematicFocusActive = false;
-
-        if (immediate)
-        {
-            currentOffset = Vector3.zero;
-
-            if (follow != null)
-            {
-                follow.FollowOffset = new Vector3(0f, 0f, cameraDistanceZ);
-            }
-        }
-    }
-
-    public void SetAimOffsetAssist(float aimOffsetMultiplier, float mouseDistanceMultiplier)
-    {
-        runtimeAimOffsetMultiplier = Mathf.Max(0.01f, aimOffsetMultiplier);
-        runtimeMouseDistanceMultiplier = Mathf.Max(0.01f, mouseDistanceMultiplier);
-    }
-
-    public void SetCinematicInputOffsetLocked(bool locked)
-    {
-        cinematicInputOffsetLocked = locked;
-
-        if (locked)
-        {
-            currentMoveBiasOffset = Vector2.zero;
-
-            if (!cinematicFocusActive)
-            {
-                currentOffset = Vector3.zero;
-                ResolveReferences();
-
-                if (follow != null)
-                {
-                    follow.FollowOffset = new Vector3(0f, 0f, cameraDistanceZ);
-                }
-            }
-        }
-    }
-
-    public void ResetAimOffsetAssist()
-    {
-        runtimeAimOffsetMultiplier = 1f;
-        runtimeMouseDistanceMultiplier = 1f;
-    }
-
-    public bool IsCinematicFocusActive => cinematicFocusActive;
-    public bool IsCinematicInputOffsetLocked => cinematicInputOffsetLocked;
+#endif
 }

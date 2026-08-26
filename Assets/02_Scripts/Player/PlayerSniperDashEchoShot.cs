@@ -30,6 +30,7 @@ public class PlayerSniperDashEchoShot : MonoBehaviour
         new HashSet<UnityEngine.Object>();
 
     private PlayerDash playerDash;
+    private PlayerController2D playerController;
     private PlayerWeaponController weaponController;
     private PlayerHealth playerHealth;
     private PlayerVisualStateController visualStateController;
@@ -140,7 +141,10 @@ public class PlayerSniperDashEchoShot : MonoBehaviour
         echoOrigin = transform.position;
         echoRemainingTime = Mathf.Max(0.1f, echoLifetime);
         echoAvailable = true;
-        SpawnEchoVisual(echoOrigin, transform.rotation);
+        Quaternion visualRotation = playerController != null && playerController.AimVisualRoot != null
+            ? playerController.AimVisualRoot.rotation
+            : transform.rotation;
+        SpawnEchoVisual(echoOrigin, visualRotation);
     }
 
     private void HandleSuccessfulSniperShot(SniperSuccessfulShotSnapshot shotSnapshot)
@@ -374,6 +378,11 @@ public class PlayerSniperDashEchoShot : MonoBehaviour
 
     private void CacheReferences()
     {
+        if (playerController == null)
+        {
+            playerController = GetComponent<PlayerController2D>();
+        }
+
         if (playerDash == null)
         {
             playerDash = GetComponent<PlayerDash>();

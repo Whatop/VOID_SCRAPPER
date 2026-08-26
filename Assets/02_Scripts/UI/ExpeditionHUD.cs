@@ -1,4 +1,5 @@
 using DG.Tweening;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -65,6 +66,7 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private GameObject cargoRoot;
     [SerializeField] private GameObject objectiveRoot;
     [SerializeField] private GameObject[] additionalObjectsToHideDuringCinematic;
+    [SerializeField, Min(0f)] private float cinematicRestoreFadeDuration = 0.15f;
 
     [Header("HP + Armor")]
     [SerializeField] private GaugeBarUI hpGauge;
@@ -117,9 +119,11 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private string cargoValueFormat = "{0}/{1}";
     [SerializeField] private Color cargoNormalColor = new Color(0.35f, 0.85f, 1f, 1f);
     [SerializeField] private Color cargoWarningColor = new Color(1f, 0.75f, 0.18f, 1f);
+    [SerializeField] private Color cargoCriticalColor = new Color(1f, 0.42f, 0.12f, 1f);
     [SerializeField] private Color cargoFullColor = new Color(1f, 0.2f, 0.15f, 1f);
     [Range(0f, 1f)]
     [SerializeField] private float cargoWarningRatio = 0.8f;
+    [SerializeField, Range(0f, 1f)] private float cargoCriticalRatio = 0.95f;
     [SerializeField, Min(0f)] private float cargoVisibleDuration = 2.25f;
     [SerializeField, Min(0.05f)] private float cargoFadeDuration = 0.65f;
     [SerializeField, Range(0f, 1f)] private float cargoWarningIdleAlpha = 0.45f;
@@ -146,6 +150,10 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private WarningMessageUI warningMessageUI;
 
     private bool cinematicMode;
+    private bool legacyCinematicModeRequested;
+    private readonly HashSet<object> cinematicModeOwners = new HashSet<object>();
+    private Tween cinematicVisibilityTween;
+    private bool additionalVisibilityCaptured;
     private bool subscribed;
     private bool[] additionalObjectVisibilityBeforeCinematic;
     private InputAction moveAction;
@@ -154,6 +162,7 @@ public class ExpeditionHUD : MonoBehaviour
     private Vector2 operationBriefingBasePosition;
     private bool operationBriefingPending;
     private bool operationBriefingPresented;
+    private bool operationPresentationShuttingDown;
     private bool resourceCounterOriginCached;
     private Vector2 resourceCounterOrigin;
     private Sequence cargoVisibilitySequence;
@@ -174,6 +183,10 @@ public class ExpeditionHUD : MonoBehaviour
     private ComponentShieldPassive componentShield;
 
     public bool IsCinematicMode => cinematicMode;
+    public bool IsCinematicVisibilityTransitionActive =>
+        cinematicVisibilityTween != null &&
+        cinematicVisibilityTween.IsActive() &&
+        cinematicVisibilityTween.IsPlaying();
 
     private void Awake()
     {
@@ -194,6 +207,7 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void OnEnable()
     {
+        operationPresentationShuttingDown = false;
         ResolveReferences();
         EnsureSharedStatusPresentation();
         EnsureCargoPresentation();
@@ -223,11 +237,12 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void OnDisable()
     {
+        operationPresentationShuttingDown = true;
+        HideOperationDisplayImmediate();
+        KillCinematicVisibilityTween();
         Unsubscribe();
         InputSystem.onActionChange -= HandleInputActionChange;
         GameSettingsRuntime.Changed -= HandleGameSettingsChanged;
-        UnbindOperationMovement();
-        KillOperationBriefingTween();
         KillCargoVisibilityTween();
         cargoPresentationInitialized = false;
     }
@@ -245,18 +260,56 @@ public class ExpeditionHUD : MonoBehaviour
 
     public void SetCinematicMode(bool enabled)
     {
-        if (cinematicMode == enabled)
+        if (legacyCinematicModeRequested == enabled)
         {
             return;
         }
 
-        if (enabled)
+        legacyCinematicModeRequested = enabled;
+        RefreshCinematicModeState(0f);
+    }
+
+    public void SetCinematicMode(object owner, bool enabled)
+    {
+        if (owner == null)
         {
-            CaptureAdditionalObjectVisibility();
+            SetCinematicMode(enabled);
+            return;
         }
 
-        cinematicMode = enabled;
-        ApplyCinematicVisibility();
+        bool changed = enabled
+            ? cinematicModeOwners.Add(owner)
+            : cinematicModeOwners.Remove(owner);
+
+        if (changed)
+        {
+            RefreshCinematicModeState(0f);
+        }
+    }
+
+    public float ReleaseCinematicMode(object owner)
+    {
+        if (owner == null)
+        {
+            legacyCinematicModeRequested = false;
+        }
+        else if (!cinematicModeOwners.Remove(owner))
+        {
+            return 0f;
+        }
+
+        return RefreshCinematicModeState(cinematicRestoreFadeDuration);
+    }
+
+    public void CompleteCinematicVisibilityTransition()
+    {
+        if (cinematicVisibilityTween == null)
+        {
+            return;
+        }
+
+        KillCinematicVisibilityTween();
+        ApplyCinematicVisibility(0f);
     }
 
     public void RefreshAll()
@@ -316,19 +369,20 @@ public class ExpeditionHUD : MonoBehaviour
         bool visible,
         bool subdued)
     {
-        EnsureOperationPresentation();
-        if (operationRoot == null)
+        if (!visible)
+        {
+            HideOperationDisplayImmediate();
+            return;
+        }
+
+        if (operationPresentationShuttingDown || !isActiveAndEnabled)
         {
             return;
         }
 
-        if (!visible)
+        EnsureOperationPresentation();
+        if (operationRoot == null)
         {
-            operationBriefingPending = false;
-            operationBriefingPresented = false;
-            UnbindOperationMovement();
-            KillOperationBriefingTween();
-            operationRoot.SetActive(false);
             return;
         }
 
@@ -364,6 +418,11 @@ public class ExpeditionHUD : MonoBehaviour
 
     public void ShowObjectiveBriefing(string title, string detail, Color accentColor)
     {
+        if (operationPresentationShuttingDown || !isActiveAndEnabled)
+        {
+            return;
+        }
+
         EnsureOperationPresentation();
         if (operationRoot == null)
         {
@@ -396,6 +455,11 @@ public class ExpeditionHUD : MonoBehaviour
     }
 
     public void HideObjectiveBriefing()
+    {
+        HideOperationDisplayImmediate();
+    }
+
+    public void HideOperationDisplayImmediate()
     {
         operationBriefingPending = false;
         operationBriefingPresented = false;
@@ -451,7 +515,8 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void PlayOperationBriefing()
     {
-        if (operationRoot == null || operationCanvasGroup == null)
+        if (operationPresentationShuttingDown || !isActiveAndEnabled ||
+            operationRoot == null || operationCanvasGroup == null)
         {
             return;
         }
@@ -497,7 +562,11 @@ public class ExpeditionHUD : MonoBehaviour
                 operationBriefingRect.anchoredPosition = operationBriefingBasePosition;
             }
 
-            operationRoot.SetActive(false);
+            if (operationRoot != null)
+            {
+                operationRoot.SetActive(false);
+            }
+
             operationBriefingSequence = null;
         });
     }
@@ -512,7 +581,10 @@ public class ExpeditionHUD : MonoBehaviour
             operationBriefingRect.anchoredPosition = operationBriefingBasePosition;
         }
 
-        operationCanvasGroup?.DOKill();
+        if (operationCanvasGroup != null)
+        {
+            operationCanvasGroup.DOKill();
+        }
     }
 
     private void ResolveReferences()
@@ -1019,7 +1091,7 @@ public class ExpeditionHUD : MonoBehaviour
         rootRect.anchorMin = new Vector2(0.5f, 0.5f);
         rootRect.anchorMax = new Vector2(0.5f, 0.5f);
         rootRect.pivot = new Vector2(0f, 0.5f);
-        rootRect.anchoredPosition = new Vector2(-232f, -82f);
+        rootRect.anchoredPosition = new Vector2(-232f, -67f);
         rootRect.sizeDelta = new Vector2(104f, 22f);
 
         cargoPanelImage = root.GetComponent<Image>();
@@ -1231,8 +1303,6 @@ public class ExpeditionHUD : MonoBehaviour
             new Vector2(-160f, -103f), new Vector2(96f, 24f));
         SetCenteredRect(reinforcementSlotUI != null ? reinforcementSlotUI.transform as RectTransform : null,
             new Vector2(-220f, -103f), new Vector2(28f, 28f));
-        SetCenteredRect(cargoRoot != null ? cargoRoot.transform as RectTransform : null,
-            new Vector2(-232f, -82f), new Vector2(104f, 22f), new Vector2(0f, 0.5f));
     }
 
     private static void SetCenteredRect(
@@ -1543,7 +1613,8 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void EnsureOperationPresentation()
     {
-        if (operationRoot != null || !createOperationPresentationIfMissing)
+        if (operationRoot != null || !createOperationPresentationIfMissing ||
+            operationPresentationShuttingDown || !isActiveAndEnabled)
         {
             return;
         }
@@ -1699,6 +1770,7 @@ public class ExpeditionHUD : MonoBehaviour
         {
             cargoController.CargoChanged += HandleCargoChanged;
             cargoController.CargoFullRejected += HandleCargoFullRejected;
+            cargoController.LoadStateChanged += HandleCargoLoadStateChanged;
         }
 
         if (coreTrackingController != null)
@@ -1762,6 +1834,7 @@ public class ExpeditionHUD : MonoBehaviour
         {
             cargoController.CargoChanged -= HandleCargoChanged;
             cargoController.CargoFullRejected -= HandleCargoFullRejected;
+            cargoController.LoadStateChanged -= HandleCargoLoadStateChanged;
         }
 
         if (coreTrackingController != null)
@@ -1784,35 +1857,101 @@ public class ExpeditionHUD : MonoBehaviour
         subscribed = false;
     }
 
-    private void ApplyCinematicVisibility()
+    private float RefreshCinematicModeState(float restoreFadeDuration)
+    {
+        bool nextCinematicMode = legacyCinematicModeRequested || cinematicModeOwners.Count > 0;
+        if (cinematicMode == nextCinematicMode)
+        {
+            return 0f;
+        }
+
+        if (nextCinematicMode && !additionalVisibilityCaptured)
+        {
+            CaptureAdditionalObjectVisibility();
+            additionalVisibilityCaptured = true;
+        }
+
+        cinematicMode = nextCinematicMode;
+        return ApplyCinematicVisibility(cinematicMode ? 0f : restoreFadeDuration);
+    }
+
+    private float ApplyCinematicVisibility(float restoreFadeDuration = 0f)
     {
         bool visible = !cinematicMode;
         ResolveCinematicCanvasGroup();
-        SetCanvasGroupVisible(visible);
+        KillCinematicVisibilityTween();
 
-        if (additionalObjectsToHideDuringCinematic != null)
+        if (!visible)
         {
-            for (int i = 0; i < additionalObjectsToHideDuringCinematic.Length; i++)
-            {
-                GameObject target = additionalObjectsToHideDuringCinematic[i];
-                if (target == null)
-                {
-                    continue;
-                }
-
-                if (!visible)
-                {
-                    target.SetActive(false);
-                }
-                else if (additionalObjectVisibilityBeforeCinematic != null &&
-                         i < additionalObjectVisibilityBeforeCinematic.Length)
-                {
-                    target.SetActive(additionalObjectVisibilityBeforeCinematic[i]);
-                }
-            }
+            SetCanvasGroupVisible(false);
+            ApplyAdditionalCinematicVisibility(false);
+            RefreshBindingHints();
+            return 0f;
         }
 
+        float safeFadeDuration = Mathf.Max(0f, restoreFadeDuration);
+        if (safeFadeDuration > 0.0001f &&
+            cinematicCanvasGroup != null &&
+            isActiveAndEnabled)
+        {
+            cinematicCanvasGroup.alpha = 0f;
+            cinematicCanvasGroup.interactable = false;
+            cinematicCanvasGroup.blocksRaycasts = false;
+
+            cinematicVisibilityTween = cinematicCanvasGroup
+                .DOFade(1f, safeFadeDuration)
+                .SetUpdate(true)
+                .SetEase(Ease.OutQuad)
+                .OnComplete(() =>
+                {
+                    cinematicVisibilityTween = null;
+
+                    if (this == null || cinematicMode)
+                    {
+                        return;
+                    }
+
+                    SetCanvasGroupVisible(true);
+                    ApplyAdditionalCinematicVisibility(true);
+                    additionalVisibilityCaptured = false;
+                    RefreshBindingHints();
+                });
+
+            return safeFadeDuration;
+        }
+
+        SetCanvasGroupVisible(true);
+        ApplyAdditionalCinematicVisibility(true);
+        additionalVisibilityCaptured = false;
         RefreshBindingHints();
+        return 0f;
+    }
+
+    private void ApplyAdditionalCinematicVisibility(bool visible)
+    {
+        if (additionalObjectsToHideDuringCinematic == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < additionalObjectsToHideDuringCinematic.Length; i++)
+        {
+            GameObject target = additionalObjectsToHideDuringCinematic[i];
+            if (target == null)
+            {
+                continue;
+            }
+
+            if (!visible)
+            {
+                target.SetActive(false);
+            }
+            else if (additionalObjectVisibilityBeforeCinematic != null &&
+                     i < additionalObjectVisibilityBeforeCinematic.Length)
+            {
+                target.SetActive(additionalObjectVisibilityBeforeCinematic[i]);
+            }
+        }
     }
 
     private void ResolveCinematicCanvasGroup()
@@ -1839,6 +1978,17 @@ public class ExpeditionHUD : MonoBehaviour
         cinematicCanvasGroup.alpha = visible ? 1f : 0f;
         cinematicCanvasGroup.interactable = visible;
         cinematicCanvasGroup.blocksRaycasts = visible;
+    }
+
+    private void KillCinematicVisibilityTween()
+    {
+        if (cinematicVisibilityTween == null)
+        {
+            return;
+        }
+
+        cinematicVisibilityTween.Kill(false);
+        cinematicVisibilityTween = null;
     }
 
     private void CaptureAdditionalObjectVisibility()
@@ -1914,6 +2064,28 @@ public class ExpeditionHUD : MonoBehaviour
     {
         UpdateCargoDisplay();
         InitializeCargoVisibilityIfNeeded();
+        EmphasizeCargoVisibility();
+    }
+
+    private void HandleCargoLoadStateChanged(CargoLoadState previous, CargoLoadState current)
+    {
+        if (current >= CargoLoadState.Critical && previous < CargoLoadState.Critical)
+        {
+            ShowCommunication(
+                ShipCommunicationChannel.Cargo,
+                "적재 한계 임박",
+                ShipCommunicationSeverity.Warning
+            );
+        }
+        else if (current >= CargoLoadState.Overloaded && previous < CargoLoadState.Overloaded)
+        {
+            ShowCommunication(
+                ShipCommunicationChannel.Cargo,
+                "적재 과부하 - 기동 성능 저하",
+                ShipCommunicationSeverity.Warning
+            );
+        }
+
         EmphasizeCargoVisibility();
     }
     private void HandleGameSettingsChanged() => RefreshBindingHints();
@@ -2319,7 +2491,9 @@ public class ExpeditionHUD : MonoBehaviour
         float ratio = Mathf.Clamp01(current / (float)safeCapacity);
         Color color = ratio >= 0.999f
             ? cargoFullColor
-            : ratio >= cargoWarningRatio ? cargoWarningColor : cargoNormalColor;
+            : ratio >= cargoCriticalRatio
+                ? cargoCriticalColor
+                : ratio >= cargoWarningRatio ? cargoWarningColor : cargoNormalColor;
 
         cargoGauge?.SetValue(current, safeCapacity);
         string cargoText = string.Format(cargoValueFormat, current, capacity);

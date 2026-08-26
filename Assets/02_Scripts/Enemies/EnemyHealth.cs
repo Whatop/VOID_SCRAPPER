@@ -83,7 +83,8 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         rb = GetComponent<Rigidbody2D>();
         configuredDropRewardOnDeath = dropRewardOnDeath;
         bossPatternController = GetComponent<BossPatternController>();
-        isBoss = bossPatternController != null;
+        isBoss = bossPatternController != null ||
+                 GetComponent<PirateCommanderBossController>() != null;
 
         if (rewardDropper == null)
         {

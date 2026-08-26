@@ -782,12 +782,11 @@ public sealed class ExpeditionOperationController : MonoBehaviour
 
     private void HideOperationHud()
     {
-        expeditionHUD?.SetOperationDisplay(
-            string.Empty,
-            string.Empty,
-            searchAccentColor,
-            false,
-            false
-        );
+        if (expeditionHUD == null)
+        {
+            return;
+        }
+
+        expeditionHUD.HideOperationDisplayImmediate();
     }
 }

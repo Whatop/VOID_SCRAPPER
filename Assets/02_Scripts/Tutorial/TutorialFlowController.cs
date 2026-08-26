@@ -150,6 +150,7 @@ public sealed class TutorialFlowController : MonoBehaviour
     private bool openingConversationCompleted;
     private bool weaponGuidanceCompleted;
     private bool radarGuidanceCompleted;
+    private bool radarModeGuidanceShown;
     private bool harvestVisibilityGuidanceCompleted;
     private bool cargoGuidanceCompleted;
     private bool activePickupGuidanceCompleted;
@@ -365,6 +366,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         openingConversationCompleted = false;
         weaponGuidanceCompleted = false;
         radarGuidanceCompleted = false;
+        radarModeGuidanceShown = false;
         harvestVisibilityGuidanceCompleted = false;
         cargoGuidanceCompleted = false;
         activePickupGuidanceCompleted = false;
@@ -791,6 +793,11 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void HandleCargoChanged(int currentLoad, int maxCapacity)
     {
+        if (cargoController != null && cargoController.IsApplyingExactOwnedRecollection)
+        {
+            return;
+        }
+
         if (currentStep == TutorialStep.CollectResources &&
             normalHarvestDestroyed &&
             currentLoad > cargoLoadBeforePickup)
@@ -848,11 +855,52 @@ public sealed class TutorialFlowController : MonoBehaviour
                 continue;
             }
 
-            radarScanner?.CloseRadar();
+            if (currentStep == TutorialStep.FindSignalDevice)
+            {
+                CompleteSignalDeviceDiscovery();
+                return;
+            }
 
-            TryAdvanceCheckpoint(currentStep);
+            if (TryAdvanceCheckpoint(TutorialStep.RadarDiscoverSalvage))
+            {
+                ShowRadarModeGuidanceOnce();
+            }
+
             return;
         }
+    }
+
+    private bool CompleteSignalDeviceDiscovery()
+    {
+        if (currentStep != TutorialStep.FindSignalDevice)
+        {
+            return false;
+        }
+
+        signalDeviceAutoRegistered = true;
+        return TryAdvanceCheckpoint(TutorialStep.FindSignalDevice);
+    }
+
+    private void ShowRadarModeGuidanceOnce()
+    {
+        if (radarModeGuidanceShown || radarScanner == null || expeditionHUD == null)
+        {
+            return;
+        }
+
+        radarModeGuidanceShown = true;
+        string radarBinding = radarScanner.RadarBindingDisplay;
+        string quickScanBinding = radarScanner.QuickScanBindingDisplay;
+        string guidance =
+            $"[{radarBinding}]\uB97C \uC9E7\uAC8C \uB20C\uB7EC \uB808\uC774\uB354 \uD328\uB110\uC744 \uB04C \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n" +
+            $"\uB808\uC774\uB354\uAC00 \uD65C\uC131\uD654\uB41C \uB3D9\uC548 [{quickScanBinding}]\uB97C \uB204\uB974\uBA74 \uC989\uC2DC \uB2E4\uC2DC \uD0D0\uC0C9\uD569\uB2C8\uB2E4.";
+
+        expeditionHUD.ShowCommunication(
+            ShipCommunicationChannel.Radar,
+            guidance,
+            ShipCommunicationSeverity.Information,
+            4.25f
+        );
     }
 
     private void HandlePlayerInteracted(IInteractable target)
@@ -1619,13 +1667,26 @@ public sealed class TutorialFlowController : MonoBehaviour
             }
             else if (currentStep == TutorialStep.FindSignalDevice && radarScanTarget != null)
             {
-                if (!signalDeviceAutoRegistered &&
-                    radarScanner != null &&
-                    radarScanner.RegisterNearbyTarget(
-                        radarScanTarget,
-                        Mathf.Max(0.5f, proximityAutoRegistrationDistance)))
+                float registrationDistance = Mathf.Max(0.5f, proximityAutoRegistrationDistance);
+                Vector2 playerPosition = playerRoot.position;
+                Vector2 signalPosition = radarScanTarget.WorldPosition;
+                bool insideRegistrationRange =
+                    (playerPosition - signalPosition).sqrMagnitude <=
+                    registrationDistance * registrationDistance;
+
+                if (!signalDeviceAutoRegistered && insideRegistrationRange && radarScanner != null)
                 {
-                    signalDeviceAutoRegistered = true;
+                    bool registered = radarScanner.RegisterNearbyTarget(
+                        radarScanTarget,
+                        registrationDistance
+                    );
+
+                    if (registered || radarScanTarget.IsMapDiscovered)
+                    {
+                        objectiveCheckRoutine = null;
+                        CompleteSignalDeviceDiscovery();
+                        yield break;
+                    }
                 }
             }
             else if (currentStep == TutorialStep.TravelSearchArea && alienSignal != null)

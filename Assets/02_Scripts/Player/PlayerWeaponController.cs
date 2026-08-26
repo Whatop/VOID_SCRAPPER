@@ -46,17 +46,40 @@ public class PlayerWeaponController : MonoBehaviour
     private PlayerWeaponBase currentWeapon;
     private WeaponTreeType currentWeaponTree;
     private bool externalInputLocked;
+    private readonly HashSet<object> externalInputLocks = new HashSet<object>();
 
     public Transform FirePoint => firePoint;
     public PlayerWeaponBase CurrentWeapon => currentWeapon;
     public WeaponTreeType CurrentWeaponTree => currentWeaponTree;
-    public bool ExternalInputLocked => externalInputLocked;
+    public bool ExternalInputLocked => externalInputLocked || externalInputLocks.Count > 0;
 
     public event Action<WeaponTreeType, PlayerWeaponBase> WeaponEquipped;
 
     public void SetExternalInputLocked(bool locked)
     {
         externalInputLocked = locked;
+
+        if (locked && currentWeapon != null)
+        {
+            currentWeapon.ForceCancel();
+        }
+    }
+
+    public void SetExternalInputLocked(object source, bool locked)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        if (locked)
+        {
+            externalInputLocks.Add(source);
+        }
+        else
+        {
+            externalInputLocks.Remove(source);
+        }
 
         if (locked && currentWeapon != null)
         {
@@ -203,7 +226,7 @@ public class PlayerWeaponController : MonoBehaviour
 
     private bool CanUseWeapon()
     {
-        if (externalInputLocked)
+        if (ExternalInputLocked)
         {
             return false;
         }

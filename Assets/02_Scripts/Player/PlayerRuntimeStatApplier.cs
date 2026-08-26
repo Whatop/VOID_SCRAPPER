@@ -26,15 +26,12 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     [SerializeField] private float baseEmergencyReturnCapacityRatio = 0.7f;
 
     [Header("Cargo Weight")]
-    [SerializeField] private int scrapCargoWeight = 1;
+    [SerializeField] private int scrapCargoWeight = 2;
     [SerializeField] private int coreShardCargoWeight = 12;
     [SerializeField] private int stabilizedAlloyCargoWeight = 2;
 
     [Header("Trait Apply Rule")]
     [SerializeField] private bool applyTraitEffectsCumulatively;
-
-    [Header("Building Fallback")]
-    [SerializeField] private bool useFallbackBuildingEffects = true;
 
     [Header("Debug")]
     [SerializeField] private bool logApplyResult = true;
@@ -120,7 +117,6 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
         ApplyShip(selectedShip);
 
-        ApplyBuildings(progress, buildingDefinitions);
         ApplySectorTechnologies(progress);
         ApplyPermanentTraits(progress, traitDefinitions, selectedWeaponTree);
 
@@ -299,27 +295,6 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
         return null;
     }
-private BuildingDefinition FindBuildingDefinition(
-        IReadOnlyList<BuildingDefinition> buildingDefinitions,
-        BuildingType buildingType)
-    {
-        if (buildingDefinitions == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < buildingDefinitions.Count; i++)
-        {
-            BuildingDefinition definition = buildingDefinitions[i];
-            if (definition != null && definition.BuildingType == buildingType)
-            {
-                return definition;
-            }
-        }
-
-        return null;
-    }
-
     private void ApplyShip(ShipDefinition ship)
     {
         if (ship == null)
@@ -339,21 +314,6 @@ private BuildingDefinition FindBuildingDefinition(
             runtimeBonusState.AddHarvestYieldPercent(ship.HarvestYieldBonusPercent);
             runtimeBonusState.AddHarvestObjectDamagePercent(ship.HarvestObjectDamageBonusPercent);
         }
-
-        ClampStats();
-    }
-
-    private void ApplyBuildings(PermanentProgress progress, IReadOnlyList<BuildingDefinition> buildingDefinitions)
-    {
-        if (progress == null)
-        {
-            return;
-        }
-
-        ApplyBuilding(progress, buildingDefinitions, BuildingType.Hangar);
-        ApplyBuilding(progress, buildingDefinitions, BuildingType.EngineWorkshop);
-        ApplyBuilding(progress, buildingDefinitions, BuildingType.WeaponLab);
-        ApplyBuilding(progress, buildingDefinitions, BuildingType.RecoveryProcessor);
 
         ClampStats();
     }
@@ -390,227 +350,18 @@ private BuildingDefinition FindBuildingDefinition(
                 case SectorTechnologyEffectType.HealEfficiencyPercent:
                     runtimeBonusState?.AddHealEfficiencyPercent(value);
                     break;
+
+                case SectorTechnologyEffectType.DamagePercent:
+                    weaponModifiers?.AddDamagePercent(value);
+                    break;
+
+                case SectorTechnologyEffectType.ScrapGainPercent:
+                    runtimeBonusState?.AddScrapGainPercent(value);
+                    break;
             }
         }
 
         ClampStats();
-    }
-
-    private void ApplyBuilding(PermanentProgress progress, IReadOnlyList<BuildingDefinition> buildingDefinitions, BuildingType buildingType)
-    {
-        int level = progress.GetBuildingLevel(buildingType);
-        if (level <= 0)
-        {
-            return;
-        }
-
-        BuildingDefinition definition = FindBuildingDefinition(buildingDefinitions, buildingType);
-        BuildingLevelDefinition levelDefinition = definition != null ? definition.GetLevelDefinition(level) : null;
-
-        bool appliedFromDefinition = ApplyBuildingLevelDefinition(levelDefinition);
-
-        if (!appliedFromDefinition && useFallbackBuildingEffects)
-        {
-            ApplyFallbackBuildingEffect(buildingType, level);
-        }
-    }
-
-    private bool ApplyBuildingLevelDefinition(BuildingLevelDefinition levelDefinition)
-    {
-        if (levelDefinition == null || levelDefinition.Modifiers == null)
-        {
-            return false;
-        }
-
-        bool appliedAny = false;
-
-        foreach (BuildingModifier modifier in levelDefinition.Modifiers)
-        {
-            if (modifier == null)
-            {
-                continue;
-            }
-
-            ApplyBuildingModifier(modifier.ModifierType, modifier.Value);
-            appliedAny = true;
-        }
-
-        return appliedAny;
-    }
-
-    private void ApplyBuildingModifier(BuildingModifierType modifierType, float value)
-    {
-        switch (modifierType)
-        {
-            case BuildingModifierType.MaxHpBonus:
-                runtimeStats.maxHp += value;
-                break;
-
-            case BuildingModifierType.RepairEfficiencyBonus:
-                runtimeBonusState?.AddRepairEfficiencyPercent(value);
-                break;
-
-            case BuildingModifierType.MoveSpeedPercent:
-                ApplyMoveSpeedPercent(value);
-                break;
-
-            case BuildingModifierType.DashDistanceBonus:
-                runtimeStats.dashDistance += value;
-                break;
-
-            case BuildingModifierType.DashCooldownReduction:
-                runtimeStats.dashCooldown -= Mathf.Abs(value);
-                break;
-
-            case BuildingModifierType.DamagePercent:
-                weaponModifiers?.AddDamagePercent(value);
-                break;
-
-            case BuildingModifierType.ProjectileSpeedPercent:
-                weaponModifiers?.AddProjectileSpeedPercent(value);
-                break;
-
-            case BuildingModifierType.FireRatePercent:
-                weaponModifiers?.AddFireRatePercent(value);
-                break;
-
-            case BuildingModifierType.ScrapGainPercent:
-                runtimeBonusState?.AddScrapGainPercent(value);
-                break;
-
-            case BuildingModifierType.HealEfficiencyPercent:
-                runtimeBonusState?.AddHealEfficiencyPercent(value);
-                break;
-
-            case BuildingModifierType.PickupRangeBonus:
-                runtimeBonusState?.AddPickupRangeBonus(value);
-                break;
-
-            case BuildingModifierType.CreditsGainPercent:
-                runtimeBonusState?.AddCreditsGainPercent(value);
-                break;
-        }
-    }
-
-    private void ApplyFallbackBuildingEffect(BuildingType buildingType, int level)
-    {
-        switch (buildingType)
-        {
-            case BuildingType.Hangar:
-                ApplyFallbackHangar(level);
-                break;
-
-            case BuildingType.EngineWorkshop:
-                ApplyFallbackEngineWorkshop(level);
-                break;
-
-            case BuildingType.WeaponLab:
-                ApplyFallbackWeaponLab(level);
-                break;
-
-            case BuildingType.RecoveryProcessor:
-                ApplyFallbackRecoveryProcessor(level);
-                break;
-        }
-    }
-
-    private void ApplyFallbackHangar(int level)
-    {
-        switch (level)
-        {
-            case 1:
-                runtimeStats.maxHp += 2f;
-                runtimeStats.cargoCapacity += 10;
-                break;
-
-            case 2:
-                runtimeStats.maxHp += 4f;
-                runtimeStats.cargoCapacity += 20;
-                runtimeBonusState?.AddRepairEfficiencyPercent(10f);
-                break;
-
-            default:
-                runtimeStats.maxHp += 6f;
-                runtimeStats.cargoCapacity += 30;
-                runtimeBonusState?.AddRepairEfficiencyPercent(20f);
-                break;
-        }
-    }
-
-    private void ApplyFallbackEngineWorkshop(int level)
-    {
-        switch (level)
-        {
-            case 1:
-                ApplyMoveSpeedPercent(5f);
-                break;
-
-            case 2:
-                ApplyMoveSpeedPercent(5f);
-                runtimeStats.dashDistance += 0.5f;
-                break;
-
-            default:
-                ApplyMoveSpeedPercent(8f);
-                runtimeStats.dashDistance += 0.5f;
-                runtimeStats.dashCooldown -= 0.1f;
-                break;
-        }
-    }
-
-    private void ApplyFallbackWeaponLab(int level)
-    {
-        if (weaponModifiers == null)
-        {
-            return;
-        }
-
-        switch (level)
-        {
-            case 1:
-                weaponModifiers.AddDamagePercent(10f);
-                break;
-
-            case 2:
-                weaponModifiers.AddDamagePercent(10f);
-                weaponModifiers.AddProjectileSpeedPercent(10f);
-                break;
-
-            default:
-                weaponModifiers.AddDamagePercent(10f);
-                weaponModifiers.AddProjectileSpeedPercent(10f);
-                weaponModifiers.AddFireRatePercent(8f);
-                break;
-        }
-    }
-
-    private void ApplyFallbackRecoveryProcessor(int level)
-    {
-        if (runtimeBonusState == null)
-        {
-            return;
-        }
-
-        switch (level)
-        {
-            case 1:
-                runtimeBonusState.AddScrapGainPercent(10f);
-                runtimeBonusState.AddHarvestYieldPercent(5f);
-                break;
-
-            case 2:
-                runtimeBonusState.AddScrapGainPercent(10f);
-                runtimeBonusState.AddHarvestYieldPercent(8f);
-                runtimeBonusState.AddHealEfficiencyPercent(25f);
-                break;
-
-            default:
-                runtimeBonusState.AddScrapGainPercent(10f);
-                runtimeBonusState.AddHarvestYieldPercent(12f);
-                runtimeBonusState.AddHealEfficiencyPercent(25f);
-                runtimeBonusState.AddPickupRangeBonus(1.5f);
-                break;
-        }
     }
 
     private void ApplyPermanentTraits(PermanentProgress progress, IReadOnlyList<TraitDefinition> traitDefinitions, WeaponTreeType selectedWeaponTree)

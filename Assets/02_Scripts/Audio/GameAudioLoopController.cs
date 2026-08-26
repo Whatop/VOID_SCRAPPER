@@ -75,7 +75,6 @@ public class GameAudioLoopController : MonoBehaviour
         }
 
         GameObject root = new GameObject("GameAudioLoopController");
-        DontDestroyOnLoad(root);
         Instance = root.AddComponent<GameAudioLoopController>();
     }
 

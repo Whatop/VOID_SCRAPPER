@@ -10,7 +10,7 @@ public enum RewardPickupKind
 
 [RequireComponent(typeof(Collider2D))]
 [RequireComponent(typeof(Rigidbody2D))]
-public class RewardPickup : MonoBehaviour
+public class RewardPickup : MonoBehaviour, IInteractable
 {
     private static readonly HashSet<RewardPickup> ActiveRegistry = new HashSet<RewardPickup>();
 
@@ -87,7 +87,10 @@ public class RewardPickup : MonoBehaviour
     private Collider2D pickupCollider;
     private Transform player;
     private PlayerRuntimeBonusState playerBonusState;
+    private PlayerCargoController playerCargoController;
     private float cargoBlockedWarningTimer;
+    private float playerCollectionBlockTimer;
+    private bool preserveExactCargoAmount;
 
     private Vector2 currentVelocity;
     private float lifeTimer;
@@ -105,9 +108,28 @@ public class RewardPickup : MonoBehaviour
     public RewardPickupKind PickupKind => pickupKind;
     public CurrencyType CurrencyType => currencyType;
     public int Amount => amount;
+    public string InteractionText => BuildCargoInteractionText();
     public bool IsAvailable => !collected && isActiveAndEnabled && gameObject.activeInHierarchy;
-    public bool CanBeTakenByEnemy => IsAvailable && activeAge >= Mathf.Max(0f, enemyCollectionProtectionDuration);
+    public bool CanBeTakenByEnemy => !preserveExactCargoAmount &&
+                                     IsAvailable &&
+                                     activeAge >= Mathf.Max(0f, enemyCollectionProtectionDuration);
     public float EnemyProtectionRemaining => Mathf.Max(0f, enemyCollectionProtectionDuration - activeAge);
+
+    public Sprite GetCurrencySprite(CurrencyType type)
+    {
+        return type switch
+        {
+            CurrencyType.Experience => experienceSprite,
+            CurrencyType.Credits => creditsSprite,
+            CurrencyType.ScrapParts => scrapSprite,
+            CurrencyType.CoreShards => coreShardSprite,
+            CurrencyType.StabilizedAlloy => stabilizedAlloySprite != null
+                ? stabilizedAlloySprite
+                : scrapSprite,
+            CurrencyType.TuningChips => tuningChipSprite != null ? tuningChipSprite : experienceSprite,
+            _ => null
+        };
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetActiveRegistry()
@@ -175,8 +197,11 @@ public class RewardPickup : MonoBehaviour
         playerFindTimer = 0f;
         player = null;
         playerBonusState = null;
+        playerCargoController = null;
         currentVelocity = Vector2.zero;
         cargoBlockedWarningTimer = 0f;
+        playerCollectionBlockTimer = 0f;
+        preserveExactCargoAmount = false;
         activeAge = 0f;
         visualPhase = Random.Range(0f, Mathf.PI * 2f);
         RestoreVisualBaseState();
@@ -226,6 +251,11 @@ public class RewardPickup : MonoBehaviour
             cargoBlockedWarningTimer -= Time.deltaTime;
         }
 
+        if (playerCollectionBlockTimer > 0f)
+        {
+            playerCollectionBlockTimer -= Time.deltaTime;
+        }
+
         ResolvePlayer();
 
         if (player == null)
@@ -239,8 +269,11 @@ public class RewardPickup : MonoBehaviour
 
         float distance = Vector2.Distance(transform.position, player.position);
         bool cargoBlocked = IsCargoBlockedForPlayer(player.gameObject);
+        bool manualCargoPickup = RequiresManualCargoPickup(player.gameObject);
         bool healBlocked = IsHealBlockedForPlayer(player.gameObject);
         bool attractionBlocked =
+            playerCollectionBlockTimer > 0f ||
+            manualCargoPickup ||
             (cargoBlocked && stopAttractionWhenCargoBlocked) ||
             (healBlocked && stopHealAttractionAtFullHealth);
 
@@ -252,7 +285,7 @@ public class RewardPickup : MonoBehaviour
                 Mathf.Max(0.1f, blockedAttractionStopSpeed) * Time.deltaTime
             );
 
-            if (cargoBlocked && distance <= finalCollectRadius + 0.15f)
+            if (!manualCargoPickup && cargoBlocked && distance <= finalCollectRadius + 0.15f)
             {
                 ShowCargoBlockedWarning();
             }
@@ -260,7 +293,7 @@ public class RewardPickup : MonoBehaviour
             return;
         }
 
-        if (distance <= finalCollectRadius)
+        if (!manualCargoPickup && distance <= finalCollectRadius)
         {
             if (CanCollect(player.gameObject))
             {
@@ -274,7 +307,7 @@ public class RewardPickup : MonoBehaviour
             return;
         }
 
-        if (distance <= finalAttractRadius)
+        if (!manualCargoPickup && distance <= finalAttractRadius)
         {
             Vector2 direction = ((Vector2)player.position - (Vector2)transform.position).normalized;
             float speed = Mathf.Min(maxAttractSpeed, attractSpeed + distance);
@@ -328,13 +361,19 @@ public class RewardPickup : MonoBehaviour
 
         if (playerHealth != null)
         {
-            TryCollectOrWarn(playerHealth.gameObject);
+            if (!RequiresManualCargoPickup(playerHealth.gameObject))
+            {
+                TryCollectOrWarn(playerHealth.gameObject);
+            }
             return;
         }
 
         if (!string.IsNullOrWhiteSpace(playerTag) && other.CompareTag(playerTag))
         {
-            TryCollectOrWarn(other.gameObject);
+            if (!RequiresManualCargoPickup(other.gameObject))
+            {
+                TryCollectOrWarn(other.gameObject);
+            }
         }
     }
 
@@ -347,8 +386,22 @@ public class RewardPickup : MonoBehaviour
         currentVelocity = initialVelocity;
         collected = false;
         activeAge = 0f;
+        preserveExactCargoAmount = false;
+        playerCollectionBlockTimer = 0f;
 
         ApplyVisual();
+    }
+
+    public void InitializeOwnedCurrency(
+        CurrencyType type,
+        int value,
+        Vector2 initialVelocity,
+        float collectionBlockSeconds)
+    {
+        InitializeCurrency(type, value, initialVelocity);
+        preserveExactCargoAmount = true;
+        playerCollectionBlockTimer = Mathf.Max(0f, collectionBlockSeconds);
+        lifeTimer = Mathf.Max(lifeTimer, 120f);
     }
 
     public void InitializeHeal(float value, Vector2 initialVelocity)
@@ -359,6 +412,8 @@ public class RewardPickup : MonoBehaviour
         currentVelocity = initialVelocity;
         collected = false;
         activeAge = 0f;
+        preserveExactCargoAmount = false;
+        playerCollectionBlockTimer = 0f;
 
         ApplyVisual();
     }
@@ -406,6 +461,11 @@ public class RewardPickup : MonoBehaviour
 
     private bool CanCollect(GameObject playerObject)
     {
+        if (playerCollectionBlockTimer > 0f)
+        {
+            return false;
+        }
+
         if (pickupKind == RewardPickupKind.Heal)
         {
             return !IsHealBlockedForPlayer(playerObject);
@@ -494,7 +554,7 @@ public class RewardPickup : MonoBehaviour
             ? playerObject.GetComponent<PlayerRuntimeBonusState>()
             : playerBonusState;
 
-        if (bonusState != null)
+        if (!preserveExactCargoAmount && bonusState != null)
         {
             finalAmount = bonusState.ApplyCurrencyGain(currencyType, amount);
         }
@@ -523,6 +583,7 @@ public class RewardPickup : MonoBehaviour
         }
 
         PlayerRuntimeBonusState bonusState = playerObject.GetComponent<PlayerRuntimeBonusState>();
+        playerCargoController ??= playerObject.GetComponentInParent<PlayerCargoController>();
 
         switch (pickupKind)
         {
@@ -560,7 +621,7 @@ public class RewardPickup : MonoBehaviour
 
         int finalAmount = amount;
 
-        if (bonusState != null)
+        if (!preserveExactCargoAmount && bonusState != null)
         {
             finalAmount = bonusState.ApplyCurrencyGain(currencyType, amount);
         }
@@ -578,8 +639,79 @@ public class RewardPickup : MonoBehaviour
             return false;
         }
 
-        int acceptedAmount = RunManager.Instance.AddCurrencyRespectingCargo(currencyType, finalAmount);
+        int acceptedAmount = preserveExactCargoAmount && playerCargoController != null
+            ? playerCargoController.AddExactOwnedCurrency(currencyType, finalAmount)
+            : RunManager.Instance.AddCurrencyRespectingCargo(currencyType, finalAmount);
         return acceptedAmount >= finalAmount;
+    }
+
+    public bool CanInteract(GameObject interactor)
+    {
+        return IsAvailable &&
+               playerCollectionBlockTimer <= 0f &&
+               RequiresManualCargoPickup(interactor);
+    }
+
+    public void Interact(GameObject interactor)
+    {
+        if (!CanInteract(interactor))
+        {
+            return;
+        }
+
+        TryCollectOrWarn(interactor);
+    }
+
+    private bool RequiresManualCargoPickup(GameObject playerObject)
+    {
+        if (pickupKind != RewardPickupKind.Currency ||
+            playerCollectionBlockTimer > 0f ||
+            RunManager.Instance == null ||
+            !RunManager.Instance.HasActiveRun ||
+            !RunManager.Instance.CurrentRun.UsesCargo(currencyType))
+        {
+            return false;
+        }
+
+        PlayerCargoController cargoController = playerCargoController;
+
+        if (cargoController == null && playerObject != null)
+        {
+            cargoController = playerObject.GetComponentInParent<PlayerCargoController>();
+
+            if (player != null && playerObject.transform.root == player.root)
+            {
+                playerCargoController = cargoController;
+            }
+        }
+
+        return cargoController != null &&
+               (cargoController.RequiresManualPickup ||
+                !cargoController.IsAutoPickupEnabled(currencyType));
+    }
+
+    private string BuildCargoInteractionText()
+    {
+        int displayAmount = player != null ? GetFinalCurrencyAmount(player.gameObject) : Mathf.Max(1, amount);
+        int weight = RunManager.Instance != null && RunManager.Instance.HasActiveRun
+            ? RunManager.Instance.CurrentRun.GetCargoWeight(currencyType) * displayAmount
+            : 0;
+        string resourceName = GetCargoDisplayName(currencyType);
+
+        return weight > 0
+            ? $"회수  {resourceName} ×{displayAmount} · 적재 +{weight}"
+            : $"회수  {resourceName} ×{displayAmount}";
+    }
+
+    private static string GetCargoDisplayName(CurrencyType type)
+    {
+        return type switch
+        {
+            CurrencyType.ScrapParts => "스크랩",
+            CurrencyType.CoreShards => "코어",
+            CurrencyType.StabilizedAlloy => "안정화 합금",
+            _ => type.ToString()
+        };
     }
 
     private void GrantHeal(GameObject playerObject, PlayerRuntimeBonusState bonusState)
@@ -700,6 +832,12 @@ public class RewardPickup : MonoBehaviour
 
         player = playerObject.transform;
         playerBonusState = playerObject.GetComponent<PlayerRuntimeBonusState>();
+        playerCargoController = playerObject.GetComponent<PlayerCargoController>();
+
+        if (playerCargoController == null)
+        {
+            playerCargoController = playerObject.GetComponentInParent<PlayerCargoController>();
+        }
     }
 
     private void ApplyVisual()
@@ -717,18 +855,7 @@ public class RewardPickup : MonoBehaviour
         }
         else
         {
-            targetSprite = currencyType switch
-            {
-                CurrencyType.Experience => experienceSprite,
-                CurrencyType.Credits => creditsSprite,
-                CurrencyType.ScrapParts => scrapSprite,
-                CurrencyType.CoreShards => coreShardSprite,
-                CurrencyType.StabilizedAlloy => stabilizedAlloySprite != null
-                    ? stabilizedAlloySprite
-                    : scrapSprite,
-                CurrencyType.TuningChips => tuningChipSprite != null ? tuningChipSprite : experienceSprite,
-                _ => null
-            };
+            targetSprite = GetCurrencySprite(currencyType);
         }
 
         if (targetSprite != null)

@@ -1,19 +1,7 @@
 fileFormatVersion: 2
 guid: d0e6cdf232193c34d9b69706792996ae
 TextureImporter:
-  internalIDToNameTable:
-  - first:
-      213: -193735190694296275
-    second: Counterfeit Access Core_0
-  - first:
-      213: 828679728837574274
-    second: Counterfeit Access Core_1
-  - first:
-      213: 1656933154756194591
-    second: Counterfeit Access Core_2
-  - first:
-      213: 3742659860487720469
-    second: Counterfeit Access Core_3
+  internalIDToNameTable: []
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -120,95 +108,7 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: Counterfeit Access Core_0
-      rect:
-        serializedVersion: 2
-        x: 4
-        y: 15
-        width: 54
-        height: 47
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: d258c2aded6bf4df0800000000000000
-      internalID: -193735190694296275
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Counterfeit Access Core_1
-      rect:
-        serializedVersion: 2
-        x: 5
-        y: 24
-        width: 11
-        height: 14
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 28e3ee5a2df008b00800000000000000
-      internalID: 828679728837574274
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Counterfeit Access Core_2
-      rect:
-        serializedVersion: 2
-        x: 7
-        y: 2
-        width: 47
-        height: 25
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: f117fc9eceb9ef610800000000000000
-      internalID: 1656933154756194591
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Counterfeit Access Core_3
-      rect:
-        serializedVersion: 2
-        x: 49
-        y: 24
-        width: 10
-        height: 15
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 51ecb7b405990f330800000000000000
-      internalID: 3742659860487720469
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
@@ -222,11 +122,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      Counterfeit Access Core_0: -193735190694296275
-      Counterfeit Access Core_1: 828679728837574274
-      Counterfeit Access Core_2: 1656933154756194591
-      Counterfeit Access Core_3: 3742659860487720469
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

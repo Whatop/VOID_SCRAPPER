@@ -123,6 +123,7 @@ public class BaseTurretController : MonoBehaviour, IPlayerOwnedAlly, IPlayerProj
     private void OnEnable()
     {
         ResolveReferences();
+        SubscribeShopOwner(true);
 
         if (turretHealth != null)
         {
@@ -133,10 +134,13 @@ public class BaseTurretController : MonoBehaviour, IPlayerOwnedAlly, IPlayerProj
         targetRefreshTimer = 0f;
         ClearTarget();
         ConfigureProjectileAllegiance();
+        RefreshRadarAllegiancePresentation();
     }
 
     private void OnDisable()
     {
+        SubscribeShopOwner(false);
+
         if (turretHealth != null)
         {
             turretHealth.Died -= HandleTurretDied;
@@ -227,13 +231,14 @@ public class BaseTurretController : MonoBehaviour, IPlayerOwnedAlly, IPlayerProj
         ResetPlayerDeploymentCombat();
         playerAllied = false;
         playerOwner = null;
-        shopOwner = owner;
+        SetShopOwner(owner);
         fieldBaseOwner = null;
         exteriorFieldBaseDefense = false;
         targetModeInitialized = false;
         targetRefreshTimer = 0f;
         ClearTarget();
         ConfigureProjectileAllegiance();
+        RefreshRadarAllegiancePresentation();
     }
 
     public void ConfigureFieldBaseDefense(FieldBaseController owner, bool exteriorDefense)
@@ -247,6 +252,7 @@ public class BaseTurretController : MonoBehaviour, IPlayerOwnedAlly, IPlayerProj
         exteriorFieldBaseDefense = exteriorDefense;
         targetRefreshTimer = 0f;
         ClearTarget();
+        RefreshRadarAllegiancePresentation();
     }
 
     public void ConfigurePlayerAlly(
@@ -265,7 +271,7 @@ public class BaseTurretController : MonoBehaviour, IPlayerOwnedAlly, IPlayerProj
         ResetPlayerDeploymentCombat();
         playerAllied = true;
         playerOwner = owner.transform;
-        shopOwner = null;
+        SetShopOwner(null);
         fieldBaseOwner = null;
         exteriorFieldBaseDefense = false;
         targetModeInitialized = false;
@@ -295,6 +301,7 @@ public class BaseTurretController : MonoBehaviour, IPlayerOwnedAlly, IPlayerProj
         ApplyPlayerDeploymentOverrides();
         SetPowered(true);
         ConfigureProjectileAllegiance();
+        RefreshRadarAllegiancePresentation();
     }
 
     public void HandlePlayerProjectileHit(EnemyHealth enemyHealth, EnemyBaseAI enemyAI)
@@ -417,6 +424,62 @@ public class BaseTurretController : MonoBehaviour, IPlayerOwnedAlly, IPlayerProj
             machineGunLeftFirePoint,
             machineGunRightFirePoint
         );
+        attackController?.SetProjectileSourceRoot(transform);
+    }
+
+    private void SetShopOwner(ShopStructure owner)
+    {
+        SubscribeShopOwner(false);
+        shopOwner = owner;
+        SubscribeShopOwner(isActiveAndEnabled);
+    }
+
+    private void SubscribeShopOwner(bool subscribe)
+    {
+        if (shopOwner == null)
+        {
+            return;
+        }
+
+        shopOwner.StateChanged -= HandleShopStateChanged;
+
+        if (subscribe)
+        {
+            shopOwner.StateChanged += HandleShopStateChanged;
+        }
+    }
+
+    private void HandleShopStateChanged(ShopStructure _)
+    {
+        targetModeInitialized = false;
+        targetRefreshTimer = 0f;
+        ClearTarget();
+        ConfigureProjectileAllegiance();
+        RefreshRadarAllegiancePresentation();
+    }
+
+    private void RefreshRadarAllegiancePresentation()
+    {
+        if (radarTarget == null)
+        {
+            return;
+        }
+
+        if (playerAllied)
+        {
+            radarTarget.SetVisible(false);
+            return;
+        }
+
+        if (shopOwner != null && !shopOwner.IsHostile)
+        {
+            radarTarget.SetMarkerType(RadarMarkerType.Shop);
+            radarTarget.SetVisible(false);
+            return;
+        }
+
+        radarTarget.SetMarkerType(RadarMarkerType.Enemy);
+        radarTarget.SetVisible(true);
     }
 
     private void ApplyPlayerDeploymentOverrides()

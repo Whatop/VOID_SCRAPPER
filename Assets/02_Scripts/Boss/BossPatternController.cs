@@ -304,6 +304,7 @@ public class BossPatternController : MonoBehaviour
     private bool phase2TransitionStarted;
     private bool phase2ShieldActive;
     private bool phase2ShieldDamageEnabled;
+    private bool externalIntroPresentationOwnershipActive;
     private float phase2ShieldHp;
     private float phase2ShieldMaxHpRuntime;
 
@@ -448,7 +449,7 @@ public class BossPatternController : MonoBehaviour
         bool deathPresentationOwnsCinematicState = deathHandled &&
                                                     GetComponent<BossDeathPresentation>() != null;
 
-        if (!deathPresentationOwnsCinematicState)
+        if (!deathPresentationOwnsCinematicState && !externalIntroPresentationOwnershipActive)
         {
             RestorePhase2PlayerInput();
             RestorePhase2Presentation(true);
@@ -509,6 +510,11 @@ public class BossPatternController : MonoBehaviour
         );
         externallyConfiguredVerticalSpaceScale = Mathf.Clamp(verticalScale, 0.2f, 1f);
         arenaCenter = center;
+    }
+
+    public void SetExternalIntroPresentationOwnership(bool owned)
+    {
+        externalIntroPresentationOwnershipActive = owned;
     }
 
     public IEnumerator PlayIntroGuardianEntryRoutine()

@@ -754,18 +754,18 @@ public class PlayerVisualStateController : MonoBehaviour
         ParticleSystem.EmitParams emit = new ParticleSystem.EmitParams
         {
             position = worldPosition,
-            velocity = direction * 1.2f,
+            velocity = direction * 0.55f,
             startColor = color,
-            startLifetime = 0.065f,
+            startLifetime = 0.05f,
             startSize = Mathf.Max(0.02f, size),
             applyShapeToPosition = false
         };
         muzzlePulseParticles.Emit(emit, 1);
 
         Color coreColor = Color.Lerp(color, Color.white, 0.55f);
-        emit.velocity = direction * 0.65f;
+        emit.velocity = direction * 0.2f;
         emit.startColor = coreColor;
-        emit.startLifetime = 0.045f;
+        emit.startLifetime = 0.035f;
         emit.startSize = Mathf.Max(0.02f, size * 0.55f);
         muzzlePulseParticles.Emit(emit, 1);
     }
@@ -785,7 +785,7 @@ public class PlayerVisualStateController : MonoBehaviour
         main.loop = false;
         main.playOnAwake = false;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.maxParticles = 20;
+        main.maxParticles = 12;
         main.startSpeed = 0f;
         main.startLifetime = 0.06f;
         main.startSize = 0.2f;
@@ -797,9 +797,8 @@ public class PlayerVisualStateController : MonoBehaviour
         shape.enabled = false;
 
         ParticleSystemRenderer particleRenderer = pulseObject.GetComponent<ParticleSystemRenderer>();
-        particleRenderer.renderMode = ParticleSystemRenderMode.Stretch;
-        particleRenderer.velocityScale = 0.08f;
-        particleRenderer.lengthScale = 1.4f;
+        particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+        particleRenderer.alignment = ParticleSystemRenderSpace.View;
         particleRenderer.sortingLayerID = baseSpriteRenderer != null
             ? baseSpriteRenderer.sortingLayerID
             : 0;
@@ -858,7 +857,7 @@ public class PlayerVisualStateController : MonoBehaviour
                 returnDuration = 0.085f;
                 cameraAmplitude = shotgunCameraAmplitude;
                 cameraDuration = 0.1f;
-                muzzleSize = 0.3f;
+                muzzleSize = 0.22f;
                 break;
 
             case WeaponTreeType.Sniper:
@@ -868,7 +867,7 @@ public class PlayerVisualStateController : MonoBehaviour
                 returnDuration = 0.1f;
                 cameraAmplitude = Mathf.Lerp(sniperCameraAmplitude * 0.67f, sniperCameraAmplitude, powerRatio);
                 cameraDuration = Mathf.Lerp(0.09f, 0.12f, powerRatio);
-                muzzleSize = Mathf.Lerp(0.22f, 0.3f, powerRatio);
+                muzzleSize = Mathf.Lerp(0.15f, 0.21f, powerRatio);
                 break;
 
             default:
@@ -878,7 +877,7 @@ public class PlayerVisualStateController : MonoBehaviour
                 returnDuration = 0.045f;
                 cameraAmplitude = machineGunCameraAmplitude;
                 cameraDuration = 0.04f;
-                muzzleSize = 0.1f;
+                muzzleSize = 0.08f;
                 break;
         }
     }

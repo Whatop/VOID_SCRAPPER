@@ -230,7 +230,7 @@ public class SettlementUIController : MonoBehaviour
             return;
         }
 
-        if (keyboard.spaceKey.wasPressedThisFrame)
+        if (keyboard.spaceKey.wasPressedThisFrame && selectedIndex >= 0)
         {
             Button selectedButton = primaryNavigationButtons[primaryNavigationIndex];
             if (selectedButton != null && selectedButton.IsInteractable())
@@ -452,7 +452,7 @@ public class SettlementUIController : MonoBehaviour
         if (settlementController != null)
         {
             int levelBefore = settlementController.GetBuildingLevel(selectedBuilding);
-            bool success = settlementController.TryRepairOrUpgradeBuilding(selectedBuilding);
+            bool success = settlementController.TryCompleteRestorationProject(selectedBuilding);
             PlayProgressActionResultSound(success, levelBefore);
         }
 
@@ -480,7 +480,7 @@ public class SettlementUIController : MonoBehaviour
         switch (selectedKind)
         {
             case SettlementSelectionKind.Building:
-                settlementController.TryRepairOrUpgradeBuilding(selectedBuilding);
+                settlementController.TryCompleteRestorationProject(selectedBuilding);
                 break;
 
             case SettlementSelectionKind.Trait:
@@ -503,7 +503,7 @@ public class SettlementUIController : MonoBehaviour
                 }
                 else if (currentPanel == SettlementPanelKind.Repair)
                 {
-                    settlementController.TryRepairOrUpgradeBuilding(selectedBuilding);
+                    settlementController.TryCompleteRestorationProject(selectedBuilding);
                 }
                 else if (currentPanel == SettlementPanelKind.Trait)
                 {
@@ -618,11 +618,10 @@ public class SettlementUIController : MonoBehaviour
             return;
         }
 
-        SettlementRepairViewData repairViewData = settlementController.BuildBuildingRepairViewData(selectedBuilding);
-        string actionLabel = settlementController.GetBuildingActionLabel(selectedBuilding);
+        SettlementRestorationViewData restorationViewData = settlementController.BuildRestorationViewData(selectedBuilding);
         int currentLevel = settlementController.GetBuildingLevel(selectedBuilding);
 
-        hud.SetRepairDetail(repairViewData, actionLabel);
+        hud.SetRestorationDetail(restorationViewData);
         hud.SetRepairPreview(
             selectedBuilding,
             currentLevel,
@@ -718,8 +717,8 @@ public class SettlementUIController : MonoBehaviour
         }
 
         hangarNavigationView = ConfigureNavigationButton(hangarNavigationButton, "격납고", new Vector2(-208f, 70f), new Color(0.55f, 0.95f, 1f, 1f));
-        repairNavigationView = ConfigureNavigationButton(openRepairPanelButton, "보수", new Vector2(-208f, 42f), new Color(1f, 0.66f, 0.28f, 1f));
-        sectorTechnologyNavigationView = ConfigureNavigationButton(sectorTechnologyNavigationButton, "지역 기술", new Vector2(-208f, 14f), new Color(0.72f, 0.92f, 1f, 1f));
+        repairNavigationView = ConfigureNavigationButton(openRepairPanelButton, "정착지 복구", new Vector2(-208f, 42f), new Color(1f, 0.66f, 0.28f, 1f));
+        sectorTechnologyNavigationView = ConfigureNavigationButton(sectorTechnologyNavigationButton, "기체 보강", new Vector2(-208f, 14f), new Color(0.72f, 0.92f, 1f, 1f));
         traitNavigationView = ConfigureNavigationButton(openTraitPanelButton, "추가 특성", new Vector2(-208f, -14f), new Color(0.75f, 0.45f, 1f, 1f));
         settingsNavigationView = ConfigureNavigationButton(openSettingsPanelButton, "설정", new Vector2(-208f, -42f), new Color(0.52f, 0.72f, 0.82f, 1f));
 
@@ -756,7 +755,7 @@ public class SettlementUIController : MonoBehaviour
         }
 
         ConfigureButtonLabel(shipActionButton, "기체 선택", 7f);
-        ConfigureButtonLabel(repairActionButton, "수리", 7f);
+        ConfigureButtonLabel(repairActionButton, "복구", 7f);
         ConfigureButtonLabel(repairBackButton, "뒤로", 7f);
         ConfigureButtonLabel(traitActionButton, "해금", 7f);
         ConfigureButtonLabel(traitBackButton, "뒤로", 7f);

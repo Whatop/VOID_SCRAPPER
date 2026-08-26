@@ -1,7 +1,7 @@
 using Action = System.Action;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Unity.Cinemachine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController2D : MonoBehaviour
@@ -17,12 +17,17 @@ public class PlayerController2D : MonoBehaviour
     [SerializeField] private float moveSpeed = 6f;
 
     [Header("Rotation Settings")]
+    [Tooltip("Visual-only aim pivot. Keep the Rigidbody2D root unrotated so physics interpolation remains the sole position presentation path.")]
+    [SerializeField] private Transform aimVisualRoot;
     [SerializeField] private float rotationOffset = -90f;
     [Min(0f)]
     [SerializeField] private float aimDeadZoneDistance = 0.28f;
     [Min(0f)]
     [SerializeField] private float rotationSmoothSpeed = 28f;
     [SerializeField] private bool useUnscaledRotationTime = true;
+    [Tooltip("Optional visual-only aim quantization. Zero keeps smooth rotation and does not affect AimDirection or projectile direction.")]
+    [Min(0f)]
+    [SerializeField] private float aimRotationStepDegrees;
 
     [Header("External Push")]
     [Min(0.02f)]
@@ -47,6 +52,7 @@ public class PlayerController2D : MonoBehaviour
     private bool controlEnabled = true;
     private bool movementLocked;
     private bool movementInputActive;
+    private readonly HashSet<object> externalControlLocks = new HashSet<object>();
 
     private Vector2 externalPushVelocity;
     private float externalPushTimer;
@@ -55,14 +61,19 @@ public class PlayerController2D : MonoBehaviour
     private bool movementVelocityOverrideActive;
     private Vector2 movementVelocityOverride;
     private readonly Collider2D[] repositionOverlapBuffer = new Collider2D[24];
+    private readonly Dictionary<object, float> externalMoveSpeedMultipliers =
+        new Dictionary<object, float>();
+    private float externalMoveSpeedMultiplier = 1f;
 
     public InputActionAsset InputActions => inputActions;
     public string ActionMapName => actionMapName;
     public Vector2 MoveInput => moveInput;
     public Vector2 AimDirection => aimDirection;
     public float MoveSpeed => moveSpeed;
+    public float EffectiveMoveSpeed => moveSpeed * externalMoveSpeedMultiplier;
+    public Transform AimVisualRoot => aimVisualRoot;
     public bool IsMoving => moveInput.sqrMagnitude > 0.001f;
-    public bool ControlEnabled => controlEnabled;
+    public bool ControlEnabled => controlEnabled && externalControlLocks.Count == 0;
     public bool MovementLocked => movementLocked;
     public bool MovementVelocityOverrideActive => movementVelocityOverrideActive;
 
@@ -73,7 +84,14 @@ public class PlayerController2D : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         bodyCollider = GetComponent<Collider2D>();
         mainCamera = Camera.main;
-        currentRotationZ = transform.eulerAngles.z;
+        ResolveAimVisualRoot();
+
+        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+        rb.freezeRotation = true;
+
+        currentRotationZ = aimVisualRoot != null
+            ? aimVisualRoot.localEulerAngles.z
+            : 0f;
     }
 
     private void OnEnable()
@@ -147,7 +165,7 @@ public class PlayerController2D : MonoBehaviour
             return;
         }
 
-        if (!controlEnabled || moveAction == null)
+        if (!ControlEnabled || moveAction == null)
         {
             SetMoveInput(Vector2.zero);
             return;
@@ -184,9 +202,9 @@ public class PlayerController2D : MonoBehaviour
         }
         else
         {
-            inputVelocity = (!controlEnabled || movementLocked)
+            inputVelocity = (!ControlEnabled || movementLocked)
                 ? Vector2.zero
-                : moveInput * moveSpeed;
+                : moveInput * EffectiveMoveSpeed;
         }
 
         Vector2 pushVelocity = Vector2.zero;
@@ -210,7 +228,7 @@ public class PlayerController2D : MonoBehaviour
 
     private void RotateToMouse()
     {
-        if (GameplayPauseManager.IsPaused || !controlEnabled)
+        if (GameplayPauseManager.IsPaused || !ControlEnabled)
         {
             return;
         }
@@ -231,6 +249,13 @@ public class PlayerController2D : MonoBehaviour
         aimDirection = direction.normalized;
 
         float targetRotationZ = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg + rotationOffset;
+        float rotationStep = Mathf.Max(0f, aimRotationStepDegrees);
+
+        if (rotationStep > 0f)
+        {
+            targetRotationZ = Mathf.Round(targetRotationZ / rotationStep) * rotationStep;
+        }
+
         float deltaTime = useUnscaledRotationTime ? Time.unscaledDeltaTime : Time.deltaTime;
 
         if (rotationSmoothSpeed <= 0f || deltaTime <= 0f)
@@ -243,7 +268,10 @@ public class PlayerController2D : MonoBehaviour
             currentRotationZ = Mathf.LerpAngle(currentRotationZ, targetRotationZ, t);
         }
 
-        transform.rotation = Quaternion.Euler(0f, 0f, currentRotationZ);
+        if (aimVisualRoot != null)
+        {
+            aimVisualRoot.localRotation = Quaternion.Euler(0f, 0f, currentRotationZ);
+        }
     }
 
     public bool TryGetAimWorldPosition(out Vector2 worldPosition)
@@ -280,6 +308,33 @@ public class PlayerController2D : MonoBehaviour
             ClearMovementVelocityOverride();
 
             if (rb != null)
+            {
+                rb.linearVelocity = Vector2.zero;
+            }
+        }
+    }
+
+    public void SetExternalControlLocked(object source, bool locked)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        if (locked)
+        {
+            externalControlLocks.Add(source);
+        }
+        else
+        {
+            externalControlLocks.Remove(source);
+        }
+
+        if (!ControlEnabled)
+        {
+            SetMoveInput(Vector2.zero);
+
+            if (rb != null && !movementVelocityOverrideActive)
             {
                 rb.linearVelocity = Vector2.zero;
             }
@@ -394,10 +449,6 @@ public class PlayerController2D : MonoBehaviour
             return false;
         }
 
-        Vector3 previousPosition = transform.position;
-        Vector3 nextPosition = new Vector3(destination.x, destination.y, previousPosition.z);
-        Vector3 positionDelta = nextPosition - previousPosition;
-
         SetMoveInput(Vector2.zero);
         externalPushVelocity = Vector2.zero;
         externalPushTimer = 0f;
@@ -406,11 +457,33 @@ public class PlayerController2D : MonoBehaviour
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
         rb.position = destination;
-        transform.position = nextPosition;
 
-        CinemachineCore.OnTargetObjectWarped(transform, positionDelta);
         Physics2D.SyncTransforms();
+        GungeonStyleCamera2D.Instance?.NotifyTargetWarped();
         return true;
+    }
+
+    private void ResolveAimVisualRoot()
+    {
+        if (aimVisualRoot != null)
+        {
+            return;
+        }
+
+        aimVisualRoot = transform.Find("AimVisualRoot");
+
+        if (aimVisualRoot == null)
+        {
+            // Legacy scene safety: keep aim rotation visual-only even before an
+            // authored AimVisualRoot is assigned. Production scenes serialize
+            // the dedicated pivot above the recoil VisualRoot.
+            aimVisualRoot = transform.Find("VisualRoot");
+        }
+
+        if (aimVisualRoot == null)
+        {
+            Debug.LogError("Player aim visual root is not assigned.", this);
+        }
     }
 
     private int ResolveRepositionBlockingMask()
@@ -439,5 +512,38 @@ public class PlayerController2D : MonoBehaviour
     public void AddMoveSpeed(float amount)
     {
         moveSpeed = Mathf.Max(0.1f, moveSpeed + amount);
+    }
+
+    public void SetExternalMoveSpeedMultiplier(object source, float multiplier)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        externalMoveSpeedMultipliers[source] = Mathf.Max(0.05f, multiplier);
+        RecalculateExternalMoveSpeedMultiplier();
+    }
+
+    public void ClearExternalMoveSpeedMultiplier(object source)
+    {
+        if (source == null || !externalMoveSpeedMultipliers.Remove(source))
+        {
+            return;
+        }
+
+        RecalculateExternalMoveSpeedMultiplier();
+    }
+
+    private void RecalculateExternalMoveSpeedMultiplier()
+    {
+        float multiplier = 1f;
+
+        foreach (KeyValuePair<object, float> entry in externalMoveSpeedMultipliers)
+        {
+            multiplier *= Mathf.Max(0.05f, entry.Value);
+        }
+
+        externalMoveSpeedMultiplier = Mathf.Max(0.05f, multiplier);
     }
 }

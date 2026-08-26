@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyId: melee_charger
   displayName: "\uADFC\uC811 \uB3CC\uC9C4\uD615 \uC801"
   enemyType: 9
-  enemyPrefab: {fileID: 0}
+  enemyPrefab: {fileID: 6983035740697639387, guid: 06a8ea9933f245368acd601015120165, type: 3}
   maxHp: 14
   moveSpeed: 3.2
   visionRange: 9

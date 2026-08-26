@@ -21,11 +21,31 @@ public static class RadarMarkerPresentation
         Color specialColor,
         Color coreColor)
     {
-        // Enemy roles share one hostile visual language. Role controllers may still
-        // carry legacy custom colors, but radar/map presentation must remain red.
-        if (markerType == RadarMarkerType.Enemy || markerType == RadarMarkerType.EnemyBase)
+        // These categories are the shared Radar/Map visual language. Individual
+        // targets may still carry legacy marker colors, but category readability
+        // must remain stable across both presentations.
+        switch (markerType)
         {
-            return enemyColor;
+            case RadarMarkerType.Enemy:
+            case RadarMarkerType.EnemyBase:
+            case RadarMarkerType.Boss:
+                return enemyColor;
+
+            case RadarMarkerType.RewardObject:
+                return rewardColor;
+
+            case RadarMarkerType.Meteor:
+                return meteorColor;
+
+            case RadarMarkerType.Event:
+                return eventColor;
+
+            case RadarMarkerType.Shop:
+                return specialColor;
+
+            case RadarMarkerType.Core:
+            case RadarMarkerType.ReturnBeacon:
+                return coreColor;
         }
 
         if (customColor.a > 0f && customColor != Color.white)
@@ -69,6 +89,11 @@ public static class RadarMarkerPresentation
 
         switch (markerType)
         {
+            case RadarMarkerType.Enemy:
+                shape = RadarMarkerShape.Circle;
+                hollow = false;
+                return true;
+
             case RadarMarkerType.RewardObject:
             case RadarMarkerType.Event:
                 shape = RadarMarkerShape.Circle;
@@ -80,7 +105,7 @@ public static class RadarMarkerPresentation
                 return false;
 
             case RadarMarkerType.Meteor:
-                shape = RadarMarkerShape.Circle;
+                shape = RadarMarkerShape.Square;
                 hollow = false;
                 return true;
 
@@ -146,6 +171,27 @@ public class RadarMarkerUI : MonoBehaviour
     public void SetVisual(Sprite sprite, Color color, float scale, RadarMarkerType markerType)
     {
         SetVisual(sprite, color, scale, (RadarMarkerType?)markerType);
+    }
+
+    public void SetShapeVisual(
+        RadarMarkerShape shape,
+        bool hollow,
+        Color color,
+        float scale = 1f)
+    {
+        EnsureShapeGraphic();
+        shapeGraphic.Configure(shape, hollow, color);
+        shapeGraphic.enabled = true;
+
+        if (iconImage != null)
+        {
+            iconImage.enabled = false;
+        }
+
+        if (rectTransform != null)
+        {
+            rectTransform.localScale = Vector3.one * Mathf.Max(0.1f, scale);
+        }
     }
 
     private void SetVisual(Sprite sprite, Color color, float scale, RadarMarkerType? markerType)

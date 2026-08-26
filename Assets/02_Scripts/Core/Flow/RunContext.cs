@@ -33,9 +33,10 @@ public class RunContext
     [SerializeField] private int maxCargoCapacity = 100;
     [Range(0f, 1f)]
     [SerializeField] private float emergencyReturnCapacityRatio = 0.7f;
-    [SerializeField] private int scrapCargoWeight = 1;
+    [SerializeField] private int scrapCargoWeight = 2;
     [SerializeField] private int coreShardCargoWeight = 12;
     [SerializeField] private int stabilizedAlloyCargoWeight = 2;
+    [SerializeField] private int disabledCargoAutoPickupMask;
 
     [Header("Campaign Boss Passive Runtime")]
     [SerializeField] private int matterReconstructorCargoProgress;
@@ -146,6 +147,7 @@ public class RunContext
         specialContainerRareMissStreak = 0;
         ClearEquippedReinforcement();
         ResetCargoRule();
+        disabledCargoAutoPickupMask = 0;
         matterReconstructorCargoProgress = 0;
         matterReconstructorArmorStacks = 0;
         ClearPlayerVitalCarryover();
@@ -337,7 +339,7 @@ public class RunContext
     {
         maxCargoCapacity = 100;
         emergencyReturnCapacityRatio = 0.7f;
-        scrapCargoWeight = 1;
+        scrapCargoWeight = 2;
         coreShardCargoWeight = 12;
         stabilizedAlloyCargoWeight = 2;
     }
@@ -345,7 +347,7 @@ public class RunContext
     public void SetCargoRule(
         int capacity,
         float emergencyRatio,
-        int scrapWeight = 1,
+        int scrapWeight = 2,
         int coreWeight = 12,
         int alloyWeight = 2)
     {
@@ -377,6 +379,32 @@ public class RunContext
     public bool UsesCargo(CurrencyType currencyType)
     {
         return GetCargoWeight(currencyType) > 0;
+    }
+
+    public bool IsCargoAutoPickupEnabled(CurrencyType currencyType)
+    {
+        if (!UsesCargo(currencyType))
+        {
+            return false;
+        }
+
+        int bit = 1 << (int)currencyType;
+        return (disabledCargoAutoPickupMask & bit) == 0;
+    }
+
+    public bool SetCargoAutoPickupEnabled(CurrencyType currencyType, bool enabled)
+    {
+        if (!UsesCargo(currencyType))
+        {
+            return false;
+        }
+
+        int bit = 1 << (int)currencyType;
+        int previousMask = disabledCargoAutoPickupMask;
+        disabledCargoAutoPickupMask = enabled
+            ? disabledCargoAutoPickupMask & ~bit
+            : disabledCargoAutoPickupMask | bit;
+        return previousMask != disabledCargoAutoPickupMask;
     }
 
     public int GetFreeCargoCapacity()

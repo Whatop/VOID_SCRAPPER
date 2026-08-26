@@ -126,6 +126,20 @@ public class PermanentProgress : MonoBehaviour
     public bool CanLaunchFinalExpedition => CurrentRouteCoreState == RouteCoreState.Activated && settlementDefenseCleared;
     public bool IsTutorialCompleted => HasUnlockFlag(TutorialCompletedUnlockFlag);
 
+    public int GetCoreSynchronizationStage()
+    {
+        int stage = IsTutorialCompleted ? 1 : 0;
+        stage += AcquiredBossStoryPartCount;
+
+        RouteCoreState currentState = CurrentRouteCoreState;
+        if (currentState == RouteCoreState.Assembled || currentState == RouteCoreState.Activated)
+        {
+            stage++;
+        }
+
+        return Mathf.Clamp(stage, 0, 5);
+    }
+
     public event Action Changed;
 
     private void Awake()
@@ -511,6 +525,28 @@ public class PermanentProgress : MonoBehaviour
         }
 
         Changed?.Invoke();
+    }
+
+    public bool TryCompleteBuildingRestoration(BuildingType buildingType, string grantedUnlockFlag)
+    {
+        if (GetBuildingLevel(buildingType) > 0)
+        {
+            return false;
+        }
+
+        BuildingLevelState state = FindBuildingState(buildingType);
+        if (state == null)
+        {
+            buildingLevels.Add(new BuildingLevelState(buildingType, 1));
+        }
+        else
+        {
+            state.level = 1;
+        }
+
+        AddUniqueString(unlockFlags, grantedUnlockFlag);
+        Changed?.Invoke();
+        return true;
     }
 
     public int GetTraitLevel(string traitId)

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -46,6 +47,9 @@ public class RadarPanelAnimator : MonoBehaviour
     private PanelState state = PanelState.Closed;
     private bool initialized;
     private bool isDestroying;
+    private readonly HashSet<object> presentationSuppressors = new HashSet<object>();
+    private float requestedAlpha;
+    private bool requestedVisible;
 
     public bool IsOpen => state == PanelState.Opening || state == PanelState.Open;
 
@@ -156,6 +160,27 @@ public class RadarPanelAnimator : MonoBehaviour
         }
 
         ApplyClosedVisuals(true);
+    }
+
+    public void SetPresentationSuppressed(object owner, bool suppressed)
+    {
+        if (owner == null || isDestroying)
+        {
+            return;
+        }
+
+        InitializePresentation();
+
+        if (suppressed)
+        {
+            presentationSuppressors.Add(owner);
+        }
+        else
+        {
+            presentationSuppressors.Remove(owner);
+        }
+
+        ApplyRequestedCanvasGroup();
     }
 
     private IEnumerator OpenRoutine()
@@ -340,9 +365,22 @@ public class RadarPanelAnimator : MonoBehaviour
             return;
         }
 
-        canvasGroup.alpha = Mathf.Clamp01(alpha);
-        canvasGroup.interactable = visible;
-        canvasGroup.blocksRaycasts = visible;
+        requestedAlpha = Mathf.Clamp01(alpha);
+        requestedVisible = visible;
+        ApplyRequestedCanvasGroup();
+    }
+
+    private void ApplyRequestedCanvasGroup()
+    {
+        if (canvasGroup == null)
+        {
+            return;
+        }
+
+        bool suppressed = presentationSuppressors.Count > 0;
+        canvasGroup.alpha = suppressed ? 0f : requestedAlpha;
+        canvasGroup.interactable = !suppressed && requestedVisible;
+        canvasGroup.blocksRaycasts = !suppressed && requestedVisible;
     }
 
     private void StopCurrentRoutine()
@@ -369,6 +407,7 @@ public class RadarPanelAnimator : MonoBehaviour
     private void OnDestroy()
     {
         isDestroying = true;
+        presentationSuppressors.Clear();
         routine = null;
     }
 }

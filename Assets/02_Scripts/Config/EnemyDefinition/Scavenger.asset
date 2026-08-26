@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyId: scavenger
   displayName: "약탈자"
   enemyType: 0
-  enemyPrefab: {fileID: 0}
+  enemyPrefab: {fileID: 6983035740697639387, guid: d26c2f9f6a0143a69f6ef5d987e11c59, type: 3}
   maxHp: 12
   moveSpeed: 3.8
   visionRange: 8

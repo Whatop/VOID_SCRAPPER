@@ -49,6 +49,10 @@ public class BossDummyController : MonoBehaviour
     [SerializeField] private bool changeStateToExpeditionAfterDeath = true;
 
     private bool deathHandled;
+    private bool encounterBackgroundRestored;
+    private SpaceBackgroundGenerator2D encounterBackgroundGenerator;
+    private RunManager observedRunManager;
+
     private void Reset()
     {
         enemyHealth = GetComponent<EnemyHealth>();
@@ -77,6 +81,8 @@ public class BossDummyController : MonoBehaviour
     private void OnEnable()
     {
         deathHandled = false;
+        encounterBackgroundRestored = false;
+        encounterBackgroundGenerator = null;
 
         if (enemyHealth != null)
         {
@@ -90,6 +96,21 @@ public class BossDummyController : MonoBehaviour
         {
             enemyHealth.Died -= HandleBossDied;
         }
+
+        UnsubscribeRunEnd();
+
+        if (!deathHandled)
+        {
+            RestoreEncounterBackground(false);
+        }
+    }
+
+    public void ConfigureEncounterBackgroundPresentation(
+        SpaceBackgroundGenerator2D backgroundGenerator)
+    {
+        encounterBackgroundGenerator = backgroundGenerator;
+        encounterBackgroundRestored = false;
+        SubscribeRunEnd();
     }
 
     public void ConfigureCampaignDefinition(BossCampaignDefinition definition)
@@ -131,6 +152,7 @@ public class BossDummyController : MonoBehaviour
         }
 
         deathHandled = true;
+        RestoreEncounterBackground(true);
         bossPatternController?.StopCombatForDeathPresentation();
 
         if (deathPresentation != null)
@@ -140,6 +162,56 @@ public class BossDummyController : MonoBehaviour
         }
 
         CompleteBossDeath();
+    }
+
+    private void RestoreEncounterBackground(bool playRecoveryOverlay)
+    {
+        if (encounterBackgroundRestored)
+        {
+            return;
+        }
+
+        encounterBackgroundRestored = true;
+
+        if (encounterBackgroundGenerator != null)
+        {
+            encounterBackgroundGenerator.RestoreExplorationPresentation(
+                -1f,
+                playRecoveryOverlay
+            );
+        }
+    }
+
+    private void SubscribeRunEnd()
+    {
+        RunManager currentRunManager = RunManager.Instance;
+
+        if (observedRunManager == currentRunManager)
+        {
+            return;
+        }
+
+        UnsubscribeRunEnd();
+        observedRunManager = currentRunManager;
+
+        if (observedRunManager != null)
+        {
+            observedRunManager.RunEnded += HandleRunEnded;
+        }
+    }
+
+    private void UnsubscribeRunEnd()
+    {
+        if (observedRunManager != null)
+        {
+            observedRunManager.RunEnded -= HandleRunEnded;
+            observedRunManager = null;
+        }
+    }
+
+    private void HandleRunEnded(RunResultData _)
+    {
+        RestoreEncounterBackground(false);
     }
 
     private IEnumerator CompleteBossDeathAfterPresentation()

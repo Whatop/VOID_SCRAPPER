@@ -3,7 +3,6 @@ using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -38,6 +37,8 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
     private bool previousCursorVisible;
     private CursorLockMode previousCursorLockMode;
     private ExpeditionHUD expeditionHUD;
+    private bool quitTransitionStarted;
+    private bool ownsWorldSfxSuppression;
 
     public bool IsOpen => isOpen;
 
@@ -78,7 +79,13 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
         DisableCancelActionIfOwned();
         CloseImmediate();
 
-        if (wasOpen)
+        if (ownsWorldSfxSuppression)
+        {
+            AudioManager.SetWorldSfxSuppressed(this, false);
+            ownsWorldSfxSuppression = false;
+        }
+
+        if (wasOpen && !quitTransitionStarted)
         {
             GameAudioLoopController.ResumeForCurrentState();
         }
@@ -159,41 +166,45 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
 
     private void ConfirmQuit()
     {
-        if (!CanReturnToBootWithoutSettling(out _)) return;
-        isOpen = false;
-        sharedOptions.Close();
-        SetClosedPresentation();
-        ReleasePauseOwnership();
-        RestoreCursorState();
-        GameAudioLoopController.ResumeForCurrentState();
-
-        SceneFlowManager flow = SceneFlowManager.Instance ?? FindFirstObjectByType<SceneFlowManager>();
-        if (flow == null)
+        if (quitTransitionStarted || !CanReturnToBootWithoutSettling(out _))
         {
-            Debug.LogError("Cannot return to Boot because SceneFlowManager is missing.", this);
             return;
         }
 
-        GameStateManager.Instance?.ChangeState(GameState.Boot);
-        SceneManager.LoadSceneAsync(flow.BootSceneName);
+        SceneFlowManager flow = SceneFlowManager.Instance ?? FindFirstObjectByType<SceneFlowManager>();
+
+        if (flow == null || flow.IsLoading)
+        {
+            Debug.LogError("Cannot return to Boot because SceneFlowManager is missing or busy.", this);
+            return;
+        }
+
+        RunManager runManager = RunManager.Instance;
+
+        if (runManager != null && runManager.HasActiveRun)
+        {
+            if (!runManager.AbandonActiveRunWithoutRewards())
+            {
+                return;
+            }
+        }
+        else
+        {
+            AudioManager.SetWorldSfxSuppressed(this, true, true);
+            ownsWorldSfxSuppression = true;
+            AudioManager.StopAllLoops();
+        }
+
+        quitTransitionStarted = true;
+        confirmQuitButton.interactable = false;
+        cancelQuitButton.interactable = false;
+        sharedOptions.Close();
+        flow.LoadBoot();
     }
 
     private bool CanReturnToBootWithoutSettling(out string message)
     {
-        GameState state = GameStateManager.Instance != null ? GameStateManager.Instance.CurrentState : GameState.Tutorial;
-        if (state == GameState.Tutorial)
-        {
-            message = "튜토리얼을 종료하고 메인 메뉴로 돌아가시겠습니까?";
-            return true;
-        }
-
-        if ((state == GameState.Expedition || state == GameState.BossBattle) && RunManager.Instance != null && RunManager.Instance.HasActiveRun)
-        {
-            message = "진행 중인 탐사를 보상 없이 안전하게 중단하는 경로가 아직 없습니다.";
-            return false;
-        }
-
-        message = "메인 메뉴로 돌아가시겠습니까?";
+        message = "메인 화면으로 돌아가시겠습니까?";
         return true;
     }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -19,6 +20,7 @@ public class PlayerInteractor : MonoBehaviour
     private PlayerHealth playerHealth;
 
     private readonly Collider2D[] interactableBuffer = new Collider2D[32];
+    private readonly HashSet<object> externalInputLocks = new HashSet<object>();
 
     private IHoldInteractable activeHoldTarget;
     private float activeHoldTimer;
@@ -71,7 +73,7 @@ public class PlayerInteractor : MonoBehaviour
 
     private void Update()
     {
-        if (GameplayPauseManager.IsPaused)
+        if (GameplayPauseManager.IsPaused || externalInputLocks.Count > 0)
         {
             CancelActiveHold();
             SetCurrentTarget(null);
@@ -89,6 +91,25 @@ public class PlayerInteractor : MonoBehaviour
         if (WasInteractPressed())
         {
             TryInteract();
+        }
+    }
+
+    public void SetExternalInputLocked(object source, bool locked)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        if (locked)
+        {
+            externalInputLocks.Add(source);
+            CancelActiveHold();
+            SetCurrentTarget(null);
+        }
+        else
+        {
+            externalInputLocks.Remove(source);
         }
     }
 

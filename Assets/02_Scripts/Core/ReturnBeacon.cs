@@ -4,8 +4,8 @@ using UnityEngine;
 public class ReturnBeacon : MonoBehaviour, IInteractable
 {
     [Header("Interaction")]
-    [SerializeField] private string interactionText = "±ÍÈ¯ ºñÄÜ »ç¿ë";
-    [SerializeField] private string returningText = "¾ÈÀü º¹±Í Ã³¸® Áß";
+    [SerializeField] private string interactionText = "ê·€í™˜ ë¹„ì½˜ ì‚¬ìš©";
+    [SerializeField] private string returningText = "ì•ˆì „ ë³µê·€ ì²˜ë¦¬ ì¤‘";
     [SerializeField] private bool requireBossDefeated = true;
 
     [Header("UI")]
@@ -84,17 +84,19 @@ public class ReturnBeacon : MonoBehaviour, IInteractable
             return;
         }
 
-        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
+        RunManager runManager = RunManager.Instance;
+
+        if (runManager == null || !runManager.HasActiveRun ||
+            !runManager.TryBeginRunEnding(RunEndReason.SafeReturn, false))
         {
             return;
         }
 
         returning = true;
         AudioManager.PlayAt(SoundEventIds.SafeReturn, transform.position);
+        runManager.CompleteRun(RunEndReason.SafeReturn);
 
-        RunManager.Instance.CompleteRun(RunEndReason.SafeReturn);
-
-        // ¿©±â¼­ ¾À ÀÌµ¿ÇÏ¸é ¾È µÊ.
-        // Á¤»êÃ¢ ContinueButtonÀÌ Á¤ÂøÁö ÀÌµ¿À» ´ã´çÇÑ´Ù.
+        // ì—¬ê¸°ì„œ ì”¬ ì´ë™í•˜ë©´ ì•ˆ ë¨.
+        // ì •ì‚°ì°½ ContinueButtonì´ ì •ì°©ì§€ ì´ë™ì„ ë‹´ë‹¹í•œë‹¤.
     }
 }

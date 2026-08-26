@@ -59,10 +59,34 @@ public class BuildingDefinition : ScriptableObject
     [Header("Levels")]
     [SerializeField] private List<BuildingLevelDefinition> levels = new List<BuildingLevelDefinition>();
 
+    [Header("Settlement Restoration")]
+    [SerializeField] private BossStoryPart requiredBossStoryPart = BossStoryPart.None;
+    [Min(0)]
+    [SerializeField] private int requiredSynchronizationStage;
+    [SerializeField] private bool requiresPriorRestoration;
+    [SerializeField] private BuildingType priorRestorationBuilding;
+    [SerializeField] private string requiredUnlockFlag;
+    [TextArea]
+    [SerializeField] private string completionResultDescription;
+    [SerializeField] private string grantedUnlockFlag;
+    [SerializeField] private string visualStateKey;
+    [SerializeField] private string restorationActionLabel = "복구";
+
     public BuildingType BuildingType => buildingType;
     public string DisplayName => displayName;
     public string Description => description;
     public IReadOnlyList<BuildingLevelDefinition> Levels => levels;
+    public BossStoryPart RequiredBossStoryPart => requiredBossStoryPart;
+    public int RequiredSynchronizationStage => Mathf.Max(0, requiredSynchronizationStage);
+    public bool RequiresPriorRestoration => requiresPriorRestoration;
+    public BuildingType PriorRestorationBuilding => priorRestorationBuilding;
+    public string RequiredUnlockFlag => requiredUnlockFlag ?? string.Empty;
+    public string CompletionResultDescription => completionResultDescription ?? string.Empty;
+    public string GrantedUnlockFlag => grantedUnlockFlag ?? string.Empty;
+    public string VisualStateKey => visualStateKey ?? string.Empty;
+    public string RestorationActionLabel => string.IsNullOrWhiteSpace(restorationActionLabel)
+        ? "복구"
+        : restorationActionLabel;
 
     public BuildingLevelDefinition GetLevelDefinition(int targetLevel)
     {

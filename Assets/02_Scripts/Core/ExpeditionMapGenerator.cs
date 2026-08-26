@@ -73,6 +73,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [SerializeField] private Transform startPoint;
     [SerializeField] private Vector2 fallbackStartPosition = new Vector2(-32f, 0f);
     [SerializeField] private bool movePlayerToStart = true;
+    [SerializeField, Min(0f)] private float cameraSafeAdditionalPadding = 1f;
 
     [Header("Important Object Prefabs")]
     [Tooltip("Shop Zone Prefabs가 비어 있을 때 사용하는 기존 상점/상점 구역 단일 프리팹입니다.")]
@@ -185,6 +186,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [SerializeField] private EnemyDefinition eliteChargingDefinition;
 
     [Header("Enemy Role Definitions")]
+    [SerializeField] private GameObject defenderBasicPrefab;
+    [SerializeField] private GameObject defenderShotgunPrefab;
     [Tooltip("경쟁 회수정 전용 기체/스탯 Definition. 비어 있으면 Basic Enemy Definition을 사용합니다.")]
     [SerializeField] private EnemyDefinition rivalHarvesterDefinition;
     [Tooltip("약탈자 전용 기체/스탯 Definition. 비어 있으면 Basic Enemy Definition을 사용합니다.")]
@@ -246,7 +249,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [Header("Environment Dressing Visuals")]
     [SerializeField] private Sprite[] environmentDebrisSprites;
     [SerializeField] private Sprite[] environmentWreckSprites;
-    [SerializeField] private int environmentDressingSortingOrder = -10;
+    [SerializeField] private string environmentDressingSortingLayerName = "Background";
+    [SerializeField] private int environmentDressingSortingOrder = -12;
 
     [Header("Physics Block Check Optional")]
     [SerializeField] private bool useBlockedLayerCheck;
@@ -300,6 +304,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private int failedDressingPlacements;
 
     public Bounds MapBounds { get; private set; }
+    public Bounds CameraSafeBounds { get; private set; }
     public Bounds CorePlacementSafeBounds { get; private set; }
     public Vector2 StartPosition => startPosition;
     public SeaRegionDefinition CurrentSeaRegion => currentSeaRegion;
@@ -489,6 +494,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             new Vector3(mapSize.x, mapSize.y, 0f)
         );
 
+        CameraSafeBounds = ResolveCameraSafeBounds(mapSize);
         CorePlacementSafeBounds = ResolveCorePlacementSafeBounds(mapSize);
     }
 
@@ -563,10 +569,50 @@ public class ExpeditionMapGenerator : MonoBehaviour
     {
         if (startPoint != null)
         {
-            return ClampToMap(startPoint.position);
+            return ClampToBounds(startPoint.position, CameraSafeBounds);
         }
 
-        return ClampToMap(fallbackStartPosition);
+        return ClampToBounds(fallbackStartPosition, CameraSafeBounds);
+    }
+
+    private Bounds ResolveCameraSafeBounds(Vector2 sourceMapSize)
+    {
+        float cameraHalfHeight = config != null
+            ? config.FallbackBossCameraBaseOrthographicSize
+            : 4.2f;
+        float cameraAspect = config != null
+            ? config.FallbackBossCameraAspect
+            : 1.7777778f;
+
+        Camera mainCamera = Camera.main;
+        if (mainCamera != null && mainCamera.orthographic)
+        {
+            cameraHalfHeight = Mathf.Max(0.1f, mainCamera.orthographicSize);
+            cameraAspect = Mathf.Max(0.1f, mainCamera.aspect);
+        }
+
+        CameraZoomController2D zoomController = FindFirstObjectByType<CameraZoomController2D>();
+        if (zoomController != null)
+        {
+            cameraHalfHeight = Mathf.Max(cameraHalfHeight, zoomController.BaseOrthographicSize);
+        }
+
+        float warningDistance = config != null ? config.BoundaryWarningDistance : 7f;
+        float safetyPadding = warningDistance + Mathf.Max(0f, cameraSafeAdditionalPadding);
+        Vector2 mapHalfSize = sourceMapSize * 0.5f;
+        Vector2 cameraHalfExtents = new Vector2(
+            cameraHalfHeight * cameraAspect,
+            cameraHalfHeight
+        );
+        Vector2 safeHalfSize = new Vector2(
+            Mathf.Max(0.1f, mapHalfSize.x - cameraHalfExtents.x - safetyPadding),
+            Mathf.Max(0.1f, mapHalfSize.y - cameraHalfExtents.y - safetyPadding)
+        );
+
+        return new Bounds(
+            MapBounds.center,
+            new Vector3(safeHalfSize.x * 2f, safeHalfSize.y * 2f, 0f)
+        );
     }
 
     private void PlaceImportantObjects()
@@ -1481,6 +1527,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
             int placedDefenderBasic = PlaceDefenderBatch(
                 basicEnemyDefinition,
+                defenderBasicPrefab,
                 Mathf.Min(defenderBasicRequest, basicCount),
                 "DefenderBasic"
             );
@@ -1488,6 +1535,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
             int placedDefenderShotgun = PlaceDefenderBatch(
                 shotgunEnemyDefinition,
+                defenderShotgunPrefab,
                 Mathf.Min(defenderShotgunRequest, shotgunCount),
                 "DefenderShotgun"
             );
@@ -1664,6 +1712,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
             occupiedPositions.Add(position);
             importantPositions.Add(position);
 
+            PlaceBossArenaCoverMeteors(position, i);
+
             if (reserveBossArenaFromOtherSpawns)
             {
                 Vector2 arenaHalfExtents = config != null
@@ -1680,6 +1730,81 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 ));
             }
         }
+    }
+
+    private void PlaceBossArenaCoverMeteors(Vector2 arenaCenter, int coreIndex)
+    {
+        bool shouldSpawnCovers = config == null || config.SpawnBossArenaCoverMeteors;
+        if (!shouldSpawnCovers || !HasValidPrefab(largeMeteorPrefabs, largeMeteorPrefab))
+        {
+            return;
+        }
+
+        Vector2 configuredOffset = config != null
+            ? config.BossArenaCoverOffset
+            : new Vector2(6.5f, -0.75f);
+
+        for (int sideIndex = 0; sideIndex < 2; sideIndex++)
+        {
+            bool leftSide = sideIndex == 0;
+            Vector2 sideOffset = new Vector2(
+                configuredOffset.x * (leftSide ? -1f : 1f),
+                configuredOffset.y
+            );
+            Vector2 coverPosition = arenaCenter + sideOffset;
+            GameObject coverPrefab = PickPrefab(largeMeteorPrefabs, largeMeteorPrefab);
+            string sideName = leftSide ? "Left" : "Right";
+            GameObject cover = Spawn(
+                coverPrefab,
+                coverPosition,
+                $"BossArenaCover_{sideName}_{coreIndex:00}",
+                Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f))
+            );
+
+            if (cover == null)
+            {
+                if (logGenerationResult)
+                {
+                    Debug.LogWarning($"Boss arena {sideName.ToLowerInvariant()} cover Meteor failed to spawn.", this);
+                }
+
+                continue;
+            }
+
+            ApplySpawnVariation(cover, MapSpawnCategory.LargeMeteor);
+            ConfigureSpawnedObject(cover, MapSpawnCategory.LargeMeteor);
+
+            MeteorObstacle meteor = cover.GetComponentInChildren<MeteorObstacle>(true);
+            meteor?.SetRuntimeDriftEnabled(false);
+
+            BossArenaCover arenaCover = cover.GetComponent<BossArenaCover>();
+            if (arenaCover == null)
+            {
+                arenaCover = cover.AddComponent<BossArenaCover>();
+            }
+
+            arenaCover.Configure(
+                leftSide ? BossArenaCoverSide.Left : BossArenaCoverSide.Right,
+                meteor
+            );
+            arenaCover.SetEncounterProtection(true);
+
+            occupiedPositions.Add(coverPosition);
+            ReserveBossCoverBounds(cover, coverPosition);
+        }
+    }
+
+    private void ReserveBossCoverBounds(GameObject cover, Vector2 fallbackPosition)
+    {
+        Collider2D coverCollider = cover != null
+            ? cover.GetComponentInChildren<Collider2D>(true)
+            : null;
+        Bounds coverBounds = coverCollider != null
+            ? coverCollider.bounds
+            : new Bounds(fallbackPosition, new Vector3(3f, 3f, 0f));
+
+        coverBounds.Expand(new Vector3(2f, 2f, 0f));
+        ReservePlacementBounds(coverBounds);
     }
 
     private bool TryFindCorePosition(
@@ -2221,6 +2346,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 continue;
             }
 
+            ConfigureHostileRadarTarget(spawned);
+
             if (definition.EnemyType == EnemyType.MeleeCharger &&
                 spawned.GetComponent<EnemyMeleeChargeController2D>() == null)
             {
@@ -2480,10 +2607,15 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private int PlaceDefenderBatch(
         EnemyDefinition definition,
+        GameObject prefabOverride,
         int count,
         string label)
     {
-        if (definition == null || definition.EnemyPrefab == null || count <= 0)
+        GameObject resolvedPrefab = prefabOverride != null
+            ? prefabOverride
+            : definition != null ? definition.EnemyPrefab : null;
+
+        if (definition == null || resolvedPrefab == null || count <= 0)
         {
             return 0;
         }
@@ -2520,7 +2652,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
             GameObject spawned = SpawnConfiguredEnemy(
                 definition,
                 position,
-                $"{label}_{placed:00}"
+                $"{label}_{placed:00}",
+                resolvedPrefab
             );
 
             if (spawned == null)
@@ -2754,19 +2887,26 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private GameObject SpawnConfiguredEnemy(
         EnemyDefinition definition,
         Vector2 position,
-        string objectName)
+        string objectName,
+        GameObject prefabOverride = null)
     {
-        if (definition == null || definition.EnemyPrefab == null)
+        GameObject resolvedPrefab = prefabOverride != null
+            ? prefabOverride
+            : definition != null ? definition.EnemyPrefab : null;
+
+        if (definition == null || resolvedPrefab == null)
         {
             return null;
         }
 
-        GameObject spawned = Spawn(definition.EnemyPrefab, position, objectName);
+        GameObject spawned = Spawn(resolvedPrefab, position, objectName);
 
         if (spawned == null)
         {
             return null;
         }
+
+        ConfigureHostileRadarTarget(spawned);
 
         EnemyBaseAI enemyAI = spawned.GetComponent<EnemyBaseAI>();
 
@@ -2782,6 +2922,24 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         ApplyEnemyHpModifiers(spawned);
         return spawned;
+    }
+
+    private static void ConfigureHostileRadarTarget(GameObject spawned)
+    {
+        if (spawned == null)
+        {
+            return;
+        }
+
+        RadarTarget radarTarget = spawned.GetComponentInChildren<RadarTarget>(true);
+
+        if (radarTarget == null)
+        {
+            radarTarget = spawned.AddComponent<RadarTarget>();
+        }
+
+        radarTarget.SetMarkerType(RadarMarkerType.Enemy);
+        radarTarget.SetShowOnMap(true);
     }
 
     private void ConfigureRoleSimulation(EnemyRoleController role)
@@ -2997,7 +3155,9 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
         {
-            position = GetRandomPointInMap();
+            position = importantPoint
+                ? GetRandomPointInBounds(CameraSafeBounds)
+                : GetRandomPointInMap();
 
             if (IsPositionValid(
                     position,
@@ -3097,6 +3257,17 @@ public class ExpeditionMapGenerator : MonoBehaviour
         return new Vector2(
             Mathf.Clamp(point.x, -halfWidth, halfWidth),
             Mathf.Clamp(point.y, -halfHeight, halfHeight)
+        );
+    }
+
+    private static Vector2 ClampToBounds(Vector2 point, Bounds bounds)
+    {
+        Vector3 min = bounds.min;
+        Vector3 max = bounds.max;
+
+        return new Vector2(
+            Mathf.Clamp(point.x, min.x, max.x),
+            Mathf.Clamp(point.y, min.y, max.y)
         );
     }
 
@@ -3297,6 +3468,15 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         if (category == MapSpawnCategory.Meteor || category == MapSpawnCategory.LargeMeteor)
         {
+            RadarTarget radarTarget = spawned.GetComponentInChildren<RadarTarget>(true);
+            if (radarTarget == null)
+            {
+                radarTarget = spawned.AddComponent<RadarTarget>();
+            }
+
+            radarTarget.SetMarkerType(RadarMarkerType.Meteor);
+            radarTarget.SetShowOnMap(true);
+
             MeteorObstacle meteor = spawned.GetComponent<MeteorObstacle>();
 
             if (meteor == null)
@@ -3314,16 +3494,40 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
                 if (category == MapSpawnCategory.Meteor)
                 {
-                    float startSafeRadius = config != null ? config.StartSafeRadius : 10f;
-                    Vector2 offsetFromStart = (Vector2)spawned.transform.position - startPosition;
-
-                    if (offsetFromStart.sqrMagnitude < startSafeRadius * startSafeRadius)
-                    {
-                        meteor.SetRuntimeDriftEnabled(false);
-                    }
+                    meteor.SetRuntimeDriftEnabled(
+                        ShouldEnableSmallMeteorDrift(spawned.transform.position)
+                    );
+                }
+                else
+                {
+                    meteor.SetRuntimeDriftEnabled(false);
                 }
             }
         }
+    }
+
+    private bool ShouldEnableSmallMeteorDrift(Vector2 position)
+    {
+        float movementRatio = config != null ? config.SmallMeteorDriftRatio : 0.28f;
+        if (UnityEngine.Random.value >= Mathf.Clamp01(movementRatio))
+        {
+            return false;
+        }
+
+        float startSafeRadius = config != null ? config.StartSafeRadius : 10f;
+        float startClearance = startSafeRadius + 2f;
+        if ((position - startPosition).sqrMagnitude < startClearance * startClearance)
+        {
+            return false;
+        }
+
+        if (IsPointBlockedByReservedPlacement(position, 2f))
+        {
+            return false;
+        }
+
+        const float importantPointClearance = 4.5f;
+        return HasMinimumDistance(position, importantPositions, importantPointClearance);
     }
 
     private GameObject Spawn(
@@ -3408,12 +3612,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private int GetPoiDressingCount(PoiType type)
     {
-        int salvageCount = config != null ? config.SalvageDressingCount : 12;
+        int salvageCount = config != null ? config.SalvageDressingCount : 16;
 
         return type switch
         {
             PoiType.SalvageField => salvageCount,
-            PoiType.HighValueSalvage => config != null ? config.HighValueDressingCount : 18,
+            PoiType.HighValueSalvage => config != null ? config.HighValueDressingCount : 24,
             PoiType.FieldBase => Mathf.Max(3, salvageCount / 2),
             PoiType.Shop => Mathf.Max(1, salvageCount / 6),
             PoiType.Event => Mathf.Max(2, salvageCount / 3),
@@ -3425,7 +3629,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private bool TryFindDressingPositionNearPoi(PoiAnchor poi, out Vector2 position)
     {
         position = Vector2.zero;
-        float radiusMultiplier = config != null ? config.PoiDressingRadiusMultiplier : 1.15f;
+        float radiusMultiplier = config != null ? config.PoiDressingRadiusMultiplier : 1.2f;
         float innerRadius;
         float outerRadius;
 
@@ -3516,7 +3720,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private bool IsOutsidePoiDressingRegions(Vector2 position)
     {
-        float radiusMultiplier = config != null ? config.PoiDressingRadiusMultiplier : 1.15f;
+        float radiusMultiplier = config != null ? config.PoiDressingRadiusMultiplier : 1.2f;
 
         for (int i = 0; i < poiAnchors.Count; i++)
         {
@@ -3589,15 +3793,18 @@ public class ExpeditionMapGenerator : MonoBehaviour
         dressing.transform.rotation = Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f));
 
         Vector2 scaleRange = GetDressingScaleRange(poiType, transit, useWreck);
-        float scale = UnityEngine.Random.Range(
+        float targetWorldSize = UnityEngine.Random.Range(
             Mathf.Min(scaleRange.x, scaleRange.y),
             Mathf.Max(scaleRange.x, scaleRange.y)
         );
+        float spriteWorldSize = Mathf.Max(sprite.bounds.size.x, sprite.bounds.size.y);
+        float scale = targetWorldSize / Mathf.Max(0.01f, spriteWorldSize);
         dressing.transform.localScale = new Vector3(scale, scale, 1f);
 
         SpriteRenderer renderer = dressing.AddComponent<SpriteRenderer>();
         renderer.sprite = sprite;
         renderer.color = GetDressingColor(poiType, transit);
+        renderer.sortingLayerName = environmentDressingSortingLayerName;
         renderer.sortingOrder = environmentDressingSortingOrder + UnityEngine.Random.Range(0, 3);
         renderer.flipX = UnityEngine.Random.value < 0.5f;
         renderer.flipY = UnityEngine.Random.value < 0.2f;
@@ -3621,23 +3828,23 @@ public class ExpeditionMapGenerator : MonoBehaviour
     {
         if (transit)
         {
-            return new Vector2(0.45f, 0.85f);
+            return new Vector2(0.18f, 0.5f);
         }
 
         if (wreck)
         {
             return poiType == PoiType.HighValueSalvage
-                ? new Vector2(0.8f, 1.35f)
-                : new Vector2(0.65f, 1f);
+                ? new Vector2(3.2f, 6f)
+                : new Vector2(2.4f, 4.2f);
         }
 
         return poiType switch
         {
-            PoiType.HighValueSalvage => new Vector2(0.7f, 1.2f),
-            PoiType.SalvageField => new Vector2(0.55f, 1f),
-            PoiType.Shop => new Vector2(0.45f, 0.7f),
-            PoiType.Core => new Vector2(0.5f, 0.8f),
-            _ => new Vector2(0.5f, 0.9f)
+            PoiType.HighValueSalvage => new Vector2(0.35f, 0.8f),
+            PoiType.SalvageField => new Vector2(0.25f, 0.65f),
+            PoiType.Shop => new Vector2(0.18f, 0.38f),
+            PoiType.Core => new Vector2(0.18f, 0.42f),
+            _ => new Vector2(0.22f, 0.52f)
         };
     }
 
@@ -3645,28 +3852,25 @@ public class ExpeditionMapGenerator : MonoBehaviour
     {
         if (transit)
         {
-            return new Color(0.48f, 0.55f, 0.62f, UnityEngine.Random.Range(0.2f, 0.34f));
+            return new Color(0.42f, 0.5f, 0.58f, UnityEngine.Random.Range(0.1f, 0.18f));
         }
 
         return poiType switch
         {
-            PoiType.SalvageField => new Color(0.62f, 0.7f, 0.76f, UnityEngine.Random.Range(0.4f, 0.58f)),
-            PoiType.HighValueSalvage => new Color(0.75f, 0.78f, 0.82f, UnityEngine.Random.Range(0.52f, 0.7f)),
-            PoiType.FieldBase => new Color(0.55f, 0.64f, 0.72f, UnityEngine.Random.Range(0.34f, 0.5f)),
-            PoiType.Shop => new Color(0.62f, 0.75f, 0.78f, UnityEngine.Random.Range(0.24f, 0.36f)),
-            PoiType.Event => new Color(0.5f, 0.7f, 0.76f, UnityEngine.Random.Range(0.32f, 0.48f)),
-            PoiType.Core => new Color(0.62f, 0.44f, 0.74f, UnityEngine.Random.Range(0.2f, 0.32f)),
-            _ => new Color(0.58f, 0.65f, 0.72f, 0.4f)
+            PoiType.SalvageField => new Color(0.48f, 0.56f, 0.62f, UnityEngine.Random.Range(0.16f, 0.28f)),
+            PoiType.HighValueSalvage => new Color(0.58f, 0.6f, 0.66f, UnityEngine.Random.Range(0.22f, 0.36f)),
+            PoiType.FieldBase => new Color(0.44f, 0.52f, 0.6f, UnityEngine.Random.Range(0.14f, 0.24f)),
+            PoiType.Shop => new Color(0.5f, 0.62f, 0.66f, UnityEngine.Random.Range(0.06f, 0.12f)),
+            PoiType.Event => new Color(0.4f, 0.58f, 0.64f, UnityEngine.Random.Range(0.12f, 0.22f)),
+            PoiType.Core => new Color(0.48f, 0.32f, 0.58f, UnityEngine.Random.Range(0.08f, 0.16f)),
+            _ => new Color(0.46f, 0.54f, 0.6f, 0.18f)
         };
     }
 
     private bool HasEnvironmentDressingSprites()
     {
         return HasValidSprite(environmentDebrisSprites) ||
-            HasValidSprite(environmentWreckSprites) ||
-            HasValidPrefab(meteorPrefabs, meteorPrefab) ||
-            HasValidPrefab(destroyedHullPrefabs, destroyedHullPrefab) ||
-            HasValidPrefab(highValueWreckPrefabs, highValueWreckPrefab);
+            HasValidSprite(environmentWreckSprites);
     }
 
     private Sprite PickEnvironmentDressingSprite(bool useWreck)
@@ -3678,47 +3882,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             return sprite;
         }
 
-        GameObject sourcePrefab;
-
-        if (useWreck)
-        {
-            bool preferHighValue = UnityEngine.Random.value < 0.5f;
-            sourcePrefab = preferHighValue
-                ? PickPrefab(highValueWreckPrefabs, highValueWreckPrefab)
-                : PickPrefab(destroyedHullPrefabs, destroyedHullPrefab);
-
-            sprite = GetPrefabSprite(sourcePrefab);
-            if (sprite == null)
-            {
-                sourcePrefab = preferHighValue
-                    ? PickPrefab(destroyedHullPrefabs, destroyedHullPrefab)
-                    : PickPrefab(highValueWreckPrefabs, highValueWreckPrefab);
-                sprite = GetPrefabSprite(sourcePrefab);
-            }
-        }
-        else
-        {
-            sourcePrefab = PickPrefab(meteorPrefabs, meteorPrefab);
-            sprite = GetPrefabSprite(sourcePrefab);
-        }
-
-        if (sprite != null)
-        {
-            return sprite;
-        }
-
         return PickEnvironmentSprite(useWreck ? environmentDebrisSprites : environmentWreckSprites);
-    }
-
-    private static Sprite GetPrefabSprite(GameObject prefab)
-    {
-        if (prefab == null)
-        {
-            return null;
-        }
-
-        SpriteRenderer renderer = prefab.GetComponentInChildren<SpriteRenderer>(true);
-        return renderer != null ? renderer.sprite : null;
     }
 
     private static bool HasValidSprite(Sprite[] sprites)

@@ -1696,6 +1696,12 @@ public class ShipTraitTreePanel : MonoBehaviour
             return 0;
         }
 
+        if (entry.traitDefinition != null && settlementController != null)
+        {
+            int targetLevel = GetNodeLevel(entry) + 1;
+            return settlementController.GetTraitScrapCost(entry.traitDefinition, targetLevel);
+        }
+
         int scrapCost = Mathf.Max(0, entry.scrapCost);
         int coreCost = Mathf.Max(0, entry.coreShardCost);
 
@@ -1711,6 +1717,12 @@ public class ShipTraitTreePanel : MonoBehaviour
 
     private int GetEntryCoreShardCost(ShipTraitBranchNodeEntry entry)
     {
+        if (entry != null && entry.traitDefinition != null && settlementController != null)
+        {
+            int targetLevel = GetNodeLevel(entry) + 1;
+            return settlementController.GetTraitCoreCost(entry.traitDefinition, targetLevel);
+        }
+
         return entry != null ? Mathf.Max(0, entry.coreShardCost) : 0;
     }
 

@@ -14,6 +14,8 @@ public class SceneFlowManager : MonoBehaviour
 
     [Header("Loading")]
     [SerializeField] private bool logSceneLoading = true;
+    [SerializeField] private float bootFadeInDuration = 0.25f;
+    [SerializeField] private float bootFadeOutDuration = 0.25f;
 
     private bool isLoading;
 
@@ -27,7 +29,7 @@ public class SceneFlowManager : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("SceneFlowManager°¡ Áßº¹À¸·Î Á¸ÀçÇÕ´Ï´Ù. Áßº¹ ÀÎ½ºÅÏ½º¸¦ ºñÈ°¼ºÈ­ÇÕ´Ï´Ù.", this);
+            Debug.LogWarning("SceneFlowManagerê°€ ì¤‘ë³µìœ¼ë¡œ ì¡´ì¬í•©ë‹ˆë‹¤. ì¤‘ë³µ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ë¹„í™œì„±í™”í•©ë‹ˆë‹¤.", this);
             enabled = false;
             return;
         }
@@ -43,6 +45,20 @@ public class SceneFlowManager : MonoBehaviour
         }
 
         StartCoroutine(LoadSceneRoutine(settlementSceneName, GameState.Settlement));
+    }
+
+    public void LoadBoot()
+    {
+        if (IsLoading)
+        {
+            return;
+        }
+
+        StartCoroutine(LoadSceneRoutine(
+            bootSceneName,
+            GameState.Boot,
+            true
+        ));
     }
 
     public void LoadTutorial()
@@ -91,19 +107,34 @@ public class SceneFlowManager : MonoBehaviour
         LoadExpedition();
     }
 
-    private IEnumerator LoadSceneRoutine(string sceneName, GameState stateAfterLoad)
+    private IEnumerator LoadSceneRoutine(
+        string sceneName,
+        GameState stateAfterLoad,
+        bool useScreenFade = false)
     {
         if (string.IsNullOrWhiteSpace(sceneName))
         {
-            Debug.LogError("·ÎµåÇÒ ¾À ÀÌ¸§ÀÌ ºñ¾î ÀÖ½À´Ï´Ù.", this);
+            Debug.LogError("ë¡œë“œí•  ì”¬ ì´ë¦„ì´ ë¹„ì–´ ìˆìŠµë‹ˆë‹¤.", this);
             yield break;
         }
 
         isLoading = true;
 
+        ScreenFader screenFader = useScreenFade ? ScreenFader.Instance : null;
+
+        if (screenFader != null)
+        {
+            yield return screenFader.FadeIn(bootFadeInDuration);
+        }
+
         if (logSceneLoading)
         {
             Debug.Log($"Scene Load Start: {sceneName}");
+        }
+
+        if (stateAfterLoad == GameState.Boot && GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.ChangeState(GameState.Boot);
         }
 
         AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);
@@ -116,6 +147,17 @@ public class SceneFlowManager : MonoBehaviour
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.ChangeState(stateAfterLoad);
+        }
+
+        if ((stateAfterLoad == GameState.Boot || stateAfterLoad == GameState.Settlement) &&
+            RunManager.Instance != null)
+        {
+            RunManager.Instance.ReleaseRunEndingPresentationOwnership();
+        }
+
+        if (screenFader != null)
+        {
+            yield return screenFader.FadeOut(bootFadeOutDuration);
         }
 
         if (logSceneLoading)

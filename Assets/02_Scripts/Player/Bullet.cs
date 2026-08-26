@@ -94,6 +94,8 @@ public class Bullet : MonoBehaviour
     [SerializeField] private bool rotateImpactEffectToBullet = true;
 
     private Rigidbody2D rb;
+    private Collider2D[] projectileColliders;
+    private bool[] authoredColliderStates;
     private SpriteRenderer projectileRenderer;
     private TrailRenderer projectileTrail;
     private Color defaultProjectileColor = Color.white;
@@ -165,9 +167,43 @@ public class Bullet : MonoBehaviour
     public float Speed => speed;
     public bool HasPendingRadialSplit => useRadialSplit;
 
+    public static int ReleaseAllActiveOwnedBy(ProjectileOwner projectileOwner)
+    {
+        Bullet[] activeBullets = FindObjectsByType<Bullet>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None
+        );
+        int releasedCount = 0;
+
+        for (int i = 0; i < activeBullets.Length; i++)
+        {
+            Bullet bullet = activeBullets[i];
+            if (bullet == null ||
+                !bullet.gameObject.activeInHierarchy ||
+                bullet.owner != projectileOwner)
+            {
+                continue;
+            }
+
+            bullet.ReleaseSelf(false);
+            releasedCount++;
+        }
+
+        return releasedCount;
+    }
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        projectileColliders = GetComponentsInChildren<Collider2D>(true);
+        authoredColliderStates = new bool[projectileColliders.Length];
+
+        for (int i = 0; i < projectileColliders.Length; i++)
+        {
+            authoredColliderStates[i] = projectileColliders[i] != null &&
+                                        projectileColliders[i].enabled;
+        }
+
         projectileRenderer = GetComponentInChildren<SpriteRenderer>(true);
         projectileTrail = GetComponentInChildren<TrailRenderer>(true);
         defaultProjectileRootScale = transform.localScale;
@@ -191,6 +227,7 @@ public class Bullet : MonoBehaviour
     private void OnEnable()
     {
         ResetRuntimeState();
+        SetProjectileCollisionActive(false);
 
         projectileTrail?.Clear();
     }
@@ -211,6 +248,14 @@ public class Bullet : MonoBehaviour
 
     private void Update()
     {
+        if (owner == ProjectileOwner.Enemy &&
+            RunManager.Instance != null &&
+            RunManager.Instance.IsCompletingRun)
+        {
+            ReleaseSelf(false);
+            return;
+        }
+
         lifeTimer -= Time.deltaTime;
         sineWaveElapsed += Time.deltaTime;
 
@@ -392,6 +437,7 @@ public class Bullet : MonoBehaviour
 
         ClearSpecialMotion();
         ApplyRotation();
+        SetProjectileCollisionActive(true);
     }
 
     public void ConfigureSineWave(
@@ -626,6 +672,26 @@ public class Bullet : MonoBehaviour
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
+        }
+    }
+
+    private void SetProjectileCollisionActive(bool active)
+    {
+        if (projectileColliders == null || authoredColliderStates == null)
+        {
+            return;
+        }
+
+        int count = Mathf.Min(projectileColliders.Length, authoredColliderStates.Length);
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider2D projectileCollider = projectileColliders[i];
+
+            if (projectileCollider != null)
+            {
+                projectileCollider.enabled = active && authoredColliderStates[i];
+            }
         }
     }
 
@@ -933,6 +999,14 @@ public class Bullet : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (owner == ProjectileOwner.Enemy &&
+            RunManager.Instance != null &&
+            RunManager.Instance.IsCompletingRun)
+        {
+            ReleaseSelf(false);
+            return;
+        }
+
         if (other == null || !gameObject.activeInHierarchy || IsFriendlyCollider(other))
         {
             return;
@@ -1054,6 +1128,14 @@ public class Bullet : MonoBehaviour
 
         if (meteorObstacle != null)
         {
+            BossArenaCover arenaCover = meteorObstacle.GetComponentInParent<BossArenaCover>();
+            if (arenaCover != null && arenaCover.IsProtected)
+            {
+                arenaCover.PlayBlockedImpact(hitPoint);
+                ReleaseSelf(true);
+                return;
+            }
+
             bool isLargeMeteor = IsLargeMeteor(meteorObstacle);
             bool forceDestroyMeteor =
                 (isLargeMeteor && destroyLargeMeteorOnHit) ||

@@ -1,9 +1,12 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class ReturnChoiceUI : MonoBehaviour
+public abstract class ExpeditionTravelConfirmationUI : MonoBehaviour
 {
+    private static ExpeditionTravelConfirmationUI activeModal;
+
     [Header("Root")]
     [SerializeField] private GameObject panelRoot;
     [SerializeField] private CanvasGroup canvasGroup;
@@ -16,25 +19,38 @@ public class ReturnChoiceUI : MonoBehaviour
     [SerializeField] private Button yesButton;
     [SerializeField] private Button noButton;
 
-    [Header("Text Values")]
-    [SerializeField] private string title = "±ÍÈ¯ ºñÄÜ";
-    [SerializeField] private string body = "º¹±ÍÇÏ½Ã°Ú½À´Ï±î?";
-    [SerializeField] private string yesLabel = "¿¹";
-    [SerializeField] private string noLabel = "¾Æ´Ï¿À";
+    [Header("Legacy Serialized Text")]
+    [SerializeField, HideInInspector] private string title;
+    [SerializeField, HideInInspector] private string body;
+    [SerializeField, HideInInspector] private string yesLabel;
+    [SerializeField, HideInInspector] private string noLabel;
 
     [Header("Button Labels Optional")]
     [SerializeField] private TextMeshProUGUI yesButtonLabelText;
     [SerializeField] private TextMeshProUGUI noButtonLabelText;
 
-    private ReturnBeacon currentBeacon;
+    [Header("Modal Layer")]
+    [SerializeField] private int modalSortingOrder = 10000;
 
-    private void Reset()
+    private Image modalDimmer;
+    private Canvas modalCanvas;
+    private PlayerInteractor playerInteractor;
+    private bool isOpen;
+    private bool isConfirming;
+    private bool ownsPause;
+    private bool storedCursorState;
+    private bool previousCursorVisible;
+    private CursorLockMode previousCursorLockMode;
+
+    public bool IsOpen => isOpen;
+
+    protected virtual void Reset()
     {
         panelRoot = gameObject;
         canvasGroup = GetComponent<CanvasGroup>();
     }
 
-    private void Awake()
+    protected virtual void Awake()
     {
         if (panelRoot == null)
         {
@@ -43,94 +59,330 @@ public class ReturnChoiceUI : MonoBehaviour
 
         if (canvasGroup == null)
         {
-            canvasGroup = GetComponent<CanvasGroup>();
+            canvasGroup = panelRoot.GetComponent<CanvasGroup>();
         }
 
-        Close();
-    }
-
-    private void OnEnable()
-    {
-        if (yesButton != null)
-        {
-            yesButton.onClick.AddListener(HandleYesClicked);
-        }
-
-        if (noButton != null)
-        {
-            noButton.onClick.AddListener(HandleNoClicked);
-        }
-    }
-
-    private void OnDisable()
-    {
-        if (yesButton != null)
-        {
-            yesButton.onClick.RemoveListener(HandleYesClicked);
-        }
-
-        if (noButton != null)
-        {
-            noButton.onClick.RemoveListener(HandleNoClicked);
-        }
-    }
-
-    public void Open(ReturnBeacon beacon)
-    {
-        currentBeacon = beacon;
-
-        RefreshTexts();
-        SetVisible(true);
-    }
-
-    public void Close()
-    {
-        currentBeacon = null;
+        ConfigureSharedPresentation();
         SetVisible(false);
     }
 
-    private void RefreshTexts()
+    protected virtual void OnEnable()
     {
+        if (yesButton != null)
+        {
+            yesButton.onClick.AddListener(HandleConfirmClicked);
+        }
+
+        if (noButton != null)
+        {
+            noButton.onClick.AddListener(Close);
+        }
+    }
+
+    protected virtual void OnDisable()
+    {
+        if (yesButton != null)
+        {
+            yesButton.onClick.RemoveListener(HandleConfirmClicked);
+        }
+
+        if (noButton != null)
+        {
+            noButton.onClick.RemoveListener(Close);
+        }
+
+        ReleaseModalOwnership();
+        SetVisible(false);
+        ClearSelection();
+        isOpen = false;
+        isConfirming = false;
+    }
+
+    protected void OpenModal(
+        string modalTitle,
+        string modalBody,
+        string cancelLabel,
+        string confirmLabel)
+    {
+        if (activeModal != null && activeModal != this)
+        {
+            activeModal.Close();
+        }
+
+        activeModal = this;
+        isOpen = true;
+        isConfirming = false;
+
         if (titleText != null)
         {
-            titleText.text = title;
+            titleText.text = modalTitle;
         }
 
         if (bodyText != null)
         {
-            bodyText.text = body;
-        }
-
-        if (yesButtonLabelText != null)
-        {
-            yesButtonLabelText.text = yesLabel;
+            bodyText.text = modalBody;
         }
 
         if (noButtonLabelText != null)
         {
-            noButtonLabelText.text = noLabel;
+            noButtonLabelText.text = cancelLabel;
         }
-    }
 
-    private void HandleYesClicked()
-    {
-        ReturnBeacon beacon = currentBeacon;
-        Close();
-
-        if (beacon != null)
+        if (yesButtonLabelText != null)
         {
-            beacon.ConfirmReturn();
+            yesButtonLabelText.text = confirmLabel;
+        }
+
+        if (noButton != null)
+        {
+            noButton.interactable = true;
+        }
+
+        if (yesButton != null)
+        {
+            yesButton.interactable = true;
+        }
+
+        transform.SetAsLastSibling();
+        AcquireModalOwnership();
+        SetVisible(true);
+        AudioManager.Play(SoundEventIds.ReturnChoiceOpen);
+
+        if (noButton != null)
+        {
+            EventSystem.current?.SetSelectedGameObject(noButton.gameObject);
         }
     }
 
-    private void HandleNoClicked()
+    public void Close()
     {
-        Close();
+        if (!isOpen && !ownsPause)
+        {
+            SetVisible(false);
+            return;
+        }
+
+        isOpen = false;
+        isConfirming = false;
+        SetVisible(false);
+        ReleaseModalOwnership();
+        ClearSelection();
+    }
+
+    protected abstract bool ConfirmSelection();
+
+    protected abstract void ClearSelection();
+
+    private void HandleConfirmClicked()
+    {
+        if (!isOpen || isConfirming)
+        {
+            return;
+        }
+
+        isConfirming = true;
+
+        if (yesButton != null)
+        {
+            yesButton.interactable = false;
+        }
+
+        if (noButton != null)
+        {
+            noButton.interactable = false;
+        }
+
+        if (!ConfirmSelection())
+        {
+            Close();
+            return;
+        }
+
+        isOpen = false;
+        SetVisible(false);
+        ClearSelection();
+
+        if (activeModal == this)
+        {
+            activeModal = null;
+        }
+    }
+
+    private void AcquireModalOwnership()
+    {
+        if (!ownsPause)
+        {
+            GameplayPauseManager pauseManager = GameplayPauseManager.Instance;
+            pauseManager.PushPause(this, "Expedition Travel Confirmation");
+            pauseManager.RegisterCancelHandler(this, Close);
+            ownsPause = true;
+        }
+
+        if (playerInteractor == null)
+        {
+            playerInteractor = FindFirstObjectByType<PlayerInteractor>();
+        }
+
+        playerInteractor?.SetExternalInputLocked(this, true);
+
+        if (!storedCursorState)
+        {
+            previousCursorVisible = Cursor.visible;
+            previousCursorLockMode = Cursor.lockState;
+            storedCursorState = true;
+        }
+
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+    }
+
+    private void ReleaseModalOwnership()
+    {
+        if (ownsPause)
+        {
+            GameplayPauseManager pauseManager = GameplayPauseManager.Instance;
+            pauseManager.UnregisterCancelHandler(this);
+            pauseManager.PopPause(this);
+            ownsPause = false;
+        }
+
+        if (playerInteractor != null)
+        {
+            playerInteractor.SetExternalInputLocked(this, false);
+        }
+
+        if (storedCursorState)
+        {
+            Cursor.visible = previousCursorVisible;
+            Cursor.lockState = previousCursorLockMode;
+            storedCursorState = false;
+        }
+
+        if (activeModal == this)
+        {
+            activeModal = null;
+        }
+    }
+
+    private void ConfigureSharedPresentation()
+    {
+        RectTransform rootRect = transform as RectTransform;
+
+        if (rootRect != null && panelRoot != gameObject)
+        {
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.pivot = new Vector2(0.5f, 0.5f);
+            rootRect.anchoredPosition = Vector2.zero;
+            rootRect.sizeDelta = Vector2.zero;
+
+            modalDimmer = GetComponent<Image>();
+
+            if (modalDimmer == null)
+            {
+                modalDimmer = gameObject.AddComponent<Image>();
+            }
+
+            modalDimmer.color = new Color(0f, 0f, 0f, 0.68f);
+            modalDimmer.raycastTarget = true;
+
+            modalCanvas = GetComponent<Canvas>();
+
+            if (modalCanvas == null)
+            {
+                modalCanvas = gameObject.AddComponent<Canvas>();
+            }
+
+            modalCanvas.overrideSorting = true;
+            modalCanvas.sortingOrder = modalSortingOrder;
+
+            if (GetComponent<GraphicRaycaster>() == null)
+            {
+                gameObject.AddComponent<GraphicRaycaster>();
+            }
+        }
+
+        RectTransform panelRect = panelRoot != null
+            ? panelRoot.transform as RectTransform
+            : null;
+
+        if (panelRect != null && panelRoot != gameObject)
+        {
+            panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.anchoredPosition = Vector2.zero;
+            panelRect.sizeDelta = new Vector2(250f, 112f);
+        }
+
+        ConfigureText(titleText, new Vector2(0f, 34f), new Vector2(220f, 20f), 12f, true);
+        ConfigureText(bodyText, new Vector2(0f, 7f), new Vector2(220f, 34f), 9f, false);
+        ConfigureButton(noButton, new Vector2(-50f, -37f));
+        ConfigureButton(yesButton, new Vector2(50f, -37f));
+    }
+
+    private static void ConfigureText(
+        TextMeshProUGUI text,
+        Vector2 position,
+        Vector2 size,
+        float fontSize,
+        bool isTitle)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        RectTransform rect = text.rectTransform;
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+        text.fontSize = fontSize;
+        text.alignment = TextAlignmentOptions.Center;
+        text.textWrappingMode = isTitle ? TextWrappingModes.NoWrap : TextWrappingModes.Normal;
+        text.overflowMode = TextOverflowModes.Overflow;
+        text.color = isTitle
+            ? new Color(0.35f, 0.94f, 1f, 1f)
+            : new Color(0.9f, 0.95f, 1f, 1f);
+        text.raycastTarget = false;
+    }
+
+    private static void ConfigureButton(Button button, Vector2 position)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        RectTransform rect = button.transform as RectTransform;
+
+        if (rect != null)
+        {
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(88f, 24f);
+        }
+
+        TextMeshProUGUI label = button.GetComponentInChildren<TextMeshProUGUI>(true);
+
+        if (label != null)
+        {
+            label.fontSize = 9f;
+            label.alignment = TextAlignmentOptions.Center;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.overflowMode = TextOverflowModes.Overflow;
+        }
     }
 
     private void SetVisible(bool visible)
     {
-        if (panelRoot != null)
+        if (modalDimmer != null)
+        {
+            modalDimmer.enabled = visible;
+        }
+
+        if (panelRoot != null && panelRoot != gameObject)
         {
             panelRoot.SetActive(visible);
         }
@@ -141,5 +393,44 @@ public class ReturnChoiceUI : MonoBehaviour
             canvasGroup.interactable = visible;
             canvasGroup.blocksRaycasts = visible;
         }
+    }
+}
+public sealed class ReturnChoiceUI : ExpeditionTravelConfirmationUI
+{
+    private ReturnBeacon currentBeacon;
+
+    public void Open(ReturnBeacon beacon)
+    {
+        if (beacon == null)
+        {
+            return;
+        }
+
+        currentBeacon = beacon;
+        OpenModal(
+            "ì•ˆì „ ê·€í™˜",
+            "ì •ì°©ì§€ë¡œ ê·€í™˜í•˜ì‹œê² ìŠµë‹ˆê¹Œ?",
+            "ì·¨ì†Œ",
+            "ê·€í™˜"
+        );
+    }
+
+    protected override bool ConfirmSelection()
+    {
+        ReturnBeacon beacon = currentBeacon;
+        RunManager runManager = RunManager.Instance;
+
+        if (beacon == null || runManager == null || !runManager.HasActiveRun)
+        {
+            return false;
+        }
+
+        beacon.ConfirmReturn();
+        return runManager.IsCompletingRun;
+    }
+
+    protected override void ClearSelection()
+    {
+        currentBeacon = null;
     }
 }

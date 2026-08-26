@@ -22,6 +22,8 @@ public class EnemyAttackController : MonoBehaviour
     [SerializeField] private ProjectileOwner projectileOwner = ProjectileOwner.Enemy;
     [Tooltip("중립 상점 포탑처럼 적을 공격하지만 상점 보안 드론/포탑에는 피해를 주지 않아야 할 때 사용합니다.")]
     [SerializeField] private bool ignoreShopSecurityTargets;
+    [Tooltip("발사체가 무시해야 하는 발사 주체의 충돌 루트입니다. 비우면 이 컴포넌트의 GameObject를 사용합니다.")]
+    [SerializeField] private Transform projectileSourceRoot;
 
     [Header("Fallback Primary Attack")]
     [SerializeField] private ProjectileDefinition projectileDefinition;
@@ -221,6 +223,11 @@ public class EnemyAttackController : MonoBehaviour
         ignoreShopSecurityTargets = ignoreShopSecurity;
     }
 
+    public void SetProjectileSourceRoot(Transform sourceRoot)
+    {
+        projectileSourceRoot = sourceRoot;
+    }
+
     public void ConfigurePlayerDeploymentCombat(
         float attackIntervalMultiplier,
         float damageMultiplier)
@@ -252,7 +259,8 @@ public class EnemyAttackController : MonoBehaviour
 
     public bool TryAttack(Transform target)
     {
-        if (target == null || !CanAttack)
+        if (target == null || !CanAttack ||
+            (RunManager.Instance != null && RunManager.Instance.IsCompletingRun))
         {
             return false;
         }
@@ -785,7 +793,7 @@ public class EnemyAttackController : MonoBehaviour
             0f,
             1f,
             ignoreShopSecurityTargets,
-            gameObject
+            projectileSourceRoot != null ? projectileSourceRoot.gameObject : gameObject
         );
 
         return bullet;

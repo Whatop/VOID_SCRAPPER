@@ -3053,7 +3053,7 @@ MonoBehaviour:
     equippedReinforcementCharges: 0
     maxCargoCapacity: 100
     emergencyReturnCapacityRatio: 0.7
-    scrapCargoWeight: 1
+    scrapCargoWeight: 2
     coreShardCargoWeight: 12
     stabilizedAlloyCargoWeight: 2
     matterReconstructorCargoProgress: 0

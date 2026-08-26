@@ -2022,17 +2022,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 1601222106232153019}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
-  blockPlayerProjectilesWhenClosed: 1
-  blockEnemyProjectilesWhenClosed: 1
-  blockShopDefenseProjectilesWhenClosed: 1
+  gateMode: 0
+  blockingCollider: {fileID: 1601222106232153019}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 5253981898861613270}
   beamEndPoint: {fileID: 8124600987691852643}
@@ -2708,17 +2706,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 5238859655245560812}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
-  blockPlayerProjectilesWhenClosed: 1
-  blockEnemyProjectilesWhenClosed: 1
-  blockShopDefenseProjectilesWhenClosed: 1
+  gateMode: 0
+  blockingCollider: {fileID: 5238859655245560812}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 7944489079327001977}
   beamEndPoint: {fileID: 7575567355046562565}
@@ -9730,17 +9726,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 1
-  allowNpcWhenClosed: 1
-  triggerZone: {fileID: 5238859655245560812}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
-  blockPlayerProjectilesWhenClosed: 1
-  blockEnemyProjectilesWhenClosed: 1
-  blockShopDefenseProjectilesWhenClosed: 1
+  gateMode: 0
+  blockingCollider: {fileID: 5238859655245560812}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 9164720168035937380}
   beamEndPoint: {fileID: 2855711796208045795}
@@ -10159,17 +10153,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startsOpen: 0
-  allowEnemiesWhenClosed: 0
-  allowNpcWhenClosed: 0
-  triggerZone: {fileID: 5238859655245560812}
-  pushPlayerWhenClosed: 1
-  pushOutDistance: 0.35
-  blockPlayerProjectilesWhenClosed: 1
-  blockEnemyProjectilesWhenClosed: 1
-  blockShopDefenseProjectilesWhenClosed: 1
+  gateMode: 0
+  blockingCollider: {fileID: 5238859655245560812}
+  blockPlayerWhenClosed: 1
   warningCooldown: 0.75
   blockedWarning: "\uB808\uC774\uC800 \uCC28\uB2E8\uB9C9\uC774 \uD65C\uC131\uD654\uB418\uC5B4
     \uC788\uB2E4."
+  blockPlayerProjectilesWhenClosed: 1
+  blockEnemyProjectilesWhenClosed: 1
+  blockShopDefenseProjectilesWhenClosed: 1
   useLaserVisual: 1
   beamStartPoint: {fileID: 7109617695017798116}
   beamEndPoint: {fileID: 7888115298015449712}

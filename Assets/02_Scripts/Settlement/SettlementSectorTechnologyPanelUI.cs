@@ -2,139 +2,8 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
-
-public enum SectorTechnologyEffectType
-{
-    MaxHp,
-    StartingArmor,
-    HealEfficiencyPercent
-}
-
-public sealed class SectorTechnologyDefinition
-{
-    private readonly int[] alloyCosts;
-
-    public string Id { get; }
-    public string DisplayName { get; }
-    public string Description { get; }
-    public string IconLabel { get; }
-    public Color AccentColor { get; }
-    public SectorTechnologyEffectType EffectType { get; }
-    public int MaxLevel { get; }
-    public float EffectPerLevel { get; }
-
-    public SectorTechnologyDefinition(
-        string id,
-        string displayName,
-        string description,
-        string iconLabel,
-        Color accentColor,
-        SectorTechnologyEffectType effectType,
-        int maxLevel,
-        float effectPerLevel,
-        params int[] alloyCosts)
-    {
-        Id = id;
-        DisplayName = displayName;
-        Description = description;
-        IconLabel = iconLabel;
-        AccentColor = accentColor;
-        EffectType = effectType;
-        MaxLevel = Mathf.Max(1, maxLevel);
-        EffectPerLevel = effectPerLevel;
-        this.alloyCosts = alloyCosts ?? Array.Empty<int>();
-    }
-
-    public int GetUpgradeCost(int nextLevel)
-    {
-        if (nextLevel <= 0 || nextLevel > MaxLevel || nextLevel > alloyCosts.Length)
-        {
-            return 0;
-        }
-
-        return Mathf.Max(0, alloyCosts[nextLevel - 1]);
-    }
-
-    public float GetEffectValue(int level)
-    {
-        return Mathf.Clamp(level, 0, MaxLevel) * EffectPerLevel;
-    }
-
-    public string FormatEffect(int level)
-    {
-        float value = GetEffectValue(level);
-
-        return EffectType switch
-        {
-            SectorTechnologyEffectType.MaxHp => $"최대 HP +{value:0}",
-            SectorTechnologyEffectType.StartingArmor => $"시작 방어도 +{value:0}",
-            SectorTechnologyEffectType.HealEfficiencyPercent => $"회복 효율 +{value:0}%",
-            _ => string.Empty
-        };
-    }
-}
-
-public static class SectorTechnologyCatalog
-{
-    public const string StabilizedFrameId = "sector1_stabilized_frame";
-    public const string ReinforcedBulkheadId = "sector1_reinforced_bulkhead";
-    public const string FieldRepairLatticeId = "sector1_field_repair_lattice";
-
-    private static readonly SectorTechnologyDefinition[] definitions =
-    {
-        new SectorTechnologyDefinition(
-            StabilizedFrameId,
-            "안정화 프레임",
-            "기체 프레임의 구조 안정성을 높입니다.",
-            "HP",
-            new Color(0.72f, 0.86f, 0.92f, 1f),
-            SectorTechnologyEffectType.MaxHp,
-            3,
-            2f,
-            2, 3, 5
-        ),
-        new SectorTechnologyDefinition(
-            ReinforcedBulkheadId,
-            "강화 격벽",
-            "출격 시 방어도 예비량을 확보합니다.",
-            "AR",
-            new Color(0.68f, 0.78f, 0.88f, 1f),
-            SectorTechnologyEffectType.StartingArmor,
-            3,
-            2f,
-            2, 3, 5
-        ),
-        new SectorTechnologyDefinition(
-            FieldRepairLatticeId,
-            "현장 수리 격자",
-            "현장에서 받는 회복 효과를 증폭합니다.",
-            "+",
-            new Color(0.58f, 0.9f, 0.82f, 1f),
-            SectorTechnologyEffectType.HealEfficiencyPercent,
-            3,
-            10f,
-            2, 3, 5
-        )
-    };
-
-    public static IReadOnlyList<SectorTechnologyDefinition> Definitions => definitions;
-
-    public static bool TryGet(string id, out SectorTechnologyDefinition definition)
-    {
-        for (int i = 0; i < definitions.Length; i++)
-        {
-            if (definitions[i].Id == id)
-            {
-                definition = definitions[i];
-                return true;
-            }
-        }
-
-        definition = null;
-        return false;
-    }
-}
 
 public class SettlementSectorTechnologyPanelUI : MonoBehaviour
 {
@@ -154,7 +23,7 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
     [SerializeField] private Color selectedCardColor = new Color(0.08f, 0.23f, 0.29f, 0.98f);
     [SerializeField] private Color alloyColor = new Color(0.72f, 0.92f, 1f, 1f);
 
-    private readonly TechnologyEntry[] entries = new TechnologyEntry[3];
+    private readonly List<TechnologyEntry> entries = new List<TechnologyEntry>();
 
     private SettlementController settlementController;
     private SettlementUIController settlementUIController;
@@ -167,6 +36,7 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
     private TextMeshProUGUI selectedCostText;
     private Button upgradeButton;
     private TextMeshProUGUI upgradeButtonText;
+    private Button backButton;
     private int selectedIndex;
     private bool initialized;
 
@@ -229,6 +99,12 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
         repairPanel.SetActive(false);
         panelRoot.SetActive(true);
         Refresh();
+
+        TechnologyEntry selectedEntry = GetSelectedEntry();
+        if (selectedEntry != null && EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(selectedEntry.CardButton.gameObject);
+        }
     }
 
     public void Hide(bool restoreRepairPanel)
@@ -254,7 +130,7 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
         PermanentProgress progress = PermanentProgress.Instance;
         int alloy = progress != null ? progress.StabilizedAlloy : 0;
 
-        for (int i = 0; i < entries.Length; i++)
+        for (int i = 0; i < entries.Count; i++)
         {
             TechnologyEntry entry = entries[i];
             if (entry == null)
@@ -276,7 +152,7 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
 
     private void RefreshSelectedDetail(PermanentProgress progress, int alloy)
     {
-        TechnologyEntry selectedEntry = entries[Mathf.Clamp(selectedIndex, 0, entries.Length - 1)];
+        TechnologyEntry selectedEntry = GetSelectedEntry();
         if (selectedEntry == null)
         {
             return;
@@ -295,7 +171,7 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
         if (isMaxLevel)
         {
             selectedEffectText.text = $"현재  {definition.FormatEffect(currentLevel)}\n다음  최대 단계";
-            selectedCostText.text = "필요  없음";
+            selectedCostText.text = $"필요  없음\n보유  안정화 합금 {alloy}";
             upgradeButtonText.text = "최대 단계";
             upgradeButton.interactable = false;
             return;
@@ -306,9 +182,10 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
         selectedEffectText.text =
             $"현재  {definition.FormatEffect(currentLevel)}\n" +
             $"다음  {definition.FormatEffect(nextLevel)}";
-        selectedCostText.text = $"필요  합금 {cost}";
-        upgradeButtonText.text = "업그레이드";
-        upgradeButton.interactable = progress != null && alloy >= cost;
+        selectedCostText.text = $"필요  안정화 합금 {cost}\n보유  {alloy}";
+        bool canAfford = progress != null && alloy >= cost;
+        upgradeButtonText.text = canAfford ? "강화" : "합금 부족";
+        upgradeButton.interactable = canAfford;
     }
 
     private void BuildPanel(
@@ -327,20 +204,21 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
         background.color = panelColor;
         background.raycastTarget = false;
 
-        TextMeshProUGUI title = CreateText("Title", panelRect, textPrototype, "지역 기술", 12f, FontStyles.Bold);
+        TextMeshProUGUI title = CreateText("Title", panelRect, textPrototype, "기체 보강", 12f, FontStyles.Bold);
         title.alignment = TextAlignmentOptions.MidlineLeft;
         SetRect(title.rectTransform, new Vector2(-65f, 92f), new Vector2(190f, 20f));
 
         BuildDetailPanel(panelRect, actionButtonPrototype, textPrototype);
         BuildTechnologyCards(panelRect, textPrototype);
 
-        Button backButton = Instantiate(backButtonPrototype, panelRect);
+        backButton = Instantiate(backButtonPrototype, panelRect);
         backButton.name = "SectorTechnologyBackButton";
         backButton.onClick.RemoveAllListeners();
         backButton.onClick.AddListener(settlementUIController.ShowRepairPanel);
         SetRect(backButton.GetComponent<RectTransform>(), new Vector2(-198f, -116f), new Vector2(68f, 22f));
         ConfigureButtonText(backButton, "뒤로", 7f);
         ConfigureButtonSound(backButton, SoundEventIds.UiBack, true, true, true);
+        ConfigureEntryNavigation();
     }
 
     private void BuildDetailPanel(
@@ -375,27 +253,31 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
         selectedCostText = CreateText("Cost", detailRect, textPrototype, string.Empty, 7f, FontStyles.Normal);
         selectedCostText.color = alloyColor;
         selectedCostText.alignment = TextAlignmentOptions.MidlineLeft;
-        SetRect(selectedCostText.rectTransform, new Vector2(0f, -43f), new Vector2(184f, 18f));
+        selectedCostText.textWrappingMode = TextWrappingModes.Normal;
+        SetRect(selectedCostText.rectTransform, new Vector2(0f, -49f), new Vector2(184f, 28f));
 
         upgradeButton = Instantiate(actionButtonPrototype, parent);
         upgradeButton.name = "UpgradeButton";
         upgradeButton.onClick.RemoveAllListeners();
         upgradeButton.onClick.AddListener(TryUpgradeSelected);
         SetRect(upgradeButton.GetComponent<RectTransform>(), new Vector2(85f, -116f), new Vector2(82f, 22f));
-        upgradeButtonText = ConfigureButtonText(upgradeButton, "업그레이드", 7.5f);
+        upgradeButtonText = ConfigureButtonText(upgradeButton, "강화", 7.5f);
         ConfigureButtonSound(upgradeButton, string.Empty, false, true, true);
     }
 
     private void BuildTechnologyCards(RectTransform parent, TextMeshProUGUI textPrototype)
     {
         IReadOnlyList<SectorTechnologyDefinition> definitions = SectorTechnologyCatalog.Definitions;
-        for (int i = 0; i < definitions.Count && i < entries.Length; i++)
+        entries.Clear();
+        entries.Capacity = Mathf.Max(entries.Capacity, definitions.Count);
+
+        for (int i = 0; i < definitions.Count; i++)
         {
             int entryIndex = i;
             SectorTechnologyDefinition definition = definitions[i];
             GameObject card = CreateUiObject(definition.Id, parent);
             RectTransform cardRect = card.GetComponent<RectTransform>();
-            SetRect(cardRect, new Vector2(145f, 48f - (56f * i)), new Vector2(170f, 50f));
+            SetRect(cardRect, new Vector2(145f, 60f - (35f * i)), new Vector2(170f, 32f));
 
             Image cardImage = card.AddComponent<Image>();
             cardImage.color = cardColor;
@@ -411,7 +293,7 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
 
             GameObject iconObject = CreateUiObject("Icon", cardRect);
             RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-            SetRect(iconRect, new Vector2(-62f, 0f), new Vector2(26f, 26f));
+            SetRect(iconRect, new Vector2(-62f, 0f), new Vector2(22f, 22f));
             Image iconImage = iconObject.AddComponent<Image>();
             iconImage.color = definition.AccentColor;
             iconImage.raycastTarget = false;
@@ -422,14 +304,14 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
 
             TextMeshProUGUI nameText = CreateText("Name", cardRect, textPrototype, string.Empty, 7.5f, FontStyles.Bold);
             nameText.alignment = TextAlignmentOptions.MidlineLeft;
-            SetRect(nameText.rectTransform, new Vector2(20f, 9f), new Vector2(118f, 17f));
+            SetRect(nameText.rectTransform, new Vector2(20f, 7f), new Vector2(118f, 14f));
 
             TextMeshProUGUI summaryText = CreateText("Summary", cardRect, textPrototype, string.Empty, 6f, FontStyles.Normal);
             summaryText.alignment = TextAlignmentOptions.MidlineLeft;
             summaryText.color = new Color(0.72f, 0.84f, 0.9f, 1f);
-            SetRect(summaryText.rectTransform, new Vector2(20f, -10f), new Vector2(118f, 17f));
+            SetRect(summaryText.rectTransform, new Vector2(20f, -7f), new Vector2(118f, 13f));
 
-            entries[i] = new TechnologyEntry
+            entries.Add(new TechnologyEntry
             {
                 Definition = definition,
                 CardButton = cardButton,
@@ -437,19 +319,21 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
                 CardOutline = cardOutline,
                 NameText = nameText,
                 SummaryText = summaryText
-            };
+            });
         }
+
     }
 
     private void SelectTechnology(int index)
     {
-        selectedIndex = Mathf.Clamp(index, 0, entries.Length - 1);
+        selectedIndex = Mathf.Clamp(index, 0, entries.Count - 1);
+        ConfigureActionNavigation();
         Refresh();
     }
 
     private void TryUpgradeSelected()
     {
-        TechnologyEntry selectedEntry = entries[Mathf.Clamp(selectedIndex, 0, entries.Length - 1)];
+        TechnologyEntry selectedEntry = GetSelectedEntry();
         if (selectedEntry == null || settlementController == null)
         {
             return;
@@ -463,6 +347,69 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
                 ? SoundEventIds.UiUnlock
                 : SoundEventIds.UiUpgradeSuccess);
         Refresh();
+    }
+
+    private TechnologyEntry GetSelectedEntry()
+    {
+        if (entries.Count == 0)
+        {
+            return null;
+        }
+
+        selectedIndex = Mathf.Clamp(selectedIndex, 0, entries.Count - 1);
+        return entries[selectedIndex];
+    }
+
+    private void ConfigureEntryNavigation()
+    {
+        for (int i = 0; i < entries.Count; i++)
+        {
+            Button button = entries[i].CardButton;
+            Navigation navigation = new Navigation
+            {
+                mode = Navigation.Mode.Explicit,
+                selectOnUp = i > 0 ? entries[i - 1].CardButton : null,
+                selectOnDown = i + 1 < entries.Count ? entries[i + 1].CardButton : backButton,
+                selectOnLeft = upgradeButton,
+                selectOnRight = null
+            };
+            button.navigation = navigation;
+
+            SettlementSectorTechnologyEntrySelection selection =
+                button.gameObject.AddComponent<SettlementSectorTechnologyEntrySelection>();
+            int entryIndex = i;
+            selection.Configure(() => SelectTechnology(entryIndex));
+        }
+
+        ConfigureActionNavigation();
+    }
+
+    private void ConfigureActionNavigation()
+    {
+        TechnologyEntry selectedEntry = GetSelectedEntry();
+        if (selectedEntry == null)
+        {
+            return;
+        }
+
+        Navigation upgradeNavigation = new Navigation
+        {
+            mode = Navigation.Mode.Explicit,
+            selectOnRight = selectedEntry.CardButton,
+            selectOnDown = backButton
+        };
+        upgradeButton.navigation = upgradeNavigation;
+
+        if (backButton != null)
+        {
+            Navigation backNavigation = new Navigation
+            {
+                mode = Navigation.Mode.Explicit,
+                selectOnUp = upgradeButton,
+                selectOnRight = entries[entries.Count - 1].CardButton
+            };
+            backButton.navigation = backNavigation;
+        }
     }
 
     private static void ConfigureButtonSound(
@@ -567,5 +514,27 @@ public class SettlementSectorTechnologyPanelUI : MonoBehaviour
         rect.anchoredPosition = Vector2.zero;
         rect.sizeDelta = Vector2.zero;
         rect.localScale = Vector3.one;
+    }
+}
+
+public sealed class SettlementSectorTechnologyEntrySelection : MonoBehaviour,
+    ISelectHandler,
+    IPointerEnterHandler
+{
+    private Action selectionAction;
+
+    public void Configure(Action action)
+    {
+        selectionAction = action;
+    }
+
+    public void OnSelect(BaseEventData eventData)
+    {
+        selectionAction?.Invoke();
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        selectionAction?.Invoke();
     }
 }

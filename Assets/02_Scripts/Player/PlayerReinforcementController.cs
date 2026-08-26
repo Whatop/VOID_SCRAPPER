@@ -7,6 +7,7 @@ using UnityEngine.InputSystem.Controls;
 [DisallowMultipleComponent]
 public class PlayerReinforcementController : MonoBehaviour
 {
+    private readonly HashSet<object> externalInputLocks = new HashSet<object>();
     [Header("Input Actions")]
     [SerializeField] private InputActionAsset inputActions;
     [SerializeField] private string actionMapName = "Player";
@@ -268,7 +269,7 @@ public class PlayerReinforcementController : MonoBehaviour
 
     public bool CanUseCurrent()
     {
-        if (GameplayPauseManager.IsPaused)
+        if (GameplayPauseManager.IsPaused || externalInputLocks.Count > 0)
         {
             return false;
         }
@@ -297,7 +298,7 @@ public class PlayerReinforcementController : MonoBehaviour
             return false;
         }
 
-        if (GameplayPauseManager.IsPaused)
+        if (GameplayPauseManager.IsPaused || externalInputLocks.Count > 0)
         {
             return false;
         }
@@ -377,6 +378,24 @@ public class PlayerReinforcementController : MonoBehaviour
 
         ConsumeChargeAfterSuccessfulUse();
         return true;
+    }
+
+    public void SetExternalInputLocked(object source, bool locked)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        if (locked)
+        {
+            externalInputLocks.Add(source);
+            emergencyReturnController?.NotifyHoldReleased();
+        }
+        else
+        {
+            externalInputLocks.Remove(source);
+        }
     }
 
     public bool DropCurrentEquipment(Vector2 position)

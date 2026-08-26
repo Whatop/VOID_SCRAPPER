@@ -29,6 +29,39 @@ public class SpaceBackgroundGenerator2DEditor : Editor
         EditorGUILayout.Space(12f);
         EditorGUILayout.LabelField("VOID SCRAPPER Background Tools", EditorStyles.boldLabel);
 
+        SerializedProperty sourceMode = serializedObject.FindProperty("normalBackgroundSource");
+        bool usesDynamicLite = sourceMode != null &&
+            sourceMode.enumValueIndex == (int)NormalSpaceBackgroundSource.DynamicSpaceBackgroundLite;
+
+        if (usesDynamicLite)
+        {
+            EditorGUILayout.HelpBox(
+                "Dynamic Space Background Lite uses the assigned project prefab as a static, tiled " +
+                "normal background. Tune its child SpriteRenderers, then regenerate to preview coverage.",
+                MessageType.Info
+            );
+
+            SpaceBackgroundGenerator2D dynamicGenerator = (SpaceBackgroundGenerator2D)target;
+            EditorGUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("Regenerate Dynamic Lite Background"))
+            {
+                dynamicGenerator.GenerateBackground();
+                EditorUtility.SetDirty(dynamicGenerator);
+                SceneView.RepaintAll();
+            }
+
+            if (GUILayout.Button("Clear Generated"))
+            {
+                dynamicGenerator.ClearGeneratedBackground();
+                EditorUtility.SetDirty(dynamicGenerator);
+                SceneView.RepaintAll();
+            }
+
+            EditorGUILayout.EndHorizontal();
+            return;
+        }
+
         EditorGUILayout.HelpBox(
             "1~8번 성운 이미지는 seamless texture가 아닙니다. " +
             "Legacy Tiled로 반복하면 교차선이 보입니다. " +

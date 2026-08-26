@@ -172,6 +172,12 @@ public class MeteorObstacle : MonoBehaviour
 
     public bool CanReceiveProjectileDamage(ProjectileOwner projectileOwner)
     {
+        BossArenaCover arenaCover = GetComponentInParent<BossArenaCover>();
+        if (arenaCover != null && arenaCover.IsProtected)
+        {
+            return false;
+        }
+
         return projectileOwner == ProjectileOwner.Player
             ? takeDamageFromPlayerProjectiles
             : takeDamageFromEnemyProjectiles;
@@ -194,6 +200,13 @@ public class MeteorObstacle : MonoBehaviour
 
     public void TakeDamage(int damage, Vector2 hitPoint, Vector2 incomingDirection)
     {
+        BossArenaCover arenaCover = GetComponentInParent<BossArenaCover>();
+        if (arenaCover != null && arenaCover.IsProtected)
+        {
+            arenaCover.PlayBlockedImpact(hitPoint);
+            return;
+        }
+
         if (damage <= 0)
         {
             return;

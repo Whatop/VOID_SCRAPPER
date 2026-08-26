@@ -13,6 +13,15 @@ MonoBehaviour:
   m_Name: New Building Definition
   m_EditorClassIdentifier: 
   buildingType: 0
-  displayName: 
-  description: 
+  displayName: "격납고 제어 복구"
+  description: "회수한 구획 안정기를 설치해 격납고 제어 계통을 복구합니다."
   levels: []
+  requiredBossStoryPart: 1
+  requiredSynchronizationStage: 2
+  requiresPriorRestoration: 0
+  priorRestorationBuilding: 0
+  requiredUnlockFlag:
+  completionResultDescription: "격납고 제어 계통 정상화\n다음 복구 프로젝트 개방"
+  grantedUnlockFlag: settlement_restoration_hangar_complete
+  visualStateKey: restoration_hangar
+  restorationActionLabel: "설치"

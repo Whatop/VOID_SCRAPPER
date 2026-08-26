@@ -1,145 +1,46 @@
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
-public class WormholeChoiceUI : MonoBehaviour
+public sealed class WormholeChoiceUI : ExpeditionTravelConfirmationUI
 {
-    [Header("Root")]
-    [SerializeField] private GameObject panelRoot;
-    [SerializeField] private CanvasGroup canvasGroup;
-
-    [Header("Texts")]
-    [SerializeField] private TextMeshProUGUI titleText;
-    [SerializeField] private TextMeshProUGUI bodyText;
-
-    [Header("Buttons")]
-    [SerializeField] private Button yesButton;
-    [SerializeField] private Button noButton;
-
-    [Header("Text Values")]
-    [SerializeField] private string title = "ø˙»¶";
-    [SerializeField] private string body = "¥Ÿ¿Ω ¡ˆø™¿ª ≈Ωªˆ«œΩ√∞⁄Ω¿¥œ±Ó?";
-    [SerializeField] private string yesLabel = "øπ";
-    [SerializeField] private string noLabel = "æ∆¥œø¿";
-
-    [Header("Button Labels Optional")]
-    [SerializeField] private TextMeshProUGUI yesButtonLabelText;
-    [SerializeField] private TextMeshProUGUI noButtonLabelText;
-
     private WormholePortal currentPortal;
-
-    private void Reset()
-    {
-        panelRoot = gameObject;
-        canvasGroup = GetComponent<CanvasGroup>();
-    }
-
-    private void Awake()
-    {
-        if (panelRoot == null)
-        {
-            panelRoot = gameObject;
-        }
-
-        if (canvasGroup == null)
-        {
-            canvasGroup = GetComponent<CanvasGroup>();
-        }
-
-        Close();
-    }
-
-    private void OnEnable()
-    {
-        if (yesButton != null)
-        {
-            yesButton.onClick.AddListener(HandleYesClicked);
-        }
-
-        if (noButton != null)
-        {
-            noButton.onClick.AddListener(HandleNoClicked);
-        }
-    }
-
-    private void OnDisable()
-    {
-        if (yesButton != null)
-        {
-            yesButton.onClick.RemoveListener(HandleYesClicked);
-        }
-
-        if (noButton != null)
-        {
-            noButton.onClick.RemoveListener(HandleNoClicked);
-        }
-    }
 
     public void Open(WormholePortal portal)
     {
+        RunManager runManager = RunManager.Instance;
+
+        if (portal == null || runManager == null ||
+            !runManager.CanAdvanceToNextRegion(out ExpeditionDepth nextDepth, out _))
+        {
+            return;
+        }
+
         currentPortal = portal;
-
-        RefreshTexts();
-        SetVisible(true);
+        string nextRegionName = CampaignProgressionCatalog.GetRegionDisplayName(nextDepth);
+        OpenModal(
+            "Îã§Ïùå Ìï¥Ïó≠ ÏßÑÏûÖ",
+            $"{nextRegionName}ÏúºÎ°ú Ïù¥ÎèôÌïòÏãúÍ≤†ÏäµÎãàÍπå?",
+            "Ï∑®ÏÜå",
+            "ÏßÑÏûÖ"
+        );
     }
 
-    public void Close()
-    {
-        currentPortal = null;
-        SetVisible(false);
-    }
-
-    private void RefreshTexts()
-    {
-        if (titleText != null)
-        {
-            titleText.text = title;
-        }
-
-        if (bodyText != null)
-        {
-            bodyText.text = body;
-        }
-
-        if (yesButtonLabelText != null)
-        {
-            yesButtonLabelText.text = yesLabel;
-        }
-
-        if (noButtonLabelText != null)
-        {
-            noButtonLabelText.text = noLabel;
-        }
-    }
-
-    private void HandleYesClicked()
+    protected override bool ConfirmSelection()
     {
         WormholePortal portal = currentPortal;
-        Close();
+        RunManager runManager = RunManager.Instance;
 
-        if (portal != null)
+        if (portal == null || runManager == null ||
+            !runManager.CanAdvanceToNextRegion(out _, out _))
         {
-            portal.ConfirmEnterNextArea();
+            return false;
         }
+
+        portal.ConfirmEnterNextArea();
+        return true;
     }
 
-    private void HandleNoClicked()
+    protected override void ClearSelection()
     {
-        Close();
-    }
-
-    private void SetVisible(bool visible)
-    {
-        if (panelRoot != null)
-        {
-            panelRoot.SetActive(visible);
-        }
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = visible ? 1f : 0f;
-            canvasGroup.interactable = visible;
-            canvasGroup.blocksRaycasts = visible;
-        }
+        currentPortal = null;
     }
 }

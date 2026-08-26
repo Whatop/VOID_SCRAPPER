@@ -310,31 +310,93 @@ public sealed class MapBoundaryParticleVisual2D : MonoBehaviour
         edgeObject.transform.position = new Vector3(position.x, position.y, transform.position.z);
 
         ParticleSystem particleSystem = edgeObject.AddComponent<ParticleSystem>();
+        ConfigureEdgeParticleSystem(
+            particleSystem,
+            shapeSize,
+            outwardDirection,
+            particlesPerWorldUnit,
+            64,
+            768,
+            particleLifetimeRange,
+            particleSizeRange,
+            outwardDriftSpeed,
+            noiseStrength,
+            noiseFrequency,
+            idleParticleColor,
+            particleMaterial,
+            sortingLayerName,
+            particleSortingOrder,
+            ParticleSystemSimulationSpace.World,
+            true,
+            true,
+            0
+        );
+
+        particleSystems.Add(particleSystem);
+    }
+
+    /// <summary>
+    /// Configures the sparse, noisy edge particles used by the Expedition sector boundary.
+    /// Raider arena walls reuse this presentation path without taking ownership of map containment.
+    /// </summary>
+    public static void ConfigureEdgeParticleSystem(
+        ParticleSystem particleSystem,
+        Vector2 shapeSize,
+        Vector2 outwardDirection,
+        float particlesPerWorldUnit,
+        int minimumParticles,
+        int maximumParticles,
+        Vector2 lifetimeRange,
+        Vector2 sizeRange,
+        float outwardDriftSpeed,
+        float noiseStrength,
+        float noiseFrequency,
+        Color startColor,
+        Material sharedMaterial,
+        string sortingLayerName,
+        int sortingOrder,
+        ParticleSystemSimulationSpace simulationSpace,
+        bool loop,
+        bool animateOverLifetime,
+        int oneShotParticleCount)
+    {
+        if (particleSystem == null)
+        {
+            return;
+        }
+
+        particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
         ParticleSystem.MainModule main = particleSystem.main;
-        main.loop = true;
-        main.playOnAwake = true;
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.loop = loop;
+        main.playOnAwake = false;
+        main.simulationSpace = simulationSpace;
         main.scalingMode = ParticleSystemScalingMode.Local;
         main.startLifetime = new ParticleSystem.MinMaxCurve(
-            Mathf.Max(0.05f, Mathf.Min(particleLifetimeRange.x, particleLifetimeRange.y)),
-            Mathf.Max(0.05f, Mathf.Max(particleLifetimeRange.x, particleLifetimeRange.y))
+            Mathf.Max(0.05f, Mathf.Min(lifetimeRange.x, lifetimeRange.y)),
+            Mathf.Max(0.05f, Mathf.Max(lifetimeRange.x, lifetimeRange.y))
         );
         main.startSpeed = 0f;
         main.startSize = new ParticleSystem.MinMaxCurve(
-            Mathf.Max(0.01f, Mathf.Min(particleSizeRange.x, particleSizeRange.y)),
-            Mathf.Max(0.01f, Mathf.Max(particleSizeRange.x, particleSizeRange.y))
+            Mathf.Max(0.01f, Mathf.Min(sizeRange.x, sizeRange.y)),
+            Mathf.Max(0.01f, Mathf.Max(sizeRange.x, sizeRange.y))
         );
-        main.startColor = idleParticleColor;
+        main.startColor = startColor;
+        int resolvedMinimumParticles = Mathf.Max(1, minimumParticles);
+        int resolvedMaximumParticles = Mathf.Max(resolvedMinimumParticles, maximumParticles);
         main.maxParticles = Mathf.Clamp(
             Mathf.CeilToInt(Mathf.Max(shapeSize.x, shapeSize.y) * Mathf.Max(1f, particlesPerWorldUnit) * 3f),
-            64,
-            768
+            resolvedMinimumParticles,
+            resolvedMaximumParticles
         );
         main.stopAction = ParticleSystemStopAction.None;
 
         ParticleSystem.EmissionModule emission = particleSystem.emission;
         float edgeLength = Mathf.Max(shapeSize.x, shapeSize.y);
-        emission.rateOverTime = Mathf.Max(0f, edgeLength * particlesPerWorldUnit);
+        emission.enabled = loop;
+        emission.rateOverTime = loop
+            ? Mathf.Max(0f, edgeLength * particlesPerWorldUnit)
+            : 0f;
 
         ParticleSystem.ShapeModule shape = particleSystem.shape;
         shape.enabled = true;
@@ -347,7 +409,7 @@ public sealed class MapBoundaryParticleVisual2D : MonoBehaviour
 
         ParticleSystem.VelocityOverLifetimeModule velocity = particleSystem.velocityOverLifetime;
         velocity.enabled = outwardDriftSpeed > 0f;
-        velocity.space = ParticleSystemSimulationSpace.World;
+        velocity.space = simulationSpace;
         velocity.x = outwardDirection.x * outwardDriftSpeed;
         velocity.y = outwardDirection.y * outwardDriftSpeed;
 
@@ -360,47 +422,59 @@ public sealed class MapBoundaryParticleVisual2D : MonoBehaviour
         noise.damping = true;
 
         ParticleSystem.ColorOverLifetimeModule colorOverLifetime = particleSystem.colorOverLifetime;
-        colorOverLifetime.enabled = true;
-        Gradient gradient = new Gradient();
-        gradient.SetKeys(
-            new[]
-            {
-                new GradientColorKey(Color.white, 0f),
-                new GradientColorKey(Color.white, 1f)
-            },
-            new[]
-            {
-                new GradientAlphaKey(0f, 0f),
-                new GradientAlphaKey(1f, 0.18f),
-                new GradientAlphaKey(0.65f, 0.72f),
-                new GradientAlphaKey(0f, 1f)
-            }
-        );
-        colorOverLifetime.color = new ParticleSystem.MinMaxGradient(gradient);
+        colorOverLifetime.enabled = animateOverLifetime;
+        if (animateOverLifetime)
+        {
+            Gradient gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(Color.white, 0f),
+                    new GradientColorKey(Color.white, 1f)
+                },
+                new[]
+                {
+                    new GradientAlphaKey(0f, 0f),
+                    new GradientAlphaKey(1f, 0.18f),
+                    new GradientAlphaKey(0.65f, 0.72f),
+                    new GradientAlphaKey(0f, 1f)
+                }
+            );
+            colorOverLifetime.color = new ParticleSystem.MinMaxGradient(gradient);
+        }
 
         ParticleSystem.SizeOverLifetimeModule sizeOverLifetime = particleSystem.sizeOverLifetime;
-        sizeOverLifetime.enabled = true;
-        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(
-            1f,
-            new AnimationCurve(
-                new Keyframe(0f, 0.6f),
-                new Keyframe(0.25f, 1f),
-                new Keyframe(1f, 0.15f)
-            )
-        );
+        sizeOverLifetime.enabled = animateOverLifetime;
+        if (animateOverLifetime)
+        {
+            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(
+                1f,
+                new AnimationCurve(
+                    new Keyframe(0f, 0.6f),
+                    new Keyframe(0.25f, 1f),
+                    new Keyframe(1f, 0.15f)
+                )
+            );
+        }
 
         ParticleSystemRenderer targetRenderer = particleSystem.GetComponent<ParticleSystemRenderer>();
         targetRenderer.renderMode = ParticleSystemRenderMode.Billboard;
         targetRenderer.sortingLayerName = sortingLayerName;
-        targetRenderer.sortingOrder = particleSortingOrder;
+        targetRenderer.sortingOrder = sortingOrder;
 
-        if (particleMaterial != null)
+        if (sharedMaterial != null)
         {
-            targetRenderer.sharedMaterial = particleMaterial;
+            targetRenderer.sharedMaterial = sharedMaterial;
         }
 
-        particleSystems.Add(particleSystem);
-        particleSystem.Play(true);
+        if (loop)
+        {
+            particleSystem.Play(true);
+        }
+        else
+        {
+            particleSystem.Emit(Mathf.Clamp(oneShotParticleCount, 1, main.maxParticles));
+        }
     }
 
     private void CreateBarrierLine(Vector2 center, float halfWidth, float halfHeight)

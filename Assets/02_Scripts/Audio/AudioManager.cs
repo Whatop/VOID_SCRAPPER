@@ -104,6 +104,7 @@ public class AudioManager : MonoBehaviour
         new Dictionary<string, float>();
     private readonly Dictionary<string, float> lastOneShotTimes =
         new Dictionary<string, float>();
+    private readonly HashSet<object> worldSfxSuppressionOwners = new HashSet<object>();
 
     private readonly RaycastHit2D[] occlusionHits = new RaycastHit2D[12];
     private readonly HashSet<int> occlusionColliderIds = new HashSet<int>();
@@ -185,6 +186,29 @@ public class AudioManager : MonoBehaviour
         EnsureExists().StopEveryLoop();
     }
 
+    public static void SetWorldSfxSuppressed(
+        object owner,
+        bool suppressed,
+        bool stopActiveVoices = false)
+    {
+        AudioManager manager = EnsureExists();
+        object resolvedOwner = owner ?? manager;
+
+        if (suppressed)
+        {
+            manager.worldSfxSuppressionOwners.Add(resolvedOwner);
+
+            if (stopActiveVoices)
+            {
+                manager.StopActiveWorldSfxVoices();
+            }
+
+            return;
+        }
+
+        manager.worldSfxSuppressionOwners.Remove(resolvedOwner);
+    }
+
     public static void SetMasterVolume(float value)
     {
         AudioManager manager = EnsureExists();
@@ -252,6 +276,7 @@ public class AudioManager : MonoBehaviour
         cachedListener = null;
         cachedListenerTransform = null;
         nextListenerSearchTime = 0f;
+        worldSfxSuppressionOwners.Clear();
     }
 
     private void LoadDatabaseIfNeeded()
@@ -377,6 +402,12 @@ public class AudioManager : MonoBehaviour
                 definition,
                 position.HasValue
             );
+
+        if (worldSfxSuppressionOwners.Count > 0 &&
+            !IsAllowedDuringWorldSfxSuppression(eventId))
+        {
+            return false;
+        }
 
         Vector2 worldPosition = position.HasValue
             ? (Vector2)position.Value
@@ -720,6 +751,22 @@ public class AudioManager : MonoBehaviour
         loopVolumeModulations.Clear();
         loopBaseVolumes.Clear();
         loopBasePitches.Clear();
+    }
+
+    private void StopActiveWorldSfxVoices()
+    {
+        for (int i = 0; i < voices.Count; i++)
+        {
+            PooledVoice voice = voices[i];
+
+            if (voice == null || !voice.IsPlaying ||
+                IsAllowedDuringWorldSfxSuppression(voice.eventId))
+            {
+                continue;
+            }
+
+            PrepareVoiceForReuse(voice);
+        }
     }
 
     private void LogPlayback(
@@ -1523,6 +1570,24 @@ public class AudioManager : MonoBehaviour
         string legacyId = SoundEventIds.ToLegacy(eventId);
         return !string.IsNullOrWhiteSpace(legacyId) &&
                legacyId.StartsWith("ui_", StringComparison.Ordinal);
+    }
+
+    private static bool IsAllowedDuringWorldSfxSuppression(string eventId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId))
+        {
+            return false;
+        }
+
+        if (IsUiEvent(eventId) ||
+            SoundEventIds.ToNumbered(eventId) == SoundEventIds.SafeReturn)
+        {
+            return true;
+        }
+
+        string legacyId = SoundEventIds.ToLegacy(eventId);
+        return !string.IsNullOrWhiteSpace(legacyId) &&
+               legacyId.StartsWith("result_", StringComparison.Ordinal);
     }
 
     private bool IsAutomaticTwoDEvent(

@@ -10,6 +10,12 @@ public enum SpaceStarfieldLayoutMode
     LegacyTiled = 2
 }
 
+public enum NormalSpaceBackgroundSource
+{
+    LegacyGenerated = 0,
+    DynamicSpaceBackgroundLite = 1
+}
+
 [ExecuteAlways]
 [DefaultExecutionOrder(10000)]
 [DisallowMultipleComponent]
@@ -20,6 +26,23 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     [Tooltip("Optional scene-authored normal background. When assigned, this root replaces runtime normal-background generation while retaining the shared Pixel Curse transition/minimal background path.")]
     [SerializeField] private Transform authoredNormalBackgroundRoot;
+
+    [Header("Normal Background Source")]
+    [SerializeField] private NormalSpaceBackgroundSource normalBackgroundSource =
+        NormalSpaceBackgroundSource.LegacyGenerated;
+    [SerializeField] private GameObject dynamicSpaceBackgroundLitePrefab;
+    [SerializeField, Min(0f)] private float dynamicLiteCoveragePadding = 4f;
+
+    [Header("Temporary Boss Background")]
+    [SerializeField, Range(0f, 1f)] private float bossFarLayerAlphaMultiplier = 0.12f;
+    [SerializeField, Min(0.05f)] private float bossBackgroundFadeDuration = 0.65f;
+    [SerializeField, Min(0.05f)] private float explorationBackgroundRestoreDuration = 0.45f;
+    [SerializeField, Range(0f, 1f)] private float coreActivationOverlayAlpha = 0.42f;
+    [SerializeField, Min(0.01f)] private float coreActivationOverlayFadeInDuration = 0.24f;
+    [SerializeField, Min(0.01f)] private float coreActivationOverlayFadeOutDuration = 0.3f;
+    [SerializeField, Range(0f, 1f)] private float bossRecoveryOverlayAlpha = 0.12f;
+    [SerializeField, Min(0.01f)] private float bossRecoveryOverlayFadeInDuration = 0.08f;
+    [SerializeField, Min(0.01f)] private float bossRecoveryOverlayFadeOutDuration = 0.35f;
 
     [Tooltip("비워두면 Main Camera를 따라갑니다. 플레이어를 직접 넣어도 됩니다.")]
     [SerializeField] private Transform followTargetOverride;
@@ -33,8 +56,17 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     [SerializeField] private Sprite[] dustCloudSprites;
     [SerializeField] private Sprite[] dustWispSprites;
+    [SerializeField] private Sprite[] distantNebulaSprites;
+    [SerializeField] private Sprite[] coverageSpeckSprites;
     [SerializeField] private Sprite smallFlareSprite;
     [SerializeField] private Sprite starFlareSprite;
+
+    [Header("Normal Expedition Composition")]
+    [SerializeField] private Color farColorTint = new Color(0.035f, 0.055f, 0.07f, 1f);
+    [SerializeField] private Material staticStarParticleMaterial;
+    [SerializeField] private int backgroundSeedOffset = 7919;
+    [SerializeField, Min(0f)] private float staticParticleBoundsPadding = 2f;
+    [SerializeField] private bool logBackgroundDiagnostics;
 
     [Header("Planets Layer")]
     [Tooltip("SpaceKit 예시처럼 행성 레이어를 배경에 포함할지 여부입니다.")]
@@ -47,15 +79,16 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     [SerializeField] private Sprite planetSprite;
 
     [SerializeField] private int planetCount = 1;
+    [SerializeField] private Vector2Int planetCountRange = new Vector2Int(0, 2);
     [SerializeField] private bool randomizePlanetPosition = true;
     [SerializeField] private Vector2 manualPlanetPosition = new Vector2(-6f, 3f);
-    [SerializeField] private Vector2 planetWorldSizeRange = new Vector2(8f, 15f);
-    [SerializeField] private float planetAvoidCenterRadius = 4f;
+    [SerializeField] private Vector2 planetWorldSizeRange = new Vector2(3.5f, 5.5f);
+    [SerializeField] private float planetAvoidCenterRadius = 14f;
 
     [Range(0f, 1f)]
-    [SerializeField] private float planetAlpha = 0.42f;
+    [SerializeField] private float planetAlpha = 0.3f;
 
-    [SerializeField] private Color planetTint = new Color(0.72f, 0.82f, 1f, 1f);
+    [SerializeField] private Color planetTint = new Color(0.58f, 0.68f, 0.78f, 1f);
 
     [Header("Planet Render Stabilization")]
     [Tooltip("Pixel Perfect Camera가 실제 렌더 위치를 픽셀 격자로 보정할 때 행성 레이어도 같은 격자로 따라가게 합니다.")]
@@ -98,10 +131,10 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     [Header("SpaceKit Style Follow")]
     [Tooltip("켜면 배경 레이어가 카메라/플레이어와 같이 이동합니다.")]
-    [SerializeField] private bool moveWithFollowTarget = true;
+    [SerializeField] private bool moveWithFollowTarget;
 
     [Tooltip("켜면 레이어별 저항값을 적용합니다. 1에 가까울수록 카메라와 같이 움직입니다.")]
-    [SerializeField] private bool useLayerMovementResistance = true;
+    [SerializeField] private bool useLayerMovementResistance;
 
     [Tooltip("1 = 카메라와 완전히 같이 이동. 0.98 = 아주 조금 느리게 이동.")]
     [Range(0f, 1f)]
@@ -216,6 +249,28 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     [SerializeField] private Color smallFlareTint = new Color(0.78f, 0.88f, 1f, 1f);
 
+    [Header("Distant Nebula Coverage")]
+    [SerializeField] private bool generateDistantNebulae = true;
+    [SerializeField, Min(0)] private int distantNebulaCount = 8;
+    [SerializeField] private Vector2 distantNebulaWorldSizeRange = new Vector2(24f, 44f);
+    [SerializeField] private Vector2 distantNebulaAlphaRange = new Vector2(0.025f, 0.075f);
+    [SerializeField] private Color distantNebulaTintA = new Color(0.15f, 0.2f, 0.3f, 1f);
+    [SerializeField] private Color distantNebulaTintB = new Color(0.24f, 0.12f, 0.3f, 1f);
+
+    [Header("Stratified Background Coverage")]
+    [SerializeField] private bool generateStratifiedCoverage = true;
+    [SerializeField, Min(2f)] private float coverageCellSize = 9f;
+    [SerializeField] private Vector2Int starsPerCellRange = new Vector2Int(1, 3);
+    [SerializeField, HideInInspector] private int coverageSpecksPerCell = 1;
+    [SerializeField, Range(0f, 0.5f)] private float sparseCellChance = 0.12f;
+    [SerializeField, Range(0f, 0.5f)] private float rareStarChance = 0.08f;
+    [SerializeField] private Vector2 coverageSpeckWorldSizeRange = new Vector2(0.06f, 0.14f);
+    [SerializeField] private Vector2 coverageSpeckAlphaRange = new Vector2(0.12f, 0.28f);
+    [SerializeField] private Color coverageSpeckTintA = new Color(0.62f, 0.72f, 0.86f, 1f);
+    [SerializeField] private Color coverageSpeckTintB = new Color(0.48f, 0.38f, 0.72f, 1f);
+    [SerializeField] private Vector2 rareStarWorldSizeRange = new Vector2(0.16f, 0.32f);
+    [SerializeField] private Vector2 rareStarAlphaRange = new Vector2(0.28f, 0.5f);
+
     [Header("Large Flares")]
     [SerializeField] private int largeFlareCount = 3;
     [SerializeField] private Vector2 largeFlareWorldSizeRange = new Vector2(0.8f, 1.8f);
@@ -239,14 +294,14 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     [Header("Runtime Stability")]
     [Tooltip("Cinemachine이 카메라를 최종 갱신한 뒤 렌더 직전에 배경 위치를 한 번 더 맞춥니다.")]
-    [SerializeField] private bool syncBeforeCameraRender = true;
+    [SerializeField] private bool syncBeforeCameraRender;
 
     [Tooltip("픽셀 아트 레이어의 화면 상대 위치를 픽셀 그리드에 맞춰 행성/별이 미세하게 떨리는 현상을 줄입니다.")]
-    [SerializeField] private bool stabilizePixelArtParallax = true;
+    [SerializeField] private bool stabilizePixelArtParallax;
 
-    [SerializeField] private bool snapStarfieldLayerToPixelGrid = true;
-    [SerializeField] private bool snapPlanetLayerToPixelGrid = true;
-    [SerializeField] private bool snapFlareLayerToPixelGrid = true;
+    [SerializeField] private bool snapStarfieldLayerToPixelGrid;
+    [SerializeField] private bool snapPlanetLayerToPixelGrid;
+    [SerializeField] private bool snapFlareLayerToPixelGrid;
     [SerializeField] private bool snapCloudLayersToPixelGrid;
     [SerializeField] private int assetsPixelsPerUnit = 32;
 
@@ -268,12 +323,28 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private PlayerVisualStateController playerVisualState;
+    [Tooltip("When enabled, the player's persistent Curse state replaces the normal background. Disable this in normal Expedition so story progression does not permanently suppress generated space.")]
+    [SerializeField] private bool replaceNormalBackgroundWhenPlayerCursed = true;
     [SerializeField] private float curseToCursedTransitionDuration = 0.6f;
     [SerializeField] private float curseToNormalTransitionDuration = 0.35f;
     [SerializeField] private Color curseTransitionColor = new Color(0.65f, 0.2f, 1f, 1f);
 
     private Transform generatedRoot;
     private Transform minimalBackgroundRoot;
+    private Transform dynamicLiteRoot;
+    private SpriteRenderer dynamicLiteFarRenderer;
+    private SpriteRenderer dynamicLiteNebulaRenderer;
+    private SpriteRenderer dynamicLiteDetailRenderer;
+    private Color dynamicLiteFarBaseColor;
+    private Color dynamicLiteNebulaBaseColor;
+    private Color dynamicLiteDetailBaseColor;
+    private bool dynamicLiteBaseColorsCaptured;
+    private Tween temporaryBossBackgroundTween;
+    private ScreenFader bossScreenFader;
+    private CanvasGroup bossScreenOverlayCanvasGroup;
+    private Tween bossScreenOverlayTween;
+    private bool ownsBossScreenOverlay;
+    private Transform farColorLayer;
     private Transform starLayer;
     private Transform planetLayer;
     private Transform cloudLayer;
@@ -284,6 +355,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     private Vector3 followOriginPosition;
     private Vector3 planetFollowOriginPosition;
+    private Vector3 farColorLayerOriginPosition;
     private Vector3 starLayerOriginPosition;
     private Vector3 planetLayerOriginPosition;
     private Vector3 cloudLayerOriginPosition;
@@ -318,6 +390,10 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     private readonly List<float> minimalBackgroundRendererAlphas = new List<float>();
     private readonly Dictionary<int, float> rendererBaseAlphaByInstanceId = new Dictionary<int, float>();
     private SpriteRenderer curseTransitionRenderer;
+    private Sprite generatedFarColorSprite;
+    private int generatedMainStarCount;
+    private int generatedRareStarCount;
+    private Bounds generatedBackgroundCoverageBounds;
 
     private void Reset()
     {
@@ -332,7 +408,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
         if (Application.isPlaying)
         {
-            isCurseBackgroundActive = playerVisualState != null && playerVisualState.IsCursed;
+            isCurseBackgroundActive = ResolveAutomaticCurseBackgroundState();
             ApplyBackgroundVisibility(isCurseBackgroundActive);
         }
     }
@@ -342,6 +418,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         UnregisterCameraCallbacks();
         UnsubscribeCurseState();
         ResetCurseTransition();
+        ResetTemporaryBossBackgroundPresentation();
     }
 
     private void OnDestroy()
@@ -349,11 +426,12 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         UnregisterCameraCallbacks();
         UnsubscribeCurseState();
         ResetCurseTransition();
+        KillTemporaryBossBackgroundTween();
     }
 
     private void RegisterCameraCallbacks()
     {
-        if (cameraCallbacksRegistered)
+        if (cameraCallbacksRegistered || !moveWithFollowTarget || !syncBeforeCameraRender)
         {
             return;
         }
@@ -382,7 +460,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
             return;
         }
 
-        if (generateOnStart)
+        if (generateOnStart && generatedRoot == null)
         {
             GenerateBackground();
         }
@@ -398,7 +476,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         ResolvePlayerVisualState();
         SubscribeCurseState();
 
-        bool curseActive = playerVisualState != null && playerVisualState.IsCursed;
+        bool curseActive = ResolveAutomaticCurseBackgroundState();
         isCurseBackgroundActive = curseActive;
         ApplyCurseBackgroundState(curseActive, true);
     }
@@ -406,6 +484,11 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     private void LateUpdate()
     {
         if (generatedRoot == null || !generatedRoot.gameObject.activeSelf)
+        {
+            return;
+        }
+
+        if (!moveWithFollowTarget)
         {
             return;
         }
@@ -438,11 +521,12 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
             ClearGeneratedBackground();
         }
 
-        int finalSeed = randomizeSeed
-            ? UnityEngine.Random.Range(int.MinValue, int.MaxValue)
-            : seed;
+        int finalSeed = ResolveBackgroundSeed();
 
         random = new System.Random(finalSeed);
+        generatedMainStarCount = 0;
+        generatedRareStarCount = 0;
+        generatedBackgroundCoverageBounds = default;
 
         generatedRoot = new GameObject(GeneratedRootName).transform;
         generatedRoot.SetParent(transform, false);
@@ -453,28 +537,109 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         followOriginPosition = ResolveFollowPosition();
         planetFollowOriginPosition = ResolvePlanetFollowPosition(followOriginPosition);
 
-        starLayer = CreateLayer("00_Starfield");
-        planetLayer = CreateLayer("01_Planets");
-        cloudLayer = CreateLayer("02_DustClouds");
-        wispLayer = CreateLayer("03_DustWisps");
-        flareLayer = CreateLayer("04_Flares");
+        bool usesDynamicLite = normalBackgroundSource ==
+            NormalSpaceBackgroundSource.DynamicSpaceBackgroundLite;
 
-        CacheLayerOriginPositions();
+        if (usesDynamicLite && TryCreateDynamicSpaceBackgroundLite())
+        {
+            CacheLayerOriginPositions();
+        }
+        else
+        {
+            if (usesDynamicLite)
+            {
+                Debug.LogWarning(
+                    "Dynamic Space Background Lite prefab is unavailable. " +
+                    "Falling back to the legacy generated normal background.",
+                    this
+                );
+            }
 
-        CreateStarfield();
-        CreatePlanets();
-        CreateDustClouds();
-        CreateDustWisps();
-        CreateSmallFlares();
-        CreateLargeFlares();
+            CreateLegacyNormalBackground();
+        }
+
         CreateMinimalBackground();
 
         UpdateLayerPositions();
         CacheBackgroundRendererLists();
         ApplyBackgroundVisibility(isCurseBackgroundActive);
         ApplyCurseBackgroundState(isCurseBackgroundActive, true);
+        ApplyCurrentEncounterBackgroundImmediate();
+        LogGeneratedBackgroundDiagnostics();
 
         Debug.Log($"Space background generated. Seed: {finalSeed}", this);
+    }
+
+    private void CreateLegacyNormalBackground()
+    {
+        farColorLayer = CreateLayer("00_FarColorBase");
+        starLayer = CreateLayer("01_StaticStarField");
+        cloudLayer = CreateLayer("02_NebulaPatches");
+        planetLayer = CreateLayer("03_DistantPlanets");
+        flareLayer = CreateLayer("04_DistantFlares");
+        wispLayer = null;
+
+        CacheLayerOriginPositions();
+
+        CreateStarfield();
+        CreateStratifiedCoverage();
+        CreateDistantNebulae();
+        CreatePlanets();
+        CreateLargeFlares();
+    }
+
+    private bool TryCreateDynamicSpaceBackgroundLite()
+    {
+        if (dynamicSpaceBackgroundLitePrefab == null)
+        {
+            return false;
+        }
+
+        GameObject instance = Instantiate(dynamicSpaceBackgroundLitePrefab);
+        instance.name = "DynamicLiteBackdrop";
+
+        dynamicLiteRoot = instance.transform;
+        dynamicLiteRoot.SetParent(generatedRoot, false);
+        dynamicLiteRoot.position = new Vector3(mapCenter.x, mapCenter.y, backgroundZ);
+        dynamicLiteRoot.localRotation = Quaternion.identity;
+
+        Vector2 coverageSize = GetStaticCoverageSize() +
+            Vector2.one * Mathf.Max(0f, dynamicLiteCoveragePadding) * 2f;
+        SpriteRenderer[] renderers = dynamicLiteRoot.GetComponentsInChildren<SpriteRenderer>(true);
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            SpriteRenderer renderer = renderers[i];
+
+            if (renderer == null || renderer.sprite == null)
+            {
+                continue;
+            }
+
+            Transform rendererTransform = renderer.transform;
+            Vector3 localScale = rendererTransform.localScale;
+            Vector3 localPosition = rendererTransform.localPosition;
+            float scaleX = Mathf.Max(0.0001f, Mathf.Abs(localScale.x));
+            float scaleY = Mathf.Max(0.0001f, Mathf.Abs(localScale.y));
+            float offsetX = Mathf.Abs(localPosition.x * localScale.x);
+            float offsetY = Mathf.Abs(localPosition.y * localScale.y);
+
+            renderer.drawMode = SpriteDrawMode.Tiled;
+            renderer.tileMode = SpriteTileMode.Continuous;
+            renderer.size = new Vector2(
+                (coverageSize.x + offsetX * 2f) / scaleX,
+                (coverageSize.y + offsetY * 2f) / scaleY
+            );
+        }
+
+        farColorLayer = dynamicLiteRoot;
+        starLayer = null;
+        planetLayer = null;
+        cloudLayer = null;
+        wispLayer = null;
+        flareLayer = null;
+        CacheDynamicLiteRenderers(true);
+        return true;
     }
 
     private void PrepareAuthoredBackground()
@@ -484,9 +649,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         generatedRoot = authoredNormalBackgroundRoot;
         generatedRoot.gameObject.name = GeneratedRootName;
 
-        int finalSeed = randomizeSeed
-            ? UnityEngine.Random.Range(int.MinValue, int.MaxValue)
-            : seed;
+        int finalSeed = ResolveBackgroundSeed();
 
         random = new System.Random(finalSeed);
 
@@ -508,6 +671,9 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     [ContextMenu("Clear Generated Background")]
     public void ClearGeneratedBackground()
     {
+        KillTemporaryBossBackgroundTween();
+        ClearBossScreenOverlayImmediate();
+
         if (curseTransitionTween != null)
         {
             curseTransitionTween.Kill(false);
@@ -521,7 +687,401 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         DestroyGeneratedObject(transform.Find(MinimalRootName));
         DestroyGeneratedObject(transform.Find(CurseTransitionOverlayName));
 
+        if (generatedFarColorSprite != null)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(generatedFarColorSprite);
+            }
+            else
+            {
+                DestroyImmediate(generatedFarColorSprite);
+            }
+
+            generatedFarColorSprite = null;
+        }
+
         ClearCachedLayers();
+    }
+
+    public Tween BeginBossEncounterPresentation(float duration = -1f)
+    {
+        if (!TryPrepareDynamicLitePresentation())
+        {
+            return null;
+        }
+
+        KillTemporaryBossBackgroundTween();
+
+        float resolvedDuration = duration >= 0f
+            ? Mathf.Max(0.05f, duration)
+            : Mathf.Max(0.05f, bossBackgroundFadeDuration);
+        Sequence sequence = DOTween.Sequence();
+        sequence.SetUpdate(true);
+
+        AppendRendererColorTween(
+            sequence,
+            dynamicLiteFarRenderer,
+            WithAlpha(
+                dynamicLiteFarBaseColor,
+                dynamicLiteFarBaseColor.a * Mathf.Clamp01(bossFarLayerAlphaMultiplier)
+            ),
+            resolvedDuration
+        );
+        AppendRendererColorTween(
+            sequence,
+            dynamicLiteNebulaRenderer,
+            WithAlpha(dynamicLiteNebulaBaseColor, 0f),
+            resolvedDuration
+        );
+        AppendRendererColorTween(
+            sequence,
+            dynamicLiteDetailRenderer,
+            WithAlpha(dynamicLiteDetailBaseColor, 0f),
+            resolvedDuration
+        );
+
+        temporaryBossBackgroundTween = sequence;
+        sequence.OnComplete(() => temporaryBossBackgroundTween = null);
+        BeginCoreActivationScreenOverlay();
+        return sequence;
+    }
+
+    public Tween RestoreExplorationPresentation(float duration = -1f, bool playRecoveryOverlay = true)
+    {
+        if (!TryPrepareDynamicLitePresentation())
+        {
+            ClearBossScreenOverlayImmediate();
+            return null;
+        }
+
+        KillTemporaryBossBackgroundTween();
+
+        float resolvedDuration = duration >= 0f
+            ? Mathf.Max(0.05f, duration)
+            : Mathf.Max(0.05f, explorationBackgroundRestoreDuration);
+        Sequence sequence = DOTween.Sequence();
+        sequence.SetUpdate(true);
+
+        AppendRendererColorTween(
+            sequence,
+            dynamicLiteFarRenderer,
+            dynamicLiteFarBaseColor,
+            resolvedDuration
+        );
+        AppendRendererColorTween(
+            sequence,
+            dynamicLiteNebulaRenderer,
+            dynamicLiteNebulaBaseColor,
+            resolvedDuration
+        );
+        AppendRendererColorTween(
+            sequence,
+            dynamicLiteDetailRenderer,
+            dynamicLiteDetailBaseColor,
+            resolvedDuration
+        );
+
+        temporaryBossBackgroundTween = sequence;
+        sequence.OnComplete(() => temporaryBossBackgroundTween = null);
+
+        if (playRecoveryOverlay)
+        {
+            PlayBossRecoveryScreenOverlay();
+        }
+        else
+        {
+            ClearBossScreenOverlayImmediate();
+        }
+
+        return sequence;
+    }
+
+    public void ReleaseCoreActivationScreenOverlay()
+    {
+        if (!ownsBossScreenOverlay || bossScreenOverlayCanvasGroup == null)
+        {
+            return;
+        }
+
+        KillBossScreenOverlayTween();
+        bossScreenOverlayTween = bossScreenOverlayCanvasGroup
+            .DOFade(0f, Mathf.Max(0.01f, coreActivationOverlayFadeOutDuration))
+            .SetUpdate(true)
+            .OnComplete(() =>
+            {
+                bossScreenOverlayTween = null;
+                ClearBossScreenOverlayImmediate();
+            });
+    }
+
+    public void ApplyBossEncounterPresentationImmediate()
+    {
+        if (!TryPrepareDynamicLitePresentation())
+        {
+            return;
+        }
+
+        KillTemporaryBossBackgroundTween();
+        SetRendererColor(
+            dynamicLiteFarRenderer,
+            WithAlpha(
+                dynamicLiteFarBaseColor,
+                dynamicLiteFarBaseColor.a * Mathf.Clamp01(bossFarLayerAlphaMultiplier)
+            )
+        );
+        SetRendererColor(
+            dynamicLiteNebulaRenderer,
+            WithAlpha(dynamicLiteNebulaBaseColor, 0f)
+        );
+        SetRendererColor(
+            dynamicLiteDetailRenderer,
+            WithAlpha(dynamicLiteDetailBaseColor, 0f)
+        );
+    }
+
+    public void ApplyExplorationPresentationImmediate()
+    {
+        if (!TryPrepareDynamicLitePresentation())
+        {
+            return;
+        }
+
+        KillTemporaryBossBackgroundTween();
+        SetRendererColor(dynamicLiteFarRenderer, dynamicLiteFarBaseColor);
+        SetRendererColor(dynamicLiteNebulaRenderer, dynamicLiteNebulaBaseColor);
+        SetRendererColor(dynamicLiteDetailRenderer, dynamicLiteDetailBaseColor);
+        ClearBossScreenOverlayImmediate();
+    }
+
+    private bool TryPrepareDynamicLitePresentation()
+    {
+        if (normalBackgroundSource != NormalSpaceBackgroundSource.DynamicSpaceBackgroundLite ||
+            isCurseBackgroundActive)
+        {
+            return false;
+        }
+
+        CacheGeneratedLayersIfNeeded();
+        CacheDynamicLiteRenderers(false);
+        return dynamicLiteBaseColorsCaptured && dynamicLiteFarRenderer != null;
+    }
+
+    private void CacheDynamicLiteRenderers(bool forceRecapture)
+    {
+        if (dynamicLiteRoot == null)
+        {
+            return;
+        }
+
+        SpriteRenderer farRenderer = dynamicLiteRoot.Find("FarSpaceLayer")
+            ?.GetComponent<SpriteRenderer>();
+        SpriteRenderer nebulaRenderer = dynamicLiteRoot.Find("NebulaOverlay")
+            ?.GetComponent<SpriteRenderer>();
+        SpriteRenderer detailRenderer = dynamicLiteRoot.Find("OptionalDetailOverlay")
+            ?.GetComponent<SpriteRenderer>();
+
+        bool rendererSetChanged = farRenderer != dynamicLiteFarRenderer ||
+                                  nebulaRenderer != dynamicLiteNebulaRenderer ||
+                                  detailRenderer != dynamicLiteDetailRenderer;
+
+        dynamicLiteFarRenderer = farRenderer;
+        dynamicLiteNebulaRenderer = nebulaRenderer;
+        dynamicLiteDetailRenderer = detailRenderer;
+
+        if (!forceRecapture && dynamicLiteBaseColorsCaptured && !rendererSetChanged)
+        {
+            return;
+        }
+
+        dynamicLiteFarBaseColor = dynamicLiteFarRenderer != null
+            ? dynamicLiteFarRenderer.color
+            : Color.white;
+        dynamicLiteNebulaBaseColor = dynamicLiteNebulaRenderer != null
+            ? dynamicLiteNebulaRenderer.color
+            : Color.clear;
+        dynamicLiteDetailBaseColor = dynamicLiteDetailRenderer != null
+            ? dynamicLiteDetailRenderer.color
+            : Color.clear;
+        dynamicLiteBaseColorsCaptured = dynamicLiteFarRenderer != null;
+    }
+
+    private void ApplyCurrentEncounterBackgroundImmediate()
+    {
+        if (isCurseBackgroundActive)
+        {
+            return;
+        }
+
+        GameState currentState = GameStateManager.Instance != null
+            ? GameStateManager.Instance.CurrentState
+            : GameState.Expedition;
+
+        if (currentState == GameState.BossBattle || currentState == GameState.FinalBossBattle)
+        {
+            ApplyBossEncounterPresentationImmediate();
+            return;
+        }
+
+        ApplyExplorationPresentationImmediate();
+    }
+
+    private void ResetTemporaryBossBackgroundPresentation()
+    {
+        KillTemporaryBossBackgroundTween();
+        ClearBossScreenOverlayImmediate();
+
+        if (dynamicLiteBaseColorsCaptured)
+        {
+            SetRendererColor(dynamicLiteFarRenderer, dynamicLiteFarBaseColor);
+            SetRendererColor(dynamicLiteNebulaRenderer, dynamicLiteNebulaBaseColor);
+            SetRendererColor(dynamicLiteDetailRenderer, dynamicLiteDetailBaseColor);
+        }
+    }
+
+    private void KillTemporaryBossBackgroundTween()
+    {
+        if (temporaryBossBackgroundTween == null)
+        {
+            return;
+        }
+
+        temporaryBossBackgroundTween.Kill(false);
+        temporaryBossBackgroundTween = null;
+    }
+
+    private void BeginCoreActivationScreenOverlay()
+    {
+        if (!TryResolveBossScreenOverlay())
+        {
+            return;
+        }
+
+        if (!ownsBossScreenOverlay && bossScreenFader.IsFading)
+        {
+            return;
+        }
+
+        KillBossScreenOverlayTween();
+        bossScreenFader.SetClearImmediate();
+        ownsBossScreenOverlay = true;
+        bossScreenOverlayTween = bossScreenOverlayCanvasGroup
+            .DOFade(
+                Mathf.Clamp01(coreActivationOverlayAlpha),
+                Mathf.Max(0.01f, coreActivationOverlayFadeInDuration)
+            )
+            .SetUpdate(true)
+            .OnComplete(() => bossScreenOverlayTween = null);
+    }
+
+    private void PlayBossRecoveryScreenOverlay()
+    {
+        if (!TryResolveBossScreenOverlay())
+        {
+            return;
+        }
+
+        if (!ownsBossScreenOverlay &&
+            (bossScreenFader.IsFading || bossScreenFader.Alpha > 0.001f))
+        {
+            return;
+        }
+
+        KillBossScreenOverlayTween();
+        bossScreenFader.SetClearImmediate();
+        ownsBossScreenOverlay = true;
+
+        Sequence sequence = DOTween.Sequence();
+        sequence.SetUpdate(true);
+        sequence.Append(
+            bossScreenOverlayCanvasGroup.DOFade(
+                Mathf.Clamp01(bossRecoveryOverlayAlpha),
+                Mathf.Max(0.01f, bossRecoveryOverlayFadeInDuration)
+            )
+        );
+        sequence.Append(
+            bossScreenOverlayCanvasGroup.DOFade(
+                0f,
+                Mathf.Max(0.01f, bossRecoveryOverlayFadeOutDuration)
+            )
+        );
+        sequence.OnComplete(() =>
+        {
+            bossScreenOverlayTween = null;
+            ClearBossScreenOverlayImmediate();
+        });
+        bossScreenOverlayTween = sequence;
+    }
+
+    private bool TryResolveBossScreenOverlay()
+    {
+        if (bossScreenFader == null)
+        {
+            bossScreenFader = ScreenFader.Instance;
+        }
+
+        if (bossScreenFader == null)
+        {
+            return false;
+        }
+
+        if (bossScreenOverlayCanvasGroup == null)
+        {
+            bossScreenOverlayCanvasGroup = bossScreenFader.GetComponent<CanvasGroup>();
+        }
+
+        return bossScreenOverlayCanvasGroup != null;
+    }
+
+    private void ClearBossScreenOverlayImmediate()
+    {
+        KillBossScreenOverlayTween();
+
+        if (ownsBossScreenOverlay && bossScreenFader != null && !bossScreenFader.IsFading)
+        {
+            bossScreenFader.SetClearImmediate();
+        }
+
+        ownsBossScreenOverlay = false;
+    }
+
+    private void KillBossScreenOverlayTween()
+    {
+        if (bossScreenOverlayTween == null)
+        {
+            return;
+        }
+
+        bossScreenOverlayTween.Kill(false);
+        bossScreenOverlayTween = null;
+    }
+
+    private static void AppendRendererColorTween(
+        Sequence sequence,
+        SpriteRenderer renderer,
+        Color targetColor,
+        float duration)
+    {
+        if (sequence == null || renderer == null)
+        {
+            return;
+        }
+
+        sequence.Join(renderer.DOColor(targetColor, duration));
+    }
+
+    private static void SetRendererColor(SpriteRenderer renderer, Color color)
+    {
+        if (renderer != null)
+        {
+            renderer.color = color;
+        }
+    }
+
+    private static Color WithAlpha(Color color, float alpha)
+    {
+        color.a = Mathf.Clamp01(alpha);
+        return color;
     }
 
     private void DestroyGeneratedObject(Transform target)
@@ -582,6 +1142,12 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     {
         ResolvePlayerVisualState();
 
+        if (!replaceNormalBackgroundWhenPlayerCursed)
+        {
+            UnsubscribeCurseState();
+            return;
+        }
+
         if (subscribedPlayerVisualState == playerVisualState)
         {
             return;
@@ -609,7 +1175,25 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     private void HandlePlayerCurseStateChanged(bool cursed)
     {
+        if (!replaceNormalBackgroundWhenPlayerCursed)
+        {
+            return;
+        }
+
+        if (cursed)
+        {
+            KillTemporaryBossBackgroundTween();
+            ClearBossScreenOverlayImmediate();
+        }
+
         ApplyCurseBackgroundState(cursed, false);
+    }
+
+    private bool ResolveAutomaticCurseBackgroundState()
+    {
+        return replaceNormalBackgroundWhenPlayerCursed &&
+               playerVisualState != null &&
+               playerVisualState.IsCursed;
     }
 
     private void ApplyCurseBackgroundState(bool cursed, bool immediate)
@@ -636,6 +1220,12 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         if (immediate || previousCurseState == cursed)
         {
             ApplyBackgroundVisibility(cursed);
+
+            if (!cursed)
+            {
+                ApplyCurrentEncounterBackgroundImmediate();
+            }
+
             return;
         }
 
@@ -712,6 +1302,11 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         {
             curseTransitionTween = null;
             ApplyBackgroundVisibility(cursed);
+
+            if (!cursed)
+            {
+                ApplyCurrentEncounterBackgroundImmediate();
+            }
         });
 
         curseTransitionTween = sequence;
@@ -986,6 +1581,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
         // 화면 상대 위치를 유지하려면 레이어 원점도 저항값이 아니라 실제 랩 이동량만큼 옮겨야 합니다.
         starLayerOriginPosition += delta;
+        farColorLayerOriginPosition += delta;
         planetLayerOriginPosition += delta;
         cloudLayerOriginPosition += delta;
         wispLayerOriginPosition += delta;
@@ -998,7 +1594,13 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     {
         generatedRoot = null;
         minimalBackgroundRoot = null;
+        dynamicLiteRoot = null;
+        dynamicLiteFarRenderer = null;
+        dynamicLiteNebulaRenderer = null;
+        dynamicLiteDetailRenderer = null;
+        dynamicLiteBaseColorsCaptured = false;
         curseTransitionRenderer = null;
+        farColorLayer = null;
         starLayer = null;
         planetLayer = null;
         cloudLayer = null;
@@ -1087,6 +1689,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     private void CacheLayerOriginPositions()
     {
+        farColorLayerOriginPosition = farColorLayer != null ? farColorLayer.position : Vector3.zero;
         starLayerOriginPosition = starLayer != null ? starLayer.position : Vector3.zero;
         planetLayerOriginPosition = planetLayer != null ? planetLayer.position : Vector3.zero;
         cloudLayerOriginPosition = cloudLayer != null ? cloudLayer.position : Vector3.zero;
@@ -1106,40 +1709,60 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
             return;
         }
 
-        if (starLayer == null)
+        if (normalBackgroundSource == NormalSpaceBackgroundSource.DynamicSpaceBackgroundLite)
         {
-            starLayer = generatedRoot.Find("00_Starfield");
+            if (dynamicLiteRoot == null)
+            {
+                dynamicLiteRoot = generatedRoot.Find("DynamicLiteBackdrop");
+            }
+
+            if (dynamicLiteRoot != null)
+            {
+                farColorLayer = dynamicLiteRoot;
+                starLayer = null;
+                planetLayer = null;
+                cloudLayer = null;
+                wispLayer = null;
+                flareLayer = null;
+                CacheDynamicLiteRenderers(false);
+                return;
+            }
         }
 
-        if (planetLayer == null)
+        if (farColorLayer == null)
         {
-            planetLayer = generatedRoot.Find("01_Planets");
+            farColorLayer = generatedRoot.Find("00_FarColorBase");
+        }
+
+        if (starLayer == null)
+        {
+            starLayer = generatedRoot.Find("01_StaticStarField");
         }
 
         if (cloudLayer == null)
         {
-            cloudLayer = generatedRoot.Find("02_DustClouds");
+            cloudLayer = generatedRoot.Find("02_NebulaPatches");
         }
 
-        if (wispLayer == null)
+        if (planetLayer == null)
         {
-            wispLayer = generatedRoot.Find("03_DustWisps");
+            planetLayer = generatedRoot.Find("03_DistantPlanets");
         }
 
         if (flareLayer == null)
         {
-            flareLayer = generatedRoot.Find("04_Flares");
+            flareLayer = generatedRoot.Find("04_DistantFlares");
         }
 
-        if (starLayer != null && starfieldRenderers.Count == 0)
+        if (farColorLayer != null && starfieldRenderers.Count == 0)
         {
-            SpriteRenderer[] renderers = starLayer.GetComponentsInChildren<SpriteRenderer>(true);
+            SpriteRenderer[] renderers = farColorLayer.GetComponentsInChildren<SpriteRenderer>(true);
 
             for (int i = 0; i < renderers.Length; i++)
             {
                 SpriteRenderer renderer = renderers[i];
 
-                if (renderer == null || !renderer.name.StartsWith("Base_Starfield"))
+                if (renderer == null || !renderer.name.StartsWith("FarColorBase"))
                 {
                     continue;
                 }
@@ -1154,6 +1777,54 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
     }
 
     private void CreateStarfield()
+    {
+        if (farColorLayer == null)
+        {
+            return;
+        }
+
+        starfieldRenderers.Clear();
+        starfieldCoverageMultipliers.Clear();
+
+        generatedFarColorSprite = Sprite.Create(
+            Texture2D.whiteTexture,
+            new Rect(0f, 0f, 1f, 1f),
+            new Vector2(0.5f, 0.5f),
+            1f
+        );
+        generatedFarColorSprite.name = "GeneratedFarColorSprite";
+        generatedFarColorSprite.hideFlags = HideFlags.DontSave;
+
+        Vector2 backgroundSize = GetStaticCoverageSize() * Mathf.Max(1f, starfieldCoverOverscan);
+        GameObject backdrop = CreateSpriteObjectNative(
+            "FarColorBase_00",
+            generatedFarColorSprite,
+            farColorLayer,
+            Vector2.zero,
+            random.Next(0, 2) * 180f,
+            farColorTint,
+            baseSortingOrder - 20,
+            Vector3.one
+        );
+
+        SpriteRenderer renderer = backdrop.GetComponent<SpriteRenderer>();
+        backdrop.transform.localScale = CalculateCoverScale(
+            generatedFarColorSprite,
+            backgroundSize,
+            true
+        );
+
+        if (renderer != null)
+        {
+            renderer.drawMode = SpriteDrawMode.Simple;
+            starfieldRenderers.Add(renderer);
+            starfieldCoverageMultipliers.Add(1f);
+        }
+
+        starfieldRenderer = renderer;
+    }
+
+    private void CreateLegacyStarfieldComposition()
     {
         List<Sprite> validSprites = GetValidStarfieldSprites();
 
@@ -1443,7 +2114,9 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
             return;
         }
 
-        int count = Mathf.Max(0, planetCount);
+        int minimumCount = Mathf.Clamp(planetCountRange.x, 0, 2);
+        int maximumCount = Mathf.Clamp(planetCountRange.y, minimumCount, 2);
+        int count = random.Next(minimumCount, maximumCount + 1);
 
         for (int i = 0; i < count; i++)
         {
@@ -1455,7 +2128,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
             }
 
             Vector2 position = randomizePlanetPosition
-                ? RandomAreaPositionAvoidingCenter(planetAvoidCenterRadius)
+                ? RandomPlanetPosition()
                 : manualPlanetPosition;
 
             float size = RandomRange(planetWorldSizeRange.x, planetWorldSizeRange.y);
@@ -1474,7 +2147,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
                 new Vector2(size, size),
                 rotation,
                 color,
-                baseSortingOrder + 5
+                baseSortingOrder - 5
             );
 
             if (planetMaterialOverride != null && planetObject != null)
@@ -1525,6 +2198,71 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
             );
 
             TryAddDustDrift(cloud);
+        }
+    }
+
+    private void CreateDistantNebulae()
+    {
+        if (!generateDistantNebulae || distantNebulaCount <= 0 || cloudLayer == null)
+        {
+            return;
+        }
+
+        Vector2 coverageSize = GetStaticCoverageSize();
+        Vector2 coverageCenter = mapCenter;
+
+        int columns = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(distantNebulaCount)));
+        int rows = Mathf.Max(1, Mathf.CeilToInt((float)distantNebulaCount / columns));
+        Vector2 cellSize = new Vector2(coverageSize.x / columns, coverageSize.y / rows);
+        Vector2 coverageMin = coverageCenter - coverageSize * 0.5f;
+        int cellCount = columns * rows;
+        int[] cellOrder = new int[cellCount];
+
+        for (int i = 0; i < cellCount; i++)
+        {
+            cellOrder[i] = i;
+        }
+
+        for (int i = cellCount - 1; i > 0; i--)
+        {
+            int swapIndex = random.Next(0, i + 1);
+            (cellOrder[i], cellOrder[swapIndex]) = (cellOrder[swapIndex], cellOrder[i]);
+        }
+
+        for (int i = 0; i < distantNebulaCount; i++)
+        {
+            Sprite sprite = PickSprite(distantNebulaSprites);
+            if (sprite == null)
+            {
+                return;
+            }
+
+            int cellIndex = cellOrder[i % cellCount];
+            int column = cellIndex % columns;
+            int row = cellIndex / columns;
+            Vector2 position = new Vector2(
+                coverageMin.x + (column + RandomRange(0.15f, 0.85f)) * cellSize.x,
+                coverageMin.y + (row + RandomRange(0.15f, 0.85f)) * cellSize.y
+            );
+            float minimumCoverageWidth = Mathf.Min(cellSize.x, cellSize.y) * 0.78f;
+            float width = Mathf.Max(
+                minimumCoverageWidth,
+                RandomRange(distantNebulaWorldSizeRange.x, distantNebulaWorldSizeRange.y)
+            );
+            float height = width * RandomRange(0.65f, 1.15f);
+            Color color = Color.Lerp(distantNebulaTintA, distantNebulaTintB, Random01());
+            color.a = RandomRange(distantNebulaAlphaRange.x, distantNebulaAlphaRange.y);
+
+            CreateSpriteObjectWorldSize(
+                $"DistantNebula_{i:00}",
+                sprite,
+                cloudLayer,
+                position,
+                new Vector2(width, height),
+                RandomRange(0f, 360f),
+                color,
+                baseSortingOrder - 15
+            );
         }
     }
 
@@ -1601,6 +2339,237 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         }
     }
 
+    private void CreateStratifiedCoverage()
+    {
+        if (!generateStratifiedCoverage || starLayer == null)
+        {
+            return;
+        }
+
+        Sprite fallbackSprite = smallFlareSprite != null ? smallFlareSprite : starFlareSprite;
+        if (!HasValidSprite(coverageSpeckSprites) && fallbackSprite == null)
+        {
+            return;
+        }
+
+        Vector2 coverageSize = GetStaticCoverageSize();
+        Vector2 halfSize = coverageSize * 0.5f;
+        float cellSize = Mathf.Max(2f, coverageCellSize);
+        int columns = Mathf.Max(1, Mathf.CeilToInt(coverageSize.x / cellSize));
+        int rows = Mathf.Max(1, Mathf.CeilToInt(coverageSize.y / cellSize));
+        int minimumPerCell = Mathf.Clamp(starsPerCellRange.x, 1, 3);
+        int maximumPerCell = Mathf.Clamp(starsPerCellRange.y, minimumPerCell, 3);
+
+        List<ParticleSystem.Particle> faintStars = new List<ParticleSystem.Particle>(
+            columns * rows * maximumPerCell
+        );
+        List<ParticleSystem.Particle> rareStars = new List<ParticleSystem.Particle>(
+            Mathf.CeilToInt(columns * rows * rareStarChance)
+        );
+
+        for (int row = 0; row < rows; row++)
+        {
+            float cellMinY = mapCenter.y - halfSize.y + row * cellSize;
+            float cellHeight = Mathf.Min(cellSize, mapCenter.y + halfSize.y - cellMinY);
+
+            for (int column = 0; column < columns; column++)
+            {
+                float cellMinX = mapCenter.x - halfSize.x + column * cellSize;
+                float cellWidth = Mathf.Min(cellSize, mapCenter.x + halfSize.x - cellMinX);
+                int starCount = Random01() < sparseCellChance
+                    ? 1
+                    : random.Next(minimumPerCell, maximumPerCell + 1);
+
+                for (int i = 0; i < starCount; i++)
+                {
+                    Vector3 position = new Vector3(
+                        cellMinX + cellWidth * RandomRange(0.08f, 0.92f),
+                        cellMinY + cellHeight * RandomRange(0.08f, 0.92f),
+                        backgroundZ
+                    );
+                    Color color = Color.Lerp(coverageSpeckTintA, coverageSpeckTintB, Random01());
+                    color.a = RandomRange(coverageSpeckAlphaRange.x, coverageSpeckAlphaRange.y);
+                    faintStars.Add(CreateStaticStarParticle(
+                        position,
+                        coverageSpeckWorldSizeRange,
+                        color
+                    ));
+                }
+
+                if (Random01() < rareStarChance)
+                {
+                    Vector3 position = new Vector3(
+                        cellMinX + cellWidth * RandomRange(0.15f, 0.85f),
+                        cellMinY + cellHeight * RandomRange(0.15f, 0.85f),
+                        backgroundZ
+                    );
+                    Color color = Color.Lerp(coverageSpeckTintA, Color.white, 0.35f);
+                    color.a = RandomRange(rareStarAlphaRange.x, rareStarAlphaRange.y);
+                    rareStars.Add(CreateStaticStarParticle(position, rareStarWorldSizeRange, color));
+                }
+            }
+        }
+
+        generatedMainStarCount = CreateStaticStarParticleSystem(
+            "StaticStarField",
+            faintStars,
+            baseSortingOrder - 10
+        );
+        generatedRareStarCount = CreateStaticStarParticleSystem(
+            "RareBrightStars",
+            rareStars,
+            baseSortingOrder - 9
+        );
+
+        generatedBackgroundCoverageBounds = new Bounds(
+            new Vector3(mapCenter.x, mapCenter.y, backgroundZ),
+            new Vector3(coverageSize.x, coverageSize.y, 1f)
+        );
+    }
+
+    private void CreateLegacyStratifiedCoverage()
+    {
+        if (!generateStratifiedCoverage || starLayer == null)
+        {
+            return;
+        }
+
+        Sprite fallbackCoverageSprite = smallFlareSprite != null ? smallFlareSprite : starFlareSprite;
+        if (!HasValidSprite(coverageSpeckSprites) && fallbackCoverageSprite == null)
+        {
+            return;
+        }
+
+        Vector2 coverageSize = GetBackgroundAreaSize();
+        Vector2 coverageCenter = Vector2.zero;
+
+        if (!moveWithFollowTarget)
+        {
+            Vector2 cameraSize = GetCameraViewSize();
+            coverageSize = new Vector2(
+                Mathf.Max(coverageSize.x, mapSize.x + cameraSize.x),
+                Mathf.Max(coverageSize.y, mapSize.y + cameraSize.y)
+            );
+            coverageCenter = mapCenter;
+        }
+
+        float cellSize = Mathf.Max(2f, coverageCellSize);
+        int columns = Mathf.Max(1, Mathf.CeilToInt(coverageSize.x / cellSize));
+        int rows = Mathf.Max(1, Mathf.CeilToInt(coverageSize.y / cellSize));
+        int specksPerCell = Mathf.Clamp(coverageSpecksPerCell, 1, 2);
+        Vector2 halfSize = coverageSize * 0.5f;
+        int speckIndex = 0;
+
+        for (int row = 0; row < rows; row++)
+        {
+            float cellMinY = coverageCenter.y - halfSize.y + row * cellSize;
+            float cellHeight = Mathf.Min(cellSize, coverageCenter.y + halfSize.y - cellMinY);
+
+            for (int column = 0; column < columns; column++)
+            {
+                float cellMinX = coverageCenter.x - halfSize.x + column * cellSize;
+                float cellWidth = Mathf.Min(cellSize, coverageCenter.x + halfSize.x - cellMinX);
+
+                for (int i = 0; i < specksPerCell; i++)
+                {
+                    Sprite coverageSprite = PickSprite(coverageSpeckSprites);
+                    coverageSprite ??= fallbackCoverageSprite;
+
+                    Vector2 position = new Vector2(
+                        cellMinX + cellWidth * RandomRange(0.18f, 0.82f),
+                        cellMinY + cellHeight * RandomRange(0.18f, 0.82f)
+                    );
+                    float size = RandomRange(
+                        coverageSpeckWorldSizeRange.x,
+                        coverageSpeckWorldSizeRange.y
+                    );
+                    Color color = Color.Lerp(coverageSpeckTintA, coverageSpeckTintB, Random01());
+                    color.a = RandomRange(coverageSpeckAlphaRange.x, coverageSpeckAlphaRange.y);
+
+                    CreateSpriteObjectWorldSize(
+                        $"CoverageSpeck_{speckIndex++:000}",
+                        coverageSprite,
+                        starLayer,
+                        position,
+                        new Vector2(size, size),
+                        RandomRange(0f, 360f),
+                        color,
+                        baseSortingOrder + 4
+                    );
+                }
+            }
+        }
+    }
+
+    private ParticleSystem.Particle CreateStaticStarParticle(
+        Vector3 position,
+        Vector2 sizeRange,
+        Color color)
+    {
+        const float lifetime = 100000f;
+
+        return new ParticleSystem.Particle
+        {
+            position = position,
+            rotation = RandomRange(0f, 360f),
+            startSize = RandomRange(sizeRange.x, sizeRange.y),
+            startColor = color,
+            startLifetime = lifetime,
+            remainingLifetime = lifetime,
+            randomSeed = (uint)random.Next(1, int.MaxValue)
+        };
+    }
+
+    private int CreateStaticStarParticleSystem(
+        string objectName,
+        List<ParticleSystem.Particle> particles,
+        int sortingOrder)
+    {
+        if (particles == null || particles.Count == 0 || starLayer == null)
+        {
+            return 0;
+        }
+
+        GameObject particleObject = new GameObject(objectName);
+        particleObject.transform.SetParent(starLayer, false);
+        particleObject.transform.localPosition = Vector3.zero;
+
+        ParticleSystem particleSystem = particleObject.AddComponent<ParticleSystem>();
+        ParticleSystem.MainModule main = particleSystem.main;
+        main.loop = false;
+        main.playOnAwake = false;
+        main.startSpeed = 0f;
+        main.startLifetime = 100000f;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+        main.maxParticles = particles.Count;
+
+        ParticleSystem.EmissionModule emission = particleSystem.emission;
+        emission.enabled = false;
+
+        ParticleSystem.ShapeModule shape = particleSystem.shape;
+        shape.enabled = false;
+
+        ParticleSystem.TextureSheetAnimationModule textureSheet = particleSystem.textureSheetAnimation;
+        textureSheet.enabled = false;
+
+        ParticleSystemRenderer particleRenderer = particleObject.GetComponent<ParticleSystemRenderer>();
+        particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+        particleRenderer.sortingOrder = sortingOrder;
+        particleRenderer.sharedMaterial = staticStarParticleMaterial;
+        particleRenderer.localBounds = ResolveStaticParticleLocalBounds(particleRenderer.transform);
+
+        if (!string.IsNullOrWhiteSpace(sortingLayerName))
+        {
+            particleRenderer.sortingLayerName = sortingLayerName;
+        }
+
+        particleSystem.Play(false);
+        particleSystem.SetParticles(particles.ToArray(), particles.Count);
+        particleSystem.Pause(false);
+        return particleSystem.particleCount;
+    }
+
     private void CreateLargeFlares()
     {
         if (starFlareSprite == null)
@@ -1610,7 +2579,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
         for (int i = 0; i < largeFlareCount; i++)
         {
-            Vector2 position = RandomAreaPosition();
+            Vector2 position = RandomPlanetPosition();
             float size = RandomRange(largeFlareWorldSizeRange.x, largeFlareWorldSizeRange.y);
             float rotation = RandomRange(0f, 360f);
             float alpha = RandomRange(largeFlareMinAlpha, largeFlareMaxAlpha);
@@ -1626,7 +2595,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
                 new Vector2(size, size),
                 rotation,
                 color,
-                baseSortingOrder + 31
+                baseSortingOrder - 4
             );
 
             TryAddTwinkle(flare, largeFlareMinAlpha, largeFlareMaxAlpha);
@@ -1808,6 +2777,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
         if (!moveWithFollowTarget)
         {
+            SetLayerPosition(farColorLayer, farColorLayerOriginPosition);
             SetLayerPosition(starLayer, starLayerOriginPosition);
             SetLayerPosition(planetLayer, planetLayerOriginPosition);
             SetLayerPosition(cloudLayer, cloudLayerOriginPosition);
@@ -1823,6 +2793,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
         if (!useLayerMovementResistance)
         {
+            SetLayerPosition(farColorLayer, farColorLayerOriginPosition + delta);
             SetLayerPosition(starLayer, starLayerOriginPosition + delta);
             SetLayerPosition(planetLayer, planetLayerOriginPosition + planetDelta);
             SetLayerPosition(cloudLayer, cloudLayerOriginPosition + delta);
@@ -1831,6 +2802,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
             return;
         }
 
+        SetLayerPosition(farColorLayer, farColorLayerOriginPosition + delta * starMovementResistance);
         SetLayerPosition(starLayer, starLayerOriginPosition + delta * starMovementResistance);
         SetLayerPosition(planetLayer, planetLayerOriginPosition + planetDelta * planetMovementResistance);
         SetLayerPosition(cloudLayer, cloudLayerOriginPosition + delta * cloudMovementResistance);
@@ -1858,7 +2830,10 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     private bool ShouldSnapLayerToPixelGrid(Transform layer)
     {
-        if (!stabilizePixelArtParallax || layer == null || assetsPixelsPerUnit <= 0)
+        if (!moveWithFollowTarget ||
+            !stabilizePixelArtParallax ||
+            layer == null ||
+            assetsPixelsPerUnit <= 0)
         {
             return false;
         }
@@ -1927,7 +2902,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     private void SyncForCameraRender(Camera camera)
     {
-        if (!syncBeforeCameraRender || camera == null)
+        if (!syncBeforeCameraRender || !moveWithFollowTarget || camera == null)
         {
             return;
         }
@@ -2057,7 +3032,7 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
 
     private void EnsureStarfieldCoverage(float requestedZoomMultiplier)
     {
-        if (!autoExpandStarfieldForCameraZoom)
+        if (!autoExpandStarfieldForCameraZoom || !moveWithFollowTarget)
         {
             return;
         }
@@ -2172,6 +3147,73 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         return mapSize;
     }
 
+    private Vector2 GetStaticCoverageSize()
+    {
+        Vector2 maximumCameraSize = GetCameraViewSize() * Mathf.Max(1f, expectedMaximumZoomMultiplier);
+        float margin = Mathf.Max(0f, cameraViewMargin + extraZoomCoverageMargin);
+
+        return new Vector2(
+            Mathf.Max(mapSize.x + maximumCameraSize.x, maximumCameraSize.x) + margin * 2f,
+            Mathf.Max(mapSize.y + maximumCameraSize.y, maximumCameraSize.y) + margin * 2f
+        );
+    }
+
+    private Bounds ResolveStaticParticleLocalBounds(Transform rendererTransform)
+    {
+        Vector2 coverageSize = GetStaticCoverageSize();
+        float padding = Mathf.Max(0f, staticParticleBoundsPadding);
+        Vector3 worldCenter = new Vector3(mapCenter.x, mapCenter.y, backgroundZ);
+        Vector3 localCenter = rendererTransform != null
+            ? rendererTransform.InverseTransformPoint(worldCenter)
+            : worldCenter;
+
+        return new Bounds(
+            localCenter,
+            new Vector3(
+                coverageSize.x + padding * 2f,
+                coverageSize.y + padding * 2f,
+                Mathf.Max(4f, padding * 2f + 1f)
+            )
+        );
+    }
+
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
+    [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+    private void LogGeneratedBackgroundDiagnostics()
+    {
+        if (!logBackgroundDiagnostics)
+        {
+            return;
+        }
+
+        ParticleSystemRenderer mainRenderer = starLayer != null
+            ? starLayer.Find("StaticStarField")?.GetComponent<ParticleSystemRenderer>()
+            : null;
+        ParticleSystemRenderer rareRenderer = starLayer != null
+            ? starLayer.Find("RareBrightStars")?.GetComponent<ParticleSystemRenderer>()
+            : null;
+        ParticleSystem mainSystem = mainRenderer != null
+            ? mainRenderer.GetComponent<ParticleSystem>()
+            : null;
+        string materialDescription = staticStarParticleMaterial != null
+            ? $"{staticStarParticleMaterial.name}/{staticStarParticleMaterial.shader.name}"
+            : "missing";
+
+        Debug.Log(
+            $"Background generated. Main stars: {generatedMainStarCount}, " +
+            $"Rare stars: {generatedRareStarCount}, Coverage: {generatedBackgroundCoverageBounds}, " +
+            $"Main bounds: {(mainRenderer != null ? mainRenderer.localBounds.ToString() : "missing")}, " +
+            $"Rare bounds: {(rareRenderer != null ? rareRenderer.localBounds.ToString() : "missing")}, " +
+            $"Simulation: {(mainSystem != null ? mainSystem.main.simulationSpace.ToString() : "missing")}, " +
+            $"Render: {(mainRenderer != null ? mainRenderer.renderMode.ToString() : "missing")}, " +
+            $"Sorting: {(mainRenderer != null ? $"{mainRenderer.sortingLayerName}/{mainRenderer.sortingOrder}" : "missing")}, " +
+            $"Size: {coverageSpeckWorldSizeRange}, Alpha: {coverageSpeckAlphaRange}, " +
+            $"Material: {materialDescription}, " +
+            $"Normal root active: {(generatedRoot != null && generatedRoot.gameObject.activeInHierarchy)}",
+            this
+        );
+    }
+
     private Vector2 GetCameraViewSize()
     {
         ResolveTargetCamera();
@@ -2224,6 +3266,36 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         fallbackDirection.Normalize();
 
         return fallbackDirection * avoidRadius;
+    }
+
+    private Vector2 RandomPlanetPosition()
+    {
+        Vector2 halfMap = mapSize * 0.5f;
+        float minimumRadius = Mathf.Max(
+            planetAvoidCenterRadius,
+            Mathf.Min(halfMap.x, halfMap.y) * 0.45f
+        );
+
+        for (int i = 0; i < 32; i++)
+        {
+            Vector2 position = new Vector2(
+                RandomRange(-halfMap.x, halfMap.x),
+                RandomRange(-halfMap.y, halfMap.y)
+            );
+
+            if (position.sqrMagnitude >= minimumRadius * minimumRadius)
+            {
+                return position;
+            }
+        }
+
+        Vector2 direction = RandomInsideUnitCircle();
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Vector2.right;
+        }
+
+        return direction.normalized * minimumRadius;
     }
 
     private List<Sprite> GetValidStarfieldSprites()
@@ -2391,6 +3463,24 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         return null;
     }
 
+    private static bool HasValidSprite(Sprite[] sprites)
+    {
+        if (sprites == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < sprites.Length; i++)
+        {
+            if (sprites[i] != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private float GetRotationCoverageMultiplier(float degrees)
     {
         float radians = degrees * Mathf.Deg2Rad;
@@ -2413,6 +3503,23 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         }
 
         return min + ((float)random.NextDouble() * (max - min));
+    }
+
+    private int ResolveBackgroundSeed()
+    {
+        if (!randomizeSeed)
+        {
+            return unchecked(seed + backgroundSeedOffset);
+        }
+
+        long ticks = System.DateTime.UtcNow.Ticks;
+        return unchecked(
+            seed * 397 ^
+            backgroundSeedOffset * 31 ^
+            GetInstanceID() ^
+            (int)ticks ^
+            (int)(ticks >> 32)
+        );
     }
 
     private float Random01()
@@ -2477,10 +3584,61 @@ public class SpaceBackgroundGenerator2D : MonoBehaviour
         layeredBackdropScaleRange.y = Mathf.Max(1f, layeredBackdropScaleRange.y);
 
         planetCount = Mathf.Max(0, planetCount);
+        planetCountRange.x = Mathf.Clamp(planetCountRange.x, 0, 2);
+        planetCountRange.y = Mathf.Clamp(planetCountRange.y, planetCountRange.x, 2);
+        planetWorldSizeRange.x = Mathf.Max(0.1f, planetWorldSizeRange.x);
+        planetWorldSizeRange.y = Mathf.Max(planetWorldSizeRange.x, planetWorldSizeRange.y);
         dustCloudCount = Mathf.Max(0, dustCloudCount);
         dustWispCount = Mathf.Max(0, dustWispCount);
         smallFlareCount = Mathf.Max(0, smallFlareCount);
         largeFlareCount = Mathf.Max(0, largeFlareCount);
+        distantNebulaCount = Mathf.Max(0, distantNebulaCount);
+        distantNebulaWorldSizeRange.x = Mathf.Max(0.1f, distantNebulaWorldSizeRange.x);
+        distantNebulaWorldSizeRange.y = Mathf.Max(
+            distantNebulaWorldSizeRange.x,
+            distantNebulaWorldSizeRange.y
+        );
+        distantNebulaAlphaRange.x = Mathf.Clamp01(distantNebulaAlphaRange.x);
+        distantNebulaAlphaRange.y = Mathf.Clamp(
+            distantNebulaAlphaRange.y,
+            distantNebulaAlphaRange.x,
+            1f
+        );
+        coverageCellSize = Mathf.Max(2f, coverageCellSize);
+        starsPerCellRange.x = Mathf.Clamp(starsPerCellRange.x, 1, 3);
+        starsPerCellRange.y = Mathf.Clamp(starsPerCellRange.y, starsPerCellRange.x, 3);
+        coverageSpecksPerCell = Mathf.Clamp(coverageSpecksPerCell, 1, 2);
+        coverageSpeckWorldSizeRange.x = Mathf.Max(0.01f, coverageSpeckWorldSizeRange.x);
+        coverageSpeckWorldSizeRange.y = Mathf.Max(
+            coverageSpeckWorldSizeRange.x,
+            coverageSpeckWorldSizeRange.y
+        );
+        coverageSpeckAlphaRange.x = Mathf.Clamp01(coverageSpeckAlphaRange.x);
+        coverageSpeckAlphaRange.y = Mathf.Clamp(
+            coverageSpeckAlphaRange.y,
+            coverageSpeckAlphaRange.x,
+            1f
+        );
+        rareStarWorldSizeRange.x = Mathf.Max(0.01f, rareStarWorldSizeRange.x);
+        rareStarWorldSizeRange.y = Mathf.Max(
+            rareStarWorldSizeRange.x,
+            rareStarWorldSizeRange.y
+        );
+        rareStarAlphaRange.x = Mathf.Clamp01(rareStarAlphaRange.x);
+        rareStarAlphaRange.y = Mathf.Clamp(rareStarAlphaRange.y, rareStarAlphaRange.x, 1f);
+        dynamicLiteCoveragePadding = Mathf.Max(0f, dynamicLiteCoveragePadding);
+        bossFarLayerAlphaMultiplier = Mathf.Clamp01(bossFarLayerAlphaMultiplier);
+        bossBackgroundFadeDuration = Mathf.Max(0.05f, bossBackgroundFadeDuration);
+        explorationBackgroundRestoreDuration = Mathf.Max(
+            0.05f,
+            explorationBackgroundRestoreDuration
+        );
+        coreActivationOverlayAlpha = Mathf.Clamp01(coreActivationOverlayAlpha);
+        coreActivationOverlayFadeInDuration = Mathf.Max(0.01f, coreActivationOverlayFadeInDuration);
+        coreActivationOverlayFadeOutDuration = Mathf.Max(0.01f, coreActivationOverlayFadeOutDuration);
+        bossRecoveryOverlayAlpha = Mathf.Clamp01(bossRecoveryOverlayAlpha);
+        bossRecoveryOverlayFadeInDuration = Mathf.Max(0.01f, bossRecoveryOverlayFadeInDuration);
+        bossRecoveryOverlayFadeOutDuration = Mathf.Max(0.01f, bossRecoveryOverlayFadeOutDuration);
     }
 #endif
 }

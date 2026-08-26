@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.Serialization;
@@ -24,7 +25,123 @@ public enum PassiveStorageSortMode
 public enum BuildStatusFieldDropTarget
 {
     Active,
-    Passive
+    Passive,
+    Cargo
+}
+
+[Serializable]
+public sealed class CargoManifestRowUI
+{
+    [SerializeField] private CurrencyType currencyType;
+    [SerializeField] private GameObject root;
+    [SerializeField] private Button button;
+    [SerializeField] private Image backgroundImage;
+    [SerializeField] private Image iconImage;
+    [SerializeField] private TextMeshProUGUI primaryText;
+    [SerializeField] private TextMeshProUGUI secondaryText;
+    private Action<CurrencyType> selected;
+
+    public CurrencyType CurrencyType => currencyType;
+    public Selectable Selectable => button;
+    public bool IsVisible => root != null && root.activeSelf;
+    public bool IsConfigured => root != null &&
+                                button != null &&
+                                backgroundImage != null &&
+                                iconImage != null &&
+                                primaryText != null &&
+                                secondaryText != null;
+
+    public void SetVisible(bool visible)
+    {
+        if (root != null && root.activeSelf != visible)
+        {
+            root.SetActive(visible);
+        }
+    }
+
+    public void Bind(Action<CurrencyType> onSelected)
+    {
+        selected = onSelected;
+        button.onClick.RemoveListener(HandleClicked);
+        button.onClick.AddListener(HandleClicked);
+    }
+
+    public void Unbind()
+    {
+        if (button != null)
+        {
+            button.onClick.RemoveListener(HandleClicked);
+        }
+
+        selected = null;
+    }
+
+    public void ConfigureTypography(TMP_FontAsset font)
+    {
+        ConfigureText(primaryText, font);
+        ConfigureText(secondaryText, font);
+    }
+
+    public void Refresh(
+        Sprite icon,
+        string displayName,
+        int currentAmount,
+        int unitWeight,
+        int totalContribution,
+        bool usesCargo,
+        bool autoPickupEnabled,
+        bool isSelected)
+    {
+        int amount = Mathf.Max(0, currentAmount);
+        iconImage.sprite = icon;
+        iconImage.enabled = icon != null;
+        primaryText.text = displayName;
+        secondaryText.text = usesCargo
+            ? $"{amount}개\n<size=4.2>적재 {totalContribution} · 자동 회수 {(autoPickupEnabled ? "켬" : "끔")}</size>"
+            : $"{amount}개\n<size=4.2>임시 자원</size>";
+        bool hasAmount = amount > 0;
+        backgroundImage.color = isSelected
+            ? hasAmount
+                ? new Color(0.06f, 0.24f, 0.3f, 0.98f)
+                : new Color(0.035f, 0.13f, 0.16f, 0.88f)
+            : hasAmount
+                ? new Color(0.035f, 0.075f, 0.1f, 0.96f)
+                : new Color(0.025f, 0.045f, 0.06f, 0.72f);
+
+        Color primaryColor = hasAmount
+            ? new Color(0.9f, 0.97f, 1f, 1f)
+            : new Color(0.58f, 0.66f, 0.7f, 0.62f);
+        Color secondaryColor = hasAmount
+            ? new Color(0.64f, 0.86f, 0.92f, 1f)
+            : new Color(0.46f, 0.54f, 0.58f, 0.55f);
+        primaryText.color = primaryColor;
+        secondaryText.color = secondaryColor;
+        iconImage.color = hasAmount
+            ? Color.white
+            : new Color(0.65f, 0.72f, 0.76f, 0.42f);
+    }
+
+    private void HandleClicked()
+    {
+        selected?.Invoke(currencyType);
+    }
+
+    private static void ConfigureText(
+        TextMeshProUGUI text,
+        TMP_FontAsset font)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        if (font != null)
+        {
+            text.font = font;
+        }
+
+        text.raycastTarget = false;
+    }
 }
 
 [DisallowMultipleComponent]
@@ -143,10 +260,39 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI fieldDropHintText;
     [SerializeField] private GameObject activeDropSelectedIndicator;
     [SerializeField] private TraitPickup traitDropPickupPrefab;
+    [SerializeField] private RewardPickup cargoDropPickupPrefab;
     [SerializeField] private Transform fieldDropOrigin;
     [SerializeField] private float fieldDropDistance = 1.25f;
     [SerializeField] private float fieldDropBlockSeconds = 0.5f;
     [SerializeField] private Vector2 fallbackFieldDropDirection = Vector2.down;
+
+    [Header("Cargo Jettison")]
+    [SerializeField, Min(0.1f)] private float cargoJettisonHoldDuration = 0.65f;
+    [SerializeField, Min(1)] private int scrapJettisonAmount = 5;
+    [SerializeField, Min(1)] private int rareCargoJettisonAmount = 1;
+    [SerializeField, Min(0.1f)] private float cargoJettisonDistance = 2f;
+    [SerializeField, Min(0f)] private float cargoRepickupBlockSeconds = 0.85f;
+
+    [Header("Prefab Cargo Layout")]
+    [SerializeField] private RectTransform cargoManagementRoot;
+    [SerializeField] private TextMeshProUGUI cargoLoadText;
+    [SerializeField] private Slider cargoLoadSlider;
+    [SerializeField] private List<CargoManifestRowUI> cargoManifestRows = new List<CargoManifestRowUI>();
+    [SerializeField] private Button cargoShowAllButton;
+    [SerializeField] private TextMeshProUGUI cargoShowAllText;
+    [SerializeField] private GameObject cargoDetailActionsRoot;
+    [SerializeField] private Image selectedCargoIconImage;
+    [SerializeField] private TextMeshProUGUI selectedCargoNameText;
+    [SerializeField] private TextMeshProUGUI selectedCargoStatsText;
+    [SerializeField] private TextMeshProUGUI selectedCargoQuantityText;
+    [SerializeField] private TextMeshProUGUI selectedCargoEmptyText;
+    [SerializeField] private TextMeshProUGUI selectedCargoAutoPickupText;
+    [SerializeField] private Slider cargoQuantitySlider;
+    [SerializeField] private Button cargoQuantityOneButton;
+    [SerializeField] private Button cargoQuantityHalfButton;
+    [SerializeField] private Button cargoQuantityMaxButton;
+    [SerializeField] private Button cargoJettisonButton;
+    [SerializeField] private Button cargoAutoPickupButton;
 
     [Header("Passive Storage")]
     [SerializeField] private PassiveStorageListMode passiveListMode = PassiveStorageListMode.OwnedOnly;
@@ -223,6 +369,12 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     private int selectedPassiveIndex = -1;
     private string selectedPassiveId;
     private BuildStatusFieldDropTarget selectedFieldDropTarget = BuildStatusFieldDropTarget.Active;
+    private CurrencyType selectedCargoType = CurrencyType.ScrapParts;
+    private float cargoJettisonHoldTimer;
+    private bool cargoJettisonConsumedUntilRelease;
+    private int selectedCargoJettisonAmount = 1;
+    private bool showAllCargoResources;
+    private bool hasSelectedCargo;
 
     private bool storedCursorState;
     private bool previousCursorVisible;
@@ -235,6 +387,48 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     private RunManager subscribedRunManager;
 
     public bool IsOpen => isOpen;
+    public Selectable FirstCargoSelectable
+    {
+        get
+        {
+            if (cargoManifestRows == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < cargoManifestRows.Count; i++)
+            {
+                CargoManifestRowUI row = cargoManifestRows[i];
+                Selectable selectable = row?.Selectable;
+
+                if (hasSelectedCargo &&
+                    row != null &&
+                    row.CurrencyType == selectedCargoType &&
+                    selectable != null &&
+                    selectable.IsActive() &&
+                    selectable.IsInteractable())
+                {
+                    return selectable;
+                }
+            }
+
+            for (int i = 0; i < cargoManifestRows.Count; i++)
+            {
+                Selectable selectable = cargoManifestRows[i]?.Selectable;
+
+                if (selectable != null && selectable.IsActive() && selectable.IsInteractable())
+                {
+                    return selectable;
+                }
+            }
+
+            return cargoShowAllButton != null &&
+                   cargoShowAllButton.IsActive() &&
+                   cargoShowAllButton.IsInteractable()
+                ? cargoShowAllButton
+                : null;
+        }
+    }
     public bool ExternalMenuControlsLifecycle => externalMenuControlsLifecycle;
 
     public event Action CloseRequested;
@@ -266,9 +460,16 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         }
 
         ResolveReferences();
+        BindCargoManagementLayout();
         ConfigureInventoryTypography();
+        ConfigureCargoTypography();
         ConfigurePassiveScrollView();
         SetPanelVisible(false);
+    }
+
+    private void OnDestroy()
+    {
+        UnbindCargoManagementLayout();
     }
 
     private void OnEnable()
@@ -294,6 +495,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         {
             passiveFieldDropButton.onClick.AddListener(TryDropSelectedPassiveFieldItem);
         }
+
     }
 
     private void OnDisable()
@@ -459,8 +661,8 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         Sprite shipSprite = ship != null ? ship.PreviewSprite : null;
 
         SetImage(shipPreviewImage, shipSprite != null ? shipSprite : fallbackShipIcon);
-        SetText(shipNameText, ship != null ? ship.DisplayName : "현재 기체");
-        SetText(shipWeaponText, GetWeaponTreeDisplayName(weaponTree));
+        SetText(shipNameText, "탐사 인벤토리");
+        SetText(shipWeaponText, string.Empty);
         SetText(shipDescriptionText, ship != null ? ship.Description : fallbackShipDescription);
         SetText(shipPassiveText, ship != null ? ship.PassiveDescription : string.Empty);
 
@@ -521,10 +723,20 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         SetText(cargoValueText, $"{cargoCurrent}/{cargoMax}");
         SetText(tuningChipValueText, FormatTuningChipValue(tuningChips));
         SetText(emergencyReturnValueText, $"{emergencyLimit}/{cargoMax}");
-        SetColor(cargoValueText, normalStatColor);
+        SetColor(
+            cargoValueText,
+            selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo
+                ? new Color(1f, 0.78f, 0.2f, 1f)
+                : normalStatColor
+        );
         SetColor(tuningChipValueText, normalStatColor);
         SetColor(emergencyReturnValueText, normalStatColor);
-        SetText(shipTipText, coreReady ? coreReadyTip : coreTrackingTip);
+        string tip = coreReady ? coreReadyTip : coreTrackingTip;
+        SetText(shipTipText, selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo
+            ? BuildCargoManifestText()
+            : tip);
+        RefreshCargoHeader(cargoCurrent, cargoMax);
+        RefreshCargoManagement();
     }
 
     public void RefreshActiveSection()
@@ -543,7 +755,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             SetText(activeNameText, "장비 없음");
             SetText(activeDescriptionText, "상점에서 액티브 장비를 장착할 수 있습니다.");
             SetText(activeEffectText, string.Empty);
-            SetText(activeCooldownText, "재사용 대기시간 : -");
+            SetText(activeCooldownText, "재사용 -");
             SetText(activeChargeText, "보유 : 0개");
             SetText(activeStateText, "미장착");
             SetColor(activeStateText, activeUnavailableColor);
@@ -558,8 +770,8 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         SetText(activeEffectText, definition.BuildEffectSummary());
 
         string cooldownText = definition.RechargeSeconds > 0f
-            ? $"재사용 대기시간 : {definition.RechargeSeconds:0.#}초"
-            : "재사용 대기시간 : 없음";
+            ? $"재사용 {definition.RechargeSeconds:0.#}초"
+            : "재사용 없음";
 
         SetText(activeCooldownText, cooldownText);
         SetText(activeChargeText, $"보유 : {Mathf.Max(0, state.currentCharges)}/{Mathf.Max(1, state.maxCharges)}");
@@ -637,7 +849,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         if (passiveCountText != null)
         {
             passiveCountText.text = passiveListMode == PassiveStorageListMode.OwnedOnly
-                ? $"보유 {ownedCount}개"
+                ? $"보유 {ownedCount} · 제한 없음"
                 : $"보유 {ownedCount} / 전체 {passiveEntries.Count}";
         }
 
@@ -949,15 +1161,15 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
         if (entry.permanentLevel > 0 && entry.runtimeLevel > 0)
         {
-            return $"영구 Lv.{entry.permanentLevel} · 탐사 Lv.{entry.runtimeLevel}";
+            return $"영구 · Lv.{entry.permanentLevel} / 탐사 · Lv.{entry.runtimeLevel}";
         }
 
         if (entry.runtimeLevel > 0)
         {
-            return $"탐사 Lv.{entry.runtimeLevel}/{entry.trait.MaxLevel}";
+            return $"탐사 · Lv.{entry.runtimeLevel}/{entry.trait.MaxLevel}";
         }
 
-        return $"영구 Lv.{entry.permanentLevel}/{entry.trait.MaxLevel}";
+        return $"영구 · Lv.{entry.permanentLevel}/{entry.trait.MaxLevel}";
     }
 
     private string BuildTraitEffectText(PassiveEntry entry)
@@ -1445,7 +1657,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         {
             TryDropActiveFieldItem();
         }
-        else
+        else if (selectedFieldDropTarget == BuildStatusFieldDropTarget.Passive)
         {
             TryDropSelectedPassiveFieldItem();
         }
@@ -1586,6 +1798,12 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void HandleFieldDropInput()
     {
+        if (selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo)
+        {
+            HandleCargoJettisonInput();
+            return;
+        }
+
         bool pressed;
 
         if (fieldDropAction != null)
@@ -1604,6 +1822,660 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         }
     }
 
+    private void HandleCargoJettisonInput()
+    {
+        if (cargoController == null ||
+            !cargoController.CanJettison(selectedCargoType) ||
+            GetCargoAmount(selectedCargoType) <= 0)
+        {
+            cargoJettisonHoldTimer = 0f;
+            cargoJettisonConsumedUntilRelease = false;
+            return;
+        }
+
+        bool held;
+
+        if (fieldDropAction != null)
+        {
+            held = fieldDropAction.IsPressed();
+        }
+        else
+        {
+            KeyControl keyControl = Keyboard.current != null ? Keyboard.current[fieldDropKey] : null;
+            held = keyControl != null && keyControl.isPressed;
+        }
+
+        if (!held)
+        {
+            bool needsRefresh = cargoJettisonHoldTimer > 0f || cargoJettisonConsumedUntilRelease;
+            cargoJettisonHoldTimer = 0f;
+            cargoJettisonConsumedUntilRelease = false;
+
+            if (needsRefresh)
+            {
+                RefreshShipSection();
+            }
+
+            return;
+        }
+
+        if (cargoJettisonConsumedUntilRelease)
+        {
+            return;
+        }
+
+        cargoJettisonHoldTimer += Time.unscaledDeltaTime;
+        RefreshShipSection();
+
+        if (cargoJettisonHoldTimer < Mathf.Max(0.1f, cargoJettisonHoldDuration))
+        {
+            return;
+        }
+
+        cargoJettisonConsumedUntilRelease = true;
+        cargoJettisonHoldTimer = 0f;
+        TryJettisonSelectedCargo();
+    }
+
+    private void TryJettisonSelectedCargo()
+    {
+        if (cargoController == null || !cargoController.CanJettison(selectedCargoType))
+        {
+            return;
+        }
+
+        int ownedAmount = GetCargoAmount(selectedCargoType);
+        int discardAmount = Mathf.Clamp(selectedCargoJettisonAmount, 0, ownedAmount);
+
+        if (discardAmount <= 0)
+        {
+            ShowFieldDropWarning("버릴 자원이 없습니다.");
+            AudioManager.Play(SoundEventIds.ActionDenied);
+            RefreshShipSection();
+            return;
+        }
+
+        if (cargoController == null || cargoDropPickupPrefab == null)
+        {
+            ShowFieldDropWarning("자원을 배출할 수 없습니다.");
+            AudioManager.Play(SoundEventIds.ActionDenied);
+            return;
+        }
+
+        Vector2 fieldPosition = ResolveFieldDropPosition();
+        Vector2 origin = playerObject != null ? playerObject.transform.position : fieldPosition;
+        Vector2 direction = fieldPosition - origin;
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = fallbackFieldDropDirection.sqrMagnitude > 0.001f
+                ? fallbackFieldDropDirection
+                : Vector2.down;
+        }
+
+        direction.Normalize();
+        fieldPosition = origin + direction * Mathf.Max(fieldDropDistance, cargoJettisonDistance);
+
+        if (!cargoController.TryJettison(
+                selectedCargoType,
+                discardAmount,
+                cargoDropPickupPrefab,
+                fieldPosition,
+                direction * 1.25f,
+                cargoRepickupBlockSeconds,
+                out RewardPickup pickup))
+        {
+            ShowFieldDropWarning("자원 배출에 실패했습니다.");
+            AudioManager.Play(SoundEventIds.ActionDenied);
+            return;
+        }
+
+        AudioManager.PlayAt(SoundEventIds.ReinforcementDrop, pickup.transform.position);
+        ShowFieldDropWarning($"자원 배출: {GetCargoDisplayName(selectedCargoType)} ×{discardAmount}");
+        selectedCargoJettisonAmount = 1;
+        RefreshShipSection();
+    }
+
+    private RewardPickup SpawnCargoPickup(CurrencyType currencyType, int amount)
+    {
+        if (cargoDropPickupPrefab == null || amount <= 0)
+        {
+            return null;
+        }
+
+        Vector2 position = ResolveFieldDropPosition();
+        Vector2 origin = playerObject != null ? playerObject.transform.position : position;
+        Vector2 direction = position - origin;
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = fallbackFieldDropDirection.sqrMagnitude > 0.001f
+                ? fallbackFieldDropDirection
+                : Vector2.down;
+        }
+
+        direction.Normalize();
+        position = origin + direction * Mathf.Max(fieldDropDistance, cargoJettisonDistance);
+        GameObject pickupObject = PoolManager.Instance != null
+            ? PoolManager.Instance.Get(cargoDropPickupPrefab.gameObject, position, Quaternion.identity)
+            : Instantiate(cargoDropPickupPrefab.gameObject, position, Quaternion.identity);
+        RewardPickup pickup = pickupObject != null ? pickupObject.GetComponent<RewardPickup>() : null;
+
+        if (pickup == null)
+        {
+            ReleaseFieldDropObject(pickupObject);
+            return null;
+        }
+
+        pickup.InitializeOwnedCurrency(
+            currencyType,
+            amount,
+            direction * 1.25f,
+            cargoRepickupBlockSeconds
+        );
+        return pickup;
+    }
+
+    private string BuildCargoManifestText()
+    {
+        string key = ResolveFieldDropKeyText();
+        float holdRatio = Mathf.Clamp01(cargoJettisonHoldTimer / Mathf.Max(0.1f, cargoJettisonHoldDuration));
+        string progress = holdRatio > 0f ? $"  {Mathf.RoundToInt(holdRatio * 100f)}%" : string.Empty;
+
+        return $"적재 화물 · [{key}] 길게 눌러 버리기{progress}\n" +
+               BuildCargoManifestRow(CurrencyType.ScrapParts) + "\n" +
+               BuildCargoManifestRow(CurrencyType.StabilizedAlloy) + "\n" +
+               BuildCargoManifestRow(CurrencyType.CoreShards);
+    }
+
+    private string BuildCargoManifestRow(CurrencyType currencyType)
+    {
+        string marker = selectedCargoType == currencyType ? ">" : " ";
+        int amount = GetCargoAmount(currencyType);
+        int contribution = cargoController != null
+            ? cargoController.GetCargoWeight(currencyType) * amount
+            : 0;
+        return $"{marker} {GetCargoDisplayName(currencyType)}  {amount}  무게 {contribution}";
+    }
+
+    private int GetCargoAmount(CurrencyType currencyType)
+    {
+        return cargoController != null ? cargoController.GetCargoAmount(currencyType) : 0;
+    }
+
+    private int ResolveJettisonAmount(CurrencyType currencyType)
+    {
+        return currencyType == CurrencyType.ScrapParts
+            ? Mathf.Max(1, scrapJettisonAmount)
+            : Mathf.Max(1, rareCargoJettisonAmount);
+    }
+
+    private static string GetCargoDisplayName(CurrencyType currencyType)
+    {
+        return currencyType switch
+        {
+            CurrencyType.Credits => "재화",
+            CurrencyType.ScrapParts => "스크랩",
+            CurrencyType.CoreShards => "코어",
+            CurrencyType.TuningChips => "튜닝 칩",
+            CurrencyType.StabilizedAlloy => "안정화 합금",
+            _ => currencyType.ToString()
+        };
+    }
+
+    private void RefreshCargoHeader(int currentCargo, int maximumCargo)
+    {
+        int safeMaximum = Mathf.Max(1, maximumCargo);
+        SetText(cargoLoadText, $"적재량 {currentCargo} / {maximumCargo}");
+
+        if (cargoLoadSlider != null)
+        {
+            cargoLoadSlider.minValue = 0f;
+            cargoLoadSlider.maxValue = safeMaximum;
+            cargoLoadSlider.wholeNumbers = true;
+            cargoLoadSlider.SetValueWithoutNotify(Mathf.Clamp(currentCargo, 0, safeMaximum));
+            cargoLoadSlider.interactable = false;
+        }
+    }
+
+    private void RefreshCargoManagement()
+    {
+        if (cargoManagementRoot == null || cargoController == null)
+        {
+            return;
+        }
+
+        bool selectedRowVisible = false;
+        bool hasVisibleRows = false;
+        CurrencyType firstVisibleType = default;
+
+        if (cargoManifestRows != null)
+        {
+            for (int i = 0; i < cargoManifestRows.Count; i++)
+            {
+                CargoManifestRowUI row = cargoManifestRows[i];
+
+                if (row == null || !row.IsConfigured)
+                {
+                    continue;
+                }
+
+                CurrencyType currencyType = row.CurrencyType;
+                int amount = cargoController.GetCargoAmount(currencyType);
+                bool visible = amount > 0 || showAllCargoResources;
+                row.SetVisible(visible);
+
+                if (!visible)
+                {
+                    continue;
+                }
+
+                if (!hasVisibleRows)
+                {
+                    firstVisibleType = currencyType;
+                    hasVisibleRows = true;
+                }
+
+                selectedRowVisible |= hasSelectedCargo && currencyType == selectedCargoType;
+            }
+        }
+
+        if (!selectedRowVisible)
+        {
+            hasSelectedCargo = hasVisibleRows;
+
+            if (hasVisibleRows)
+            {
+                selectedCargoType = firstVisibleType;
+                selectedFieldDropTarget = BuildStatusFieldDropTarget.Cargo;
+                selectedCargoJettisonAmount = GetCargoAmount(selectedCargoType) > 0 ? 1 : 0;
+            }
+            else
+            {
+                selectedCargoJettisonAmount = 0;
+                selectedFieldDropTarget = BuildStatusFieldDropTarget.Active;
+            }
+        }
+
+        if (cargoManifestRows != null)
+        {
+            for (int i = 0; i < cargoManifestRows.Count; i++)
+            {
+                CargoManifestRowUI row = cargoManifestRows[i];
+
+                if (row == null || !row.IsConfigured || !row.IsVisible)
+                {
+                    continue;
+                }
+
+                CurrencyType currencyType = row.CurrencyType;
+                int amount = cargoController.GetCargoAmount(currencyType);
+                int unitWeight = cargoController.GetCargoWeight(currencyType);
+                bool usesCargo = cargoController.UsesCargo(currencyType);
+                Sprite icon = cargoDropPickupPrefab != null
+                    ? cargoDropPickupPrefab.GetCurrencySprite(currencyType)
+                    : null;
+                row.Refresh(
+                    icon,
+                    GetCargoDisplayName(currencyType),
+                    amount,
+                    unitWeight,
+                    amount * unitWeight,
+                    usesCargo,
+                    cargoController.IsAutoPickupEnabled(currencyType),
+                    hasSelectedCargo && currencyType == selectedCargoType
+                );
+            }
+        }
+
+        SetText(cargoShowAllText, showAllCargoResources
+            ? "[0개 숨기기]"
+            : "[전체 보기]");
+        SetColor(
+            cargoShowAllText,
+            showAllCargoResources
+                ? new Color(0.45f, 1f, 1f, 1f)
+                : new Color(0.62f, 0.78f, 0.82f, 1f)
+        );
+        SetActive(selectedCargoEmptyText != null ? selectedCargoEmptyText.gameObject : null, !hasVisibleRows);
+        SetActive(cargoDetailActionsRoot, hasSelectedCargo);
+
+        if (!hasSelectedCargo)
+        {
+            SetImage(selectedCargoIconImage, null);
+            SetText(selectedCargoNameText, string.Empty);
+            SetText(selectedCargoStatsText, string.Empty);
+            SetText(selectedCargoQuantityText, string.Empty);
+            SetActive(selectedCargoAutoPickupText != null ? selectedCargoAutoPickupText.gameObject : null, false);
+            SetActive(cargoAutoPickupButton != null ? cargoAutoPickupButton.gameObject : null, false);
+            RefreshCargoManifestNavigation();
+            RepairCargoEventSystemSelection();
+            return;
+        }
+
+        int selectedAmount = cargoController.GetCargoAmount(selectedCargoType);
+        int selectedUnitWeight = cargoController.GetCargoWeight(selectedCargoType);
+        int selectedContribution = selectedAmount * selectedUnitWeight;
+        bool selectedUsesCargo = cargoController.UsesCargo(selectedCargoType);
+        bool selectedCanJettison = cargoController.CanJettison(selectedCargoType);
+        bool autoPickupEnabled = cargoController.IsAutoPickupEnabled(selectedCargoType);
+        selectedCargoJettisonAmount = selectedCanJettison && selectedAmount > 0
+            ? Mathf.Clamp(selectedCargoJettisonAmount, 1, selectedAmount)
+            : 0;
+
+        Sprite selectedIcon = cargoDropPickupPrefab != null
+            ? cargoDropPickupPrefab.GetCurrencySprite(selectedCargoType)
+            : null;
+        SetImage(selectedCargoIconImage, selectedIcon);
+        SetText(selectedCargoNameText, GetCargoDisplayName(selectedCargoType));
+        SetText(
+            selectedCargoStatsText,
+            selectedUsesCargo
+                ? $"보유 {selectedAmount} · 개당 {selectedUnitWeight} · 적재 {selectedContribution}"
+                : selectedCanJettison
+                    ? $"보유 {selectedAmount} · 임시 자원"
+                    : $"보유 {selectedAmount} · 버릴 수 없는 임시 자원"
+        );
+        SetText(selectedCargoQuantityText, selectedCanJettison && selectedAmount > 0 ? $"{selectedCargoJettisonAmount}개" : "-");
+        SetText(
+            selectedCargoAutoPickupText,
+            selectedUsesCargo
+                ? autoPickupEnabled ? "자동 회수 켬" : "자동 회수 끔"
+                : "화물 관리 제외"
+        );
+        SetActive(selectedCargoAutoPickupText != null ? selectedCargoAutoPickupText.gameObject : null, selectedUsesCargo);
+        SetActive(cargoAutoPickupButton != null ? cargoAutoPickupButton.gameObject : null, selectedUsesCargo);
+        SetActive(cargoQuantitySlider != null ? cargoQuantitySlider.gameObject : null, selectedCanJettison);
+        SetActive(selectedCargoQuantityText != null ? selectedCargoQuantityText.gameObject : null, selectedCanJettison);
+        SetActive(cargoQuantityOneButton != null ? cargoQuantityOneButton.gameObject : null, selectedCanJettison);
+        SetActive(cargoQuantityHalfButton != null ? cargoQuantityHalfButton.gameObject : null, selectedCanJettison);
+        SetActive(cargoQuantityMaxButton != null ? cargoQuantityMaxButton.gameObject : null, selectedCanJettison);
+        SetActive(cargoJettisonButton != null ? cargoJettisonButton.gameObject : null, selectedCanJettison);
+
+        if (cargoQuantitySlider != null)
+        {
+            cargoQuantitySlider.minValue = 1f;
+            cargoQuantitySlider.maxValue = Mathf.Max(1, selectedAmount);
+            cargoQuantitySlider.wholeNumbers = true;
+            cargoQuantitySlider.SetValueWithoutNotify(Mathf.Max(1, selectedCargoJettisonAmount));
+            cargoQuantitySlider.interactable = selectedCanJettison && selectedAmount > 0;
+        }
+
+        bool canJettisonSelection = selectedCanJettison && selectedAmount > 0;
+        SetButtonInteractable(cargoQuantityOneButton, canJettisonSelection);
+        SetButtonInteractable(cargoQuantityHalfButton, canJettisonSelection);
+        SetButtonInteractable(cargoQuantityMaxButton, canJettisonSelection);
+        SetButtonInteractable(cargoJettisonButton, canJettisonSelection);
+        SetButtonInteractable(cargoAutoPickupButton, selectedUsesCargo);
+        RefreshCargoManifestNavigation();
+        RepairCargoEventSystemSelection();
+    }
+
+    private void ToggleCargoShowAll()
+    {
+        showAllCargoResources = !showAllCargoResources;
+        RefreshCargoManagement();
+    }
+
+    private void RefreshCargoManifestNavigation()
+    {
+        Selectable firstVisible = null;
+        Selectable previousVisible = null;
+
+        if (cargoManifestRows != null)
+        {
+            for (int i = 0; i < cargoManifestRows.Count; i++)
+            {
+                CargoManifestRowUI row = cargoManifestRows[i];
+                Selectable current = row != null && row.IsVisible ? row.Selectable : null;
+
+                if (current == null)
+                {
+                    continue;
+                }
+
+                firstVisible ??= current;
+                Navigation navigation = current.navigation;
+                navigation.mode = Navigation.Mode.Explicit;
+                navigation.selectOnUp = previousVisible != null ? previousVisible : cargoShowAllButton;
+                navigation.selectOnDown = null;
+                current.navigation = navigation;
+
+                if (previousVisible != null)
+                {
+                    Navigation previousNavigation = previousVisible.navigation;
+                    previousNavigation.selectOnDown = current;
+                    previousVisible.navigation = previousNavigation;
+                }
+
+                previousVisible = current;
+            }
+        }
+
+        Selectable detailSelectable = cargoQuantitySlider != null &&
+                                      cargoQuantitySlider.gameObject.activeInHierarchy &&
+                                      cargoQuantitySlider.interactable
+            ? cargoQuantitySlider
+            : cargoShowAllButton;
+
+        if (previousVisible != null && detailSelectable != null)
+        {
+            Navigation navigation = previousVisible.navigation;
+            navigation.selectOnDown = detailSelectable;
+            previousVisible.navigation = navigation;
+
+            if (detailSelectable == cargoQuantitySlider)
+            {
+                Navigation sliderNavigation = cargoQuantitySlider.navigation;
+                sliderNavigation.mode = Navigation.Mode.Explicit;
+                sliderNavigation.selectOnUp = previousVisible;
+                cargoQuantitySlider.navigation = sliderNavigation;
+            }
+        }
+
+        if (cargoShowAllButton != null)
+        {
+            Navigation navigation = cargoShowAllButton.navigation;
+            navigation.mode = Navigation.Mode.Explicit;
+            navigation.selectOnDown = firstVisible;
+            cargoShowAllButton.navigation = navigation;
+        }
+    }
+
+    private void SelectCargoManifestType(CurrencyType currencyType)
+    {
+        selectedCargoType = currencyType;
+        hasSelectedCargo = true;
+        selectedFieldDropTarget = BuildStatusFieldDropTarget.Cargo;
+        selectedCargoJettisonAmount = GetCargoAmount(currencyType) > 0 ? 1 : 0;
+        cargoJettisonHoldTimer = 0f;
+        cargoJettisonConsumedUntilRelease = false;
+        RefreshCargoManagement();
+        RefreshFieldDropSelectionVisual();
+    }
+
+    private void RepairCargoEventSystemSelection()
+    {
+        if (!isOpen || EventSystem.current == null)
+        {
+            return;
+        }
+
+        GameObject current = EventSystem.current.currentSelectedGameObject;
+
+        Selectable currentSelectable = current != null ? current.GetComponent<Selectable>() : null;
+
+        if (current != null &&
+            current.activeInHierarchy &&
+            (currentSelectable == null || currentSelectable.IsInteractable()))
+        {
+            return;
+        }
+
+        Selectable fallback = FirstCargoSelectable ?? cargoShowAllButton;
+        EventSystem.current.SetSelectedGameObject(fallback != null ? fallback.gameObject : null);
+    }
+
+    private void HandleCargoQuantityChanged(float value)
+    {
+        int ownedAmount = GetCargoAmount(selectedCargoType);
+        selectedCargoJettisonAmount = ownedAmount > 0
+            ? Mathf.Clamp(Mathf.RoundToInt(value), 1, ownedAmount)
+            : 0;
+        SetText(selectedCargoQuantityText, selectedCargoJettisonAmount > 0
+            ? $"{selectedCargoJettisonAmount}개"
+            : "0개");
+    }
+
+    private void SetCargoQuantityOne()
+    {
+        SetSelectedCargoQuantity(1);
+    }
+
+    private void SetCargoQuantityHalf()
+    {
+        int amount = GetCargoAmount(selectedCargoType);
+        SetSelectedCargoQuantity(Mathf.Max(1, Mathf.CeilToInt(amount * 0.5f)));
+    }
+
+    private void SetCargoQuantityMax()
+    {
+        SetSelectedCargoQuantity(GetCargoAmount(selectedCargoType));
+    }
+
+    private void SetSelectedCargoQuantity(int amount)
+    {
+        int ownedAmount = GetCargoAmount(selectedCargoType);
+        selectedCargoJettisonAmount = ownedAmount > 0
+            ? Mathf.Clamp(amount, 1, ownedAmount)
+            : 0;
+        cargoQuantitySlider?.SetValueWithoutNotify(Mathf.Max(1, selectedCargoJettisonAmount));
+        SetText(selectedCargoQuantityText, selectedCargoJettisonAmount > 0
+            ? $"{selectedCargoJettisonAmount}개"
+            : "0개");
+    }
+
+    private void ToggleSelectedCargoAutoPickup()
+    {
+        if (cargoController == null || !cargoController.UsesCargo(selectedCargoType))
+        {
+            return;
+        }
+
+        bool enabled = cargoController.IsAutoPickupEnabled(selectedCargoType);
+        cargoController.SetAutoPickupEnabled(selectedCargoType, !enabled);
+        RefreshCargoManagement();
+    }
+
+    private static void SetButtonInteractable(Button button, bool interactable)
+    {
+        if (button != null)
+        {
+            button.interactable = interactable;
+        }
+    }
+
+    private void BindCargoManagementLayout()
+    {
+        bool hasMainLayout = cargoManagementRoot != null &&
+                             cargoLoadText != null &&
+                             cargoLoadSlider != null &&
+                             cargoManifestRows != null &&
+                             cargoManifestRows.Count > 0 &&
+                             cargoShowAllButton != null &&
+                             cargoShowAllText != null &&
+                             cargoQuantitySlider != null &&
+                             cargoJettisonButton != null &&
+                             cargoAutoPickupButton != null;
+
+        if (!hasMainLayout)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning(
+                "Shared Inventory Cargo references are incomplete. The production prefab must author the Cargo layout.",
+                this
+            );
+#endif
+            return;
+        }
+
+        for (int i = 0; i < cargoManifestRows.Count; i++)
+        {
+            CargoManifestRowUI row = cargoManifestRows[i];
+
+            if (row != null && row.IsConfigured)
+            {
+                row.Bind(SelectCargoManifestType);
+            }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            else
+            {
+                Debug.LogWarning($"Cargo manifest row {i} is not fully configured.", this);
+            }
+#endif
+        }
+
+        cargoQuantitySlider.onValueChanged.RemoveListener(HandleCargoQuantityChanged);
+        cargoQuantitySlider.onValueChanged.AddListener(HandleCargoQuantityChanged);
+        BindCargoButton(cargoQuantityOneButton, SetCargoQuantityOne);
+        BindCargoButton(cargoQuantityHalfButton, SetCargoQuantityHalf);
+        BindCargoButton(cargoQuantityMaxButton, SetCargoQuantityMax);
+        BindCargoButton(cargoShowAllButton, ToggleCargoShowAll);
+        BindCargoButton(cargoAutoPickupButton, ToggleSelectedCargoAutoPickup);
+        BindCargoButton(cargoJettisonButton, TryJettisonSelectedCargo);
+    }
+
+    private void UnbindCargoManagementLayout()
+    {
+        if (cargoManifestRows != null)
+        {
+            for (int i = 0; i < cargoManifestRows.Count; i++)
+            {
+                cargoManifestRows[i]?.Unbind();
+            }
+        }
+
+        cargoQuantitySlider?.onValueChanged.RemoveListener(HandleCargoQuantityChanged);
+        UnbindCargoButton(cargoQuantityOneButton, SetCargoQuantityOne);
+        UnbindCargoButton(cargoQuantityHalfButton, SetCargoQuantityHalf);
+        UnbindCargoButton(cargoQuantityMaxButton, SetCargoQuantityMax);
+        UnbindCargoButton(cargoShowAllButton, ToggleCargoShowAll);
+        UnbindCargoButton(cargoAutoPickupButton, ToggleSelectedCargoAutoPickup);
+        UnbindCargoButton(cargoJettisonButton, TryJettisonSelectedCargo);
+    }
+
+    private void ConfigureCargoTypography()
+    {
+        if (cargoShowAllText != null)
+        {
+            cargoShowAllText.raycastTarget = true;
+        }
+
+        if (cargoManifestRows != null)
+        {
+            for (int i = 0; i < cargoManifestRows.Count; i++)
+            {
+                cargoManifestRows[i]?.ConfigureTypography(uiFont);
+            }
+        }
+
+    }
+
+    private static void BindCargoButton(Button button, UnityEngine.Events.UnityAction action)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        button.onClick.RemoveListener(action);
+        button.onClick.AddListener(action);
+    }
+
+    private static void UnbindCargoButton(Button button, UnityEngine.Events.UnityAction action)
+    {
+        button?.onClick.RemoveListener(action);
+    }
     private void BindFieldDropInput()
     {
         inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
@@ -1704,8 +2576,23 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         bool activeSelected = selectedFieldDropTarget == BuildStatusFieldDropTarget.Active;
         SetActive(activeDropSelectedIndicator, activeSelected);
 
+        if (cargoValueText != null)
+        {
+            cargoValueText.color = selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo
+                ? new Color(1f, 0.78f, 0.2f, 1f)
+                : normalStatColor;
+        }
+
         if (fieldDropHintText == null)
         {
+            return;
+        }
+
+        if (selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo)
+        {
+            fieldDropHintText.text = cargoController != null && cargoController.CanJettison(selectedCargoType)
+                ? $"[{ResolveFieldDropKeyText()}] 길게 눌러 버리기 : {GetCargoDisplayName(selectedCargoType)}"
+                : $"버릴 수 없는 자원 : {GetCargoDisplayName(selectedCargoType)}";
             return;
         }
 
@@ -1752,6 +2639,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         if (cargoController != null)
         {
             cargoController.CargoChanged += HandleCargoChanged;
+            cargoController.AutoPickupPreferenceChanged += HandleAutoPickupPreferenceChanged;
         }
 
         if (reinforcementController != null)
@@ -1811,6 +2699,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         if (cargoController != null)
         {
             cargoController.CargoChanged -= HandleCargoChanged;
+            cargoController.AutoPickupPreferenceChanged -= HandleAutoPickupPreferenceChanged;
         }
 
         if (reinforcementController != null)
@@ -1863,6 +2752,11 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     private void HandleCargoChanged(int current, int max)
     {
         RefreshShipSection();
+    }
+
+    private void HandleAutoPickupPreferenceChanged(CurrencyType currencyType, bool enabled)
+    {
+        RefreshCargoManagement();
     }
 
     private void HandleEquipmentChanged(ReinforcementDefinition definition, int currentCharges, int maxCharges)
@@ -2132,38 +3026,8 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
                 text.font = uiFont;
             }
 
-            text.fontSize = Mathf.Min(text.fontSize, 7.5f);
-            text.enableAutoSizing = true;
-            text.fontSizeMin = 5f;
-            text.fontSizeMax = Mathf.Max(5f, Mathf.Min(7.5f, text.fontSize));
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.overflowMode = TextOverflowModes.Ellipsis;
             text.raycastTarget = false;
         }
-
-        ConfigureInventoryBodyText(shipDescriptionText, 6.5f);
-        ConfigureInventoryBodyText(shipPassiveText, 6.5f);
-        ConfigureInventoryBodyText(shipTipText, 6f);
-        ConfigureInventoryBodyText(activeDescriptionText, 6.5f);
-        ConfigureInventoryBodyText(activeEffectText, 6.5f);
-        ConfigureInventoryBodyText(selectedPassiveDescriptionText, 6.5f);
-        ConfigureInventoryBodyText(selectedPassiveEffectText, 6.5f);
-        ConfigureInventoryBodyText(selectedPassiveFlavorText, 6f);
-    }
-
-    private static void ConfigureInventoryBodyText(TextMeshProUGUI text, float maximumSize)
-    {
-        if (text == null)
-        {
-            return;
-        }
-
-        text.fontSize = maximumSize;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 4.5f;
-        text.fontSizeMax = maximumSize;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.overflowMode = TextOverflowModes.Ellipsis;
     }
 
     private void SetText(TextMeshProUGUI target, string text)

@@ -2,6 +2,8 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public enum ExpeditionMenuTab
@@ -36,14 +38,22 @@ public sealed class ExpeditionMenuController : MonoBehaviour
     [SerializeField] private ExpeditionMapPanelUI mapPanel;
     [SerializeField] private PlayerBuildStatusPanelUI inventoryPanel;
 
-    [Header("Radar Cancellation")]
+    [Header("Radar Presentation")]
     [SerializeField] private PlayerRadarScanner radarScanner;
+    [SerializeField] private RadarPanelAnimator radarPanelAnimator;
 
-    [Header("Pause / Cursor")]
-    [SerializeField] private bool pauseWhileOpen = true;
+    [Header("Gameplay Input / Cursor")]
+    [FormerlySerializedAs("pauseWhileOpen")]
+    [SerializeField] private bool lockGameplayInputWhileOpen = true;
     [SerializeField] private bool blockOpenWhileAnotherPauseActive = true;
     [SerializeField] private bool showCursorWhileOpen = true;
     [SerializeField] private bool unlockCursorWhileOpen = true;
+
+    [Header("Player Input Owners")]
+    [SerializeField] private PlayerController2D playerController;
+    [SerializeField] private PlayerWeaponController weaponController;
+    [SerializeField] private PlayerReinforcementController reinforcementController;
+    [SerializeField] private PlayerInteractor playerInteractor;
 
     [Header("Keyboard Fallback")]
     [SerializeField] private Key mapFallbackKey = Key.Tab;
@@ -60,6 +70,8 @@ public sealed class ExpeditionMenuController : MonoBehaviour
     private bool cursorStateStored;
     private bool previousCursorVisible;
     private CursorLockMode previousCursorLockMode;
+    private GameObject previousSelectedGameObject;
+    private bool gameplayInputLockHeld;
 
     public bool IsOpen => isOpen;
     public ExpeditionMenuTab CurrentTab => currentTab;
@@ -157,6 +169,7 @@ public sealed class ExpeditionMenuController : MonoBehaviour
 
             isOpen = true;
             StoreAndApplyCursorState();
+            AcquireGameplayInputLock();
             SetMenuVisual(true);
 
             // Keep an already-open radar alive, but render the menu above it.
@@ -165,12 +178,7 @@ public sealed class ExpeditionMenuController : MonoBehaviour
                 menuRoot.transform.SetAsLastSibling();
             }
 
-            if (pauseWhileOpen)
-            {
-                GameplayPauseManager.Instance.PushPause(this, "Expedition Map / Inventory");
-            }
-
-            GameplayPauseManager.Instance.RegisterCancelHandler(this, Close);
+            GameplayPauseManager.Instance?.RegisterCancelHandler(this, Close);
             AudioManager.Play(SoundEventIds.UiPanelOpen);
             OpenStateChanged?.Invoke(true);
         }
@@ -226,17 +234,14 @@ public sealed class ExpeditionMenuController : MonoBehaviour
 
         mapPanel?.SetVisible(false);
         inventoryPanel?.Close();
+        SetRadarPresentationSuppressed(false);
 
         if (GameplayPauseManager.Instance != null)
         {
             GameplayPauseManager.Instance.UnregisterCancelHandler(this);
-
-            if (pauseWhileOpen)
-            {
-                GameplayPauseManager.Instance.PopPause(this);
-            }
         }
 
+        ReleaseGameplayInputLock();
         SetMenuVisual(false);
         RestoreCursorState();
 
@@ -290,6 +295,8 @@ public sealed class ExpeditionMenuController : MonoBehaviour
             }
         }
 
+        SetRadarPresentationSuppressed(!showMap);
+
         if (mapTabButton != null)
         {
             mapTabButton.interactable = !showMap;
@@ -310,6 +317,7 @@ public sealed class ExpeditionMenuController : MonoBehaviour
             AudioManager.Play(SoundEventIds.UiClick);
         }
 
+        RefreshEventSystemSelection(tab);
         TabChanged?.Invoke(tab);
     }
 
@@ -419,6 +427,9 @@ public sealed class ExpeditionMenuController : MonoBehaviour
 
     private void StoreAndApplyCursorState()
     {
+        previousSelectedGameObject = EventSystem.current != null
+            ? EventSystem.current.currentSelectedGameObject
+            : null;
         previousCursorVisible = Cursor.visible;
         previousCursorLockMode = Cursor.lockState;
         cursorStateStored = true;
@@ -444,6 +455,17 @@ public sealed class ExpeditionMenuController : MonoBehaviour
         Cursor.visible = previousCursorVisible;
         Cursor.lockState = previousCursorLockMode;
         cursorStateStored = false;
+
+        if (EventSystem.current != null)
+        {
+            GameObject selection = previousSelectedGameObject != null &&
+                                   previousSelectedGameObject.activeInHierarchy
+                ? previousSelectedGameObject
+                : null;
+            EventSystem.current.SetSelectedGameObject(selection);
+        }
+
+        previousSelectedGameObject = null;
     }
 
     private void ResolveRadarScanner()
@@ -452,5 +474,90 @@ public sealed class ExpeditionMenuController : MonoBehaviour
         {
             radarScanner = FindFirstObjectByType<PlayerRadarScanner>();
         }
+    }
+
+    private void SetRadarPresentationSuppressed(bool suppressed)
+    {
+        if (radarPanelAnimator == null)
+        {
+            radarPanelAnimator = FindFirstObjectByType<RadarPanelAnimator>();
+        }
+
+        radarPanelAnimator?.SetPresentationSuppressed(this, suppressed);
+    }
+
+    private void AcquireGameplayInputLock()
+    {
+        if (!lockGameplayInputWhileOpen || gameplayInputLockHeld)
+        {
+            return;
+        }
+
+        ResolvePlayerInputOwners();
+        playerController?.SetExternalControlLocked(this, true);
+        weaponController?.SetExternalInputLocked(this, true);
+        reinforcementController?.SetExternalInputLocked(this, true);
+        radarScanner?.SetExternalInputLocked(this, true);
+        playerInteractor?.SetExternalInputLocked(this, true);
+        gameplayInputLockHeld = true;
+    }
+
+    private void ReleaseGameplayInputLock()
+    {
+        if (!gameplayInputLockHeld)
+        {
+            return;
+        }
+
+        playerController?.SetExternalControlLocked(this, false);
+        weaponController?.SetExternalInputLocked(this, false);
+        reinforcementController?.SetExternalInputLocked(this, false);
+        radarScanner?.SetExternalInputLocked(this, false);
+        playerInteractor?.SetExternalInputLocked(this, false);
+        gameplayInputLockHeld = false;
+    }
+
+    private void ResolvePlayerInputOwners()
+    {
+        if (playerController == null)
+        {
+            playerController = FindFirstObjectByType<PlayerController2D>();
+        }
+
+        if (playerController != null)
+        {
+            GameObject playerObject = playerController.gameObject;
+            weaponController ??= playerObject.GetComponent<PlayerWeaponController>();
+            reinforcementController ??= playerObject.GetComponent<PlayerReinforcementController>();
+            radarScanner ??= playerObject.GetComponent<PlayerRadarScanner>();
+            playerInteractor ??= playerObject.GetComponent<PlayerInteractor>();
+        }
+
+        if (radarScanner == null)
+        {
+            ResolveRadarScanner();
+        }
+    }
+
+    private void RefreshEventSystemSelection(ExpeditionMenuTab tab)
+    {
+        if (EventSystem.current == null)
+        {
+            return;
+        }
+
+        Selectable preferred = tab == ExpeditionMenuTab.Inventory
+            ? inventoryPanel?.FirstCargoSelectable
+            : inventoryTabButton;
+
+        if (preferred == null || !preferred.IsActive() || !preferred.IsInteractable())
+        {
+            GameObject activeTabRoot = tab == ExpeditionMenuTab.Map ? mapTabRoot : inventoryTabRoot;
+            preferred = activeTabRoot != null
+                ? activeTabRoot.GetComponentInChildren<Selectable>(false)
+                : null;
+        }
+
+        EventSystem.current.SetSelectedGameObject(preferred != null ? preferred.gameObject : null);
     }
 }
