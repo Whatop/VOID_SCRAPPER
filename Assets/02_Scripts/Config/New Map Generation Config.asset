@@ -45,6 +45,12 @@ MonoBehaviour:
   bossCameraEdgePadding: 2.5
   fallbackBossCameraBaseOrthographicSize: 4.2
   fallbackBossCameraAspect: 1.7777778
+  region2TopCoreHorizontalNormalizedRange: {x: -0.1, y: 0.1}
+  region2TopCoreSafetyMargin: 4
+  region2MajorPoiVerticalClearance: 3
+  region2BossCorridorHalfWidth: 9
+  region2BossCorridorDownwardLength: 48
+  region2BossCorridorReservationPadding: 2
   fieldBaseCount: 2
   shopCount: 2
   eventCount: 4

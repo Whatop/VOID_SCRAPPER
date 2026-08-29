@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6115508124978452639}
   - component: {fileID: 6680330364725810212}
   - component: {fileID: 212338926142561793}
+  - component: {fileID: 212338926142561794}
   m_Layer: 7
   m_Name: PF_Bullet_Boss_Spread
   m_TagString: Untagged
@@ -186,3 +187,15 @@ MonoBehaviour:
   impactEffectPrefab: {fileID: 8200224275209536821, guid: 2a32310c19eec6149a88819e2dc064ae, type: 3}
   impactEffectLifeTime: 0.18
   rotateImpactEffectToBullet: 1
+--- !u!114 &212338926142561794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4939712952834317954}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7320e0803ff841a8a4e2172ec9b3c201, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:

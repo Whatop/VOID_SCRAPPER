@@ -57,6 +57,14 @@ public class MapGenerationConfig : ScriptableObject
     [SerializeField] private float fallbackBossCameraBaseOrthographicSize = 4.2f;
     [SerializeField] private float fallbackBossCameraAspect = 1.7777778f;
 
+    [Header("Region 2 Boss Corridor")]
+    [SerializeField] private Vector2 region2TopCoreHorizontalNormalizedRange = new Vector2(-0.1f, 0.1f);
+    [SerializeField] private float region2TopCoreSafetyMargin = 4f;
+    [SerializeField] private float region2MajorPoiVerticalClearance = 3f;
+    [SerializeField] private float region2BossCorridorHalfWidth = 9f;
+    [SerializeField] private float region2BossCorridorDownwardLength = 48f;
+    [SerializeField] private float region2BossCorridorReservationPadding = 2f;
+
     [Header("Important Points")]
     [Tooltip("적 기지 프리팹 배치 수입니다. 한 해역에 초록/파랑 기지를 둘 경우 2로 설정합니다.")]
     [SerializeField] private int fieldBaseCount = 2;
@@ -184,6 +192,22 @@ public class MapGenerationConfig : ScriptableObject
     public float BossCameraEdgePadding => Mathf.Max(0f, bossCameraEdgePadding);
     public float FallbackBossCameraBaseOrthographicSize => Mathf.Max(0.1f, fallbackBossCameraBaseOrthographicSize);
     public float FallbackBossCameraAspect => Mathf.Max(0.1f, fallbackBossCameraAspect);
+
+    public Vector2 Region2TopCoreHorizontalNormalizedRange
+    {
+        get
+        {
+            float minimum = Mathf.Clamp(region2TopCoreHorizontalNormalizedRange.x, -1f, 1f);
+            float maximum = Mathf.Clamp(region2TopCoreHorizontalNormalizedRange.y, -1f, 1f);
+            return new Vector2(Mathf.Min(minimum, maximum), Mathf.Max(minimum, maximum));
+        }
+    }
+
+    public float Region2TopCoreSafetyMargin => Mathf.Max(0f, region2TopCoreSafetyMargin);
+    public float Region2MajorPoiVerticalClearance => Mathf.Max(0f, region2MajorPoiVerticalClearance);
+    public float Region2BossCorridorHalfWidth => Mathf.Max(0.5f, region2BossCorridorHalfWidth);
+    public float Region2BossCorridorDownwardLength => Mathf.Max(1f, region2BossCorridorDownwardLength);
+    public float Region2BossCorridorReservationPadding => Mathf.Max(0f, region2BossCorridorReservationPadding);
 
     public int FieldBaseCount => Mathf.Max(0, fieldBaseCount);
     public int ShopCount => Mathf.Max(0, shopCount);
@@ -321,6 +345,21 @@ public class MapGenerationConfig : ScriptableObject
         smallMeteorDriftRatio = Mathf.Clamp01(smallMeteorDriftRatio);
         largeMeteorCount = Mathf.Max(0, largeMeteorCount);
         bossArenaCoverOffset.x = Mathf.Max(2f, Mathf.Abs(bossArenaCoverOffset.x));
+        region2TopCoreHorizontalNormalizedRange.x = Mathf.Clamp(
+            region2TopCoreHorizontalNormalizedRange.x,
+            -1f,
+            1f
+        );
+        region2TopCoreHorizontalNormalizedRange.y = Mathf.Clamp(
+            region2TopCoreHorizontalNormalizedRange.y,
+            -1f,
+            1f
+        );
+        region2TopCoreSafetyMargin = Mathf.Max(0f, region2TopCoreSafetyMargin);
+        region2MajorPoiVerticalClearance = Mathf.Max(0f, region2MajorPoiVerticalClearance);
+        region2BossCorridorHalfWidth = Mathf.Max(0.5f, region2BossCorridorHalfWidth);
+        region2BossCorridorDownwardLength = Mathf.Max(1f, region2BossCorridorDownwardLength);
+        region2BossCorridorReservationPadding = Mathf.Max(0f, region2BossCorridorReservationPadding);
         fieldBaseCount = Mathf.Max(0, fieldBaseCount);
         shopCount = Mathf.Max(0, shopCount);
         eventCount = Mathf.Max(0, eventCount);

@@ -54,6 +54,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     private bool isBoss;
     private bool configuredDropRewardOnDeath;
     private BossPatternController bossPatternController;
+    private PhaseGatekeeperBossController phaseGatekeeperBossController;
     private Coroutine releaseRoutine;
     private Coroutine knockbackRoutine;
 
@@ -83,8 +84,11 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         rb = GetComponent<Rigidbody2D>();
         configuredDropRewardOnDeath = dropRewardOnDeath;
         bossPatternController = GetComponent<BossPatternController>();
+        phaseGatekeeperBossController = GetComponent<PhaseGatekeeperBossController>();
         isBoss = bossPatternController != null ||
-                 GetComponent<PirateCommanderBossController>() != null;
+                 GetComponent<PirateCommanderBossController>() != null ||
+                 GetComponent<FrigateTriadBossController>() != null ||
+                 phaseGatekeeperBossController != null;
 
         if (rewardDropper == null)
         {
@@ -210,6 +214,12 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         }
 
         if (damage <= 0f)
+        {
+            return;
+        }
+
+        if (phaseGatekeeperBossController != null &&
+            phaseGatekeeperBossController.RejectsIncomingDamage)
         {
             return;
         }

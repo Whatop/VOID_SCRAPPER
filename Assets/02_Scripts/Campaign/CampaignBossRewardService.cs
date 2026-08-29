@@ -29,6 +29,40 @@ public static class CampaignBossRewardService
             : CampaignProgressionCatalog.GetCoreShardReward(depth);
     }
 
+    public static int GrantSalvageDevourerCoreReward(
+        BossCampaignDefinition definition)
+    {
+        RunManager runManager = RunManager.Instance;
+        if (runManager == null ||
+            !runManager.HasActiveRun ||
+            runManager.IsCompletingRun ||
+            runManager.CurrentRun.ExpeditionDepth != ExpeditionDepth.DeepZone1 ||
+            runManager.CurrentRun.CurrentBossId != CampaignBossId.SalvageDevourer)
+        {
+            return 0;
+        }
+
+        BossCampaignDefinition resolvedDefinition = ResolveDefinition(
+            definition,
+            ExpeditionDepth.DeepZone1
+        );
+        if (resolvedDefinition == null ||
+            resolvedDefinition.BossId != CampaignBossId.SalvageDevourer ||
+            resolvedDefinition.ExpeditionDepth != ExpeditionDepth.DeepZone1)
+        {
+            return 0;
+        }
+
+        int configuredAmount = ResolveCoreShardReward(
+            resolvedDefinition,
+            ExpeditionDepth.DeepZone1
+        );
+        return runManager.GrantGuaranteedCampaignBossCoreShards(
+            CampaignBossId.SalvageDevourer,
+            configuredAmount
+        );
+    }
+
     public static bool GrantGuaranteedPassive(
         BossCampaignDefinition definition,
         Vector2 sourcePosition)

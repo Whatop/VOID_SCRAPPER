@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -15,6 +16,8 @@ public enum ExpeditionMenuTab
 [DisallowMultipleComponent]
 public sealed class ExpeditionMenuController : MonoBehaviour
 {
+    private readonly HashSet<object> externalOpenLocks = new HashSet<object>();
+
     [Header("Input Actions")]
     [SerializeField] private InputActionAsset inputActions;
     [SerializeField] private string playerActionMapName = "Player";
@@ -127,10 +130,21 @@ public sealed class ExpeditionMenuController : MonoBehaviour
         {
             Close(false);
         }
+
     }
 
     private void Update()
     {
+        if (externalOpenLocks.Count > 0)
+        {
+            if (isOpen)
+            {
+                Close(false);
+            }
+
+            return;
+        }
+
         bool mapPressed = WasPressedThisFrame(mapAction, mapFallbackKey);
         bool inventoryPressed = WasPressedThisFrame(inventoryAction, inventoryFallbackKey);
 
@@ -158,6 +172,11 @@ public sealed class ExpeditionMenuController : MonoBehaviour
 
     public void Open(ExpeditionMenuTab tab)
     {
+        if (externalOpenLocks.Count > 0)
+        {
+            return;
+        }
+
         if (!isOpen)
         {
             if (blockOpenWhileAnotherPauseActive &&
@@ -221,6 +240,27 @@ public sealed class ExpeditionMenuController : MonoBehaviour
     public void Close()
     {
         Close(true);
+    }
+
+    public void SetExternalOpenLocked(object source, bool locked)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        if (locked)
+        {
+            externalOpenLocks.Add(source);
+            if (isOpen)
+            {
+                Close(false);
+            }
+        }
+        else
+        {
+            externalOpenLocks.Remove(source);
+        }
     }
 
     private void Close(bool playSound)

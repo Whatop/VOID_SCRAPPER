@@ -1749,7 +1749,18 @@ public class PlayerReinforcementController : MonoBehaviour
                 continue;
             }
 
-            enemyHealth.TakeDamage(damage);
+            FrigateBossPart frigatePart = hit.GetComponentInParent<FrigateBossPart>();
+            if (frigatePart != null)
+            {
+                Vector2 hitPoint = hit.bounds.center;
+                Vector2 incomingDirection = hitPoint - center;
+                frigatePart.TryTakeDamage(damage, hitPoint, incomingDirection.normalized);
+            }
+            else
+            {
+                enemyHealth.TakeDamage(damage);
+            }
+
             enemyAI?.NotifyDamagedByPlayer();
         }
     }
@@ -1828,7 +1839,18 @@ public class PlayerReinforcementController : MonoBehaviour
             }
 
             processedTargets.Add(id);
-            enemyHealth.TakeDamage(damage);
+
+            FrigateBossPart frigatePart = hit.GetComponentInParent<FrigateBossPart>();
+            if (frigatePart != null)
+            {
+                Vector2 hitPoint = hit.bounds.center;
+                Vector2 incomingDirection = hitPoint - center;
+                frigatePart.TryTakeDamage(damage, hitPoint, incomingDirection.normalized);
+            }
+            else
+            {
+                enemyHealth.TakeDamage(damage);
+            }
 
             EnemyBaseAI enemyAI = enemyHealth.GetComponent<EnemyBaseAI>();
             if (enemyAI != null)

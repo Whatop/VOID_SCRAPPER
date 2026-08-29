@@ -378,6 +378,9 @@ public class CoreObject : MonoBehaviour, IInteractable
                 bossIntroSequence.ConfigureEncounterIntroVariant(
                     encounter.IsRepeatReplacement
                 );
+                bossIntroSequence.ConfigureSalvageDevourerIntroVariant(
+                    IsLiveSalvageDevourerEncounter(encounter)
+                );
                 yield return bossIntroSequence.PlayIntroRoutine(
                     interactor,
                     resolvedBossPrefab,
@@ -445,6 +448,17 @@ public class CoreObject : MonoBehaviour, IInteractable
     {
         if (spawnedBoss != null)
         {
+            FrigateTriadBossController frigateTriad =
+                spawnedBoss.GetComponent<FrigateTriadBossController>();
+            if (frigateTriad != null && !frigateTriad.BeginGameplay())
+            {
+                Debug.LogWarning(
+                    "Salvage Devourer gameplay authority could not activate at the intro handoff.",
+                    this
+                );
+                return;
+            }
+
             PirateCommanderBossController raiderCommander =
                 spawnedBoss.GetComponent<PirateCommanderBossController>();
             raiderCommander?.BeginCombat();
@@ -574,6 +588,11 @@ public class CoreObject : MonoBehaviour, IInteractable
             bossController = bossObject.AddComponent<BossDummyController>();
         }
 
+        if (bossObject.GetComponent<FrigateTriadBossController>() != null)
+        {
+            bossController.enabled = false;
+        }
+
         ResolvedBossEncounter encounter = ResolveBossEncounter();
         bossController.ConfigureCampaignDefinition(encounter.CampaignDefinition);
 
@@ -651,11 +670,16 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         ExpeditionDepth depth = ResolveCurrentDepth();
+        CampaignBossId bossId = RunManager.Instance != null && RunManager.Instance.HasActiveRun
+            ? RunManager.Instance.CurrentRun.CurrentBossId
+            : CampaignProgressionCatalog.GetBossId(depth);
         BossCampaignDefinition definition = CampaignProgressionCatalog.GetBossDefinition(depth);
         GameObject prefab = depth switch
         {
             ExpeditionDepth.Normal => bossPrefab,
-            ExpeditionDepth.DeepZone1 => region2BossPrefab != null ? region2BossPrefab : bossPrefab,
+            ExpeditionDepth.DeepZone1 when bossId == CampaignBossId.SalvageDevourer =>
+                region2BossPrefab != null ? region2BossPrefab : bossPrefab,
+            ExpeditionDepth.DeepZone1 => bossPrefab,
             ExpeditionDepth.DeepZone2 => region3BossPrefab != null ? region3BossPrefab : bossPrefab,
             ExpeditionDepth.FinalNetwork => finalBossPrefab,
             _ => bossPrefab
@@ -729,6 +753,55 @@ public class CoreObject : MonoBehaviour, IInteractable
                    CampaignBossId.SectorAdministrator
                );
     }
+
+    private bool IsLiveSalvageDevourerEncounter(ResolvedBossEncounter encounter)
+    {
+        if (ResolveCurrentDepth() != ExpeditionDepth.DeepZone1 ||
+            encounter.Prefab == null ||
+            encounter.CampaignDefinition == null ||
+            encounter.CampaignDefinition.BossId != CampaignBossId.SalvageDevourer)
+        {
+            return false;
+        }
+
+        return encounter.Prefab.GetComponent<FrigateTriadBossController>() != null;
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [ContextMenu("Development/Force Live Region-2 Boss Intro")]
+    private void DevelopmentForceLiveRegion2BossIntro()
+    {
+        if (activated || activating || RunManager.Instance == null ||
+            !RunManager.Instance.HasActiveRun || RunManager.Instance.IsCompletingRun ||
+            RunManager.Instance.CurrentRun.ExpeditionDepth != ExpeditionDepth.DeepZone1 ||
+            RunManager.Instance.CurrentRun.CurrentBossId != CampaignBossId.SalvageDevourer)
+        {
+            Debug.LogWarning(
+                "The live Region-2 intro requires an active DeepZone1 / SalvageDevourer run.",
+                this
+            );
+            return;
+        }
+
+        GameObject playerObject = FindPlayerObject();
+        if (playerObject == null)
+        {
+            Debug.LogWarning("The live Region-2 intro requires the current Player object.", this);
+            return;
+        }
+
+        activationRoutine = StartCoroutine(DevelopmentForceActivationRoutine(playerObject));
+    }
+
+    private IEnumerator DevelopmentForceActivationRoutine(GameObject playerObject)
+    {
+        activating = true;
+        RaiseActivationProgress(1f, false);
+        activating = false;
+        activationRoutine = null;
+        yield return CompleteActivationRoutine(playerObject);
+    }
+#endif
 
     private Vector3 ResolveBossSpawnPosition()
     {
@@ -815,6 +888,13 @@ public class CoreObject : MonoBehaviour, IInteractable
             return;
         }
 
+        if (ShouldDeferSalvageDevourerCoreRewardToBossDeath())
+        {
+            completedCorePickupSpawned = true;
+            RetireOriginalCoreWorldPresence();
+            return;
+        }
+
         BossCampaignDefinition definition = ResolveBossCampaignDefinition();
         int amount = CampaignBossRewardService.ResolveCoreShardReward(
             definition,
@@ -863,6 +943,19 @@ public class CoreObject : MonoBehaviour, IInteractable
         );
         completedCorePickupSpawned = true;
         RetireOriginalCoreWorldPresence();
+    }
+
+    private bool ShouldDeferSalvageDevourerCoreRewardToBossDeath()
+    {
+        if (RunManager.Instance == null ||
+            !RunManager.Instance.HasActiveRun ||
+            RunManager.Instance.CurrentRun.ExpeditionDepth != ExpeditionDepth.DeepZone1 ||
+            RunManager.Instance.CurrentRun.CurrentBossId != CampaignBossId.SalvageDevourer)
+        {
+            return false;
+        }
+
+        return IsLiveSalvageDevourerEncounter(ResolveBossEncounter());
     }
 
     private void RetireOriginalCoreWorldPresence()

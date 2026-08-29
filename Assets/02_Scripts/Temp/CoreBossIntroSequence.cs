@@ -210,6 +210,10 @@ public class CoreBossIntroSequence : MonoBehaviour
     private bool coreActivationTitlePresented;
     private string encounterSignalSubtitleOverride;
     private bool useRaiderIntroVariant;
+    private bool useSalvageDevourerIntroVariant;
+    private bool salvageBossTitlePresented;
+    private SalvageDevourerCorridorController activeSalvageCorridor;
+    private FrigateTriadBossController activeSalvageTriad;
     private IntroPhase currentPhase;
 
     public GameObject SpawnedBoss => spawnedBoss;
@@ -260,6 +264,10 @@ public class CoreBossIntroSequence : MonoBehaviour
     private void OnDisable()
     {
         introCancellationRequested = true;
+        if (IsSalvageDevourerIntroRuntimeOwned())
+        {
+            CleanupSalvageDevourerIntro(true);
+        }
         UnbindRunEnd();
         SetIntroPhase(IntroPhase.Inactive);
         StopAllCoroutines();
@@ -305,6 +313,14 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        if (IsSalvageDevourerIntroRuntimeOwned())
+        {
+            CleanupSalvageDevourerIntro(true);
+        }
+    }
+
     public IEnumerator PlayIntroRoutine(
         GameObject interactor,
         GameObject bossPrefab,
@@ -317,6 +333,19 @@ public class CoreBossIntroSequence : MonoBehaviour
     {
         if (isPlaying)
         {
+            yield break;
+        }
+
+        if (useSalvageDevourerIntroVariant)
+        {
+            yield return PlaySalvageDevourerIntroRoutine(
+                interactor,
+                bossPrefab,
+                coreActivationCompletedCallback,
+                bossCreatedCallback,
+                bossRevealCallback,
+                battleStartCallback
+            );
             yield break;
         }
 
@@ -696,6 +725,301 @@ public class CoreBossIntroSequence : MonoBehaviour
     public void ConfigureEncounterIntroVariant(bool useRaiderBarricadeIntro)
     {
         useRaiderIntroVariant = useRaiderBarricadeIntro;
+    }
+
+    public void ConfigureSalvageDevourerIntroVariant(bool useDedicatedIntro)
+    {
+        useSalvageDevourerIntroVariant = useDedicatedIntro;
+    }
+
+    private IEnumerator PlaySalvageDevourerIntroRoutine(
+        GameObject interactor,
+        GameObject bossPrefab,
+        Action coreActivationCompletedCallback,
+        Action<GameObject> bossCreatedCallback,
+        Action bossRevealCallback,
+        Action battleStartCallback)
+    {
+        isPlaying = true;
+        introCancellationRequested = false;
+        salvageBossTitlePresented = false;
+        spawnedBoss = null;
+        activeSalvageCorridor = null;
+        activeSalvageTriad = null;
+        coreActivationTitlePresented = false;
+        SetIntroPhase(IntroPhase.CoreFocus);
+
+        ResolveReferences();
+        BindRunEnd();
+        AcquireCameraInputOffsetLock();
+        AcquireCinematicHudMode();
+
+        if (lockPlayerInput)
+        {
+            LockPlayer(interactor);
+        }
+
+        ApplyIntroInvincibility(interactor);
+
+        if (focusCameraOnCore && gungeonCamera != null)
+        {
+            Transform focusTarget = coreActivationPresentation != null
+                ? coreActivationPresentation.FocusTarget
+                : transform;
+            gungeonCamera.SetCinematicFocus(
+                focusTarget != null ? focusTarget.position : transform.position
+            );
+        }
+
+        yield return AnimateCameraZoomOnlyRoutine(
+            coreFocusZoomMultiplier,
+            coreFocusZoomDuration,
+            coreFocusZoomCurve
+        );
+
+        if (ShouldAbortIntro())
+        {
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        if (coreFocusSettleDuration > 0f)
+        {
+            yield return Wait(coreFocusSettleDuration);
+        }
+
+        if (coreActivationPresentation != null)
+        {
+            yield return coreActivationPresentation.PlayActivationRoutine();
+        }
+        else
+        {
+            GungeonStyleCamera2D.RequestShake(0.12f, 0.18f);
+        }
+
+        if (ShouldAbortIntro())
+        {
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        coreActivationCompletedCallback?.Invoke();
+
+        if (delayAfterCorePulse > 0f)
+        {
+            yield return Wait(delayAfterCorePulse);
+        }
+
+        yield return AnimateCameraZoomOnlyRoutine(1f, zoomInDuration, zoomInCurve);
+
+        if (ShouldAbortIntro())
+        {
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        CloseCoreActivationPresentation();
+        ResetCameraZoom();
+
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.CancelCinematicFocusBlend(false);
+            gungeonCamera.ClearCinematicFocus(true);
+        }
+
+        ExpeditionMapGenerator mapGenerator =
+            FindFirstObjectByType<ExpeditionMapGenerator>(FindObjectsInactive.Include);
+        activeSalvageCorridor = mapGenerator != null
+            ? mapGenerator.CurrentRegion2BossCorridorRuntime
+            : null;
+
+        if (activeSalvageCorridor == null ||
+            !activeSalvageCorridor.PrepareCorridorRuntime())
+        {
+            Debug.LogError(
+                "The dedicated Salvage Devourer intro could not prepare the Phase-2 corridor runtime.",
+                this
+            );
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        SetIntroPhase(IntroPhase.ArenaWide);
+        yield return null;
+
+        if (ShouldAbortIntro() || bossPrefab == null)
+        {
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        FrigateTriadBossController triadPrefab =
+            bossPrefab.GetComponent<FrigateTriadBossController>();
+        Vector3 introRootPosition = triadPrefab != null
+            ? triadPrefab.ResolveIntroRootPosition(activeSalvageCorridor.CameraStartCenter)
+            : activeSalvageCorridor.CameraStartCenter;
+        spawnedBoss = Instantiate(bossPrefab, introRootPosition, Quaternion.identity);
+        spawnedBoss.name = bossPrefab.name;
+        bossCreatedCallback?.Invoke(spawnedBoss);
+        activeSalvageTriad = spawnedBoss != null
+            ? spawnedBoss.GetComponent<FrigateTriadBossController>()
+            : null;
+
+        if (activeSalvageTriad == null ||
+            !activeSalvageTriad.PrepareForIntro(activeSalvageCorridor))
+        {
+            Debug.LogError(
+                "The live Region-2 Boss prefab does not provide a valid dormant Frigate Triad authority.",
+                this
+            );
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        TrackBossDeathForCleanup(spawnedBoss);
+        SetIntroPhase(IntroPhase.FormationArrival);
+        yield return activeSalvageTriad.PlayEntryRoutine();
+
+        if (ShouldAbortIntro() || activeSalvageTriad == null ||
+            !activeSalvageTriad.IsEntryComplete)
+        {
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        AudioManager.PlayAt(SoundEventIds.BossSpawn, spawnedBoss.transform.position);
+        SetIntroPhase(IntroPhase.BossReveal);
+        EventTitleDirector titleDirector = coreActivationTitleDirector != null
+            ? coreActivationTitleDirector
+            : EventTitleDirector.Instance;
+
+        if (titleDirector != null)
+        {
+            titleDirector.ShowBossEncounter(
+                activeSalvageTriad.BossDisplayName,
+                activeSalvageTriad.BossSubtitle
+            );
+            salvageBossTitlePresented = true;
+
+            while (titleDirector != null && titleDirector.IsPlaying)
+            {
+                if (ShouldAbortIntro())
+                {
+                    CleanupSalvageDevourerIntro(true);
+                    yield break;
+                }
+
+                yield return null;
+            }
+
+            salvageBossTitlePresented = false;
+        }
+        else
+        {
+            ShowWarning();
+            yield return Wait(delayAfterWarning);
+        }
+
+        bossRevealCallback?.Invoke();
+
+        if (bossHealthBarLeadTime > 0f)
+        {
+            yield return Wait(bossHealthBarLeadTime);
+        }
+
+        if (ShouldAbortIntro() || activeSalvageTriad == null ||
+            !activeSalvageTriad.BeginFormationFollowing())
+        {
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        SetIntroPhase(IntroPhase.PlayerHandoff);
+        yield return ReleaseCinematicHudModeRoutine();
+
+        if (ShouldAbortIntro())
+        {
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        if (lockPlayerInput)
+        {
+            RestorePlayer();
+        }
+
+        battleStartCallback?.Invoke();
+
+        if (activeSalvageTriad == null || activeSalvageCorridor == null ||
+            !activeSalvageTriad.IsGameplayActive ||
+            !activeSalvageCorridor.BeginScroll())
+        {
+            Debug.LogError(
+                "The dedicated Salvage Devourer intro failed at the gameplay/scroll handoff.",
+                this
+            );
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        SetIntroPhase(IntroPhase.Complete);
+        isPlaying = false;
+        ReleaseCameraInputOffsetLock();
+
+        // The Frigate controller now owns formation lifetime and delegates corridor cleanup.
+        activeSalvageTriad = null;
+        activeSalvageCorridor = null;
+    }
+
+    private void CleanupSalvageDevourerIntro(bool destroyUnhandedBoss)
+    {
+        if (salvageBossTitlePresented)
+        {
+            EventTitleDirector titleDirector = coreActivationTitleDirector != null
+                ? coreActivationTitleDirector
+                : EventTitleDirector.Instance;
+            titleDirector?.StopCurrentAndClear();
+            salvageBossTitlePresented = false;
+        }
+
+        FrigateTriadBossController triad = activeSalvageTriad;
+        SalvageDevourerCorridorController corridor = activeSalvageCorridor;
+        activeSalvageTriad = null;
+        activeSalvageCorridor = null;
+        triad?.CleanupBossRuntime();
+
+        if (triad == null)
+        {
+            corridor?.CleanupCorridorRuntime();
+        }
+
+        if (destroyUnhandedBoss && isPlaying && spawnedBoss != null)
+        {
+            Destroy(spawnedBoss);
+            spawnedBoss = null;
+        }
+
+        CloseCoreActivationPresentation();
+        ReleaseCinematicHudMode();
+
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.CancelCinematicFocusBlend(false);
+            gungeonCamera.ClearCinematicFocus(true);
+        }
+
+        ResetCameraZoom();
+        RestorePlayer();
+        ReleaseCameraInputOffsetLock();
+        isPlaying = false;
+        SetIntroPhase(IntroPhase.Inactive);
+    }
+
+    private bool IsSalvageDevourerIntroRuntimeOwned()
+    {
+        return useSalvageDevourerIntroVariant &&
+               (isPlaying || activeSalvageCorridor != null ||
+                activeSalvageTriad != null || salvageBossTitlePresented);
     }
 
     public Vector3 ResolveEncounterArenaCenter(Vector3 coreWorldPosition)
@@ -2350,6 +2674,10 @@ public class CoreBossIntroSequence : MonoBehaviour
     {
         introCancellationRequested = true;
         StopAllCoroutines();
+        if (IsSalvageDevourerIntroRuntimeOwned())
+        {
+            CleanupSalvageDevourerIntro(true);
+        }
         CloseCoreActivationPresentation();
         ReleaseIntroWideZoomHold(false);
         ReleaseRaiderBattleCameraProfile(true);

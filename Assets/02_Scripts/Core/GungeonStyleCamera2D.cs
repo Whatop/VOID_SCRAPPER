@@ -73,6 +73,18 @@ public class GungeonStyleCamera2D : MonoBehaviour
     private bool mouseLookAheadActive;
     private bool cameraCenterInitialized;
 
+    private object scriptedVerticalScrollOwner;
+    private Vector2 scriptedVerticalScrollCenter;
+    private Vector2 scriptedVerticalScrollTerminalCenter;
+    private float scriptedVerticalScrollSpeed;
+    private bool scriptedVerticalScrollPaused;
+    private bool scriptedVerticalScrollReachedTerminal;
+    private Vector2 aimOffsetBeforeScriptedScroll;
+    private Vector2 targetAimOffsetBeforeScriptedScroll;
+    private Vector2 stableMousePositionBeforeScriptedScroll;
+    private bool hadStableMousePositionBeforeScriptedScroll;
+    private bool mouseLookAheadWasActiveBeforeScriptedScroll;
+
     private bool cinematicFocusActive;
     private bool cinematicReturnActive;
     private bool cinematicInputOffsetLocked;
@@ -98,6 +110,12 @@ public class GungeonStyleCamera2D : MonoBehaviour
     public bool IsCinematicFocusActive => cinematicFocusActive;
     public bool IsCinematicFocusBlendActive => cinematicFocusBlendActive;
     public bool IsCinematicInputOffsetLocked => cinematicInputOffsetLocked;
+    public Camera GameplayCamera => mainCamera;
+    public bool IsScriptedVerticalScrollActive => scriptedVerticalScrollOwner != null;
+    public bool HasScriptedVerticalScrollReachedTerminal =>
+        IsScriptedVerticalScrollActive && scriptedVerticalScrollReachedTerminal;
+    public Vector2 CurrentScriptedVerticalScrollCenter => scriptedVerticalScrollCenter;
+    public Vector2 ScriptedVerticalScrollTerminalCenter => scriptedVerticalScrollTerminalCenter;
     public bool IsShakeActive => shakeRemaining > 0f ||
                                  (shakeRoot != null && shakeRoot.localPosition.sqrMagnitude > 0.000001f);
 
@@ -133,6 +151,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
         hasStableMousePosition = false;
         currentAimOffset = Vector2.zero;
         targetAimOffset = Vector2.zero;
+        ClearScriptedVerticalScrollState();
         object framingOwner = gameplayFramingOwner;
         gameplayFramingOwner = null;
         currentGameplayFramingOffset = Vector2.zero;
@@ -178,21 +197,32 @@ public class GungeonStyleCamera2D : MonoBehaviour
     {
         ResolveReferences();
 
-        if (player == null || mainCamera == null || shakeRoot == null)
+        if (mainCamera == null || shakeRoot == null ||
+            (!IsScriptedVerticalScrollActive && player == null))
         {
             return;
         }
 
         float deltaTime = Mathf.Max(0f, Time.deltaTime);
         float unscaledDeltaTime = Mathf.Max(0f, Time.unscaledDeltaTime);
-        UpdateGameplayFramingProfile(deltaTime);
-        UpdateAimOffset(deltaTime);
+        Vector3 desiredCenter;
 
-        Vector3 playerCenter = player.position +
-                               (Vector3)currentGameplayFramingOffset +
-                               (Vector3)currentAimOffset;
-        Vector3 desiredCenter = ResolveDesiredCameraCenter(playerCenter, deltaTime, unscaledDeltaTime);
-        desiredCenter = ClampToMapBounds(desiredCenter);
+        if (IsScriptedVerticalScrollActive)
+        {
+            desiredCenter = UpdateScriptedVerticalScroll(deltaTime);
+        }
+        else
+        {
+            UpdateGameplayFramingProfile(deltaTime);
+            UpdateAimOffset(deltaTime);
+
+            Vector3 playerCenter = player.position +
+                                   (Vector3)currentGameplayFramingOffset +
+                                   (Vector3)currentAimOffset;
+            desiredCenter = ResolveDesiredCameraCenter(playerCenter, deltaTime, unscaledDeltaTime);
+            desiredCenter = ClampToMapBounds(desiredCenter);
+        }
+
         desiredCenter.z = cameraWorldZ;
 
         transform.position = desiredCenter;
@@ -262,14 +292,18 @@ public class GungeonStyleCamera2D : MonoBehaviour
     {
         player = target;
         playerController = player != null ? player.GetComponent<PlayerController2D>() : null;
-        SnapToPlayer();
+
+        if (!IsScriptedVerticalScrollActive)
+        {
+            SnapToPlayer();
+        }
     }
 
     public void SnapToPlayer()
     {
         ResolveReferences();
 
-        if (player == null)
+        if (player == null || IsScriptedVerticalScrollActive)
         {
             return;
         }
@@ -552,6 +586,130 @@ public class GungeonStyleCamera2D : MonoBehaviour
         runtimeMouseDistanceMultiplier = 1f;
     }
 
+    public bool TryEnterScriptedVerticalScroll(
+        object owner,
+        Vector2 startCenter,
+        Vector2 terminalCenter,
+        float speed,
+        bool startPaused,
+        bool allowStartOutsideVerticalMapBounds = false)
+    {
+        if (owner == null || !IsFinite(startCenter) || !IsFinite(terminalCenter) || speed <= 0f)
+        {
+            return false;
+        }
+
+        if (scriptedVerticalScrollOwner != null)
+        {
+            return ReferenceEquals(scriptedVerticalScrollOwner, owner);
+        }
+
+        if (cinematicFocusActive || cinematicFocusBlendActive || cinematicReturnActive)
+        {
+            return false;
+        }
+
+        ResolveReferences();
+        if (mainCamera == null || shakeRoot == null)
+        {
+            return false;
+        }
+
+        Vector3 resolvedStart = ClampToMapBounds(startCenter);
+        Vector3 resolvedTerminal = ClampToMapBounds(terminalCenter);
+        if (allowStartOutsideVerticalMapBounds)
+        {
+            resolvedStart.y = startCenter.y;
+        }
+
+        if (Mathf.Abs(resolvedStart.x - resolvedTerminal.x) > 0.0001f ||
+            resolvedStart.y + 0.0001f < resolvedTerminal.y)
+        {
+            return false;
+        }
+
+        aimOffsetBeforeScriptedScroll = currentAimOffset;
+        targetAimOffsetBeforeScriptedScroll = targetAimOffset;
+        stableMousePositionBeforeScriptedScroll = stableMouseScreenPosition;
+        hadStableMousePositionBeforeScriptedScroll = hasStableMousePosition;
+        mouseLookAheadWasActiveBeforeScriptedScroll = mouseLookAheadActive;
+
+        scriptedVerticalScrollOwner = owner;
+        scriptedVerticalScrollCenter = resolvedStart;
+        scriptedVerticalScrollTerminalCenter = resolvedTerminal;
+        scriptedVerticalScrollSpeed = Mathf.Max(0.01f, speed);
+        scriptedVerticalScrollPaused = startPaused;
+        scriptedVerticalScrollReachedTerminal =
+            Mathf.Abs(scriptedVerticalScrollCenter.y - scriptedVerticalScrollTerminalCenter.y) <= 0.0001f;
+
+        currentAimOffset = Vector2.zero;
+        targetAimOffset = Vector2.zero;
+        mouseLookAheadActive = false;
+        hasStableMousePosition = false;
+        currentCameraCenter = new Vector3(
+            scriptedVerticalScrollCenter.x,
+            scriptedVerticalScrollCenter.y,
+            cameraWorldZ
+        );
+        cameraCenterInitialized = true;
+        transform.position = currentCameraCenter;
+        return true;
+    }
+
+    public bool SetScriptedVerticalScrollPaused(object owner, bool paused)
+    {
+        if (owner == null || !ReferenceEquals(scriptedVerticalScrollOwner, owner))
+        {
+            return false;
+        }
+
+        scriptedVerticalScrollPaused = paused;
+        return true;
+    }
+
+    public bool ForceScriptedVerticalScrollToTerminal(object owner)
+    {
+        if (owner == null || !ReferenceEquals(scriptedVerticalScrollOwner, owner))
+        {
+            return false;
+        }
+
+        scriptedVerticalScrollCenter = scriptedVerticalScrollTerminalCenter;
+        scriptedVerticalScrollReachedTerminal = true;
+        currentCameraCenter = new Vector3(
+            scriptedVerticalScrollCenter.x,
+            scriptedVerticalScrollCenter.y,
+            cameraWorldZ
+        );
+        transform.position = currentCameraCenter;
+        return true;
+    }
+
+    public bool ExitScriptedVerticalScroll(object owner)
+    {
+        if (owner == null || !ReferenceEquals(scriptedVerticalScrollOwner, owner))
+        {
+            return false;
+        }
+
+        currentAimOffset = aimOffsetBeforeScriptedScroll;
+        targetAimOffset = targetAimOffsetBeforeScriptedScroll;
+        stableMouseScreenPosition = stableMousePositionBeforeScriptedScroll;
+        hasStableMousePosition = hadStableMousePositionBeforeScriptedScroll;
+        mouseLookAheadActive = mouseLookAheadWasActiveBeforeScriptedScroll;
+
+        ClearScriptedVerticalScrollState();
+        currentCameraCenter = transform.position;
+        currentCameraCenter.z = cameraWorldZ;
+        cameraCenterInitialized = true;
+        return true;
+    }
+
+    public bool IsScriptedVerticalScrollOwnedBy(object owner)
+    {
+        return owner != null && ReferenceEquals(scriptedVerticalScrollOwner, owner);
+    }
+
     public void SetCinematicInputOffsetLocked(bool locked)
     {
         cinematicInputOffsetLocked = locked;
@@ -625,6 +783,56 @@ public class GungeonStyleCamera2D : MonoBehaviour
         {
             currentAimOffset = Vector2.zero;
         }
+    }
+
+    private Vector3 UpdateScriptedVerticalScroll(float deltaTime)
+    {
+        if (!scriptedVerticalScrollPaused && !scriptedVerticalScrollReachedTerminal)
+        {
+            scriptedVerticalScrollCenter.y = Mathf.MoveTowards(
+                scriptedVerticalScrollCenter.y,
+                scriptedVerticalScrollTerminalCenter.y,
+                scriptedVerticalScrollSpeed * deltaTime
+            );
+
+            if (scriptedVerticalScrollCenter.y <=
+                scriptedVerticalScrollTerminalCenter.y + 0.0001f)
+            {
+                scriptedVerticalScrollCenter.y = scriptedVerticalScrollTerminalCenter.y;
+                scriptedVerticalScrollReachedTerminal = true;
+            }
+        }
+
+        scriptedVerticalScrollCenter.x = scriptedVerticalScrollTerminalCenter.x;
+        currentCameraCenter = new Vector3(
+            scriptedVerticalScrollCenter.x,
+            scriptedVerticalScrollCenter.y,
+            cameraWorldZ
+        );
+        return currentCameraCenter;
+    }
+
+    private void ClearScriptedVerticalScrollState()
+    {
+        scriptedVerticalScrollOwner = null;
+        scriptedVerticalScrollCenter = Vector2.zero;
+        scriptedVerticalScrollTerminalCenter = Vector2.zero;
+        scriptedVerticalScrollSpeed = 0f;
+        scriptedVerticalScrollPaused = false;
+        scriptedVerticalScrollReachedTerminal = false;
+        aimOffsetBeforeScriptedScroll = Vector2.zero;
+        targetAimOffsetBeforeScriptedScroll = Vector2.zero;
+        stableMousePositionBeforeScriptedScroll = Vector2.zero;
+        hadStableMousePositionBeforeScriptedScroll = false;
+        mouseLookAheadWasActiveBeforeScriptedScroll = false;
+    }
+
+    private static bool IsFinite(Vector2 value)
+    {
+        return !float.IsNaN(value.x) &&
+               !float.IsInfinity(value.x) &&
+               !float.IsNaN(value.y) &&
+               !float.IsInfinity(value.y);
     }
 
     private Vector2 CalculateMouseAimOffset()
@@ -905,15 +1113,17 @@ public class GungeonStyleCamera2D : MonoBehaviour
         Vector3 playerScreen = player != null && mainCamera != null
             ? mainCamera.WorldToScreenPoint(player.position)
             : Vector3.zero;
+        Vector3 playerPosition = player != null ? player.position : Vector3.zero;
         int activeControllers = FindObjectsByType<GungeonStyleCamera2D>(
             FindObjectsInactive.Exclude,
             FindObjectsSortMode.None
         ).Length;
 
         Debug.Log(
-            $"[GameplayCamera] player={player.position:F3} rig={transform.position:F3} " +
+            $"[GameplayCamera] player={playerPosition:F3} rig={transform.position:F3} " +
             $"playerScreen={playerScreen:F2} aim={currentAimOffset:F3}/{targetAimOffset:F3} " +
             $"focus={cinematicFocusActive} return={cinematicReturnActive} " +
+            $"scriptedScroll={IsScriptedVerticalScrollActive}/{scriptedVerticalScrollReachedTerminal} " +
             $"shake={(shakeRoot != null ? shakeRoot.localPosition : Vector3.zero):F3} " +
             $"ortho={mainCamera.orthographicSize:F4} owners={activeControllers} worldPixelSnap=false",
             this

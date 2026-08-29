@@ -7334,6 +7334,15 @@ MonoBehaviour:
   defaultBossName: "\uAD6C\uD68D \uAD00\uB9AC\uC790"
   hpFormat: '{0:0} / {1:0}'
   hideWhenNoBoss: 1
+  rightSideAnchor: {x: 1, y: 0}
+  rightSidePivot: {x: 0.5, y: 0.5}
+  rightSideAnchoredPosition: {x: -120, y: 44}
+  triadRightSideAnchoredPosition: {x: -42, y: 66}
+  triadPartBarSize: {x: 10, y: 64}
+  triadPartBarSpacing: 16
+  triadBarBackgroundColor: {r: 0.025, g: 0.04, b: 0.055, a: 0.94}
+  triadBarFillColor: {r: 1, g: 0.27, b: 0.06, a: 1}
+  triadDestroyedColor: {r: 0.3, g: 0.32, b: 0.35, a: 0.72}
   phaseShieldLabel: SHIELD
   phaseShieldFillColor: {r: 0.35, g: 0.9, b: 1, a: 1}
   useAnimatedReveal: 1
@@ -38288,6 +38297,12 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: 29e4bf8c5435bc449a03b73fc6c96a43, type: 2}
   generateOnStart: 1
   clearPreviousGeneratedObjects: 1
+  region2BossCorridorRuntimePrefab: {fileID: 11400000, guid: 1f7f2d677f8b47a3aa7c824d31c69210, type: 3}
+  region3BossEncounterPrefab: {fileID: 100007, guid: 205b7e49752547ccbababa2e900d939e, type: 3}
+  region3ReflectorPlatePrefab: {fileID: 200002, guid: c4427d97498e4bd8861cd1c163721f60, type: 3}
+  region3ReflectorPlateCount: 8
+  region3ReflectorPlateLength: 4
+  region3BossReservationSize: 16
   generatedRoot: {fileID: 0}
   backgroundGenerator: {fileID: 2107357544}
   syncBackgroundToMapSize: 1
@@ -43790,6 +43805,18 @@ MonoBehaviour:
   - prefab: {fileID: 4939712952834317954, guid: ba4aef1757256894fae5f9a459c8efbc, type: 3}
     initialSize: 8
     maxSize: 32
+  - prefab: {fileID: 4939712952834317954, guid: 5312a55568f0a05488689c7c53fd4231, type: 3}
+    initialSize: 64
+    maxSize: 128
+  - prefab: {fileID: 100000, guid: e56b537ad2b0406f8c0f13f11ade0ab2, type: 3}
+    initialSize: 8
+    maxSize: 24
+  - prefab: {fileID: 500000, guid: de1864969eba4ed6a11eb5debe1d398f, type: 3}
+    initialSize: 3
+    maxSize: 6
+  - prefab: {fileID: 600000, guid: b9f19d34d6874d2fab1936b9b10a9c61, type: 3}
+    initialSize: 1
+    maxSize: 2
   - prefab: {fileID: 8200224275209536821, guid: 98d4ed32667c3d3439c62046698227ff, type: 3}
     initialSize: 48
     maxSize: 128

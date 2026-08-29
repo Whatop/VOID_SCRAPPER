@@ -33,6 +33,11 @@ public class BossArenaLaserWall : MonoBehaviour
     private int currentSortingOrder;
     private string currentLayerName;
     private bool initialized;
+    private bool allowHorizontalProjectileRicochet;
+
+    public bool AllowsHorizontalProjectileRicochet =>
+        initialized && allowHorizontalProjectileRicochet;
+    public bool AllowsProjectileRicochet => AllowsHorizontalProjectileRicochet;
 
     private void Awake()
     {
@@ -74,6 +79,7 @@ public class BossArenaLaserWall : MonoBehaviour
         followTargets = false;
         followStart = null;
         followEnd = null;
+        allowHorizontalProjectileRicochet = false;
     }
 
     public void InitializeBetween(
@@ -92,6 +98,7 @@ public class BossArenaLaserWall : MonoBehaviour
         followTargets = false;
         followStart = null;
         followEnd = null;
+        allowHorizontalProjectileRicochet = false;
 
         StoreDamage(damageAmount, damageCooldown);
         StoreVisualSettings(thickness, lineMaterial, lineColor, sortingLayerName, sortingOrder, layerName, solidBlock);
@@ -127,6 +134,7 @@ public class BossArenaLaserWall : MonoBehaviour
         followStart = startTarget;
         followEnd = endTarget;
         followTargets = startTarget != null && endTarget != null;
+        allowHorizontalProjectileRicochet = false;
 
         StoreDamage(damageAmount, damageCooldown);
         StoreVisualSettings(thickness, lineMaterial, lineColor, sortingLayerName, sortingOrder, layerName, solidBlock);
@@ -169,6 +177,7 @@ public class BossArenaLaserWall : MonoBehaviour
         followTargets = false;
         followStart = null;
         followEnd = null;
+        allowHorizontalProjectileRicochet = false;
 
         StoreDamage(damageAmount, damageCooldown);
         StoreVisualSettings(thickness, lineMaterial, lineColor, sortingLayerName, sortingOrder, layerName, solidBlock);
@@ -200,9 +209,60 @@ public class BossArenaLaserWall : MonoBehaviour
         return lineRenderer;
     }
 
+    public void ConfigureHorizontalProjectileRicochet(bool allowRicochet)
+    {
+        ConfigureProjectileRicochet(allowRicochet);
+    }
+
+    public void ConfigureProjectileRicochet(bool allowRicochet)
+    {
+        allowHorizontalProjectileRicochet = allowRicochet;
+    }
+
+    public bool TryReflectHorizontalProjectile(
+        Vector2 projectilePosition,
+        Vector2 incomingDirection,
+        out Vector2 reflectedDirection)
+    {
+        return TryReflectProjectile(
+            projectilePosition,
+            incomingDirection,
+            out reflectedDirection
+        );
+    }
+
+    public bool TryReflectProjectile(
+        Vector2 projectilePosition,
+        Vector2 incomingDirection,
+        out Vector2 reflectedDirection)
+    {
+        reflectedDirection = incomingDirection;
+
+        if (!AllowsProjectileRicochet ||
+            boxCollider == null ||
+            !boxCollider.enabled ||
+            incomingDirection.sqrMagnitude <= 0.001f)
+        {
+            return false;
+        }
+
+        Vector2 wallNormal = transform.up;
+        Vector2 fromWallCenter = projectilePosition - (Vector2)boxCollider.bounds.center;
+        if (Vector2.Dot(fromWallCenter, wallNormal) < 0f)
+        {
+            wallNormal = -wallNormal;
+        }
+
+        reflectedDirection = Vector2.Reflect(
+            incomingDirection.normalized,
+            wallNormal.normalized
+        ).normalized;
+        return reflectedDirection.sqrMagnitude > 0.001f;
+    }
+
     private void StoreDamage(float damageAmount, float damageCooldown)
     {
-        damage = damageAmount > 0f ? damageAmount : fallbackDamage;
+        damage = damageAmount >= 0f ? damageAmount : fallbackDamage;
         damageInterval = damageCooldown > 0f ? damageCooldown : fallbackDamageInterval;
     }
 
@@ -435,7 +495,7 @@ public class BossArenaLaserWall : MonoBehaviour
 
     private void TryDamage(Collider2D other)
     {
-        if (!initialized || other == null)
+        if (!initialized || damage <= 0f || other == null)
         {
             return;
         }

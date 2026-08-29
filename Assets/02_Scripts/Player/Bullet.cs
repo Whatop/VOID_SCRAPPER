@@ -21,6 +21,11 @@ public interface IPlayerProjectileHitListener
     void HandlePlayerProjectileHit(EnemyHealth enemyHealth, EnemyBaseAI enemyAI);
 }
 
+public interface IBulletWorldCollisionHandler
+{
+    bool TryHandleWorldCollision(Bullet bullet, Collider2D other);
+}
+
 public readonly struct BulletReflectionSnapshot
 {
     public BulletReflectionSnapshot(
@@ -98,6 +103,7 @@ public class Bullet : MonoBehaviour
     private bool[] authoredColliderStates;
     private SpriteRenderer projectileRenderer;
     private TrailRenderer projectileTrail;
+    private IBulletWorldCollisionHandler worldCollisionHandler;
     private Color defaultProjectileColor = Color.white;
     private Vector3 defaultProjectileRootScale = Vector3.one;
     private Vector3 defaultProjectileVisualScale = Vector3.one;
@@ -126,6 +132,8 @@ public class Bullet : MonoBehaviour
     private Transform homingTarget;
     private float homingTargetRefreshTimer;
     private bool allowHomingReacquisition = true;
+    private bool useTimedHoming;
+    private float homingTimeRemaining;
     private bool useTerminalGuidance;
     private float terminalGuidanceRetentionRangeMultiplier = 1f;
     private float terminalGuidanceCloseSteeringDistance;
@@ -166,6 +174,7 @@ public class Bullet : MonoBehaviour
     public Vector2 MoveDirection => moveDirection;
     public float Speed => speed;
     public bool HasPendingRadialSplit => useRadialSplit;
+    public Transform SourceRoot => sourceRoot;
 
     public static int ReleaseAllActiveOwnedBy(ProjectileOwner projectileOwner)
     {
@@ -192,6 +201,36 @@ public class Bullet : MonoBehaviour
         return releasedCount;
     }
 
+    public static int ReleaseAllActiveFromSource(Transform projectileSource)
+    {
+        if (projectileSource == null)
+        {
+            return 0;
+        }
+
+        Bullet[] activeBullets = FindObjectsByType<Bullet>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None
+        );
+        int releasedCount = 0;
+
+        for (int i = 0; i < activeBullets.Length; i++)
+        {
+            Bullet bullet = activeBullets[i];
+            if (bullet == null ||
+                !bullet.gameObject.activeInHierarchy ||
+                bullet.sourceRoot != projectileSource)
+            {
+                continue;
+            }
+
+            bullet.ReleaseSelf(false);
+            releasedCount++;
+        }
+
+        return releasedCount;
+    }
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -206,6 +245,7 @@ public class Bullet : MonoBehaviour
 
         projectileRenderer = GetComponentInChildren<SpriteRenderer>(true);
         projectileTrail = GetComponentInChildren<TrailRenderer>(true);
+        worldCollisionHandler = GetComponent<IBulletWorldCollisionHandler>();
         defaultProjectileRootScale = transform.localScale;
 
         if (projectileRenderer != null)
@@ -589,9 +629,52 @@ public class Bullet : MonoBehaviour
         homingTarget = initialTarget;
         homingTargetRefreshTimer = 0f;
         allowHomingReacquisition = allowReacquisition;
+        useTimedHoming = false;
+        homingTimeRemaining = 0f;
         useTerminalGuidance = false;
         terminalGuidanceRetentionRangeMultiplier = 1f;
         terminalGuidanceCloseSteeringDistance = 0f;
+    }
+
+    public void ConfigureTimedHoming(
+        Transform initialTarget,
+        float turnRateDegreesPerSecond,
+        float acquisitionRange,
+        bool allowReacquisition,
+        float duration)
+    {
+        useHoming = initialTarget != null &&
+                    turnRateDegreesPerSecond > 0f &&
+                    acquisitionRange > 0f &&
+                    duration > 0f;
+        homingAngle = Mathf.Max(0f, turnRateDegreesPerSecond);
+        homingRange = Mathf.Max(0f, acquisitionRange);
+        homingTarget = initialTarget;
+        homingTargetRefreshTimer = 0f;
+        allowHomingReacquisition = allowReacquisition;
+        useTimedHoming = useHoming;
+        homingTimeRemaining = Mathf.Max(0f, duration);
+        useTerminalGuidance = false;
+        terminalGuidanceRetentionRangeMultiplier = 1f;
+        terminalGuidanceCloseSteeringDistance = 0f;
+    }
+
+    public bool TrySetTravelDirection(Vector2 direction)
+    {
+        if (!gameObject.activeInHierarchy || direction.sqrMagnitude <= 0.001f)
+        {
+            return false;
+        }
+
+        moveDirection = direction.normalized;
+
+        if (rb != null)
+        {
+            rb.linearVelocity = moveDirection * speed;
+        }
+
+        ApplyRotation();
+        return true;
     }
 
     public void ConfigureProjectileColor(Color color)
@@ -639,6 +722,8 @@ public class Bullet : MonoBehaviour
         homingTarget = null;
         homingTargetRefreshTimer = 0f;
         allowHomingReacquisition = true;
+        useTimedHoming = false;
+        homingTimeRemaining = 0f;
         useTerminalGuidance = false;
         terminalGuidanceRetentionRangeMultiplier = 1f;
         terminalGuidanceCloseSteeringDistance = 0f;
@@ -791,6 +876,18 @@ public class Bullet : MonoBehaviour
 
     private void UpdateHoming()
     {
+        if (useTimedHoming)
+        {
+            homingTimeRemaining -= Time.deltaTime;
+            if (homingTimeRemaining <= 0f)
+            {
+                useTimedHoming = false;
+                useHoming = false;
+                homingTarget = null;
+                return;
+            }
+        }
+
         if (!useHoming || homingAngle <= 0f || homingRange <= 0f)
         {
             return;
@@ -877,6 +974,12 @@ public class Bullet : MonoBehaviour
                 continue;
             }
 
+            FrigateBossPart frigatePart = hit.GetComponentInParent<FrigateBossPart>();
+            if (frigatePart != null && !frigatePart.CanReceiveDamage)
+            {
+                continue;
+            }
+
             EnemyHealth enemyHealth = hit.GetComponentInParent<EnemyHealth>();
             if (owner == ProjectileOwner.Player && !IsPlayerHomingTargetEligible(enemyHealth))
             {
@@ -889,7 +992,11 @@ public class Bullet : MonoBehaviour
                 continue;
             }
 
-            Transform candidate = enemyHealth != null ? enemyHealth.transform : hit.transform;
+            Transform candidate = frigatePart != null
+                ? frigatePart.transform
+                : enemyHealth != null
+                    ? enemyHealth.transform
+                    : hit.transform;
             float sqrDistance = ((Vector2)candidate.position - (Vector2)transform.position).sqrMagnitude;
 
             if (sqrDistance < nearestSqrDistance)
@@ -919,6 +1026,12 @@ public class Bullet : MonoBehaviour
         }
 
         EnemyHealth enemyHealth = target.GetComponentInParent<EnemyHealth>();
+
+        FrigateBossPart frigatePart = target.GetComponentInParent<FrigateBossPart>();
+        if (frigatePart != null && !frigatePart.CanReceiveDamage)
+        {
+            return false;
+        }
 
         if (enemyHealth != null)
         {
@@ -1012,11 +1125,53 @@ public class Bullet : MonoBehaviour
             return;
         }
 
+        if (worldCollisionHandler != null &&
+            worldCollisionHandler.TryHandleWorldCollision(this, other))
+        {
+            return;
+        }
+
         Vector2 hitPoint = ResolveHitPoint(other);
         impactPosition = hitPoint;
 
         if (owner == ProjectileOwner.Player || owner == ProjectileOwner.ShopDefense)
         {
+            FrigateBossPart frigatePart = other.GetComponentInParent<FrigateBossPart>();
+
+            if (frigatePart != null)
+            {
+                if (!frigatePart.CanReceiveDamage)
+                {
+                    return;
+                }
+
+                float overpressureStrength = ResolvePlayerEnemyCloseRangeStrength(hitPoint);
+                float closeRangeDamageMultiplier = 1f +
+                                                   closeRangeMaxBonusMultiplier *
+                                                   overpressureStrength;
+                float impactScaleMultiplier = ResolveOverpressureImpactScale(
+                    overpressureStrength
+                );
+
+                bool damaged = TryApplyDamageToFrigatePart(
+                    frigatePart,
+                    hitPoint,
+                    closeRangeDamageMultiplier,
+                    impactScaleMultiplier
+                );
+
+                if (damaged && owner == ProjectileOwner.Player)
+                {
+                    PlayOverpressureImpactFeedback(hitPoint, overpressureStrength);
+                    playerProjectileHitListener?.HandlePlayerProjectileHit(
+                        frigatePart.AggregateHealth,
+                        null
+                    );
+                }
+
+                return;
+            }
+
             EnemyHealth enemyHealth = other.GetComponentInParent<EnemyHealth>();
 
             if (enemyHealth != null)
@@ -1606,6 +1761,43 @@ public class Bullet : MonoBehaviour
 
         damagedTargets.Add(targetId);
         damageAction.Invoke(damage * Mathf.Max(0f, damageMultiplier));
+        SpawnImpactEffect(impactScaleMultiplier);
+
+        if (remainingPierceCount > 0)
+        {
+            remainingPierceCount--;
+            damage *= pierceDamageRetention;
+            return true;
+        }
+
+        ReleaseSelf(false);
+        return true;
+    }
+
+    private bool TryApplyDamageToFrigatePart(
+        FrigateBossPart part,
+        Vector2 hitPoint,
+        float damageMultiplier,
+        float impactScaleMultiplier)
+    {
+        if (part == null || !part.CanReceiveDamage)
+        {
+            return false;
+        }
+
+        int targetId = part.GetInstanceID();
+        if (damagedTargets.Contains(targetId))
+        {
+            return false;
+        }
+
+        float resolvedDamage = damage * Mathf.Max(0f, damageMultiplier);
+        if (!part.TryTakeDamage(resolvedDamage, hitPoint, moveDirection))
+        {
+            return false;
+        }
+
+        damagedTargets.Add(targetId);
         SpawnImpactEffect(impactScaleMultiplier);
 
         if (remainingPierceCount > 0)

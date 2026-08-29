@@ -16,6 +16,9 @@ public class RunContext
     [SerializeField] private bool bossDefeated;
     [SerializeField] private CampaignBossId currentBossId;
     [SerializeField] private List<CampaignBossId> bossesDefeatedThisRun = new List<CampaignBossId>();
+    [SerializeField] private List<CampaignBossId> guaranteedBossCoreRewardsGrantedThisRun =
+        new List<CampaignBossId>();
+    [SerializeField] private int guaranteedBossCoreShardsThisRun;
     [SerializeField] private bool shopHostileThisRun;
     [SerializeField] private List<string> selectedTraitIds = new List<string>();
 
@@ -62,6 +65,8 @@ public class RunContext
         ? CampaignProgressionCatalog.GetBossId(expeditionDepth)
         : currentBossId;
     public IReadOnlyList<CampaignBossId> BossesDefeatedThisRun => bossesDefeatedThisRun;
+    public int GuaranteedBossCoreShardsThisRun =>
+        Mathf.Max(0, guaranteedBossCoreShardsThisRun);
     public bool ShopHostileThisRun => shopHostileThisRun;
     public IReadOnlyList<string> SelectedTraitIds => selectedTraitIds;
 
@@ -142,6 +147,15 @@ public class RunContext
         shopHostileThisRun = false;
 
         bossesDefeatedThisRun.Clear();
+        if (guaranteedBossCoreRewardsGrantedThisRun == null)
+        {
+            guaranteedBossCoreRewardsGrantedThisRun = new List<CampaignBossId>();
+        }
+        else
+        {
+            guaranteedBossCoreRewardsGrantedThisRun.Clear();
+        }
+        guaranteedBossCoreShardsThisRun = 0;
         selectedTraitIds.Clear();
         ResetExpeditionObjectiveProgress();
         specialContainerRareMissStreak = 0;
@@ -231,6 +245,38 @@ public class RunContext
     public bool HasDefeatedBossThisRun(CampaignBossId bossId)
     {
         return bossId != CampaignBossId.None && bossesDefeatedThisRun.Contains(bossId);
+    }
+
+    public bool HasGrantedGuaranteedBossCoreRewardThisRun(CampaignBossId bossId)
+    {
+        return bossId != CampaignBossId.None &&
+               guaranteedBossCoreRewardsGrantedThisRun != null &&
+               guaranteedBossCoreRewardsGrantedThisRun.Contains(bossId);
+    }
+
+    public bool TryRegisterGuaranteedBossCoreReward(
+        CampaignBossId bossId,
+        int coreShardAmount)
+    {
+        coreShardAmount = Mathf.Max(0, coreShardAmount);
+        if (bossId == CampaignBossId.None || coreShardAmount <= 0)
+        {
+            return false;
+        }
+
+        if (guaranteedBossCoreRewardsGrantedThisRun == null)
+        {
+            guaranteedBossCoreRewardsGrantedThisRun = new List<CampaignBossId>();
+        }
+
+        if (guaranteedBossCoreRewardsGrantedThisRun.Contains(bossId))
+        {
+            return false;
+        }
+
+        guaranteedBossCoreRewardsGrantedThisRun.Add(bossId);
+        guaranteedBossCoreShardsThisRun += coreShardAmount;
+        return true;
     }
 
     public void SetShopHostile(bool hostile)

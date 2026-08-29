@@ -44,6 +44,8 @@ public sealed class BossDeathPresentation : MonoBehaviour
     private bool presentationLocksHeld;
     private bool playing;
     private bool completed;
+    private bool hasDeathPositionOverride;
+    private Vector3 deathPositionOverride;
 
     public float RequiredBossLifetime =>
         Mathf.Max(0.05f, destabilizeDuration) +
@@ -66,6 +68,8 @@ public sealed class BossDeathPresentation : MonoBehaviour
     {
         playing = false;
         completed = false;
+        hasDeathPositionOverride = false;
+        deathPositionOverride = Vector3.zero;
 
         if (bodyRenderer != null)
         {
@@ -77,6 +81,34 @@ public sealed class BossDeathPresentation : MonoBehaviour
     {
         ReleasePresentationLocks(true);
         playing = false;
+    }
+
+    public void SetBodyRenderer(SpriteRenderer renderer)
+    {
+        if (playing || completed || renderer == null)
+        {
+            return;
+        }
+
+        bodyRenderer = renderer;
+    }
+
+    public void SetDeathPositionOverride(Vector3 worldPosition)
+    {
+        if (playing || completed)
+        {
+            return;
+        }
+
+        deathPositionOverride = worldPosition;
+        hasDeathPositionOverride = true;
+    }
+
+    public Vector3 ResolvePresentationDeathPosition(Vector3 fallbackPosition)
+    {
+        return hasDeathPositionOverride
+            ? deathPositionOverride
+            : fallbackPosition;
     }
 
     public IEnumerator PlayRoutine(Vector3 deathPosition)
@@ -98,7 +130,10 @@ public sealed class BossDeathPresentation : MonoBehaviour
 
         playing = true;
         ResolveReferences();
-        AcquirePresentationLocks(deathPosition);
+        Vector3 presentationPosition = hasDeathPositionOverride
+            ? deathPositionOverride
+            : deathPosition;
+        AcquirePresentationLocks(presentationPosition);
         BossHealthBarUI.Instance?.Hide();
 
         Vector3 originalPosition = transform.position;
@@ -117,9 +152,9 @@ public sealed class BossDeathPresentation : MonoBehaviour
             bodyRenderer.enabled = false;
         }
 
-        AudioManager.PlayAt(SoundEventIds.ShipDeathBreakup, deathPosition);
+        AudioManager.PlayAt(SoundEventIds.ShipDeathBreakup, presentationPosition);
         CombatFeedbackManager.PlayBreak(
-            deathPosition,
+            presentationPosition,
             CombatFeedbackKind.Boss,
             2.1f,
             breakupShakeAmplitude,
@@ -130,7 +165,7 @@ public sealed class BossDeathPresentation : MonoBehaviour
         yield return WaitUnscaled(breakupHoldDuration);
 
         CombatFeedbackManager.PlayBreak(
-            deathPosition,
+            presentationPosition,
             CombatFeedbackKind.Boss,
             1.45f,
             breakupShakeAmplitude * 0.65f,

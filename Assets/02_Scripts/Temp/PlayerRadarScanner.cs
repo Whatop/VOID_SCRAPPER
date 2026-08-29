@@ -491,12 +491,18 @@ public class PlayerRadarScanner : MonoBehaviour
 
     public bool TryScan()
     {
+        if (externalInputLocks.Count > 0)
+        {
+            return false;
+        }
+
         return ExecuteActiveScan(false);
     }
 
     public bool TryQuickScan()
     {
-        if (!isRadarOpen || isHolding || Time.unscaledTime < nextQuickScanAllowedTime)
+        if (externalInputLocks.Count > 0 || !isRadarOpen || isHolding ||
+            Time.unscaledTime < nextQuickScanAllowedTime)
         {
             return false;
         }
@@ -725,6 +731,11 @@ public class PlayerRadarScanner : MonoBehaviour
         bool animatePanel = true,
         bool clearPassiveAutoOpenSuppression = true)
     {
+        if (externalInputLocks.Count > 0)
+        {
+            return;
+        }
+
         if (clearPassiveAutoOpenSuppression)
         {
             passiveAutoOpenSuppressed = false;

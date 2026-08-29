@@ -15,6 +15,10 @@ public class BossDummyController : MonoBehaviour
     [SerializeField] private BossCampaignDefinition campaignDefinition;
     [SerializeField] private bool completeFinalBossAsVictory = true;
 
+    [Header("Campaign Reward Presentation Optional")]
+    [SerializeField] private Region2BossCoreRewardPresentation
+        region2CoreRewardPresentationPrefab;
+
     [Header("Exit Object Prefabs")]
     [SerializeField] private GameObject returnBeaconPrefab;
     [SerializeField] private GameObject wormholePortalPrefab;
@@ -49,6 +53,15 @@ public class BossDummyController : MonoBehaviour
     [SerializeField] private bool changeStateToExpeditionAfterDeath = true;
 
     private bool deathHandled;
+    private bool campaignRewardsHandled;
+    private bool postDeathFlowStarted;
+    private bool rewardExitCoordinatorStarted;
+    private int grantedRegion2CoreAmount;
+    private Vector3 resolvedBossDeathPosition;
+    private CampaignBossId resolvedDeathBossId;
+    private BossCampaignDefinition resolvedDeathCampaignDefinition;
+    private Coroutine postDeathRoutine;
+    private Region2BossCoreRewardPresentation activeRegion2CorePresentation;
     private bool encounterBackgroundRestored;
     private SpaceBackgroundGenerator2D encounterBackgroundGenerator;
     private RunManager observedRunManager;
@@ -81,6 +94,15 @@ public class BossDummyController : MonoBehaviour
     private void OnEnable()
     {
         deathHandled = false;
+        campaignRewardsHandled = false;
+        postDeathFlowStarted = false;
+        rewardExitCoordinatorStarted = false;
+        grantedRegion2CoreAmount = 0;
+        resolvedBossDeathPosition = transform.position;
+        resolvedDeathBossId = CampaignBossId.None;
+        resolvedDeathCampaignDefinition = null;
+        postDeathRoutine = null;
+        activeRegion2CorePresentation = null;
         encounterBackgroundRestored = false;
         encounterBackgroundGenerator = null;
 
@@ -98,6 +120,14 @@ public class BossDummyController : MonoBehaviour
         }
 
         UnsubscribeRunEnd();
+
+        if (postDeathRoutine != null)
+        {
+            StopCoroutine(postDeathRoutine);
+            postDeathRoutine = null;
+        }
+
+        CleanupPostDeathPresentation();
 
         if (!deathHandled)
         {
@@ -152,16 +182,23 @@ public class BossDummyController : MonoBehaviour
         }
 
         deathHandled = true;
+        CacheResolvedDeathContext();
+
+        if (resolvedDeathBossId == CampaignBossId.SalvageDevourer)
+        {
+            ProcessCampaignRewardsOnce();
+        }
+
         RestoreEncounterBackground(true);
         bossPatternController?.StopCombatForDeathPresentation();
 
         if (deathPresentation != null)
         {
-            StartCoroutine(CompleteBossDeathAfterPresentation());
+            postDeathRoutine = StartCoroutine(CompleteBossDeathAfterPresentation());
             return;
         }
 
-        CompleteBossDeath();
+        postDeathRoutine = StartCoroutine(CompleteBossDeathAfterPresentation());
     }
 
     private void RestoreEncounterBackground(bool playRecoveryOverlay)
@@ -212,35 +249,54 @@ public class BossDummyController : MonoBehaviour
     private void HandleRunEnded(RunResultData _)
     {
         RestoreEncounterBackground(false);
+        CleanupPostDeathPresentation();
     }
 
     private IEnumerator CompleteBossDeathAfterPresentation()
     {
-        yield return deathPresentation.PlayRoutine(transform.position);
-        CompleteBossDeath();
+        if (deathPresentation != null)
+        {
+            yield return deathPresentation.PlayRoutine(transform.position);
+        }
+
+        yield return CompleteBossDeathRoutine();
+        postDeathRoutine = null;
     }
 
-    private void CompleteBossDeath()
+    private IEnumerator CompleteBossDeathRoutine()
     {
-        BossCampaignDefinition resolvedDefinition = ResolveCampaignDefinition();
-        CampaignBossId bossId = ResolveCampaignBossId(resolvedDefinition);
-
-        if (RunManager.Instance != null && RunManager.Instance.HasActiveRun)
+        if (postDeathFlowStarted)
         {
-            bool grantStoryPart = resolvedDefinition == null ||
-                                  resolvedDefinition.GrantStoryPartOnFirstDefeat;
+            yield break;
+        }
 
-            RunManager.Instance.MarkBossDefeated(bossId, grantStoryPart);
-            CampaignBossRewardService.GrantGuaranteedPassive(
-                resolvedDefinition,
-                transform.position
-            );
+        postDeathFlowStarted = true;
+        CacheResolvedDeathContext();
+        ProcessCampaignRewardsOnce();
 
-            if (bossId == CampaignBossId.NullDispatcher && completeFinalBossAsVictory)
+        if (resolvedDeathBossId == CampaignBossId.NullDispatcher &&
+            completeFinalBossAsVictory)
+        {
+            if (RunManager.Instance != null &&
+                RunManager.Instance.HasActiveRun &&
+                !RunManager.Instance.IsCompletingRun)
             {
                 RunManager.Instance.CompleteRun(RunEndReason.FinalVictory);
-                return;
             }
+
+            yield break;
+        }
+
+        if (resolvedDeathBossId == CampaignBossId.SalvageDevourer &&
+            grantedRegion2CoreAmount > 0)
+        {
+            yield return PlayRegion2CorePresentationRoutine();
+        }
+
+        if (IsRunEnding())
+        {
+            CleanupPostDeathPresentation();
+            yield break;
         }
 
         CreateRewardExitCoordinator();
@@ -251,6 +307,104 @@ public class BossDummyController : MonoBehaviour
         {
             GameStateManager.Instance.ChangeState(GameState.Expedition);
         }
+    }
+
+    private void CacheResolvedDeathContext()
+    {
+        if (resolvedDeathCampaignDefinition == null)
+        {
+            resolvedDeathCampaignDefinition = ResolveCampaignDefinition();
+        }
+
+        if (resolvedDeathBossId == CampaignBossId.None)
+        {
+            resolvedDeathBossId = ResolveCampaignBossId(
+                resolvedDeathCampaignDefinition
+            );
+        }
+
+        resolvedBossDeathPosition = deathPresentation != null
+            ? deathPresentation.ResolvePresentationDeathPosition(transform.position)
+            : transform.position;
+    }
+
+    private void ProcessCampaignRewardsOnce()
+    {
+        if (campaignRewardsHandled ||
+            RunManager.Instance == null ||
+            !RunManager.Instance.HasActiveRun ||
+            RunManager.Instance.IsCompletingRun)
+        {
+            return;
+        }
+
+        campaignRewardsHandled = true;
+        bool grantStoryPart = resolvedDeathCampaignDefinition == null ||
+                              resolvedDeathCampaignDefinition.GrantStoryPartOnFirstDefeat;
+
+        RunManager.Instance.MarkBossDefeated(resolvedDeathBossId, grantStoryPart);
+
+        if (resolvedDeathBossId == CampaignBossId.SalvageDevourer)
+        {
+            grantedRegion2CoreAmount =
+                CampaignBossRewardService.GrantSalvageDevourerCoreReward(
+                    resolvedDeathCampaignDefinition
+                );
+        }
+
+        CampaignBossRewardService.GrantGuaranteedPassive(
+            resolvedDeathCampaignDefinition,
+            resolvedBossDeathPosition
+        );
+    }
+
+    private IEnumerator PlayRegion2CorePresentationRoutine()
+    {
+        if (region2CoreRewardPresentationPrefab == null || IsRunEnding())
+        {
+            yield break;
+        }
+
+        Region2BossCoreRewardPresentation presentation = Instantiate(
+            region2CoreRewardPresentationPrefab,
+            resolvedBossDeathPosition,
+            Quaternion.identity
+        );
+        if (presentation == null)
+        {
+            yield break;
+        }
+
+        activeRegion2CorePresentation = presentation;
+        yield return presentation.PlayRoutine(resolvedBossDeathPosition);
+
+        if (activeRegion2CorePresentation == presentation)
+        {
+            activeRegion2CorePresentation = null;
+        }
+
+        if (presentation != null)
+        {
+            Destroy(presentation.gameObject);
+        }
+    }
+
+    private void CleanupPostDeathPresentation()
+    {
+        Region2BossCoreRewardPresentation presentation =
+            activeRegion2CorePresentation;
+        activeRegion2CorePresentation = null;
+
+        if (presentation != null)
+        {
+            presentation.CleanupPresentation();
+            Destroy(presentation.gameObject);
+        }
+    }
+
+    private static bool IsRunEnding()
+    {
+        return RunManager.Instance != null && RunManager.Instance.IsCompletingRun;
     }
 
     private BossCampaignDefinition ResolveCampaignDefinition()
@@ -273,6 +427,12 @@ public class BossDummyController : MonoBehaviour
 
     private void CreateRewardExitCoordinator()
     {
+        if (rewardExitCoordinatorStarted || IsRunEnding())
+        {
+            return;
+        }
+
+        rewardExitCoordinatorStarted = true;
         GameObject coordinatorObject = new GameObject("BossRewardExitCoordinator");
         coordinatorObject.transform.position = transform.position;
 
@@ -317,4 +477,218 @@ public class BossDummyController : MonoBehaviour
         Vector3 basePosition = useBossDeathPosition ? transform.position : Vector3.zero;
         return basePosition + (Vector3)wormholeSpawnOffset;
     }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [ContextMenu("Development/Region 2 Reward/Force Authoritative Reward Flow")]
+    private void DevelopmentForceRegion2RewardFlow()
+    {
+        if (!DevelopmentCanUseRegion2RewardControls())
+        {
+            return;
+        }
+
+        CacheResolvedDeathContext();
+        if (postDeathRoutine == null)
+        {
+            postDeathRoutine = StartCoroutine(CompleteBossDeathRoutine());
+        }
+    }
+
+    [ContextMenu("Development/Region 2 Reward/Force First-Defeat Path")]
+    private void DevelopmentForceFirstDefeatRewardPath()
+    {
+        if (!DevelopmentCanUseRegion2RewardControls())
+        {
+            return;
+        }
+
+        if (PermanentProgress.Instance != null &&
+            PermanentProgress.Instance.HasDefeatedCampaignBoss(
+                CampaignBossId.SalvageDevourer))
+        {
+            Debug.LogWarning(
+                "The current save already records Salvage Devourer; use a clean first-defeat save.",
+                this
+            );
+            return;
+        }
+
+        DevelopmentForceRegion2RewardFlow();
+    }
+
+    [ContextMenu("Development/Region 2 Reward/Simulate Repeat-Defeat Path")]
+    private void DevelopmentSimulateRepeatDefeatRewardPath()
+    {
+        if (!DevelopmentCanUseRegion2RewardControls())
+        {
+            return;
+        }
+
+        if (PermanentProgress.Instance == null ||
+            !PermanentProgress.Instance.HasDefeatedCampaignBoss(
+                CampaignBossId.SalvageDevourer))
+        {
+            Debug.LogWarning(
+                "Repeat-defeat testing requires a save that already defeated Salvage Devourer.",
+                this
+            );
+            return;
+        }
+
+        DevelopmentForceRegion2RewardFlow();
+    }
+
+    [ContextMenu("Development/Region 2 Reward/Show Orange Core Presentation")]
+    private void DevelopmentShowOrangeCorePresentation()
+    {
+        if (!DevelopmentCanUseRegion2RewardControls() ||
+            region2CoreRewardPresentationPrefab == null ||
+            activeRegion2CorePresentation != null)
+        {
+            return;
+        }
+
+        CacheResolvedDeathContext();
+        activeRegion2CorePresentation = Instantiate(
+            region2CoreRewardPresentationPrefab,
+            resolvedBossDeathPosition,
+            Quaternion.identity
+        );
+        if (activeRegion2CorePresentation != null)
+        {
+            StartCoroutine(DevelopmentPlayOrangeCoreRoutine(
+                activeRegion2CorePresentation
+            ));
+        }
+    }
+
+    private IEnumerator DevelopmentPlayOrangeCoreRoutine(
+        Region2BossCoreRewardPresentation presentation)
+    {
+        yield return presentation.PlayRoutine(resolvedBossDeathPosition);
+        if (activeRegion2CorePresentation == presentation)
+        {
+            activeRegion2CorePresentation = null;
+        }
+
+        if (presentation != null)
+        {
+            Destroy(presentation.gameObject);
+        }
+    }
+
+    [ContextMenu("Development/Region 2 Reward/Complete Orange Core Presentation")]
+    private void DevelopmentCompleteOrangeCorePresentation()
+    {
+        activeRegion2CorePresentation?.CompleteImmediately();
+    }
+
+    [ContextMenu("Development/Region 2 Reward/Inspect Configured Reward")]
+    private void DevelopmentInspectConfiguredRegion2Reward()
+    {
+        BossCampaignDefinition definition = ResolveCampaignDefinition();
+        int amount = CampaignBossRewardService.ResolveCoreShardReward(
+            definition,
+            ExpeditionDepth.DeepZone1
+        );
+        bool storyPartOwned = PermanentProgress.Instance != null &&
+                              PermanentProgress.Instance.HasBossStoryPart(
+                                  BossStoryPart.MatterCompressor
+                              );
+        bool coreGrantedThisRun = RunManager.Instance != null &&
+                                  RunManager.Instance.HasActiveRun &&
+                                  RunManager.Instance.CurrentRun
+                                      .HasGrantedGuaranteedBossCoreRewardThisRun(
+                                          CampaignBossId.SalvageDevourer
+                                      );
+        Debug.Log(
+            $"[SalvageDevourer/Reward] configuredCore={amount} " +
+            $"grantedThisRun={coreGrantedThisRun} " +
+            $"matterCompressorOwned={storyPartOwned} " +
+            $"campaignHandled={campaignRewardsHandled} " +
+            $"coordinatorStarted={rewardExitCoordinatorStarted}",
+            this
+        );
+    }
+
+    [ContextMenu("Development/Region 2 Reward/Verify Core Duplicate Guard")]
+    private void DevelopmentVerifyCoreDuplicateGuard()
+    {
+        if (!DevelopmentCanUseRegion2RewardControls())
+        {
+            return;
+        }
+
+        BossCampaignDefinition definition = ResolveCampaignDefinition();
+        int first = CampaignBossRewardService.GrantSalvageDevourerCoreReward(
+            definition
+        );
+        int duplicate = CampaignBossRewardService.GrantSalvageDevourerCoreReward(
+            definition
+        );
+        Debug.Log(
+            $"[SalvageDevourer/Reward] firstGrant={first} duplicateGrant={duplicate}",
+            this
+        );
+    }
+
+    [ContextMenu("Development/Region 2 Reward/Verify Story-Part Duplicate Guard")]
+    private void DevelopmentVerifyStoryPartDuplicateGuard()
+    {
+        if (!DevelopmentCanUseRegion2RewardControls())
+        {
+            return;
+        }
+
+        bool first = RunManager.Instance.MarkBossDefeated(
+            CampaignBossId.SalvageDevourer,
+            true
+        );
+        bool duplicate = RunManager.Instance.MarkBossDefeated(
+            CampaignBossId.SalvageDevourer,
+            true
+        );
+        Debug.Log(
+            $"[SalvageDevourer/Reward] firstPermanentChange={first} " +
+            $"duplicatePermanentChange={duplicate}",
+            this
+        );
+    }
+
+    [ContextMenu("Development/Region 2 Reward/Continue Selectable Reward")]
+    private void DevelopmentContinueSelectableReward()
+    {
+        if (!DevelopmentCanUseRegion2RewardControls())
+        {
+            return;
+        }
+
+        CreateRewardExitCoordinator();
+    }
+
+    [ContextMenu("Development/Region 2 Reward/Cleanup Reward Flow")]
+    private void DevelopmentCleanupRewardFlow()
+    {
+        CleanupPostDeathPresentation();
+    }
+
+    private bool DevelopmentCanUseRegion2RewardControls()
+    {
+        if (RunManager.Instance == null ||
+            !RunManager.Instance.HasActiveRun ||
+            RunManager.Instance.IsCompletingRun ||
+            RunManager.Instance.CurrentRun.ExpeditionDepth != ExpeditionDepth.DeepZone1 ||
+            RunManager.Instance.CurrentRun.CurrentBossId !=
+                CampaignBossId.SalvageDevourer)
+        {
+            Debug.LogWarning(
+                "Region-2 reward controls require an active DeepZone1 / SalvageDevourer run.",
+                this
+            );
+            return false;
+        }
+
+        return true;
+    }
+#endif
 }

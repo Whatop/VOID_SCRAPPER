@@ -5,6 +5,33 @@ using UnityEngine.Serialization;
 
 public class ExpeditionMapGenerator : MonoBehaviour
 {
+    public readonly struct Region2BossCorridorData
+    {
+        public float CenterX { get; }
+        public float TopY { get; }
+        public float BottomY { get; }
+        public float HalfWidth { get; }
+        public Bounds CorridorBounds { get; }
+        public Bounds ReservedBounds { get; }
+        public Vector2 TerminalPoint => new Vector2(CenterX, BottomY);
+
+        public Region2BossCorridorData(
+            float centerX,
+            float topY,
+            float bottomY,
+            float halfWidth,
+            Bounds corridorBounds,
+            Bounds reservedBounds)
+        {
+            CenterX = centerX;
+            TopY = topY;
+            BottomY = bottomY;
+            HalfWidth = halfWidth;
+            CorridorBounds = corridorBounds;
+            ReservedBounds = reservedBounds;
+        }
+    }
+
     public static event Action<ExpeditionMapGenerator> AnyMapGenerated;
     public event Action MapGenerated;
 
@@ -56,6 +83,16 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [SerializeField] private MapGenerationConfig config;
     [SerializeField] private bool generateOnStart = true;
     [SerializeField] private bool clearPreviousGeneratedObjects = true;
+
+    [Header("Region 2 Boss Corridor Runtime")]
+    [SerializeField] private SalvageDevourerCorridorController region2BossCorridorRuntimePrefab;
+
+    [Header("Region 3 Boss Foundation")]
+    [SerializeField] private PhaseGatekeeperBossController region3BossEncounterPrefab;
+    [SerializeField] private PhaseReflectorPlate region3ReflectorPlatePrefab;
+    [SerializeField, Range(4, 12)] private int region3ReflectorPlateCount = 8;
+    [SerializeField, Min(1f)] private float region3ReflectorPlateLength = 4f;
+    [SerializeField, Min(4f)] private float region3BossReservationSize = 16f;
 
     [Header("Root")]
     [SerializeField] private Transform generatedRoot;
@@ -302,6 +339,16 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private int transitDressingPlaced;
     private int otherPoiDressingPlaced;
     private int failedDressingPlacements;
+    private bool hasRegion2CoreCandidate;
+    private Vector2 region2CoreCandidatePosition;
+    private bool hasRegion2CoreFinalPosition;
+    private Vector2 region2CoreFinalPosition;
+    private bool hasRegion2BossCorridor;
+    private Region2BossCorridorData region2BossCorridor;
+    private bool hasLargeZoneDebugCandidateBounds;
+    private Bounds largeZoneDebugCandidateBounds;
+    private SalvageDevourerCorridorController currentRegion2BossCorridorRuntime;
+    private PhaseGatekeeperBossController currentRegion3BossEncounter;
 
     public Bounds MapBounds { get; private set; }
     public Bounds CameraSafeBounds { get; private set; }
@@ -312,6 +359,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
     public IReadOnlyList<ExpeditionEventObject> SpawnedEventObjects => spawnedEventObjects;
     public IReadOnlyList<CoreObject> SpawnedCoreObjects => spawnedCoreObjects;
     public IReadOnlyList<FieldBaseController> SpawnedFieldBases => spawnedFieldBases;
+    public bool HasRegion2BossCorridor => hasRegion2BossCorridor;
+    public Region2BossCorridorData CurrentRegion2BossCorridor => region2BossCorridor;
+    public SalvageDevourerCorridorController CurrentRegion2BossCorridorRuntime =>
+        currentRegion2BossCorridorRuntime;
+    public PhaseGatekeeperBossController CurrentRegion3BossEncounter =>
+        currentRegion3BossEncounter;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     public bool TryPrepareCoreForDebug(out CoreObject core)
@@ -385,6 +438,21 @@ public class ExpeditionMapGenerator : MonoBehaviour
         {
             ClearGeneratedObjects();
         }
+        else if (currentRegion2BossCorridorRuntime != null)
+        {
+            currentRegion2BossCorridorRuntime.CleanupCorridorRuntime();
+
+            if (Application.isPlaying)
+            {
+                Destroy(currentRegion2BossCorridorRuntime.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(currentRegion2BossCorridorRuntime.gameObject);
+            }
+
+            currentRegion2BossCorridorRuntime = null;
+        }
 
         occupiedPositions.Clear();
         importantPositions.Clear();
@@ -412,6 +480,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
         transitDressingPlaced = 0;
         otherPoiDressingPlaced = 0;
         failedDressingPlacements = 0;
+        hasRegion2CoreCandidate = false;
+        hasRegion2CoreFinalPosition = false;
+        hasRegion2BossCorridor = false;
+        region2BossCorridor = default;
+        hasLargeZoneDebugCandidateBounds = false;
+        currentRegion2BossCorridorRuntime = null;
+        currentRegion3BossEncounter = null;
         startPosition = ResolveStartPosition();
 
         if (movePlayerToStart && player != null)
@@ -428,6 +503,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
         PlaceHarvestObjects();
         PlaceEnemies();
         PlaceEnvironmentDressing();
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        ValidateRegion2BossCorridorGeneration();
+        ValidateRegion3BossFoundationGeneration();
+#endif
 
         if (logGenerationResult)
         {
@@ -449,6 +529,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [ContextMenu("Clear Generated Objects")]
     public void ClearGeneratedObjects()
     {
+        if (currentRegion2BossCorridorRuntime != null)
+        {
+            currentRegion2BossCorridorRuntime.CleanupCorridorRuntime();
+            currentRegion2BossCorridorRuntime = null;
+        }
+
         if (generatedRoot == null)
         {
             return;
@@ -622,6 +708,14 @@ public class ExpeditionMapGenerator : MonoBehaviour
         int eventCount = config != null ? config.EventCount : 2;
         int coreCount = config != null ? config.CoreCount : 1;
 
+        if (IsRegion3PhaseGatekeeperMap())
+        {
+            fieldBaseCount = 0;
+            shopCount = 0;
+            coreCount = 0;
+            PlaceRegion3BossFoundation();
+        }
+
         // 코어 전장, 적 기지, 상점 구역 순으로 큰 공간을 먼저 예약한다.
         PlaceCoreBatch(coreCount);
         PlaceFieldBaseBatch(fieldBaseCount);
@@ -641,6 +735,145 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         int fieldNpcCount = config != null ? config.FieldNpcCount : 2;
         PlaceFieldNpcBatch(fieldNpcCount);
+    }
+
+    private void PlaceRegion3BossFoundation()
+    {
+        if (region3BossEncounterPrefab == null || region3ReflectorPlatePrefab == null)
+        {
+            Debug.LogError(
+                "Region-3 Boss foundation requires both the Phase Gatekeeper Boss " +
+                "and reflector plate prefabs.",
+                this
+            );
+            return;
+        }
+
+        Vector2 bossPosition = ResolveRegion3BossPosition();
+        GameObject bossObject = Spawn(
+            region3BossEncounterPrefab.gameObject,
+            bossPosition,
+            "Boss_PhaseGatekeeper"
+        );
+
+        if (bossObject == null ||
+            !bossObject.TryGetComponent(out PhaseGatekeeperBossController bossController))
+        {
+            Debug.LogError("Region-3 Phase Gatekeeper Boss failed to spawn.", this);
+            return;
+        }
+
+        currentRegion3BossEncounter = bossController;
+        occupiedPositions.Add(bossPosition);
+        importantPositions.Add(bossPosition);
+        ReservePlacementBounds(new Bounds(
+            bossPosition,
+            new Vector3(
+                Mathf.Max(4f, region3BossReservationSize),
+                Mathf.Max(4f, region3BossReservationSize),
+                0f
+            )
+        ));
+
+        int plateCount = Mathf.Clamp(region3ReflectorPlateCount, 4, 12);
+        PhaseReflectorPlate[] plates = new PhaseReflectorPlate[plateCount];
+        Vector2 center = CameraSafeBounds.center;
+        Vector2 radius = new Vector2(
+            Mathf.Max(8f, CameraSafeBounds.extents.x * 0.64f),
+            Mathf.Max(8f, CameraSafeBounds.extents.y * 0.64f)
+        );
+        Vector2[] platePositions = new Vector2[plateCount];
+
+        for (int i = 0; i < plateCount; i++)
+        {
+            float ringAngle = 22.5f + 360f * i / plateCount;
+            float radians = ringAngle * Mathf.Deg2Rad;
+            Vector2 position = center + new Vector2(
+                Mathf.Cos(radians) * radius.x,
+                Mathf.Sin(radians) * radius.y
+            );
+            platePositions[i] = ClampToBounds(position, CameraSafeBounds);
+        }
+
+        for (int i = 0; i < plateCount; i++)
+        {
+            Vector2 position = platePositions[i];
+            float plateRotation = ResolveRegion3ReflectorRotation(i, plateCount);
+            GameObject plateObject = Spawn(
+                region3ReflectorPlatePrefab.gameObject,
+                position,
+                $"PhaseReflectorPlate_{i:00}",
+                Quaternion.Euler(0f, 0f, plateRotation)
+            );
+
+            if (plateObject == null ||
+                !plateObject.TryGetComponent(out PhaseReflectorPlate plate))
+            {
+                continue;
+            }
+
+            plate.Configure(position, plateRotation, region3ReflectorPlateLength);
+            plates[i] = plate;
+            occupiedPositions.Add(position);
+            importantPositions.Add(position);
+            float reservationSize = Mathf.Max(1f, region3ReflectorPlateLength + 1.5f);
+            ReservePlacementBounds(new Bounds(
+                position,
+                new Vector3(reservationSize, reservationSize, 0f)
+            ));
+        }
+
+        bossController.ConfigureEncounter(MapBounds, bossPosition, plates);
+    }
+
+    private static float ResolveRegion3ReflectorRotation(int index, int plateCount)
+    {
+        float ringAngle = plateCount > 0
+            ? 22.5f + 360f * index / plateCount
+            : 0f;
+        return ringAngle + 38f + (index % 2 == 0 ? 8f : -8f);
+    }
+
+    private Vector2 ResolveRegion3BossPosition()
+    {
+        Vector2 center = CameraSafeBounds.center;
+        Vector2 extents = CameraSafeBounds.extents;
+        Vector2 inset = new Vector2(
+            Mathf.Max(4f, extents.x * 0.72f),
+            Mathf.Max(4f, extents.y * 0.72f)
+        );
+        Vector2 best = center;
+        float bestDistance = -1f;
+
+        for (int i = 0; i < 4; i++)
+        {
+            Vector2 candidate;
+
+            switch (i)
+            {
+                case 0:
+                    candidate = center + new Vector2(inset.x, inset.y);
+                    break;
+                case 1:
+                    candidate = center + new Vector2(inset.x, -inset.y);
+                    break;
+                case 2:
+                    candidate = center + new Vector2(-inset.x, inset.y);
+                    break;
+                default:
+                    candidate = center + new Vector2(-inset.x, -inset.y);
+                    break;
+            }
+
+            float distance = (candidate - startPosition).sqrMagnitude;
+            if (distance > bestDistance)
+            {
+                best = candidate;
+                bestDistance = distance;
+            }
+        }
+
+        return ClampToBounds(best, CameraSafeBounds);
     }
 
     private void BuildPoiLayout()
@@ -720,7 +953,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private bool TryCreateSalvagePoi(PoiType type, float radius, bool lowRisk)
     {
         radius = Mathf.Max(1f, radius);
-        bool found = TryFindPoiPosition(radius, lowRisk, out Vector2 position);
+        bool found = TryFindPoiPosition(type, radius, lowRisk, out Vector2 position);
 
         if (!found)
         {
@@ -774,7 +1007,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
         return anchor;
     }
 
-    private bool TryFindPoiPosition(float radius, bool preferNearStart, out Vector2 position)
+    private bool TryFindPoiPosition(
+        PoiType type,
+        float radius,
+        bool preferNearStart,
+        out Vector2 position)
     {
         position = Vector2.zero;
         float halfWidth = mapSize.x * 0.5f - edgePadding - radius;
@@ -804,6 +1041,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
             }
 
             Bounds candidateBounds = new Bounds(candidate, new Vector3(radius * 2f, radius * 2f, 0f));
+            if (type == PoiType.HighValueSalvage &&
+                IsAboveRegion2MajorPoiCeiling(candidateBounds.max.y))
+            {
+                continue;
+            }
+
             if (IntersectsReservedPlacementBounds(candidateBounds, 1f))
             {
                 continue;
@@ -928,12 +1171,17 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 ? reservationSize
                 : new Vector2(reservationSize.y, reservationSize.x);
 
-            if (!TryFindLargeZonePosition(rotatedReservationSize, out Vector2 position))
+            if (!TryFindLargeZonePosition(
+                    rotatedReservationSize,
+                    out Vector2 position,
+                    out bool rejectedByRegion2BossCorridor))
             {
-                Debug.LogWarning(
-                    $"{label} 배치 실패. 예약 크기, 기지 수, 중요 지점 간격을 확인하세요.",
-                    this
-                );
+                string warning = hasRegion2BossCorridor
+                    ? $"Region-2 {label} placement failed after {maxPlacementAttempts} bounded attempts " +
+                      $"with the Boss corridor reserved (corridor candidate rejection: {rejectedByRegion2BossCorridor}). " +
+                      "No unsafe fallback was used."
+                    : $"{label} 배치 실패. 예약 크기, 기지 수, 중요 지점 간격을 확인하세요.";
+                Debug.LogWarning(warning, this);
                 continue;
             }
 
@@ -1005,9 +1253,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
         }
     }
 
-    private bool TryFindLargeZonePosition(Vector2 reservationSize, out Vector2 position)
+    private bool TryFindLargeZonePosition(
+        Vector2 reservationSize,
+        out Vector2 position,
+        out bool rejectedByRegion2BossCorridor)
     {
         position = Vector2.zero;
+        rejectedByRegion2BossCorridor = false;
         Vector2 halfSize = reservationSize * 0.5f;
         float mapHalfWidth = mapSize.x * 0.5f - edgePadding;
         float mapHalfHeight = mapSize.y * 0.5f - edgePadding;
@@ -1031,6 +1283,19 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 candidate,
                 new Vector3(reservationSize.x, reservationSize.y, 0f)
             );
+            largeZoneDebugCandidateBounds = candidateBounds;
+            hasLargeZoneDebugCandidateBounds = true;
+
+            if (IsAboveRegion2MajorPoiCeiling(candidateBounds.max.y))
+            {
+                continue;
+            }
+
+            if (IntersectsRegion2BossCorridor(candidateBounds, largeZoneSpacing))
+            {
+                rejectedByRegion2BossCorridor = true;
+                continue;
+            }
 
             Vector3 startPoint3D = new Vector3(startPosition.x, startPosition.y, candidateBounds.center.z);
             if (candidateBounds.SqrDistance(startPoint3D) < startSafeRadius * startSafeRadius)
@@ -1667,13 +1932,17 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            bool found = TryFindCorePosition(
-                generalMinDistance,
-                out Vector2 position,
-                out _
-            );
+            bool useRegion2TopCorePlacement = IsRegion2SalvageDevourerMap();
+            Vector2 position;
+            bool found = useRegion2TopCorePlacement
+                ? TryFindRegion2TopCorePosition(generalMinDistance, out position)
+                : TryFindCorePosition(
+                    generalMinDistance,
+                    out position,
+                    out _
+                );
 
-            if (!found)
+            if (!found && !useRegion2TopCorePlacement)
             {
                 found = TryFindBestCoreFallbackPosition(out position);
 
@@ -1712,6 +1981,14 @@ public class ExpeditionMapGenerator : MonoBehaviour
             occupiedPositions.Add(position);
             importantPositions.Add(position);
 
+            if (useRegion2TopCorePlacement)
+            {
+                hasRegion2CoreFinalPosition = true;
+                region2CoreFinalPosition = position;
+                ConfigureRegion2BossCorridor(position);
+                CreateRegion2BossCorridorRuntime();
+            }
+
             PlaceBossArenaCoverMeteors(position, i);
 
             if (reserveBossArenaFromOtherSpawns)
@@ -1734,6 +2011,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private void PlaceBossArenaCoverMeteors(Vector2 arenaCenter, int coreIndex)
     {
+        if (IsRegion2SalvageDevourerMap())
+        {
+            return;
+        }
+
         bool shouldSpawnCovers = config == null || config.SpawnBossArenaCoverMeteors;
         if (!shouldSpawnCovers || !HasValidPrefab(largeMeteorPrefabs, largeMeteorPrefab))
         {
@@ -1805,6 +2087,136 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         coverBounds.Expand(new Vector3(2f, 2f, 0f));
         ReservePlacementBounds(coverBounds);
+    }
+
+    private bool TryFindRegion2TopCorePosition(float minDistance, out Vector2 position)
+    {
+        Bounds safeBounds = ResolveCorePlacementSafeBounds(mapSize);
+        CorePlacementSafeBounds = safeBounds;
+
+        Vector2 normalizedRange = config != null
+            ? config.Region2TopCoreHorizontalNormalizedRange
+            : new Vector2(-0.1f, 0.1f);
+        float normalizedX = UnityEngine.Random.Range(normalizedRange.x, normalizedRange.y);
+        float safetyMargin = config != null ? config.Region2TopCoreSafetyMargin : 4f;
+
+        position = new Vector2(
+            safeBounds.center.x + normalizedX * safeBounds.extents.x,
+            Mathf.Clamp(safeBounds.max.y - safetyMargin, safeBounds.min.y, safeBounds.max.y)
+        );
+        hasRegion2CoreCandidate = true;
+        region2CoreCandidatePosition = position;
+
+        if (IsPositionValid(position, true, true, minDistance, out _))
+        {
+            return true;
+        }
+
+        position.x = safeBounds.center.x;
+        region2CoreCandidatePosition = position;
+        return IsPositionValid(position, true, true, minDistance, out _);
+    }
+
+    private void ConfigureRegion2BossCorridor(Vector2 corePosition)
+    {
+        float halfWidth = config != null ? config.Region2BossCorridorHalfWidth : 9f;
+        float downwardLength = config != null ? config.Region2BossCorridorDownwardLength : 48f;
+        float reservationPadding = config != null
+            ? config.Region2BossCorridorReservationPadding
+            : 2f;
+        float bottomLimit = MapBounds.min.y + Mathf.Max(0f, edgePadding);
+        float bottomY = Mathf.Max(bottomLimit, corePosition.y - downwardLength);
+        float actualLength = Mathf.Max(1f, corePosition.y - bottomY);
+        Vector2 corridorCenter = new Vector2(
+            corePosition.x,
+            corePosition.y - actualLength * 0.5f
+        );
+        Bounds corridorBounds = new Bounds(
+            corridorCenter,
+            new Vector3(halfWidth * 2f, actualLength, 0f)
+        );
+        Bounds reservedBounds = corridorBounds;
+        reservedBounds.Expand(new Vector3(
+            reservationPadding * 2f,
+            reservationPadding * 2f,
+            0f
+        ));
+
+        region2BossCorridor = new Region2BossCorridorData(
+            corePosition.x,
+            corePosition.y,
+            bottomY,
+            halfWidth,
+            corridorBounds,
+            reservedBounds
+        );
+        hasRegion2BossCorridor = true;
+        ReservePlacementBounds(reservedBounds);
+    }
+
+    private void CreateRegion2BossCorridorRuntime()
+    {
+        if (!hasRegion2BossCorridor || currentRegion2BossCorridorRuntime != null)
+        {
+            return;
+        }
+
+        if (region2BossCorridorRuntimePrefab == null)
+        {
+            Debug.LogWarning(
+                "Region-2 Boss corridor geometry was generated, but the " +
+                "SalvageDevourerCorridorController prefab is not assigned.",
+                this
+            );
+            return;
+        }
+
+        currentRegion2BossCorridorRuntime = Instantiate(
+            region2BossCorridorRuntimePrefab,
+            generatedRoot
+        );
+        currentRegion2BossCorridorRuntime.name = "Region2_SalvageDevourer_CorridorRuntime";
+        currentRegion2BossCorridorRuntime.Initialize(this);
+    }
+
+    private bool IntersectsRegion2BossCorridor(Bounds candidateBounds, float padding)
+    {
+        if (!hasRegion2BossCorridor)
+        {
+            return false;
+        }
+
+        candidateBounds.Expand(new Vector3(
+            Mathf.Max(0f, padding) * 2f,
+            Mathf.Max(0f, padding) * 2f,
+            0f
+        ));
+        return candidateBounds.Intersects(region2BossCorridor.ReservedBounds);
+    }
+
+    private bool IsAboveRegion2MajorPoiCeiling(float maximumY)
+    {
+        if (!hasRegion2CoreFinalPosition)
+        {
+            return false;
+        }
+
+        float clearance = config != null ? config.Region2MajorPoiVerticalClearance : 3f;
+        return maximumY > region2CoreFinalPosition.y - clearance;
+    }
+
+    private bool IsRegion2SalvageDevourerMap()
+    {
+        ExpeditionDepth depth = ResolveCurrentDepth();
+        return depth == ExpeditionDepth.DeepZone1 &&
+               CampaignProgressionCatalog.GetBossId(depth) == CampaignBossId.SalvageDevourer;
+    }
+
+    private bool IsRegion3PhaseGatekeeperMap()
+    {
+        ExpeditionDepth depth = ResolveCurrentDepth();
+        return depth == ExpeditionDepth.DeepZone2 &&
+               CampaignProgressionCatalog.GetBossId(depth) == CampaignBossId.PhaseGatekeeper;
     }
 
     private bool TryFindCorePosition(
@@ -2056,9 +2468,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
             bool requestedCluster = i < clusteredTarget;
             Vector2 position = Vector2.zero;
             PoiAnchor assignedPoi = null;
+            bool enforceMajorPoiCeiling = IsRegion2MajorContentCategory(category);
             bool clustered = requestedCluster && TryFindPositionNearPoi(
                 highValueOnly,
                 minDistance,
+                enforceMajorPoiCeiling,
                 out position,
                 out assignedPoi
             );
@@ -2109,6 +2523,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private bool TryFindPositionNearPoi(
         bool highValueOnly,
         float minDistance,
+        bool enforceMajorPoiCeiling,
         out Vector2 position,
         out PoiAnchor assignedPoi)
     {
@@ -2135,7 +2550,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 Mathf.Max(0.1f, assignedPoi.Radius - innerRadius) + innerRadius;
             Vector2 candidate = assignedPoi.Center + direction * distance;
 
-            if (IsPositionValid(candidate, true, false, minDistance, out _))
+            if (IsPositionValid(
+                    candidate,
+                    true,
+                    false,
+                    minDistance,
+                    out _,
+                    enforceMajorPoiCeiling))
             {
                 position = candidate;
                 return true;
@@ -2183,7 +2604,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
             Vector2 candidate = GetRandomPointInMap();
             bool avoidStart = category == MapSpawnCategory.LargeMeteor;
 
-            if (!IsPositionValid(candidate, avoidStart, false, minDistance, out _))
+            if (!IsPositionValid(
+                    candidate,
+                    avoidStart,
+                    false,
+                    minDistance,
+                    out _,
+                    IsRegion2MajorContentCategory(category)))
             {
                 continue;
             }
@@ -2226,6 +2653,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
             category == MapSpawnCategory.SpecialPassiveContainer;
     }
 
+    private static bool IsRegion2MajorContentCategory(MapSpawnCategory category)
+    {
+        return category == MapSpawnCategory.HighValueWreck ||
+               category == MapSpawnCategory.SpecialActiveContainer ||
+               category == MapSpawnCategory.SpecialPassiveContainer;
+    }
+
     private void PlacePrefabBatch(
         GameObject[] prefabs,
         GameObject fallbackPrefab,
@@ -2253,6 +2687,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             bool found = useHarvestPlacement
                 ? TryFindHarvestPosition(
                     minDistance,
+                    IsRegion2MajorContentCategory(category),
                     out position,
                     out insideStartSafeRadius
                 )
@@ -3093,6 +3528,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private bool TryFindHarvestPosition(
         float minDistance,
+        bool enforceMajorPoiCeiling,
         out Vector2 position,
         out bool insideStartSafeRadius)
     {
@@ -3126,7 +3562,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
                         false,
                         false,
                         minDistance,
-                        out insideStartSafeRadius))
+                        out insideStartSafeRadius,
+                        enforceMajorPoiCeiling))
                 {
                     position = candidate;
                     return true;
@@ -3139,7 +3576,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
             false,
             minDistance,
             out position,
-            out insideStartSafeRadius
+            out insideStartSafeRadius,
+            enforceMajorPoiCeiling
         );
     }
 
@@ -3148,7 +3586,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
         bool importantPoint,
         float minDistance,
         out Vector2 position,
-        out bool insideStartSafeRadius)
+        out bool insideStartSafeRadius,
+        bool enforceMajorPoiCeiling = false)
     {
         position = Vector2.zero;
         insideStartSafeRadius = false;
@@ -3164,7 +3603,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
                     avoidStartSafeRadius,
                     importantPoint,
                     minDistance,
-                    out insideStartSafeRadius))
+                    out insideStartSafeRadius,
+                    enforceMajorPoiCeiling))
             {
                 return true;
             }
@@ -3178,7 +3618,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
         bool avoidStartSafeRadius,
         bool importantPoint,
         float minDistance,
-        out bool insideStartSafeRadius)
+        out bool insideStartSafeRadius,
+        bool enforceMajorPoiCeiling = false)
     {
         float startSafeRadius = config != null ? config.StartSafeRadius : 10f;
         float importantMinDistance = config != null ? config.ImportantPointMinDistance : 20f;
@@ -3196,6 +3637,12 @@ public class ExpeditionMapGenerator : MonoBehaviour
         }
 
         if (importantPoint && !HasMinimumDistance(position, importantPositions, importantMinDistance))
+        {
+            return false;
+        }
+
+        if ((importantPoint || enforceMajorPoiCeiling) &&
+            IsAboveRegion2MajorPoiCeiling(position.y + Mathf.Max(0f, minDistance)))
         {
             return false;
         }
@@ -3964,6 +4411,163 @@ public class ExpeditionMapGenerator : MonoBehaviour
         return count;
     }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    private void ValidateRegion3BossFoundationGeneration()
+    {
+        if (!IsRegion3PhaseGatekeeperMap())
+        {
+            return;
+        }
+
+        if (spawnedCoreObjects.Count != 0 ||
+            spawnedFieldBases.Count != 0 ||
+            spawnedShopStructures.Count != 0)
+        {
+            Debug.LogError(
+                "Region-3 map validation failed: Core, field-base, or shop-base " +
+                "generation remained active.",
+                this
+            );
+        }
+
+        if (currentRegion3BossEncounter == null)
+        {
+            Debug.LogError(
+                "Region-3 map validation failed: the Phase Gatekeeper encounter was not generated.",
+                this
+            );
+        }
+    }
+
+    private void ValidateRegion2BossCorridorGeneration()
+    {
+        if (!IsRegion2SalvageDevourerMap())
+        {
+            return;
+        }
+
+        if (!hasRegion2CoreFinalPosition || !hasRegion2BossCorridor)
+        {
+            Debug.LogError("Region-2 map validation failed: the top Core or Boss corridor was not generated.", this);
+            return;
+        }
+
+        float majorPoiCeiling = region2CoreFinalPosition.y -
+            (config != null ? config.Region2MajorPoiVerticalClearance : 3f);
+
+        for (int i = 0; i < importantPositions.Count; i++)
+        {
+            Vector2 position = importantPositions[i];
+            if ((position - region2CoreFinalPosition).sqrMagnitude <= 0.001f)
+            {
+                continue;
+            }
+
+            if (position.y > majorPoiCeiling)
+            {
+                Debug.LogError(
+                    $"Region-2 map validation failed: major POI at {position} is above the Core ceiling {majorPoiCeiling:0.##}.",
+                    this
+                );
+                break;
+            }
+        }
+
+        for (int i = 0; i < occupiedPositions.Count; i++)
+        {
+            Vector2 position = occupiedPositions[i];
+            if ((position - startPosition).sqrMagnitude <= 0.001f ||
+                (position - region2CoreFinalPosition).sqrMagnitude <= 0.001f)
+            {
+                continue;
+            }
+
+            if (region2BossCorridor.ReservedBounds.Contains(position))
+            {
+                Debug.LogError(
+                    $"Region-2 map validation failed: generated point content at {position} is inside the Boss corridor.",
+                    this
+                );
+                break;
+            }
+        }
+
+        for (int i = 0; i < environmentDressingPositions.Count; i++)
+        {
+            Vector2 position = environmentDressingPositions[i];
+            if (region2BossCorridor.ReservedBounds.Contains(position))
+            {
+                Debug.LogError(
+                    $"Region-2 map validation failed: dressing at {position} is inside the Boss corridor.",
+                    this
+                );
+                break;
+            }
+        }
+
+        for (int i = 0; i < spawnedShopStructures.Count; i++)
+        {
+            ShopStructure shop = spawnedShopStructures[i];
+            if (shop == null)
+            {
+                continue;
+            }
+
+            if (CompositeIntersectsRegion2BossCorridor(shop.gameObject) ||
+                (shop.PortalArrivalPoint != null &&
+                 region2BossCorridor.ReservedBounds.Contains(shop.PortalArrivalPoint.position)))
+            {
+                Debug.LogError(
+                    $"Region-2 map validation failed: Shop '{shop.name}' or its portal arrival point intersects the Boss corridor.",
+                    shop
+                );
+            }
+        }
+
+        for (int i = 0; i < spawnedFieldBases.Count; i++)
+        {
+            FieldBaseController fieldBase = spawnedFieldBases[i];
+            if (fieldBase != null && CompositeIntersectsRegion2BossCorridor(fieldBase.gameObject))
+            {
+                Debug.LogError(
+                    $"Region-2 map validation failed: Field Base '{fieldBase.name}' has child bounds intersecting the Boss corridor.",
+                    fieldBase
+                );
+            }
+        }
+    }
+
+    private bool CompositeIntersectsRegion2BossCorridor(GameObject root)
+    {
+        if (root == null || !hasRegion2BossCorridor)
+        {
+            return false;
+        }
+
+        Collider2D[] colliders = root.GetComponentsInChildren<Collider2D>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider2D collider = colliders[i];
+            if (collider != null && collider.bounds.Intersects(region2BossCorridor.ReservedBounds))
+            {
+                return true;
+            }
+        }
+
+        Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer targetRenderer = renderers[i];
+            if (targetRenderer != null && targetRenderer.bounds.Intersects(region2BossCorridor.ReservedBounds))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+#endif
+
     private void OnDrawGizmosSelected()
     {
         if (!drawMapBounds)
@@ -3997,6 +4601,54 @@ public class ExpeditionMapGenerator : MonoBehaviour
             Gizmos.color = new Color(1f, 0.75f, 0.1f, 1f);
             Gizmos.DrawWireCube(safeBounds.center, safeBounds.size);
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (depth == ExpeditionDepth.DeepZone1)
+        {
+            Bounds cameraSafeBounds = ResolveCameraSafeBounds(size);
+            Gizmos.color = new Color(0.2f, 0.75f, 1f, 0.55f);
+            Gizmos.DrawWireCube(cameraSafeBounds.center, cameraSafeBounds.size);
+
+            if (hasRegion2CoreCandidate)
+            {
+                Gizmos.color = new Color(1f, 0.45f, 0.05f, 0.95f);
+                Gizmos.DrawWireSphere(region2CoreCandidatePosition, 0.65f);
+            }
+
+            if (hasRegion2CoreFinalPosition)
+            {
+                Gizmos.color = new Color(1f, 0.9f, 0.15f, 1f);
+                Gizmos.DrawWireSphere(region2CoreFinalPosition, 1f);
+            }
+
+            if (hasRegion2BossCorridor)
+            {
+                Gizmos.color = new Color(0.75f, 0.1f, 1f, 0.95f);
+                Gizmos.DrawWireCube(
+                    region2BossCorridor.CorridorBounds.center,
+                    region2BossCorridor.CorridorBounds.size
+                );
+
+                Gizmos.color = new Color(1f, 0.2f, 0.75f, 0.55f);
+                Gizmos.DrawWireCube(
+                    region2BossCorridor.ReservedBounds.center,
+                    region2BossCorridor.ReservedBounds.size
+                );
+
+                Gizmos.color = Color.red;
+                Gizmos.DrawWireSphere(region2BossCorridor.TerminalPoint, 0.8f);
+            }
+
+            if (hasLargeZoneDebugCandidateBounds)
+            {
+                Gizmos.color = new Color(0.2f, 1f, 0.8f, 0.7f);
+                Gizmos.DrawWireCube(
+                    largeZoneDebugCandidateBounds.center,
+                    largeZoneDebugCandidateBounds.size
+                );
+            }
+        }
+#endif
 
         if (config != null && config.EnablePoiClusterLayout)
         {

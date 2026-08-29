@@ -9,6 +9,8 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class ExpeditionHUD : MonoBehaviour
 {
+    private readonly HashSet<object> menuHintSuppressors = new HashSet<object>();
+
     [Header("Player References")]
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerArmor playerArmor;
@@ -1563,6 +1565,25 @@ public class ExpeditionHUD : MonoBehaviour
         inventoryHintText = CreateMenuKeyHint(rootRect, "InventoryHint", inventoryHintIcon, 10);
     }
 
+    public void SetMenuHintsSuppressed(object owner, bool suppressed)
+    {
+        if (owner == null)
+        {
+            return;
+        }
+
+        if (suppressed)
+        {
+            menuHintSuppressors.Add(owner);
+        }
+        else
+        {
+            menuHintSuppressors.Remove(owner);
+        }
+
+        RefreshBindingHints();
+    }
+
     private TextMeshProUGUI CreateMenuKeyHint(RectTransform parent, string objectName, Sprite icon, float x)
     {
         GameObject iconObject = new GameObject($"{objectName}Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
@@ -2646,7 +2667,8 @@ public class ExpeditionHUD : MonoBehaviour
     {
         inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
         bool visible = !cinematicMode && GameSettingsRuntime.ShowHudKeyHints;
-        SetGameObjectVisible(menuHintRoot, visible);
+        bool menuHintsVisible = visible && menuHintSuppressors.Count == 0;
+        SetGameObjectVisible(menuHintRoot, menuHintsVisible);
 
         if (!visible)
         {

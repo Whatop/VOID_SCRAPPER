@@ -6,6 +6,35 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController2D : MonoBehaviour
 {
+    private readonly struct CameraViewportConstraint
+    {
+        public Camera ViewportCamera { get; }
+        public Transform ViewportCenter { get; }
+        public float LeftWorldLimit { get; }
+        public float RightWorldLimit { get; }
+        public float HorizontalInset { get; }
+        public float TopInset { get; }
+        public float BottomInset { get; }
+
+        public CameraViewportConstraint(
+            Camera viewportCamera,
+            Transform viewportCenter,
+            float leftWorldLimit,
+            float rightWorldLimit,
+            float horizontalInset,
+            float topInset,
+            float bottomInset)
+        {
+            ViewportCamera = viewportCamera;
+            ViewportCenter = viewportCenter;
+            LeftWorldLimit = leftWorldLimit;
+            RightWorldLimit = rightWorldLimit;
+            HorizontalInset = horizontalInset;
+            TopInset = topInset;
+            BottomInset = bottomInset;
+        }
+    }
+
     [Header("Input Actions")]
     [SerializeField] private InputActionAsset inputActions;
 
@@ -63,6 +92,8 @@ public class PlayerController2D : MonoBehaviour
     private readonly Collider2D[] repositionOverlapBuffer = new Collider2D[24];
     private readonly Dictionary<object, float> externalMoveSpeedMultipliers =
         new Dictionary<object, float>();
+    private readonly Dictionary<object, CameraViewportConstraint> temporaryCameraViewportConstraints =
+        new Dictionary<object, CameraViewportConstraint>();
     private float externalMoveSpeedMultiplier = 1f;
 
     public InputActionAsset InputActions => inputActions;
@@ -108,6 +139,7 @@ public class PlayerController2D : MonoBehaviour
         movementVelocityOverrideActive = false;
         movementVelocityOverride = Vector2.zero;
         movementInputActive = false;
+        temporaryCameraViewportConstraints.Clear();
 
         if (rb != null)
         {
@@ -223,7 +255,9 @@ public class PlayerController2D : MonoBehaviour
             }
         }
 
-        rb.linearVelocity = inputVelocity + pushVelocity;
+        Vector2 resolvedVelocity = inputVelocity + pushVelocity;
+        ApplyTemporaryCameraViewportConstraints(ref resolvedVelocity);
+        rb.linearVelocity = resolvedVelocity;
     }
 
     private void RotateToMouse()
@@ -361,6 +395,64 @@ public class PlayerController2D : MonoBehaviour
     {
         movementVelocityOverrideActive = false;
         movementVelocityOverride = Vector2.zero;
+    }
+
+    public bool AcquireTemporaryCameraViewportConstraint(
+        object owner,
+        Camera viewportCamera,
+        Transform viewportCenter,
+        float leftWorldLimit,
+        float rightWorldLimit,
+        float horizontalInset,
+        float topInset,
+        float bottomInset)
+    {
+        if (owner == null || viewportCamera == null || viewportCenter == null ||
+            !IsFinite(leftWorldLimit) || !IsFinite(rightWorldLimit) ||
+            leftWorldLimit >= rightWorldLimit)
+        {
+            return false;
+        }
+
+        CameraViewportConstraint constraint = new CameraViewportConstraint(
+            viewportCamera,
+            viewportCenter,
+            leftWorldLimit,
+            rightWorldLimit,
+            Mathf.Max(0f, horizontalInset),
+            Mathf.Max(0f, topInset),
+            Mathf.Max(0f, bottomInset)
+        );
+
+        if (!TryResolveConstraintBounds(constraint, out _))
+        {
+            return false;
+        }
+
+        temporaryCameraViewportConstraints[owner] = constraint;
+        return true;
+    }
+
+    public void ReleaseTemporaryCameraViewportConstraint(object owner)
+    {
+        if (owner != null)
+        {
+            temporaryCameraViewportConstraints.Remove(owner);
+        }
+    }
+
+    public bool HasTemporaryCameraViewportConstraint(object owner)
+    {
+        return owner != null && temporaryCameraViewportConstraints.ContainsKey(owner);
+    }
+
+    public bool TryGetTemporaryCameraViewportConstraintBounds(object owner, out Bounds bounds)
+    {
+        bounds = default;
+
+        return owner != null &&
+               temporaryCameraViewportConstraints.TryGetValue(owner, out CameraViewportConstraint constraint) &&
+               TryResolveConstraintBounds(constraint, out bounds);
     }
 
     public void ApplyExternalPush(
@@ -502,6 +594,146 @@ public class PlayerController2D : MonoBehaviour
                !float.IsInfinity(value.x) &&
                !float.IsNaN(value.y) &&
                !float.IsInfinity(value.y);
+    }
+
+    private static bool IsFinite(float value)
+    {
+        return !float.IsNaN(value) && !float.IsInfinity(value);
+    }
+
+    private void ApplyTemporaryCameraViewportConstraints(ref Vector2 velocity)
+    {
+        if (temporaryCameraViewportConstraints.Count == 0 ||
+            !TryResolveCombinedCameraViewportBounds(out Bounds allowedBounds))
+        {
+            return;
+        }
+
+        Vector2 bodyPosition = rb.position;
+        Vector2 colliderExtents = bodyCollider != null
+            ? bodyCollider.bounds.extents
+            : Vector2.zero;
+        Vector2 colliderCenterOffset = bodyCollider != null
+            ? (Vector2)bodyCollider.bounds.center - bodyPosition
+            : Vector2.zero;
+
+        float minimumX = allowedBounds.min.x + colliderExtents.x - colliderCenterOffset.x;
+        float maximumX = allowedBounds.max.x - colliderExtents.x - colliderCenterOffset.x;
+        float minimumY = allowedBounds.min.y + colliderExtents.y - colliderCenterOffset.y;
+        float maximumY = allowedBounds.max.y - colliderExtents.y - colliderCenterOffset.y;
+
+        CollapseInvalidRange(ref minimumX, ref maximumX);
+        CollapseInvalidRange(ref minimumY, ref maximumY);
+
+        Vector2 constrainedPosition = new Vector2(
+            Mathf.Clamp(bodyPosition.x, minimumX, maximumX),
+            Mathf.Clamp(bodyPosition.y, minimumY, maximumY)
+        );
+
+        if ((constrainedPosition - bodyPosition).sqrMagnitude > 0.0000001f)
+        {
+            rb.position = constrainedPosition;
+            bodyPosition = constrainedPosition;
+        }
+
+        float fixedDeltaTime = Mathf.Max(0.0001f, Time.fixedDeltaTime);
+        velocity.x = Mathf.Clamp(
+            velocity.x,
+            (minimumX - bodyPosition.x) / fixedDeltaTime,
+            (maximumX - bodyPosition.x) / fixedDeltaTime
+        );
+        velocity.y = Mathf.Clamp(
+            velocity.y,
+            (minimumY - bodyPosition.y) / fixedDeltaTime,
+            (maximumY - bodyPosition.y) / fixedDeltaTime
+        );
+    }
+
+    private bool TryResolveCombinedCameraViewportBounds(out Bounds combinedBounds)
+    {
+        combinedBounds = default;
+        bool hasBounds = false;
+        Vector3 combinedMinimum = Vector3.zero;
+        Vector3 combinedMaximum = Vector3.zero;
+
+        foreach (KeyValuePair<object, CameraViewportConstraint> entry in temporaryCameraViewportConstraints)
+        {
+            if (!TryResolveConstraintBounds(entry.Value, out Bounds constraintBounds))
+            {
+                continue;
+            }
+
+            if (!hasBounds)
+            {
+                combinedMinimum = constraintBounds.min;
+                combinedMaximum = constraintBounds.max;
+                hasBounds = true;
+                continue;
+            }
+
+            combinedMinimum.x = Mathf.Max(combinedMinimum.x, constraintBounds.min.x);
+            combinedMinimum.y = Mathf.Max(combinedMinimum.y, constraintBounds.min.y);
+            combinedMaximum.x = Mathf.Min(combinedMaximum.x, constraintBounds.max.x);
+            combinedMaximum.y = Mathf.Min(combinedMaximum.y, constraintBounds.max.y);
+        }
+
+        if (!hasBounds || combinedMinimum.x > combinedMaximum.x || combinedMinimum.y > combinedMaximum.y)
+        {
+            return false;
+        }
+
+        combinedBounds.SetMinMax(combinedMinimum, combinedMaximum);
+        return true;
+    }
+
+    private static bool TryResolveConstraintBounds(
+        CameraViewportConstraint constraint,
+        out Bounds bounds)
+    {
+        bounds = default;
+        Camera viewportCamera = constraint.ViewportCamera;
+        Transform viewportCenter = constraint.ViewportCenter;
+        if (viewportCamera == null || viewportCenter == null || !viewportCamera.orthographic)
+        {
+            return false;
+        }
+
+        Vector3 center = viewportCenter.position;
+        float halfHeight = Mathf.Max(0.01f, viewportCamera.orthographicSize);
+        float halfWidth = halfHeight * Mathf.Max(0.01f, viewportCamera.aspect);
+        float minimumX = Mathf.Max(
+            center.x - halfWidth + constraint.HorizontalInset,
+            constraint.LeftWorldLimit
+        );
+        float maximumX = Mathf.Min(
+            center.x + halfWidth - constraint.HorizontalInset,
+            constraint.RightWorldLimit
+        );
+        float minimumY = center.y - halfHeight + constraint.BottomInset;
+        float maximumY = center.y + halfHeight - constraint.TopInset;
+
+        if (minimumX > maximumX || minimumY > maximumY)
+        {
+            return false;
+        }
+
+        bounds.SetMinMax(
+            new Vector3(minimumX, minimumY, 0f),
+            new Vector3(maximumX, maximumY, 0f)
+        );
+        return true;
+    }
+
+    private static void CollapseInvalidRange(ref float minimum, ref float maximum)
+    {
+        if (minimum <= maximum)
+        {
+            return;
+        }
+
+        float center = (minimum + maximum) * 0.5f;
+        minimum = center;
+        maximum = center;
     }
 
     public void SetMoveSpeed(float newMoveSpeed)

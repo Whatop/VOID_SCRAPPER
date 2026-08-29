@@ -196,6 +196,25 @@ public class RunManager : MonoBehaviour
         return acceptedAmount;
     }
 
+    public int GrantGuaranteedCampaignBossCoreShards(
+        CampaignBossId bossId,
+        int amount)
+    {
+        amount = Mathf.Max(0, amount);
+        if (!HasActiveRun ||
+            IsCompletingRun ||
+            bossId == CampaignBossId.None ||
+            currentRun.CurrentBossId != bossId ||
+            amount <= 0 ||
+            !currentRun.TryRegisterGuaranteedBossCoreReward(bossId, amount))
+        {
+            return 0;
+        }
+
+        currentRun.Wallet.Add(CurrencyType.CoreShards, amount);
+        return amount;
+    }
+
     public bool CanAddCargoCurrency(CurrencyType currencyType, int amount = 1)
     {
         return HasActiveRun && currentRun.GetAcceptedAmountByCargo(currencyType, amount) > 0;
@@ -533,6 +552,16 @@ public class RunManager : MonoBehaviour
                 lostCore = collectedCore;
                 lostAlloy = collectedAlloy;
                 break;
+        }
+
+        if (reason == RunEndReason.EmergencyReturn || reason == RunEndReason.Death)
+        {
+            int guaranteedBossCore = Mathf.Min(
+                collectedCore,
+                run.GuaranteedBossCoreShardsThisRun
+            );
+            committedCore = Mathf.Max(committedCore, guaranteedBossCore);
+            lostCore = Mathf.Max(0, collectedCore - committedCore);
         }
 
         int collectedCargoLoad = run.CalculateCargoLoad(collectedScrap, collectedCore, collectedAlloy);
