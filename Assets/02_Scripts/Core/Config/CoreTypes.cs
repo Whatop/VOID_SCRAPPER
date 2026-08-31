@@ -116,7 +116,8 @@ public enum RadarMarkerType
     Core,
     ReturnBeacon,
     EnemyBase,
-    FieldNpc
+    FieldNpc,
+    Unknown
 }
 
 public enum EnemyType

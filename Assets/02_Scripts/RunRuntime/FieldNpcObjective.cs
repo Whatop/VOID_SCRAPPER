@@ -91,9 +91,12 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
     private GameObject pendingServiceInteractor;
     private string pendingConversationTitle;
     private Coroutine serviceAfterDialogueRoutine;
+    private MiniTrader miniTrader;
 
     public FieldNpcServiceType ServiceType => serviceType;
     public FieldNpcState State => state;
+    public TraitCatalog TraitCatalog => traitCatalog;
+    public ReinforcementCatalog ReinforcementCatalog => reinforcementCatalog;
     public bool ShouldHoldMovement =>
         IsCaptiveInBase ||
         state == FieldNpcState.RescueCombat ||
@@ -116,6 +119,7 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
         string configuredObjectiveId = null,
         GameObject configuredRewardCapsulePrefab = null)
     {
+        miniTrader = null;
         serviceType = configuredServiceType;
         requiresRescue = configuredRequiresRescue;
         basicEnemyDefinition = configuredBasicEnemy;
@@ -142,10 +146,36 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
         }
     }
 
+    public void ConfigureAsMiniTrader(MiniTrader configuredTrader)
+    {
+        CancelPendingServiceDialogue();
+        UntrackEnemies();
+        miniTrader = configuredTrader;
+        requiresRescue = false;
+        oneUseService = false;
+        useDialogueBeforeService = false;
+        useBaseRescueFlow = false;
+        serviceUsed = false;
+        activeRewardCapsule = null;
+        state = FieldNpcState.Available;
+        ResolveReferences();
+
+        if (radarTarget != null)
+        {
+            radarTarget.SetMarkerType(RadarMarkerType.FieldNpc);
+            radarTarget.SetVisible(true);
+        }
+    }
+
     public string InteractionText
     {
         get
         {
+            if (miniTrader != null)
+            {
+                return miniTrader.InteractionText;
+            }
+
             if (state == FieldNpcState.RescueCombat)
             {
                 return busyText;
@@ -219,6 +249,11 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
     public bool CanInteract(GameObject interactor)
     {
+        if (miniTrader != null)
+        {
+            return miniTrader.CanInteract(interactor);
+        }
+
         return interactor != null &&
                state != FieldNpcState.RescueCombat &&
                state != FieldNpcState.Exhausted &&
@@ -227,6 +262,12 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
     public void Interact(GameObject interactor)
     {
+        if (miniTrader != null)
+        {
+            miniTrader.TryOpenTrade(interactor);
+            return;
+        }
+
         if (!CanInteract(interactor))
         {
             return;

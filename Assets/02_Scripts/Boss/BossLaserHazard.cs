@@ -57,7 +57,8 @@ public class BossLaserHazard : MonoBehaviour
         Color lineColor,
         string sortingLayerName,
         int sortingOrder,
-        float recoveryDuration = 0f)
+        float recoveryDuration = 0f,
+        int lineCapVertices = 0)
     {
         Vector2 delta = end - start;
         float length = delta.magnitude;
@@ -83,7 +84,8 @@ public class BossLaserHazard : MonoBehaviour
             lineColor,
             sortingLayerName,
             sortingOrder,
-            recoveryDuration
+            recoveryDuration,
+            lineCapVertices
         );
     }
 
@@ -99,7 +101,8 @@ public class BossLaserHazard : MonoBehaviour
         Color lineColor,
         string sortingLayerName,
         int sortingOrder,
-        float recoveryDuration = 0f)
+        float recoveryDuration = 0f,
+        int lineCapVertices = 0)
     {
         EnsureComponents();
 
@@ -120,7 +123,15 @@ public class BossLaserHazard : MonoBehaviour
         transform.SetPositionAndRotation(center, Quaternion.Euler(0f, 0f, angle));
 
         ConfigureRigidbody();
-        ConfigureLineRenderer(length, width, lineMaterial, lineColor, sortingLayerName, sortingOrder);
+        ConfigureLineRenderer(
+            length,
+            width,
+            lineMaterial,
+            lineColor,
+            sortingLayerName,
+            sortingOrder,
+            lineCapVertices
+        );
 
         lastDamageTimes.Clear();
         damageEnabled = true;
@@ -168,7 +179,8 @@ public class BossLaserHazard : MonoBehaviour
         Material lineMaterial,
         Color lineColor,
         string sortingLayerName,
-        int sortingOrder)
+        int sortingOrder,
+        int lineCapVertices)
     {
         if (lineRenderer == null)
         {
@@ -178,6 +190,7 @@ public class BossLaserHazard : MonoBehaviour
         lineRenderer.enabled = true;
         lineRenderer.useWorldSpace = false;
         lineRenderer.positionCount = 2;
+        lineRenderer.numCapVertices = Mathf.Clamp(lineCapVertices, 0, 8);
         lineRenderer.SetPosition(0, new Vector3(-length * 0.5f, 0f, 0f));
         lineRenderer.SetPosition(1, new Vector3(length * 0.5f, 0f, 0f));
         lineRenderer.startWidth = width;
@@ -199,6 +212,28 @@ public class BossLaserHazard : MonoBehaviour
             {
                 lineRenderer.material = new Material(shader);
             }
+        }
+    }
+
+    public void SetRuntimeWidth(float width)
+    {
+        if (!initialized)
+        {
+            return;
+        }
+
+        float safeWidth = Mathf.Max(0.01f, width);
+        if (lineRenderer != null)
+        {
+            lineRenderer.startWidth = safeWidth;
+            lineRenderer.endWidth = safeWidth;
+        }
+
+        if (boxCollider != null)
+        {
+            Vector2 size = boxCollider.size;
+            size.y = safeWidth;
+            boxCollider.size = size;
         }
     }
 

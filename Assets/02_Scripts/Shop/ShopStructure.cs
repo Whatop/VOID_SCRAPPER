@@ -14,7 +14,7 @@ public enum ShopStructureState
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider2D))]
-public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockbackReceiver
+public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockbackReceiver, IShopTradeSession
 {
     private static readonly List<ShopStructure> ActiveShops = new List<ShopStructure>();
     private static bool globalHostile;
@@ -28,6 +28,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
     [Header("References")]
     [SerializeField] private ShopTradeUI tradeUI;
+    [SerializeField] private ShopStockController stockController;
     [SerializeField] private RadarTarget radarTarget;
     [SerializeField] private RewardDropper rewardDropper;
     [SerializeField] private ShopActiveMaintenanceBay activeMaintenanceBay;
@@ -117,6 +118,9 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
 
  
     public string DisplayName => displayName;
+    public ShopStockController StockController => stockController;
+    public ShopStructure MaintenanceOwner => this;
+    public bool SupportsRepair => true;
     public Transform PortalArrivalPoint => portalArrivalPoint;
     public ShopStructureState CurrentState { get; private set; } = ShopStructureState.Neutral;
     public string InteractionText => CanTrade ? neutralInteractionText : hostileInteractionText;
@@ -146,6 +150,7 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
     {
         structureBody = GetComponent<Rigidbody2D>();
         radarTarget = GetComponent<RadarTarget>();
+        stockController = GetComponent<ShopStockController>();
         rewardDropper = GetComponent<RewardDropper>();
         activeMaintenanceBay = GetComponentInChildren<ShopActiveMaintenanceBay>(true);
         defenseController = GetComponent<ShopDefenseController2D>();
@@ -168,6 +173,11 @@ public class ShopStructure : MonoBehaviour, IDamageable, IInteractable, IKnockba
         if (radarTarget == null)
         {
             radarTarget = GetComponent<RadarTarget>();
+        }
+
+        if (stockController == null)
+        {
+            stockController = GetComponent<ShopStockController>();
         }
 
         if (rewardDropper == null)

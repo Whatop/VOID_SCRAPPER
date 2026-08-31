@@ -139,14 +139,14 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   requireObjectiveSignals: 1
-  objectiveSignalsRevealLocationOnly: 0
+  objectiveSignalsRevealLocationOnly: 1
   hideUntilCoreRevealed: 1
   failOpenWithoutActiveRun: 1
   lockedInteractionText: "\uCF54\uC5B4 \uCD94\uC801 \uC2E0\uD638\uAC00 \uBD80\uC871\uD569\uB2C8\uB2E4"
-  allowDirectWorldDiscovery: 0
+  allowDirectWorldDiscovery: 1
   directDiscoveryRadius: 5
-  showDirectDiscoveryMessage: 0
-  directDiscoveryMessage: ""
+  showDirectDiscoveryMessage: 1
+  directDiscoveryMessage: "\uAD6C\uD68D \uC81C\uC5B4 \uCF54\uC5B4\uB97C \uBC1C\uACAC\uD588\uC2B5\uB2C8\uB2E4."
   preserveSpentCoreVisualAfterActivation: 0
   destroyCoreAfterActivation: 0
   hideCoreInsteadOfDisable: 1

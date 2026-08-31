@@ -21,10 +21,7 @@ public sealed class SalvageDevourerWarningArea : MonoBehaviour
 
     private void Awake()
     {
-        if (telegraph == null)
-        {
-            telegraph = GetComponent<RaiderCoverBlastTelegraph>();
-        }
+        ResolveTelegraph();
 
         if (warningIcon != null)
         {
@@ -75,7 +72,11 @@ public sealed class SalvageDevourerWarningArea : MonoBehaviour
             : null;
         armed = true;
 
-        telegraph?.BeginCharge(position, radius);
+        ResolveTelegraph();
+        if (telegraph != null)
+        {
+            telegraph.BeginCharge(position, radius);
+        }
 
         if (warningIcon != null)
         {
@@ -93,7 +94,11 @@ public sealed class SalvageDevourerWarningArea : MonoBehaviour
         }
 
         float progress = Mathf.Clamp01(normalizedProgress);
-        telegraph?.SetChargeProgress(progress);
+        ResolveTelegraph();
+        if (telegraph != null)
+        {
+            telegraph.SetChargeProgress(progress);
+        }
 
         if (warningIcon != null)
         {
@@ -144,5 +149,13 @@ public sealed class SalvageDevourerWarningArea : MonoBehaviour
             position,
             Mathf.Max(0.05f, impactEffectLifetime)
         );
+    }
+
+    private void ResolveTelegraph()
+    {
+        if (telegraph == null)
+        {
+            telegraph = GetComponent<RaiderCoverBlastTelegraph>();
+        }
     }
 }

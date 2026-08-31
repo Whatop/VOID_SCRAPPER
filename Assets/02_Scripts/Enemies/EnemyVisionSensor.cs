@@ -157,6 +157,15 @@ public class EnemyVisionSensor : MonoBehaviour
 
     private void Update()
     {
+        if (enemyAI != null && enemyAI.IsBossEncounterIsolated)
+        {
+            target = null;
+            targetStealth = null;
+            ResetVisualAwareness();
+            SetConeVisible(false);
+            return;
+        }
+
         ResolveTarget();
         UpdateVisualAwareness(Time.deltaTime);
 
@@ -283,6 +292,11 @@ public class EnemyVisionSensor : MonoBehaviour
 
     public void ForceDetectTarget(Transform candidate = null)
     {
+        if (enemyAI != null && enemyAI.IsBossEncounterIsolated)
+        {
+            return;
+        }
+
         if (candidate != null && candidate != target)
         {
             SetTarget(candidate);
@@ -300,7 +314,9 @@ public class EnemyVisionSensor : MonoBehaviour
 
     public bool HasRadarContact(Transform candidate)
     {
-        if (!useRadarDetection || candidate == null)
+        if ((enemyAI != null && enemyAI.IsBossEncounterIsolated) ||
+            !useRadarDetection ||
+            candidate == null)
         {
             return false;
         }
@@ -409,6 +425,7 @@ public class EnemyVisionSensor : MonoBehaviour
     {
         if (!canHearGunfire ||
             enemyAI == null ||
+            enemyAI.IsBossEncounterIsolated ||
             enemyAI.CurrentState == EnemyState.Dead ||
             noiseRadius <= 0f)
         {
@@ -482,6 +499,14 @@ public class EnemyVisionSensor : MonoBehaviour
 
     private void ResolveTarget()
     {
+        if (enemyAI != null && enemyAI.IsBossEncounterIsolated)
+        {
+            target = null;
+            targetStealth = null;
+            ResetVisualAwareness();
+            return;
+        }
+
         if (target == null && enemyAI != null)
         {
             target = enemyAI.Player;

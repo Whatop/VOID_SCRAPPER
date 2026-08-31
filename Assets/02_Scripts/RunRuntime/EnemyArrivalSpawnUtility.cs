@@ -65,6 +65,13 @@ public static class EnemyArrivalSpawnUtility
             return false;
         }
 
+        EnemyBaseAI enemyAI = enemyObject.GetComponentInChildren<EnemyBaseAI>(true);
+
+        if (enemyAI != null && enemyAI.IsBossEncounterIsolated)
+        {
+            return false;
+        }
+
         EnemyArrivalSpawnSettings activeSettings = settings ?? DefaultSettings;
 
         if (!activeSettings.Enabled)

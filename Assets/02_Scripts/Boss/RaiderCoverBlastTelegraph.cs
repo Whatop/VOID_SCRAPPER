@@ -207,6 +207,7 @@ public sealed class RaiderCoverBlastTelegraph : MonoBehaviour
             presentationRoot = rootObject.transform;
         }
 
+        presentationRoot.gameObject.layer = gameObject.layer;
         ResetChildTransform(presentationRoot, transform);
     }
 
@@ -267,6 +268,7 @@ public sealed class RaiderCoverBlastTelegraph : MonoBehaviour
             rendererObject.transform.SetParent(presentationRoot, false);
         }
 
+        rendererObject.layer = gameObject.layer;
         LineRenderer renderer = rendererObject.GetComponent<LineRenderer>();
         if (renderer == null)
         {
@@ -306,10 +308,26 @@ public sealed class RaiderCoverBlastTelegraph : MonoBehaviour
             return false;
         }
 
-        radialFillFilter ??= fillObject.GetComponent<MeshFilter>();
-        radialFillFilter ??= fillObject.AddComponent<MeshFilter>();
-        radialFillRenderer ??= fillObject.GetComponent<MeshRenderer>();
-        radialFillRenderer ??= fillObject.AddComponent<MeshRenderer>();
+        fillObject.layer = gameObject.layer;
+        if (radialFillFilter == null)
+        {
+            radialFillFilter = fillObject.GetComponent<MeshFilter>();
+        }
+
+        if (radialFillFilter == null)
+        {
+            radialFillFilter = fillObject.AddComponent<MeshFilter>();
+        }
+
+        if (radialFillRenderer == null)
+        {
+            radialFillRenderer = fillObject.GetComponent<MeshRenderer>();
+        }
+
+        if (radialFillRenderer == null)
+        {
+            radialFillRenderer = fillObject.AddComponent<MeshRenderer>();
+        }
 
         if (radialFillFilter == null || radialFillRenderer == null)
         {
@@ -326,7 +344,10 @@ public sealed class RaiderCoverBlastTelegraph : MonoBehaviour
             radialFillRenderer.sharedMaterial = material;
         }
 
-        fillPropertyBlock ??= new MaterialPropertyBlock();
+        if (fillPropertyBlock == null)
+        {
+            fillPropertyBlock = new MaterialPropertyBlock();
+        }
         return true;
     }
 
@@ -404,14 +425,18 @@ public sealed class RaiderCoverBlastTelegraph : MonoBehaviour
         lineMaterial = ResolveMaterialFromExistingRenderer();
         if (lineMaterial == null)
         {
-            sharedFallbackMaterial ??= Resources.Load<Material>(FallbackMaterialResourcePath);
+            if (sharedFallbackMaterial == null)
+            {
+                sharedFallbackMaterial = Resources.Load<Material>(FallbackMaterialResourcePath);
+            }
+
             lineMaterial = sharedFallbackMaterial;
         }
 
         if (lineMaterial == null && !materialErrorLogged)
         {
             materialErrorLogged = true;
-            Debug.LogError(
+            Debug.LogWarning(
                 $"Raider Cover Blast telegraph '{name}' could not resolve its shared presentation material. " +
                 "Renderer geometry will remain available, but the affected layer may not render.",
                 this
@@ -642,7 +667,7 @@ public sealed class RaiderCoverBlastTelegraph : MonoBehaviour
         }
 
         alreadyLogged = true;
-        Debug.LogError(
+        Debug.LogWarning(
             $"Raider Cover Blast telegraph '{name}' could not resolve or create its {rendererRole}. " +
             "That optional presentation layer was skipped; the remaining telegraph layers will continue.",
             this

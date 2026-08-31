@@ -135,6 +135,11 @@ public class EnemyBaseAI : MonoBehaviour
     private float chargingRepositionTimer;
     private int chargingRepositionDirection = 1;
     private bool initialized;
+    private GameStateManager observedGameStateManager;
+    private Transform targetBeforeBossEncounterIsolation;
+    private bool bossEncounterIsolated;
+    private bool rigidbodySimulatedBeforeBossEncounterIsolation;
+    private bool capturedRigidbodySimulationState;
 
     public EnemyState CurrentState => currentState;
     public EnemyDefinition EnemyDefinition => enemyDefinition;
@@ -164,20 +169,24 @@ public class EnemyBaseAI : MonoBehaviour
         currentState == EnemyState.Taunt;
 
     public bool IsRadarTauntable =>
+        !bossEncounterIsolated &&
         currentState != EnemyState.Dead &&
         purpose != EnemyPurpose.Boss &&
         purpose != EnemyPurpose.ShopGuard;
     public bool CanReceiveExternalMovementControl =>
+        !bossEncounterIsolated &&
         currentState != EnemyState.Dead &&
         purpose != EnemyPurpose.Boss &&
         purpose != EnemyPurpose.ShopGuard;
     public bool CanReceiveTrackingDisruption =>
+        !bossEncounterIsolated &&
         currentState != EnemyState.Dead &&
         purpose != EnemyPurpose.Boss &&
         purpose != EnemyPurpose.ShopGuard &&
         !IsInsideActiveShopNeutralZone &&
         IsAware;
     public bool IsPlayerTrackingDisrupted => isPlayerTrackingDisrupted;
+    public bool IsBossEncounterIsolated => bossEncounterIsolated;
 
     public event Action<EnemyState, EnemyState> StateChanged;
 
@@ -252,6 +261,8 @@ public class EnemyBaseAI : MonoBehaviour
         activeShopNeutralZone = null;
         initialized = true;
 
+        SubscribeGameState();
+
         ResolvePlayer();
 
         if (visionSensor != null)
@@ -265,10 +276,14 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         SetState(EnemyState.Patrol, true);
+        RefreshBossEncounterIsolation();
     }
 
     private void OnDisable()
     {
+        UnsubscribeGameState();
+        ReleaseBossEncounterIsolation(false);
+
         if (health != null)
         {
             health.Died -= HandleDied;
@@ -299,6 +314,12 @@ public class EnemyBaseAI : MonoBehaviour
         if (health != null && health.IsDead)
         {
             SetState(EnemyState.Dead);
+            return;
+        }
+
+        if (bossEncounterIsolated)
+        {
+            StopMoving();
             return;
         }
 
@@ -375,7 +396,7 @@ public class EnemyBaseAI : MonoBehaviour
             return;
         }
 
-        if (currentState == EnemyState.Dead)
+        if (currentState == EnemyState.Dead || bossEncounterIsolated)
         {
             rb.linearVelocity = Vector2.zero;
             return;
@@ -439,10 +460,17 @@ public class EnemyBaseAI : MonoBehaviour
         {
             PickNewPatrolTarget();
         }
+
+        RefreshBossEncounterIsolation();
     }
 
     public void SetTarget(Transform target)
     {
+        if (bossEncounterIsolated && target != null)
+        {
+            return;
+        }
+
         player = target;
         CachePlayerBody();
 
@@ -472,6 +500,12 @@ public class EnemyBaseAI : MonoBehaviour
         float speedMultiplier = 1f,
         Transform ignoredNavigationTarget = null)
     {
+        if (bossEncounterIsolated)
+        {
+            StopMoving();
+            return;
+        }
+
         MoveTo(
             targetPosition,
             moveSpeed * Mathf.Max(0f, speedMultiplier),
@@ -491,6 +525,11 @@ public class EnemyBaseAI : MonoBehaviour
 
     public void CommandAttackPlayer()
     {
+        if (bossEncounterIsolated)
+        {
+            return;
+        }
+
         TryAttackPlayer();
     }
 
@@ -506,6 +545,12 @@ public class EnemyBaseAI : MonoBehaviour
 
     public void CommandSetVelocity(Vector2 velocity, bool updateFacing = true)
     {
+        if (bossEncounterIsolated)
+        {
+            StopMoving();
+            return;
+        }
+
         desiredVelocity = velocity;
 
         if (updateFacing && velocity.sqrMagnitude > 0.001f)
@@ -696,11 +741,21 @@ public class EnemyBaseAI : MonoBehaviour
 
     public void RequestState(EnemyState nextState)
     {
+        if (bossEncounterIsolated && nextState != EnemyState.Dead)
+        {
+            return;
+        }
+
         SetState(nextState);
     }
 
     public void EngagePlayer()
     {
+        if (bossEncounterIsolated)
+        {
+            return;
+        }
+
         ResolvePlayer();
 
         if (currentState == EnemyState.Dead)
@@ -756,7 +811,7 @@ public class EnemyBaseAI : MonoBehaviour
 
     public void NotifyDamagedByPlayer()
     {
-        if (currentState == EnemyState.Dead)
+        if (currentState == EnemyState.Dead || bossEncounterIsolated)
         {
             return;
         }
@@ -799,7 +854,7 @@ public class EnemyBaseAI : MonoBehaviour
 
     public void AlertTo(Vector2 targetPosition)
     {
-        if (currentState == EnemyState.Dead)
+        if (currentState == EnemyState.Dead || bossEncounterIsolated)
         {
             return;
         }
@@ -819,7 +874,7 @@ public class EnemyBaseAI : MonoBehaviour
         Vector2 targetPosition,
         float duration)
     {
-        if (source == null || currentState == EnemyState.Dead)
+        if (source == null || currentState == EnemyState.Dead || bossEncounterIsolated)
         {
             return false;
         }
@@ -883,6 +938,11 @@ public class EnemyBaseAI : MonoBehaviour
 
     public bool IsThreateningPlayer()
     {
+        if (bossEncounterIsolated)
+        {
+            return false;
+        }
+
         if (roleController != null)
         {
             return roleController.CountsAsThreat(currentState);
@@ -1415,7 +1475,7 @@ public class EnemyBaseAI : MonoBehaviour
 
     private void TryAttackPlayer()
     {
-        if (attackController == null || player == null)
+        if (bossEncounterIsolated || attackController == null || player == null)
         {
             return;
         }
@@ -1524,6 +1584,12 @@ public class EnemyBaseAI : MonoBehaviour
         float speed,
         Transform ignoredNavigationTarget = null)
     {
+        if (bossEncounterIsolated)
+        {
+            StopMoving();
+            return;
+        }
+
         Vector2 currentPosition = transform.position;
         Vector2 direction = targetPosition - currentPosition;
 
@@ -1730,8 +1796,164 @@ public class EnemyBaseAI : MonoBehaviour
         return attackController != null ? attackController.AttackRange : 0f;
     }
 
+    private void SubscribeGameState()
+    {
+        GameStateManager manager = GameStateManager.Instance;
+
+        if (observedGameStateManager == manager)
+        {
+            return;
+        }
+
+        UnsubscribeGameState();
+        observedGameStateManager = manager;
+
+        if (observedGameStateManager != null)
+        {
+            observedGameStateManager.StateChanged += HandleGameStateChanged;
+        }
+    }
+
+    private void UnsubscribeGameState()
+    {
+        if (observedGameStateManager != null)
+        {
+            observedGameStateManager.StateChanged -= HandleGameStateChanged;
+            observedGameStateManager = null;
+        }
+    }
+
+    private void HandleGameStateChanged(GameState _, GameState nextState)
+    {
+        RefreshBossEncounterIsolation(nextState);
+    }
+
+    private void RefreshBossEncounterIsolation()
+    {
+        GameState state = GameStateManager.Instance != null
+            ? GameStateManager.Instance.CurrentState
+            : GameState.Boot;
+        RefreshBossEncounterIsolation(state);
+    }
+
+    private void RefreshBossEncounterIsolation(GameState state)
+    {
+        bool shouldIsolate = state == GameState.BossBattle &&
+                             IsRegionWithBossEncounterIsolation() &&
+                             IsAmbientEnemyForBossEncounterIsolation();
+
+        if (shouldIsolate)
+        {
+            ApplyBossEncounterIsolation();
+        }
+        else
+        {
+            ReleaseBossEncounterIsolation(true);
+        }
+    }
+
+    private static bool IsRegionWithBossEncounterIsolation()
+    {
+        RunManager runManager = RunManager.Instance;
+
+        if (runManager == null || !runManager.HasActiveRun || runManager.CurrentRun == null)
+        {
+            return false;
+        }
+
+        ExpeditionDepth depth = runManager.CurrentRun.ExpeditionDepth;
+        return depth == ExpeditionDepth.DeepZone1 || depth == ExpeditionDepth.DeepZone2;
+    }
+
+    private bool IsAmbientEnemyForBossEncounterIsolation()
+    {
+        if (purpose == EnemyPurpose.Boss ||
+            GetComponentInParent<FrigateTriadBossController>() != null ||
+            GetComponentInParent<PhaseGatekeeperBossController>() != null)
+        {
+            return false;
+        }
+
+        IPlayerOwnedAlly playerOwnedAlly = GetComponentInParent<IPlayerOwnedAlly>();
+        return playerOwnedAlly == null || !playerOwnedAlly.IsPlayerOwnedAlly;
+    }
+
+    private void ApplyBossEncounterIsolation()
+    {
+        if (bossEncounterIsolated)
+        {
+            return;
+        }
+
+        bossEncounterIsolated = true;
+        targetBeforeBossEncounterIsolation = player;
+        CancelCurrentAttack();
+        roleController?.SuspendForBossEncounterIsolation();
+        temporaryAttractionSource = null;
+        player = null;
+        playerBody = null;
+
+        if (visionSensor != null)
+        {
+            visionSensor.SetTarget(null);
+        }
+
+        StopMoving();
+        SetState(EnemyState.Patrol, true);
+
+        if (rb != null)
+        {
+            rigidbodySimulatedBeforeBossEncounterIsolation = rb.simulated;
+            capturedRigidbodySimulationState = true;
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+            rb.simulated = false;
+        }
+    }
+
+    private void ReleaseBossEncounterIsolation(bool resumeBehavior)
+    {
+        if (!bossEncounterIsolated)
+        {
+            return;
+        }
+
+        bossEncounterIsolated = false;
+
+        if (rb != null && capturedRigidbodySimulationState)
+        {
+            rb.simulated = rigidbodySimulatedBeforeBossEncounterIsolation;
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
+
+        capturedRigidbodySimulationState = false;
+
+        Transform priorTarget = targetBeforeBossEncounterIsolation;
+        targetBeforeBossEncounterIsolation = null;
+
+        if (!resumeBehavior || !isActiveAndEnabled || (health != null && health.IsDead))
+        {
+            return;
+        }
+
+        SetTarget(priorTarget);
+
+        if (player == null)
+        {
+            ResolvePlayer();
+        }
+
+        SetState(EnemyState.Patrol, true);
+    }
+
     private void ResolvePlayer()
     {
+        if (bossEncounterIsolated)
+        {
+            return;
+        }
+
         if (player != null)
         {
             if (playerBody == null)

@@ -194,6 +194,14 @@ public class EnemyRoleController : MonoBehaviour
         }
     }
 
+    public void SuspendForBossEncounterIsolation()
+    {
+        ReleaseHarvestTarget();
+        ReleaseRewardPickupTarget();
+        SetHarvestBeamVisible(false);
+        ReleaseIrreversibleSlot();
+    }
+
     public void ConfigureAsPatrol(Bounds bounds)
     {
         roleType = EnemyRoleType.Patrol;

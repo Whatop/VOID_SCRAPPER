@@ -114,8 +114,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2726d4fc5be9bb841ba5675e6538f102, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   maxHp: 180
   rewardDropper: {fileID: 0}
   spriteHitFlash: {fileID: 0}
@@ -153,8 +153,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 59f39d4f9d06db545837b99f0ba7bd80, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   enemyHealth: {fileID: 100004}
   deathPresentation: {fileID: 100006}
   campaignDefinition: {fileID: 11400000, guid: e5f815d590894ec8a91112c0adfd1daa, type: 2}
@@ -184,8 +184,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b7c9fda6e0b34a6486c2e9f175a42d31, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   bodyRenderer: {fileID: 100102}
   bossRigidbody: {fileID: 100002}
   destabilizeDuration: 0.45
@@ -214,8 +214,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 44ee835967d14239ba9fa90e2a5012e1, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   enemyHealth: {fileID: 100004}
   bodyRenderer: {fileID: 100102}
   damageCollider: {fileID: 100003}
@@ -223,34 +223,96 @@ MonoBehaviour:
   laserOrigin: {fileID: 100301}
   laserHazardPrefab: {fileID: 600002, guid: b9f19d34d6874d2fab1936b9b10a9c61, type: 3}
   laserMaterial: {fileID: 2100000, guid: 8779c962636b1694280e3c19e3d9b000, type: 2}
+  bossRadarMarkerSprite: {fileID: 21300000, guid: 49b2bca3a3f8d7a48bbc281b2a42304c, type: 3}
+  bossRadarMarkerScale: 1.35
+  stealthRadarScaleMultiplier: 0.82
   decloakDuration: 0.8
   combatChargeDuration: 0.7
   stealthColor: {r: 0.25, g: 0.75, b: 1, a: 0.08}
   revealedColor: {r: 1, g: 1, b: 1, a: 1}
   chargingColor: {r: 0.45, g: 0.9, b: 1, a: 1}
+  idleSprite: {fileID: 3064268939594492125, guid: 9cb7909d72ec8564098215e93acce3a0, type: 3}
+  chargeSprites:
+  - {fileID: 1502685339309717076, guid: 94bde60dcfcd48945b26b2565d7f2ac6, type: 3}
+  - {fileID: -9002529716096984420, guid: 2ce0a4d49f7c34d45b24b3a7e057644b, type: 3}
+  - {fileID: 8810817515384869669, guid: e4a816d1dd239a34a9e10c6a52235e47, type: 3}
+  - {fileID: 1080090594913221303, guid: 5a48d95de56274b4e8134348891d2ec6, type: 3}
+  - {fileID: -4164083868865803136, guid: fc4d5ae40f9764a409f6408ee5f3e43e, type: 3}
+  - {fileID: -2827177431468556109, guid: 70bd8492a3f81574a8e3c2ae60d91fd5, type: 3}
+  - {fileID: 4102497742261213824, guid: 4f38b91d58ab7c545910c23c311a7d63, type: 3}
+  - {fileID: -1426345826627655321, guid: 0267ddf44b229914c9892e2abd196c7a, type: 3}
+  - {fileID: 8335270685621409647, guid: 718f1b48114ea1841856577d743cbc45, type: 3}
+  chargeFrameDuration: 0.075
   maxReflections: 3
   laserBlockingMask:
     serializedVersion: 2
     m_Bits: 68609
-  laserChargeDuration: 1
-  laserLockDuration: 0.25
-  preLockAimTurnRate: 32
+  laserLockDuration: 0.4
   attackAimBiasDegrees: 6
   laserFireDuration: 0.8
   laserRecoveryDuration: 0.75
-  laserRange: 48
-  initialLaserWidth: 0.8
+  laserRange: 72
+  phaseTwoLaserRange: 180
+  normalInitialLaserWidth: 2
+  specialInitialLaserWidth: 2.4
+  specialReflectionWidthMultiplier: 1
+  specialBeamEndWidthMultiplier: 0.28
   laserDamage: 4
   laserDamageInterval: 0.5
+  environmentBreakDamage: 999
   telegraphColor: {r: 0.25, g: 0.9, b: 1, a: 0.55}
   lockedTelegraphColor: {r: 0.65, g: 0.95, b: 1, a: 0.95}
   activeLaserColor: {r: 0.35, g: 0.95, b: 1, a: 1}
+  specialActiveLaserColor: {r: 0.75, g: 0.98, b: 1, a: 1}
+  previewTelegraphWidthScale: 0.42
+  lockedTelegraphWidthScale: 0.62
   laserSortingLayerName: Default
   laserSortingOrder: 24
-  cloakDuration: 0.3
-  hiddenRepositionHold: 0.15
+  normalTrackingDuration: 0.65
+  specialTrackingDuration: 0.55
+  predictionLeadTime: 0.28
+  targetThreatPadding: 0.3
+  routeCandidateAttempts: 16
+  minimumReadableSegmentLength: 1.25
+  targetMarkerRadius: 0.42
+  targetMarkerLineWidth: 0.08
+  trackingMarkerColor: {r: 0.25, g: 0.95, b: 1, a: 0.8}
+  lockedMarkerColor: {r: 0.85, g: 0.35, b: 1, a: 1}
+  chainOriginCueDuration: 0.12
+  reflectorBlinkStepDuration: 0.18
+  reflectorBlinkPulseDuration: 0.16
+  reflectorOrientationDuration: 0.45
+  phaseTwoThinChainHoldDuration: 0.25
+  phaseTwoRouteCandidateAttempts: 8
+  convergencePulseDuration: 0.25
+  convergenceMoveDuration: 1.1
+  convergenceSettleDuration: 0.1
+  initialArenaHalfSize: 11
+  minimumArenaHalfSize: 6.5
+  specialBossSlotInset: 2.2
+  arenaShrinkMultipliers: {x: 0.84, y: 0.7, z: 0.58}
+  shrinkWarningDuration: 0.75
+  shrinkMoveDuration: 0.8
+  shrinkPulseLeadDuration: 0.18
+  arenaWallThickness: 0.28
+  arenaBoundsPadding: 0.35
+  arenaWallColor: {r: 0.3, g: 0.95, b: 1, a: 0.9}
+  nextArenaWarningColor: {r: 0.75, g: 0.35, b: 1, a: 0.85}
+  outerDarknessColor: {r: 0.04, g: 0.015, b: 0.08, a: 0.86}
+  arenaSortingLayerName: Default
+  arenaBoundarySortingOrder: 20
+  outerDarknessSortingOrder: 5
+  normalCombatCameraZoomMultiplier: 1.25
+  specialArenaCameraPadding: 1.25
+  attackCameraPadding: 2.2
+  maximumAttackCameraZoomMultiplier: 3.1
+  trackingCameraRefreshInterval: 0.12
+  cloakDuration: 0.2
+  hiddenRepositionHold: 0.1
+  repositionRevealDuration: 0.25
   decloakPreparationDuration: 0.65
   minimumPlayerRepositionDistance: 10
+  maximumNormalPlayerRepositionDistance: 32
   mapEdgePadding: 4
   repositionClearanceRadius: 1.75
   repositionCandidateAttempts: 12
@@ -258,7 +320,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 68609
   exposedDuration: 5
-  exposedColor: {r: 1, g: 0.75, b: 0.2, a: 1}
+  exposedMaximumPlayerDistance: 6.5
+  exposedColor: {r: 1, g: 0.3, b: 1, a: 1}
+  exposedPulseScale: 1.22
+  exposedPulseSpeed: 9
   drawReflectionChainGizmos: 1
   drawReflectorNormalGizmos: 1
 --- !u!1 &100100
@@ -288,7 +353,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.5, y: 1.5, z: 1}
+  m_LocalScale: {x: 3, y: 3, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 100001}
@@ -337,12 +402,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 8
-  m_Sprite: {fileID: 4032855776271531897, guid: 33ec7b609b7dcf74487db077ce0f10b6, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9cb7909d72ec8564098215e93acce3a0, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 2, y: 2}
+  m_Size: {x: 4, y: 4}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1

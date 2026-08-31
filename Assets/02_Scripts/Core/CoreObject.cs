@@ -137,6 +137,7 @@ public class CoreObject : MonoBehaviour, IInteractable
     public bool IsLocationRevealed => IsCoreLocationRevealed();
     public bool IsInteractionUnlocked => IsObjectiveGateSatisfied();
     public bool IsActivated => activated;
+    public bool IsActivationInProgress => activating || activationRoutine != null;
     public RadarTarget RadarTarget => radarTarget;
 
     public string InteractionText
@@ -680,7 +681,10 @@ public class CoreObject : MonoBehaviour, IInteractable
             ExpeditionDepth.DeepZone1 when bossId == CampaignBossId.SalvageDevourer =>
                 region2BossPrefab != null ? region2BossPrefab : bossPrefab,
             ExpeditionDepth.DeepZone1 => bossPrefab,
-            ExpeditionDepth.DeepZone2 => region3BossPrefab != null ? region3BossPrefab : bossPrefab,
+            // Region 3 is Coreless and its Phase Gatekeeper is created directly by
+            // ExpeditionMapGenerator. Never substitute the Region-1 Boss if a stray
+            // or development-spawned Core reaches this legacy routing path.
+            ExpeditionDepth.DeepZone2 => region3BossPrefab,
             ExpeditionDepth.FinalNetwork => finalBossPrefab,
             _ => bossPrefab
         };
@@ -768,11 +772,78 @@ public class CoreObject : MonoBehaviour, IInteractable
     }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public bool TryStartBossEncounterForDevelopment(out string failureReason)
+    {
+        failureReason = string.Empty;
+
+        RunManager runManager = RunManager.Instance;
+        if (runManager == null || !runManager.HasActiveRun)
+        {
+            failureReason = "No active Run.";
+            return false;
+        }
+
+        if (runManager.IsCompletingRun || runManager.CurrentRun.BossDefeated)
+        {
+            failureReason = "Boss encounter is already completed.";
+            return false;
+        }
+
+        ExpeditionDepth depth = runManager.CurrentRun.ExpeditionDepth;
+        if (depth == ExpeditionDepth.DeepZone2)
+        {
+            failureReason = "Region 3 is Coreless. Use bossstart.";
+            return false;
+        }
+
+        if (activated)
+        {
+            failureReason = "Boss encounter has already been started.";
+            return false;
+        }
+
+        if (activating || activationRoutine != null)
+        {
+            failureReason = "Boss encounter is already starting.";
+            return false;
+        }
+
+        ResolvedBossEncounter encounter = ResolveBossEncounter();
+        if (encounter.Prefab == null)
+        {
+            failureReason = "Current Region encounter authority was not found.";
+            return false;
+        }
+
+        if (depth == ExpeditionDepth.DeepZone1)
+        {
+            ExpeditionMapGenerator mapGenerator =
+                FindFirstObjectByType<ExpeditionMapGenerator>();
+            if (mapGenerator == null ||
+                !mapGenerator.HasRegion2BossCorridor ||
+                mapGenerator.CurrentRegion2BossCorridorRuntime == null)
+            {
+                failureReason = "Salvage Devourer corridor authority was not found.";
+                return false;
+            }
+        }
+
+        GameObject playerObject = FindPlayerObject();
+        if (playerObject == null)
+        {
+            failureReason = "Current Player was not found.";
+            return false;
+        }
+
+        activationRoutine = StartCoroutine(DevelopmentForceActivationRoutine(playerObject));
+        return true;
+    }
+
     [ContextMenu("Development/Force Live Region-2 Boss Intro")]
     private void DevelopmentForceLiveRegion2BossIntro()
     {
-        if (activated || activating || RunManager.Instance == null ||
-            !RunManager.Instance.HasActiveRun || RunManager.Instance.IsCompletingRun ||
+        if (RunManager.Instance == null ||
+            !RunManager.Instance.HasActiveRun ||
             RunManager.Instance.CurrentRun.ExpeditionDepth != ExpeditionDepth.DeepZone1 ||
             RunManager.Instance.CurrentRun.CurrentBossId != CampaignBossId.SalvageDevourer)
         {
@@ -783,23 +854,19 @@ public class CoreObject : MonoBehaviour, IInteractable
             return;
         }
 
-        GameObject playerObject = FindPlayerObject();
-        if (playerObject == null)
+        if (!TryStartBossEncounterForDevelopment(out string failureReason))
         {
-            Debug.LogWarning("The live Region-2 intro requires the current Player object.", this);
-            return;
+            Debug.LogWarning(failureReason, this);
         }
-
-        activationRoutine = StartCoroutine(DevelopmentForceActivationRoutine(playerObject));
     }
 
     private IEnumerator DevelopmentForceActivationRoutine(GameObject playerObject)
     {
         activating = true;
         RaiseActivationProgress(1f, false);
+        yield return CompleteActivationRoutine(playerObject);
         activating = false;
         activationRoutine = null;
-        yield return CompleteActivationRoutine(playerObject);
     }
 #endif
 

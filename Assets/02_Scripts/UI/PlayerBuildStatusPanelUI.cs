@@ -228,6 +228,9 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     [SerializeField] private string coreTrackingTip = "코어 추적 신호를 수집해 코어 위치를 추적하십시오.\n긴급복귀 시 보존 한도를 초과한 적재물은 손실됩니다.";
     [TextArea(2, 4)]
     [SerializeField] private string coreReadyTip = "코어 위치가 공개되었습니다.\n보스전에 진입하기 전에 체력과 적재량을 확인하십시오.";
+    [TextArea(2, 4)]
+    [SerializeField] private string region3InvestigationTip =
+        "확인되지 않은 위상 신호 위치를 조사하십시오.\n지도와 레이더의 미확인 표식을 추적하십시오.";
 
     [Header("Fixed Active Slot")]
     [SerializeField] private GameObject activeEquippedRoot;
@@ -699,8 +702,17 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
                 ? objectiveDirector.CoreRevealed
                 : signalCount >= signalRequired;
 
-        SetText(coreSignalValueText, $"{signalCount}/{signalRequired}");
-        SetColor(coreSignalValueText, coreReady ? coreReadyColor : normalStatColor);
+        bool corelessRegion3 = run != null && run.ExpeditionDepth == ExpeditionDepth.DeepZone2;
+        bool coreTrackingActive = !corelessRegion3 &&
+                                  (coreTracking == null || coreTracking.IsTrackingActive);
+        SetText(
+            coreSignalValueText,
+            coreTrackingActive ? $"{signalCount}/{signalRequired}" : "—"
+        );
+        SetColor(
+            coreSignalValueText,
+            coreTrackingActive && coreReady ? coreReadyColor : normalStatColor
+        );
 
         int cargoCurrent = cargoController != null
             ? cargoController.CurrentLoad
@@ -731,7 +743,9 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         );
         SetColor(tuningChipValueText, normalStatColor);
         SetColor(emergencyReturnValueText, normalStatColor);
-        string tip = coreReady ? coreReadyTip : coreTrackingTip;
+        string tip = !coreTrackingActive
+            ? region3InvestigationTip
+            : coreReady ? coreReadyTip : coreTrackingTip;
         SetText(shipTipText, selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo
             ? BuildCargoManifestText()
             : tip);

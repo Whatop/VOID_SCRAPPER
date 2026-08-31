@@ -122,7 +122,7 @@ public class ShopTradeUI : MonoBehaviour
     [Header("정비소 UI")]
     [SerializeField] private ShopMaintenanceBayUI maintenanceBayUI;
 
-    private ShopStructure currentShop;
+    private IShopTradeSession currentShop;
     private ShopStockController currentStock;
     private ShopActiveMaintenanceBay currentMaintenanceBay;
     private GameObject currentPlayer;
@@ -285,7 +285,7 @@ public class ShopTradeUI : MonoBehaviour
         UnbindButtons();
     }
 
-    public void Open(ShopStructure shop, GameObject playerObject)
+    public void Open(IShopTradeSession shop, GameObject playerObject)
     {
         bool wasOpen = isOpen;
 
@@ -298,8 +298,17 @@ public class ShopTradeUI : MonoBehaviour
         currentShop = shop;
         currentPlayer = playerObject;
 
-        currentStock = shop != null ? shop.GetComponent<ShopStockController>() : null;
+        currentStock = shop != null ? shop.StockController : null;
         currentMaintenanceBay = shop != null ? shop.ActiveMaintenanceBay : null;
+
+        if (maintenanceTabButton != null)
+        {
+            maintenanceTabButton.gameObject.SetActive(
+                shop != null &&
+                shop.MaintenanceOwner != null &&
+                currentMaintenanceBay != null
+            );
+        }
 
         currentReinforcementController = currentPlayer != null
             ? currentPlayer.GetComponentInChildren<PlayerReinforcementController>(true)
@@ -319,6 +328,14 @@ public class ShopTradeUI : MonoBehaviour
         selectedOptionButton = null;
         RefreshTradePage();
         ShowTradePage();
+    }
+
+    public void CloseIfSession(IShopTradeSession session)
+    {
+        if (session != null && ReferenceEquals(currentShop, session))
+        {
+            Close();
+        }
     }
 
     public void Close()
@@ -473,7 +490,10 @@ public class ShopTradeUI : MonoBehaviour
 
     private void ShowMaintenancePage()
     {
-        if (!isOpen)
+        if (!isOpen ||
+            currentShop == null ||
+            currentShop.MaintenanceOwner == null ||
+            currentMaintenanceBay == null)
         {
             return;
         }
@@ -490,7 +510,11 @@ public class ShopTradeUI : MonoBehaviour
 
         if (maintenanceBayUI != null)
         {
-            maintenanceBayUI.Open(currentShop, currentPlayer, currentMaintenanceBay);
+            maintenanceBayUI.Open(
+                currentShop.MaintenanceOwner,
+                currentPlayer,
+                currentMaintenanceBay
+            );
         }
     }
 
@@ -543,7 +567,9 @@ public class ShopTradeUI : MonoBehaviour
 
     private void SelectFirstAvailableOption()
     {
-        if (currentShop != null && currentShop.CanBuyRepair(currentPlayer))
+        if (currentShop != null &&
+            currentShop.SupportsRepair &&
+            currentShop.CanBuyRepair(currentPlayer))
         {
             SelectOption(BuildRepairOption(), repairButton);
             SelectEventSystemButton(repairButton);
@@ -577,7 +603,7 @@ public class ShopTradeUI : MonoBehaviour
             }
         }
 
-        if (currentShop != null)
+        if (currentShop != null && currentShop.SupportsRepair)
         {
             SelectOption(BuildRepairOption(), repairButton);
             SelectEventSystemButton(repairButton);
@@ -607,15 +633,18 @@ public class ShopTradeUI : MonoBehaviour
     {
         if (repairButton != null)
         {
-            repairButton.gameObject.SetActive(currentShop != null);
+            repairButton.gameObject.SetActive(
+                currentShop != null && currentShop.SupportsRepair
+            );
         }
 
         SetIcon(repairButtonIcon, repairIcon);
 
         string name = "수리";
-        int cost = currentShop != null ? currentShop.RepairCost : 0;
-        bool affordable = currentShop != null && ShopRunBridge.CanSpendCredits(cost);
-        string price = currentShop != null
+        bool supportsRepair = currentShop != null && currentShop.SupportsRepair;
+        int cost = supportsRepair ? currentShop.RepairCost : 0;
+        bool affordable = supportsRepair && ShopRunBridge.CanSpendCredits(cost);
+        string price = supportsRepair
             ? BuildCardPriceText(cost, false, false, affordable)
             : string.Empty;
         SetCardText(repairButtonText, repairButtonNameText, repairButtonPriceText, name, price);
@@ -896,7 +925,9 @@ public class ShopTradeUI : MonoBehaviour
         switch (selectedOption.Kind)
         {
             case ShopOptionKind.Repair:
-                return currentShop != null && currentShop.CanBuyRepair(currentPlayer);
+                return currentShop != null &&
+                       currentShop.SupportsRepair &&
+                       currentShop.CanBuyRepair(currentPlayer);
 
             case ShopOptionKind.Reinforcement:
                 return currentStock != null &&
@@ -924,7 +955,9 @@ public class ShopTradeUI : MonoBehaviour
         switch (selectedOption.Kind)
         {
             case ShopOptionKind.Repair:
-                success = currentShop != null && currentShop.TryBuyRepair(currentPlayer);
+                success = currentShop != null &&
+                          currentShop.SupportsRepair &&
+                          currentShop.TryBuyRepair(currentPlayer);
                 break;
 
             case ShopOptionKind.Reinforcement:
@@ -950,7 +983,11 @@ public class ShopTradeUI : MonoBehaviour
 
         if (maintenanceBayUI != null && maintenanceBayUI.IsOpen)
         {
-            maintenanceBayUI.Open(currentShop, currentPlayer, currentMaintenanceBay);
+            maintenanceBayUI.Open(
+                currentShop != null ? currentShop.MaintenanceOwner : null,
+                currentPlayer,
+                currentMaintenanceBay
+            );
         }
     }
 
@@ -987,10 +1024,12 @@ public class ShopTradeUI : MonoBehaviour
             Kind = ShopOptionKind.Repair,
             Title = "수리",
             ConditionText = "정비 서비스",
-            DescriptionText = currentShop != null
+            DescriptionText = currentShop != null && currentShop.SupportsRepair
                 ? $"기체 체력을 {currentShop.RepairAmount:0.#} 회복한다."
                 : "기체 체력을 회복한다.",
-            Cost = currentShop != null ? currentShop.RepairCost : 0,
+            Cost = currentShop != null && currentShop.SupportsRepair
+                ? currentShop.RepairCost
+                : 0,
             Icon = repairIcon,
             Trait = null,
             Reinforcement = null

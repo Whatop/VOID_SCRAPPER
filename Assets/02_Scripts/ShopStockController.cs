@@ -93,6 +93,23 @@ public class ShopStockController : MonoBehaviour
         cachedReinforcementChoices.Clear();
     }
 
+    public void ConfigureForMiniTrader(
+        TraitCatalog configuredTraitCatalog,
+        ReinforcementCatalog configuredReinforcementCatalog,
+        int configuredTraitChoiceCount,
+        int configuredReinforcementChoiceCount)
+    {
+        traitCatalog = configuredTraitCatalog;
+        reinforcementCatalog = configuredReinforcementCatalog;
+        includeCatalogTraits = true;
+        includeCatalogReinforcements = true;
+        traitChoiceCount = Mathf.Max(1, configuredTraitChoiceCount);
+        int reinforcementCount = Mathf.Max(1, configuredReinforcementChoiceCount);
+        minReinforcementChoiceCount = reinforcementCount;
+        maxReinforcementChoiceCount = reinforcementCount;
+        ResetStockRuntime();
+    }
+
     public void ForceRerollStock()
     {
         stockRolled = false;
@@ -138,7 +155,7 @@ public class ShopStockController : MonoBehaviour
         return ShopRunBridge.CanSpendCredits(TraitCost);
     }
 
-    public bool TryBuyTrait(ShopStructure shop, TraitDefinition trait, GameObject playerObject)
+    public bool TryBuyTrait(IShopTradeSession shop, TraitDefinition trait, GameObject playerObject)
     {
         if (shop != null && !shop.CanTrade)
         {
@@ -210,7 +227,10 @@ public class ShopStockController : MonoBehaviour
         return CanBuyReinforcement(reinforcement, null, null);
     }
 
-    public bool CanBuyReinforcement(ReinforcementDefinition reinforcement, ShopStructure shop, GameObject playerObject)
+    public bool CanBuyReinforcement(
+        ReinforcementDefinition reinforcement,
+        IShopTradeSession shop,
+        GameObject playerObject)
     {
         if (ReinforcementSoldOut)
         {
@@ -235,7 +255,10 @@ public class ShopStockController : MonoBehaviour
         return ShopRunBridge.CanSpendCredits(GetReinforcementCost(reinforcement));
     }
 
-    public bool TryBuyReinforcement(ShopStructure shop, ReinforcementDefinition reinforcement, GameObject playerObject)
+    public bool TryBuyReinforcement(
+        IShopTradeSession shop,
+        ReinforcementDefinition reinforcement,
+        GameObject playerObject)
     {
         if (shop != null && !shop.CanTrade)
         {
@@ -528,7 +551,7 @@ public class ShopStockController : MonoBehaviour
     }
 
     private bool CanStoreCurrentReinforcementInShop(
-        ShopStructure shop,
+        IShopTradeSession shop,
         GameObject playerObject,
         ReinforcementDefinition newReinforcement)
     {

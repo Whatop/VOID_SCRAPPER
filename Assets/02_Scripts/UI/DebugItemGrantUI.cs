@@ -279,6 +279,10 @@ public sealed class DebugItemGrantUI : MonoBehaviour
                 ExecuteCoreSpawnCommand();
                 return true;
 
+            case "bossstart":
+                ExecuteBossStartCommand();
+                return true;
+
             case "bossreward":
                 ExecuteBossRewardCommand();
                 return true;
@@ -295,6 +299,10 @@ public sealed class DebugItemGrantUI : MonoBehaviour
                 ExecuteRevealMapCommand();
                 return true;
 
+            case "nextregion":
+                ExecuteNextRegionCommand();
+                return true;
+
             default:
                 return false;
         }
@@ -307,6 +315,21 @@ public sealed class DebugItemGrantUI : MonoBehaviour
             return;
         }
 
+        ExpeditionDepth depth = RunManager.Instance.CurrentRun.ExpeditionDepth;
+        if (depth == ExpeditionDepth.DeepZone2)
+        {
+            FailCommand("corespawn", "Region 3 is Coreless. Use bossstart.");
+            return;
+        }
+
+        if (depth != ExpeditionDepth.Normal &&
+            depth != ExpeditionDepth.DeepZone1 &&
+            depth != ExpeditionDepth.FinalNetwork)
+        {
+            FailCommand("corespawn", "Current Region is not Core-driven.");
+            return;
+        }
+
         ExpeditionMapGenerator generator = FindFirstObjectByType<ExpeditionMapGenerator>();
 
         if (generator == null || !generator.TryPrepareCoreForDebug(out CoreObject core))
@@ -315,8 +338,127 @@ public sealed class DebugItemGrantUI : MonoBehaviour
             return;
         }
 
+        if (core.IsActivated || core.IsActivationInProgress)
+        {
+            FailCommand("corespawn", "Core encounter has already been started.");
+            return;
+        }
+
         MapDiscoveryController.Instance?.DiscoverTarget(core.RadarTarget);
         Debug.Log($"[DevCommand] corespawn prepared Core at {core.transform.position}.", core);
+        SetResult("SUCCESS\nCore prepared. Boss encounter was not started.", true);
+    }
+
+    private void ExecuteBossStartCommand()
+    {
+        if (!HasActiveRunForCommand("bossstart"))
+        {
+            return;
+        }
+
+        RunManager runManager = RunManager.Instance;
+        if (runManager.CurrentRun.BossDefeated || runManager.IsCompletingRun)
+        {
+            FailCommand("bossstart", "Boss encounter is already completed.");
+            return;
+        }
+
+        ExpeditionMapGenerator generator = FindFirstObjectByType<ExpeditionMapGenerator>();
+        if (generator == null)
+        {
+            FailCommand("bossstart", "Current Region encounter authority was not found.");
+            return;
+        }
+
+        ExpeditionDepth depth = runManager.CurrentRun.ExpeditionDepth;
+        if (depth == ExpeditionDepth.DeepZone2)
+        {
+            PhaseGatekeeperBossController encounter =
+                generator.CurrentRegion3BossEncounter;
+            if (encounter == null)
+            {
+                FailCommand(
+                    "bossstart",
+                    "Current Region encounter authority was not found."
+                );
+                return;
+            }
+
+            if (!encounter.TryForceStartEncounterForDevelopment(
+                    out string failureReason))
+            {
+                FailCommand("bossstart", failureReason);
+                return;
+            }
+
+            CompleteBossStartCommand(
+                "Phase Gatekeeper encounter started.",
+                encounter
+            );
+            return;
+        }
+
+        CoreObject core = ResolveCurrentCoreEncounterAuthority(generator);
+        if (core == null)
+        {
+            FailCommand(
+                "bossstart",
+                "Current Region encounter authority was not found."
+            );
+            return;
+        }
+
+        if (!core.TryStartBossEncounterForDevelopment(
+                out string coreFailureReason))
+        {
+            FailCommand("bossstart", coreFailureReason);
+            return;
+        }
+
+        string resultMessage = depth switch
+        {
+            ExpeditionDepth.Normal => "Region 1 Boss encounter started.",
+            ExpeditionDepth.DeepZone1 => "Salvage Devourer encounter started.",
+            _ => "Current Region Boss encounter started."
+        };
+        CompleteBossStartCommand(resultMessage, core);
+    }
+
+    private static CoreObject ResolveCurrentCoreEncounterAuthority(
+        ExpeditionMapGenerator generator)
+    {
+        IReadOnlyList<CoreObject> cores = generator.SpawnedCoreObjects;
+        CoreObject firstAvailable = null;
+
+        for (int i = 0; i < cores.Count; i++)
+        {
+            CoreObject candidate = cores[i];
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            if (candidate.IsActivated || candidate.IsActivationInProgress)
+            {
+                return candidate;
+            }
+
+            if (firstAvailable == null)
+            {
+                firstAvailable = candidate;
+            }
+        }
+
+        return firstAvailable;
+    }
+
+    private void CompleteBossStartCommand(string resultMessage, UnityEngine.Object context)
+    {
+        Debug.Log($"[DevCommand] bossstart: {resultMessage}", context);
+        SetResult($"SUCCESS\n{resultMessage}", true);
+
+        ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+        hud?.ShowWarning(resultMessage);
         Close();
     }
 
@@ -368,6 +510,35 @@ public sealed class DebugItemGrantUI : MonoBehaviour
                 FailCommand("shop", "No current Player was found.");
             }
 
+            return;
+        }
+
+        ExpeditionDepth depth = RunManager.Instance.CurrentRun.ExpeditionDepth;
+        if (depth == ExpeditionDepth.DeepZone1 || depth == ExpeditionDepth.DeepZone2)
+        {
+            ExpeditionMapGenerator generator = FindFirstObjectByType<ExpeditionMapGenerator>();
+            MiniTrader trader = generator != null ? generator.CurrentMiniTrader : null;
+
+            if (trader == null)
+            {
+                FailCommand("shop", "The current Region Mini Trader was not found.");
+                return;
+            }
+
+            if (!trader.CanInteract(playerObject))
+            {
+                FailCommand("shop", "The Mini Trader is unavailable in the current gameplay state.");
+                return;
+            }
+
+            Close();
+            if (!trader.TryOpenTrade(playerObject))
+            {
+                Debug.LogWarning("[DevCommand] shop could not open the current Mini Trader.", trader);
+                return;
+            }
+
+            Debug.Log($"[DevCommand] shop opened {trader.DisplayName}.", trader);
             return;
         }
 
@@ -499,6 +670,26 @@ public sealed class DebugItemGrantUI : MonoBehaviour
 
         Debug.Log("[DevCommand] revealmap revealed the current run map and active targets.", discovery);
         Close();
+    }
+
+    private void ExecuteNextRegionCommand()
+    {
+        RunManager runManager = RunManager.Instance;
+
+        if (runManager == null)
+        {
+            FailCommand("nextregion", "RunManager is unavailable.");
+            return;
+        }
+
+        if (!runManager.TryAdvanceToNextRegionForDevelopment(out string resultMessage))
+        {
+            FailCommand("nextregion", resultMessage);
+            return;
+        }
+
+        Debug.Log($"[DevCommand] nextregion: {resultMessage}", runManager);
+        SetResult($"SUCCESS\n{resultMessage}", true);
     }
 
     private bool HasActiveRunForCommand(string command)
@@ -730,7 +921,7 @@ public sealed class DebugItemGrantUI : MonoBehaviour
         resultText = CreateText(
             "ResultText",
             panel.transform,
-            "ID 또는 corespawn / bossreward / shop / teleport / revealmap",
+            "ID or corespawn / bossstart / bossreward / shop / teleport / revealmap / nextregion",
             new Vector2(0f, -55f),
             new Vector2(340f, 44f),
             9f,

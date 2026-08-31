@@ -334,12 +334,7 @@ public class RunManager : MonoBehaviour
             return false;
         }
 
-        ExpeditionDepth previousDepth = currentRun.ExpeditionDepth;
-        SeaRegionType nextSeaRegion = SeaRegionCatalog.GetRandom(currentRun.SeaRegionType);
-
-        currentRun.PrepareNextRegion(nextDepth, nextSeaRegion);
-        currentPlayerStatApplier = null;
-        RegionChanged?.Invoke(previousDepth, nextDepth);
+        ExpeditionDepth previousDepth = PrepareNextRegionState(nextDepth);
 
         Debug.Log(
             $"위상 분기 항로 진입: {CampaignProgressionCatalog.GetRegionDisplayName(previousDepth)} → " +
@@ -349,6 +344,58 @@ public class RunManager : MonoBehaviour
 
         LoadExpeditionScene();
         return true;
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public bool TryAdvanceToNextRegionForDevelopment(out string resultMessage)
+    {
+        resultMessage = string.Empty;
+
+        if (!HasActiveRun)
+        {
+            resultMessage = "No active Expedition run exists.";
+            return false;
+        }
+
+        ExpeditionDepth previousDepth = currentRun.ExpeditionDepth;
+
+        if (!CampaignProgressionCatalog.TryGetNextExplorationDepth(previousDepth, out ExpeditionDepth nextDepth))
+        {
+            resultMessage = previousDepth == ExpeditionDepth.DeepZone2
+                ? "Region 3 is the last normal exploration Region. Final Expedition must be launched separately."
+                : "No next normal exploration Region is available.";
+            return false;
+        }
+
+        SceneFlowManager sceneFlow = SceneFlowManager.Instance;
+        if (sceneFlow == null || sceneFlow.IsLoading)
+        {
+            resultMessage = sceneFlow == null
+                ? "SceneFlowManager is unavailable."
+                : "A scene transition is already in progress.";
+            return false;
+        }
+
+        bool capturedVitals = CaptureCurrentPlayerVitals();
+        PrepareNextRegionState(nextDepth);
+        LoadExpeditionScene();
+
+        resultMessage =
+            $"Advancing to {CampaignProgressionCatalog.GetRegionShortName(nextDepth)}" +
+            (capturedVitals ? "." : " (Player vitals were unavailable.)");
+        return true;
+    }
+#endif
+
+    private ExpeditionDepth PrepareNextRegionState(ExpeditionDepth nextDepth)
+    {
+        ExpeditionDepth previousDepth = currentRun.ExpeditionDepth;
+        SeaRegionType nextSeaRegion = SeaRegionCatalog.GetRandom(currentRun.SeaRegionType);
+
+        currentRun.PrepareNextRegion(nextDepth, nextSeaRegion);
+        currentPlayerStatApplier = null;
+        RegionChanged?.Invoke(previousDepth, nextDepth);
+        return previousDepth;
     }
 
     private bool CaptureCurrentPlayerVitals()

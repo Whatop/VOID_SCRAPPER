@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -68,6 +69,37 @@ public class ExpeditionMapGenerator : MonoBehaviour
         HighValueOnly
     }
 
+    private enum Region3StartSector
+    {
+        North,
+        NorthEast,
+        East,
+        SouthEast,
+        South,
+        SouthWest,
+        West,
+        NorthWest
+    }
+
+    private enum Region3ReflectorLayoutPattern
+    {
+        None = -1,
+        OuterRing,
+        BrokenRing,
+        DiagonalLanes,
+        SplitArcs,
+        OuterFrameInnerPair,
+        CrossDiamond,
+        CompactPerimeterFallback
+    }
+
+    private const int Region3ReflectorLayoutPatternCount = 6;
+    private const int Region3ReflectorCount = 12;
+    private const int Region3CompactFallbackCandidateCount = 16;
+    private const int Region3RequiredQuadrantCount = 4;
+    private const float Region3MinimumNormalizedSpan = 0.52f;
+    private const float Region3CompactFallbackScale = 0.68f;
+
     private sealed class PoiAnchor
     {
         public PoiType Type;
@@ -90,9 +122,39 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [Header("Region 3 Boss Foundation")]
     [SerializeField] private PhaseGatekeeperBossController region3BossEncounterPrefab;
     [SerializeField] private PhaseReflectorPlate region3ReflectorPlatePrefab;
-    [SerializeField, Range(4, 12)] private int region3ReflectorPlateCount = 8;
     [SerializeField, Min(1f)] private float region3ReflectorPlateLength = 4f;
     [SerializeField, Min(4f)] private float region3BossReservationSize = 16f;
+
+    [Header("Region 3 Boss-Focused Generation")]
+    [SerializeField] private Vector2 region3BossFocusedMapSize = new Vector2(80f, 80f);
+    [SerializeField, Range(0, 4)] private int region3HighValueWreckCount = 1;
+    [SerializeField, Range(0, 8)] private int region3SupplyContainerCount = 2;
+    [SerializeField, Range(0, 8)] private int region3DestroyedHullCount = 2;
+    [SerializeField, Range(0, 16)] private int region3SmallMeteorCount = 6;
+    [SerializeField, Range(0, 24)] private int region3EnvironmentDressingCount = 10;
+
+    [Header("Region 3 Player Start")]
+    [SerializeField] private Vector2 region3StartEdgeInsetRange = new Vector2(8f, 12f);
+    [SerializeField, Range(0.1f, 0.75f)] private float region3CardinalSectorHalfSpan = 0.45f;
+    [SerializeField, Range(1, 24)] private int region3StartCandidateAttempts = 12;
+    [SerializeField, Min(0.1f)] private float region3StartBlockingRadius = 1f;
+
+    [Header("Region 3 Reflector Layout")]
+    [SerializeField, Range(0f, 2f)] private float region3ReflectorPositionJitter = 1f;
+    [SerializeField, Range(0f, 12f)] private float region3ReflectorRotationJitter = 10f;
+    [SerializeField, Range(0f, 20f)] private float region3ReflectorLayoutRotationVariation = 12f;
+    [FormerlySerializedAs("region3ReflectorStartClearancePadding")]
+    [SerializeField, Range(8f, 12f)] private float region3ReflectorPlayerClearance = 8f;
+    [SerializeField, Range(6f, 10f)] private float region3ReflectorBossClearance = 8f;
+    [SerializeField, Range(4.5f, 6f)] private float region3ReflectorMinimumSpacing = 5.5f;
+    [SerializeField, Range(1, 32)] private int region3ReflectorLayoutAttempts = 24;
+    [SerializeField, Range(16f, 24f)] private float region3BossMinimumStartClearance = 18f;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [Header("Region 3 Development")]
+    [SerializeField, Range(-1, Region3ReflectorLayoutPatternCount - 1)]
+    private int debugForcedRegion3ReflectorTemplate = -1;
+#endif
 
     [Header("Root")]
     [SerializeField] private Transform generatedRoot;
@@ -133,10 +195,22 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [SerializeField] private Vector2 shopZoneReservationSize = new Vector2(28f, 28f);
     [Min(0f)]
     [SerializeField] private float largeZoneSpacing = 4f;
+    [Min(0f)]
+    [SerializeField] private float shopPortalArrivalClearanceRadius = 2f;
     [SerializeField] private bool rotateLargeZonesByRightAngles;
     [SerializeField] private bool reserveBossArenaFromOtherSpawns = true;
     [SerializeField] private bool configureBasePortalsToNearestShop = true;
     [SerializeField] private bool assignRoleEnemiesToNearestGeneratedBase = true;
+
+    [Header("Region 2 / 3 Mini Trader")]
+    [SerializeField] private GameObject miniTraderPrefab;
+    [SerializeField] private Vector2 miniTraderReservationSize = new Vector2(4f, 4f);
+    [SerializeField, Min(0f)] private float miniTraderReservationPadding = 1f;
+    [SerializeField, Min(0f)] private float miniTraderImportantClearance = 10f;
+    [SerializeField, Min(8f)] private float region3MiniTraderArenaClearance = 24f;
+    [SerializeField, Range(1, 3)] private int miniTraderTraitOfferCount = 2;
+    [SerializeField, Range(1, 2)] private int miniTraderReinforcementOfferCount = 1;
+    [SerializeField] private Color miniTraderMarkerColor = new Color(0.35f, 1f, 0.75f, 1f);
 
     [Header("Enemy Projectile World Damage")]
     [SerializeField] private bool enemyProjectilesDamageSupplyContainers = true;
@@ -349,6 +423,29 @@ public class ExpeditionMapGenerator : MonoBehaviour
     private Bounds largeZoneDebugCandidateBounds;
     private SalvageDevourerCorridorController currentRegion2BossCorridorRuntime;
     private PhaseGatekeeperBossController currentRegion3BossEncounter;
+    private MiniTrader currentMiniTrader;
+    private Bounds currentMiniTraderReservationBounds;
+    private Region3StartSector currentRegion3StartSector;
+    private Region3ReflectorLayoutPattern currentRegion3ReflectorLayoutPattern =
+        Region3ReflectorLayoutPattern.None;
+    private readonly PhaseReflectorPlate[] currentRegion3Reflectors =
+        new PhaseReflectorPlate[Region3ReflectorCount];
+    private readonly Vector2[] currentRegion3ReflectorPositions =
+        new Vector2[Region3ReflectorCount];
+    private readonly Vector2[] region3CompactFallbackPositions =
+        new Vector2[Region3CompactFallbackCandidateCount];
+    private readonly float[] region3CompactFallbackRotations =
+        new float[Region3CompactFallbackCandidateCount];
+    private readonly bool[] region3CompactFallbackAvailable =
+        new bool[Region3CompactFallbackCandidateCount];
+    private int currentRegion3ReflectorCandidateCount;
+    private int currentRegion3ReflectorSpawnedCount;
+    private int currentRegion3ReflectorCount;
+    private int currentRegion3ConfiguredReflectorCount;
+    private bool currentRegion3EncounterConfigured;
+    private Vector2 currentRegion3BossPosition;
+    private bool currentRegion3FoundationFailed;
+    private string currentRegion3LayoutAttemptDescription;
 
     public Bounds MapBounds { get; private set; }
     public Bounds CameraSafeBounds { get; private set; }
@@ -365,17 +462,26 @@ public class ExpeditionMapGenerator : MonoBehaviour
         currentRegion2BossCorridorRuntime;
     public PhaseGatekeeperBossController CurrentRegion3BossEncounter =>
         currentRegion3BossEncounter;
+    public MiniTrader CurrentMiniTrader => currentMiniTrader;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     public bool TryPrepareCoreForDebug(out CoreObject core)
     {
         core = null;
 
+        ExpeditionDepth depth = ResolveCurrentDepth();
+        if (depth != ExpeditionDepth.Normal &&
+            depth != ExpeditionDepth.DeepZone1 &&
+            depth != ExpeditionDepth.FinalNetwork)
+        {
+            return false;
+        }
+
         for (int i = 0; i < spawnedCoreObjects.Count; i++)
         {
             CoreObject candidate = spawnedCoreObjects[i];
 
-            if (candidate == null || candidate.IsActivated)
+            if (candidate == null)
             {
                 continue;
             }
@@ -487,6 +593,23 @@ public class ExpeditionMapGenerator : MonoBehaviour
         hasLargeZoneDebugCandidateBounds = false;
         currentRegion2BossCorridorRuntime = null;
         currentRegion3BossEncounter = null;
+        currentMiniTrader = null;
+        currentMiniTraderReservationBounds = default;
+        currentRegion3ReflectorLayoutPattern = Region3ReflectorLayoutPattern.None;
+        Array.Clear(currentRegion3Reflectors, 0, currentRegion3Reflectors.Length);
+        Array.Clear(
+            currentRegion3ReflectorPositions,
+            0,
+            currentRegion3ReflectorPositions.Length
+        );
+        currentRegion3ReflectorCandidateCount = 0;
+        currentRegion3ReflectorSpawnedCount = 0;
+        currentRegion3ReflectorCount = 0;
+        currentRegion3ConfiguredReflectorCount = 0;
+        currentRegion3EncounterConfigured = false;
+        currentRegion3BossPosition = Vector2.zero;
+        currentRegion3FoundationFailed = false;
+        currentRegion3LayoutAttemptDescription = string.Empty;
         startPosition = ResolveStartPosition();
 
         if (movePlayerToStart && player != null)
@@ -495,6 +618,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
         }
 
         occupiedPositions.Add(startPosition);
+
+        if (IsRegion3PhaseGatekeeperMap())
+        {
+            ReserveRegion3PlayerStart();
+        }
 
         SyncBackgroundGenerator();
 
@@ -507,6 +635,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         ValidateRegion2BossCorridorGeneration();
         ValidateRegion3BossFoundationGeneration();
+        ValidateMiniTraderGeneration();
 #endif
 
         if (logGenerationResult)
@@ -573,6 +702,14 @@ public class ExpeditionMapGenerator : MonoBehaviour
         if (mapSize.x <= 0f || mapSize.y <= 0f)
         {
             mapSize = CampaignProgressionCatalog.GetDefaultMapSize(depth);
+        }
+
+        if (IsRegion3PhaseGatekeeperMap())
+        {
+            mapSize = new Vector2(
+                Mathf.Max(64f, region3BossFocusedMapSize.x),
+                Mathf.Max(64f, region3BossFocusedMapSize.y)
+            );
         }
 
         MapBounds = new Bounds(
@@ -653,12 +790,139 @@ public class ExpeditionMapGenerator : MonoBehaviour
     }
     private Vector2 ResolveStartPosition()
     {
+        if (IsRegion3PhaseGatekeeperMap())
+        {
+            return ResolveRegion3StartPosition();
+        }
+
         if (startPoint != null)
         {
             return ClampToBounds(startPoint.position, CameraSafeBounds);
         }
 
         return ClampToBounds(fallbackStartPosition, CameraSafeBounds);
+    }
+
+    private Vector2 ResolveRegion3StartPosition()
+    {
+        currentRegion3StartSector = (Region3StartSector)UnityEngine.Random.Range(0, 8);
+        int attempts = Mathf.Clamp(region3StartCandidateAttempts, 1, 24);
+
+        for (int attempt = 0; attempt < attempts; attempt++)
+        {
+            Vector2 candidate = CreateRegion3StartCandidate(currentRegion3StartSector, false);
+            if (IsRegion3StartCandidateValid(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        Vector2 fallback = CreateRegion3StartCandidate(currentRegion3StartSector, true);
+        if (IsRegion3StartCandidateValid(fallback))
+        {
+            return fallback;
+        }
+
+        Debug.LogWarning(
+            $"Region-3 start sector {currentRegion3StartSector} had no clear candidate after " +
+            $"{attempts} bounded attempts. The sector-center fallback is still inside CameraSafeBounds.",
+            this
+        );
+        return fallback;
+    }
+
+    private Vector2 CreateRegion3StartCandidate(Region3StartSector sector, bool centered)
+    {
+        Vector3 boundsMin = CameraSafeBounds.min;
+        Vector3 boundsMax = CameraSafeBounds.max;
+        Vector2 center = CameraSafeBounds.center;
+        Vector2 extents = CameraSafeBounds.extents;
+        float minimumInset = Mathf.Max(0f, Mathf.Min(
+            region3StartEdgeInsetRange.x,
+            region3StartEdgeInsetRange.y
+        ));
+        float maximumInset = Mathf.Max(minimumInset, Mathf.Max(
+            region3StartEdgeInsetRange.x,
+            region3StartEdgeInsetRange.y
+        ));
+        float insetX = centered
+            ? (minimumInset + maximumInset) * 0.5f
+            : UnityEngine.Random.Range(minimumInset, maximumInset);
+        float insetY = centered
+            ? (minimumInset + maximumInset) * 0.5f
+            : UnityEngine.Random.Range(minimumInset, maximumInset);
+        float lateralX = centered
+            ? 0f
+            : UnityEngine.Random.Range(-extents.x, extents.x) * region3CardinalSectorHalfSpan;
+        float lateralY = centered
+            ? 0f
+            : UnityEngine.Random.Range(-extents.y, extents.y) * region3CardinalSectorHalfSpan;
+        Vector2 candidate;
+
+        switch (sector)
+        {
+            case Region3StartSector.North:
+                candidate = new Vector2(center.x + lateralX, boundsMax.y - insetY);
+                break;
+            case Region3StartSector.NorthEast:
+                candidate = new Vector2(boundsMax.x - insetX, boundsMax.y - insetY);
+                break;
+            case Region3StartSector.East:
+                candidate = new Vector2(boundsMax.x - insetX, center.y + lateralY);
+                break;
+            case Region3StartSector.SouthEast:
+                candidate = new Vector2(boundsMax.x - insetX, boundsMin.y + insetY);
+                break;
+            case Region3StartSector.South:
+                candidate = new Vector2(center.x + lateralX, boundsMin.y + insetY);
+                break;
+            case Region3StartSector.SouthWest:
+                candidate = new Vector2(boundsMin.x + insetX, boundsMin.y + insetY);
+                break;
+            case Region3StartSector.West:
+                candidate = new Vector2(boundsMin.x + insetX, center.y + lateralY);
+                break;
+            default:
+                candidate = new Vector2(boundsMin.x + insetX, boundsMax.y - insetY);
+                break;
+        }
+
+        return ClampToInsetBounds(
+            candidate,
+            CameraSafeBounds,
+            Mathf.Max(0.1f, region3StartBlockingRadius)
+        );
+    }
+
+    private bool IsRegion3StartCandidateValid(Vector2 candidate)
+    {
+        if (!CameraSafeBounds.Contains(candidate))
+        {
+            return false;
+        }
+
+        if (IsPointBlockedByReservedPlacement(
+                candidate,
+                Mathf.Max(0.1f, region3StartBlockingRadius)))
+        {
+            return false;
+        }
+
+        return !useBlockedLayerCheck ||
+               Physics2D.OverlapCircle(
+                   candidate,
+                   Mathf.Max(0.1f, region3StartBlockingRadius),
+                   blockedLayer
+               ) == null;
+    }
+
+    private void ReserveRegion3PlayerStart()
+    {
+        float diameter = Mathf.Max(0.2f, region3StartBlockingRadius * 2f);
+        ReservePlacementBounds(new Bounds(
+            startPosition,
+            new Vector3(diameter, diameter, 0f)
+        ));
     }
 
     private Bounds ResolveCameraSafeBounds(Vector2 sourceMapSize)
@@ -703,15 +967,22 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private void PlaceImportantObjects()
     {
+        ExpeditionDepth depth = ResolveCurrentDepth();
         int fieldBaseCount = config != null ? config.FieldBaseCount : 2;
         int shopCount = config != null ? config.ShopCount : 2;
         int eventCount = config != null ? config.EventCount : 2;
         int coreCount = config != null ? config.CoreCount : 1;
 
+        if (depth == ExpeditionDepth.DeepZone1 || depth == ExpeditionDepth.DeepZone2)
+        {
+            shopCount = 0;
+        }
+
         if (IsRegion3PhaseGatekeeperMap())
         {
             fieldBaseCount = 0;
             shopCount = 0;
+            eventCount = 0;
             coreCount = 0;
             PlaceRegion3BossFoundation();
         }
@@ -721,6 +992,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
         PlaceFieldBaseBatch(fieldBaseCount);
         PlaceShopZoneBatch(shopCount);
         ConfigureGeneratedBasePortalDestinations();
+
+        if (depth == ExpeditionDepth.DeepZone1)
+        {
+            PlaceMiniTrader();
+        }
 
         PlacePrefabBatch(
             eventPrefabs,
@@ -733,7 +1009,9 @@ public class ExpeditionMapGenerator : MonoBehaviour
             MapSpawnCategory.None
         );
 
-        int fieldNpcCount = config != null ? config.FieldNpcCount : 2;
+        int fieldNpcCount = IsRegion3PhaseGatekeeperMap()
+            ? 0
+            : config != null ? config.FieldNpcCount : 2;
         PlaceFieldNpcBatch(fieldNpcCount);
     }
 
@@ -741,29 +1019,170 @@ public class ExpeditionMapGenerator : MonoBehaviour
     {
         if (region3BossEncounterPrefab == null || region3ReflectorPlatePrefab == null)
         {
-            Debug.LogError(
+            FailRegion3BossFoundation(
                 "Region-3 Boss foundation requires both the Phase Gatekeeper Boss " +
                 "and reflector plate prefabs.",
-                this
+                null,
+                null
             );
             return;
         }
 
         Vector2 bossPosition = ResolveRegion3BossPosition();
+        float minimumBossDistance = ResolveRegion3BossMinimumStartClearance();
+        if ((bossPosition - startPosition).sqrMagnitude < minimumBossDistance * minimumBossDistance)
+        {
+            FailRegion3BossFoundation(
+                $"Region-3 Boss placement could not preserve the compact-map " +
+                $"{minimumBossDistance:0.##}-unit Player separation. " +
+                $"StartSector={currentRegion3StartSector}, Player={startPosition}, " +
+                $"Boss={bossPosition}, Bounds={CameraSafeBounds}.",
+                null,
+                null
+            );
+            return;
+        }
+
+        Region3ReflectorLayoutPattern requestedPattern =
+            SelectRegion3ReflectorLayoutPattern();
+        Region3ReflectorLayoutPattern actualPattern = requestedPattern;
+        int plateCount = Region3ReflectorCount;
+        PhaseReflectorPlate[] plates = new PhaseReflectorPlate[plateCount];
+        Vector2[] platePositions = new Vector2[plateCount];
+        float[] plateRotations = new float[plateCount];
+        string proceduralFailureReason = string.Empty;
+        bool proceduralLayoutBuilt = TryBuildRegion3ReflectorLayout(
+            requestedPattern,
+            bossPosition,
+            platePositions,
+            plateRotations,
+            plateCount
+        );
+        if (!proceduralLayoutBuilt)
+        {
+            proceduralFailureReason =
+                $"bounded template attempts exhausted ({currentRegion3LayoutAttemptDescription})";
+        }
+
+        if (!proceduralLayoutBuilt ||
+            !TryValidateRegion3ReflectorFoundationGeometry(
+                platePositions,
+                plateCount,
+                bossPosition,
+                out proceduralFailureReason))
+        {
+            actualPattern = Region3ReflectorLayoutPattern.CompactPerimeterFallback;
+
+            if (!TryBuildDeterministicCompactRegion3Foundation(
+                    bossPosition,
+                    platePositions,
+                    plateRotations,
+                    plateCount,
+                    out string fallbackFailureReason))
+            {
+                FailRegion3BossFoundation(
+                    $"Region-3 compact reflector foundation failed. Requested={requestedPattern}, " +
+                    $"Required={plateCount}, ProceduralFailure={proceduralFailureReason}, " +
+                    $"FallbackFailure={fallbackFailureReason}, " +
+                    $"StartSector={currentRegion3StartSector}, Player={startPosition}, " +
+                    $"Boss={bossPosition}, BoundsCenter={(Vector2)CameraSafeBounds.center}, " +
+                    $"BoundsExtents={(Vector2)CameraSafeBounds.extents}, " +
+                    $"Attempt={currentRegion3LayoutAttemptDescription}.",
+                    null,
+                    plates
+                );
+                return;
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning(
+                $"Region-3 reflector template {requestedPattern} was rejected " +
+                $"({proceduralFailureReason}); deterministic compact perimeter fallback used.",
+                this
+            );
+#endif
+        }
+
+        currentRegion3ReflectorCandidateCount = plateCount;
+        for (int i = 0; i < plateCount; i++)
+        {
+            Vector2 position = platePositions[i];
+            float plateRotation = plateRotations[i];
+            GameObject plateObject = Spawn(
+                region3ReflectorPlatePrefab.gameObject,
+                position,
+                $"PhaseReflectorPlate_{i:00}",
+                Quaternion.Euler(0f, 0f, plateRotation)
+            );
+
+            if (plateObject != null)
+            {
+                currentRegion3ReflectorSpawnedCount++;
+            }
+
+            if (plateObject == null ||
+                !plateObject.TryGetComponent(out PhaseReflectorPlate plate))
+            {
+                if (plateObject != null)
+                {
+                    DestroyGeneratedInstance(plateObject);
+                }
+
+                FailRegion3BossFoundation(
+                    $"Region-3 reflector spawn failed transactionally at index {i}. " +
+                    $"Template={actualPattern}, Required={plateCount}, " +
+                    $"Spawned={currentRegion3ReflectorSpawnedCount}.",
+                    null,
+                    plates
+                );
+                return;
+            }
+
+            plate.Configure(position, plateRotation, region3ReflectorPlateLength);
+            plates[i] = plate;
+        }
+
         GameObject bossObject = Spawn(
             region3BossEncounterPrefab.gameObject,
             bossPosition,
             "Boss_PhaseGatekeeper"
         );
+        PhaseGatekeeperBossController bossController = null;
+        bool hasPhaseGatekeeperController = bossObject != null &&
+            bossObject.TryGetComponent(out bossController);
 
-        if (bossObject == null ||
-            !bossObject.TryGetComponent(out PhaseGatekeeperBossController bossController))
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        BossPatternController region1BossController = bossObject != null
+            ? bossObject.GetComponent<BossPatternController>()
+            : null;
+        ExpeditionDepth depth = ResolveCurrentDepth();
+        CampaignBossId bossId = CampaignProgressionCatalog.GetBossId(depth);
+
+        Debug.Log(
+            "[Region3 Boss Spawn] " +
+            $"Depth={depth} BossId={bossId} " +
+            $"Object={(bossObject != null ? bossObject.name : "null")} " +
+            $"PhaseGatekeeper={hasPhaseGatekeeperController} " +
+            $"Region1Controller={region1BossController != null} " +
+            $"InstanceId={(bossObject != null ? bossObject.GetInstanceID() : 0)}",
+            bossObject != null ? bossObject : this
+        );
+#endif
+
+        if (!hasPhaseGatekeeperController)
         {
-            Debug.LogError("Region-3 Phase Gatekeeper Boss failed to spawn.", this);
+            FailRegion3BossFoundation(
+                "Region-3 Phase Gatekeeper Boss failed to spawn after its reflector " +
+                "foundation had been validated.",
+                bossObject,
+                plates
+            );
             return;
         }
 
+        currentRegion3BossPosition = bossPosition;
         currentRegion3BossEncounter = bossController;
+        currentRegion3ReflectorLayoutPattern = actualPattern;
         occupiedPositions.Add(bossPosition);
         importantPositions.Add(bossPosition);
         ReservePlacementBounds(new Bounds(
@@ -775,105 +1194,940 @@ public class ExpeditionMapGenerator : MonoBehaviour
             )
         ));
 
-        int plateCount = Mathf.Clamp(region3ReflectorPlateCount, 4, 12);
-        PhaseReflectorPlate[] plates = new PhaseReflectorPlate[plateCount];
-        Vector2 center = CameraSafeBounds.center;
-        Vector2 radius = new Vector2(
-            Mathf.Max(8f, CameraSafeBounds.extents.x * 0.64f),
-            Mathf.Max(8f, CameraSafeBounds.extents.y * 0.64f)
-        );
-        Vector2[] platePositions = new Vector2[plateCount];
-
+        float reservationSize = ResolveRegion3ReflectorReservationSize();
         for (int i = 0; i < plateCount; i++)
         {
-            float ringAngle = 22.5f + 360f * i / plateCount;
-            float radians = ringAngle * Mathf.Deg2Rad;
-            Vector2 position = center + new Vector2(
-                Mathf.Cos(radians) * radius.x,
-                Mathf.Sin(radians) * radius.y
-            );
-            platePositions[i] = ClampToBounds(position, CameraSafeBounds);
-        }
-
-        for (int i = 0; i < plateCount; i++)
-        {
-            Vector2 position = platePositions[i];
-            float plateRotation = ResolveRegion3ReflectorRotation(i, plateCount);
-            GameObject plateObject = Spawn(
-                region3ReflectorPlatePrefab.gameObject,
-                position,
-                $"PhaseReflectorPlate_{i:00}",
-                Quaternion.Euler(0f, 0f, plateRotation)
-            );
-
-            if (plateObject == null ||
-                !plateObject.TryGetComponent(out PhaseReflectorPlate plate))
-            {
-                continue;
-            }
-
-            plate.Configure(position, plateRotation, region3ReflectorPlateLength);
-            plates[i] = plate;
+            PhaseReflectorPlate plate = plates[i];
+            Vector2 position = plate.transform.position;
+            currentRegion3Reflectors[i] = plate;
+            currentRegion3ReflectorPositions[i] = position;
             occupiedPositions.Add(position);
-            importantPositions.Add(position);
-            float reservationSize = Mathf.Max(1f, region3ReflectorPlateLength + 1.5f);
             ReservePlacementBounds(new Bounds(
                 position,
                 new Vector3(reservationSize, reservationSize, 0f)
             ));
         }
 
-        bossController.ConfigureEncounter(MapBounds, bossPosition, plates);
+        currentRegion3ReflectorCount = plateCount;
+        bossController.ConfigureEncounter(
+            MapBounds,
+            CameraSafeBounds,
+            bossPosition,
+            plates
+        );
+        currentRegion3ConfiguredReflectorCount = plateCount;
+        currentRegion3EncounterConfigured = true;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (logGenerationResult)
+        {
+            Debug.Log(
+                $"Region-3 layout: start sector {currentRegion3StartSector}, " +
+                $"reflector template {currentRegion3ReflectorLayoutPattern}, " +
+                $"plates {currentRegion3ReflectorCount}/{plateCount}.",
+                this
+            );
+        }
+#endif
     }
 
-    private static float ResolveRegion3ReflectorRotation(int index, int plateCount)
+    private Region3ReflectorLayoutPattern SelectRegion3ReflectorLayoutPattern()
     {
-        float ringAngle = plateCount > 0
-            ? 22.5f + 360f * index / plateCount
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (debugForcedRegion3ReflectorTemplate >= 0)
+        {
+            return (Region3ReflectorLayoutPattern)Mathf.Clamp(
+                debugForcedRegion3ReflectorTemplate,
+                0,
+                Region3ReflectorLayoutPatternCount - 1
+            );
+        }
+#endif
+
+        return (Region3ReflectorLayoutPattern)UnityEngine.Random.Range(
+            0,
+            Region3ReflectorLayoutPatternCount
+        );
+    }
+
+    private bool TryBuildRegion3ReflectorLayout(
+        Region3ReflectorLayoutPattern pattern,
+        Vector2 bossPosition,
+        Vector2[] positions,
+        float[] rotations,
+        int plateCount)
+    {
+        int attempts = Mathf.Clamp(region3ReflectorLayoutAttempts, 1, 32);
+        float reservationSize = ResolveRegion3ReflectorReservationSize();
+        float footprintRadius = reservationSize * 0.5f;
+        Vector2 layoutExtents = new Vector2(
+            Mathf.Max(7f, CameraSafeBounds.extents.x - footprintRadius),
+            Mathf.Max(7f, CameraSafeBounds.extents.y - footprintRadius)
+        );
+        float layoutRotationSeed = UnityEngine.Random.Range(0f, 360f);
+
+        for (int attempt = 0; attempt < attempts; attempt++)
+        {
+            Vector2 layoutCenter = ResolveRegion3ReflectorLayoutCenter(pattern);
+            float layoutRotation = ResolveRegion3ReflectorLayoutRotation(
+                pattern,
+                attempt,
+                attempts,
+                layoutRotationSeed
+            );
+            currentRegion3LayoutAttemptDescription =
+                $"Template={pattern}, Attempt={attempt + 1}/{attempts}, " +
+                $"Center={layoutCenter}, Rotation={layoutRotation:0.##}";
+            bool valid = true;
+
+            for (int i = 0; i < plateCount; i++)
+            {
+                Vector2 normalizedOffset = ResolveRegion3ReflectorTemplateOffset(
+                    pattern,
+                    i,
+                    plateCount
+                );
+                Vector2 rotatedNormalizedOffset = RotateVector(
+                    normalizedOffset,
+                    layoutRotation
+                );
+                Vector2 rotatedOffset = new Vector2(
+                    rotatedNormalizedOffset.x * layoutExtents.x,
+                    rotatedNormalizedOffset.y * layoutExtents.y
+                );
+                float polarAngle = Mathf.Atan2(rotatedOffset.y, rotatedOffset.x) *
+                    Mathf.Rad2Deg;
+                float maximumRotationJitter = Mathf.Clamp(
+                    region3ReflectorRotationJitter,
+                    0f,
+                    12f
+                );
+                bool candidateFound = false;
+
+                for (int jitterAttempt = 0; jitterAttempt < 8; jitterAttempt++)
+                {
+                    Vector2 jitter = UnityEngine.Random.insideUnitCircle *
+                        Mathf.Clamp(region3ReflectorPositionJitter, 0f, 2f);
+                    Vector2 position = ClampToInsetBounds(
+                        layoutCenter + rotatedOffset + jitter,
+                        CameraSafeBounds,
+                        footprintRadius
+                    );
+                    float rotation = polarAngle + 38f +
+                        (i % 2 == 0 ? 8f : -8f) +
+                        UnityEngine.Random.Range(
+                            -maximumRotationJitter,
+                            maximumRotationJitter
+                        );
+
+                    if (!IsRegion3ReflectorCandidateValid(
+                            position,
+                            rotation,
+                            bossPosition,
+                            positions,
+                            i,
+                            reservationSize,
+                            footprintRadius))
+                    {
+                        continue;
+                    }
+
+                    positions[i] = position;
+                    rotations[i] = rotation;
+                    candidateFound = true;
+                    break;
+                }
+
+                if (!candidateFound)
+                {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (valid)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryBuildDeterministicCompactRegion3Foundation(
+        Vector2 bossPosition,
+        Vector2[] positions,
+        float[] rotations,
+        int plateCount,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (positions == null || rotations == null ||
+            plateCount != Region3ReflectorCount ||
+            positions.Length < plateCount || rotations.Length < plateCount)
+        {
+            failureReason = "fallback buffers do not match the required 12 plates";
+            return false;
+        }
+
+        float reservationSize = ResolveRegion3ReflectorReservationSize();
+        float footprintRadius = reservationSize * 0.5f;
+        Vector2 usableExtents = new Vector2(
+            Mathf.Max(7f, CameraSafeBounds.extents.x - footprintRadius),
+            Mathf.Max(7f, CameraSafeBounds.extents.y - footprintRadius)
+        );
+
+        Vector2 awayFromPlayer = (Vector2)CameraSafeBounds.center - startPosition;
+        if (awayFromPlayer.sqrMagnitude > 0.0001f)
+        {
+            awayFromPlayer.Normalize();
+        }
+
+        Vector2 perpendicular = new Vector2(-awayFromPlayer.y, awayFromPlayer.x);
+        for (int layoutAttempt = 0; layoutAttempt < 12; layoutAttempt++)
+        {
+            int scaleAttempt = layoutAttempt % 3;
+            int centerVariant = layoutAttempt / 3;
+            float scale = scaleAttempt == 0
+                ? Region3CompactFallbackScale
+                : scaleAttempt == 1 ? 0.62f : 0.74f;
+            Vector2 layoutExtents = usableExtents * scale;
+            Vector2 layoutCenter = CameraSafeBounds.center;
+            if (centerVariant == 1)
+            {
+                layoutCenter += awayFromPlayer * 2.5f;
+            }
+            else if (centerVariant == 2)
+            {
+                layoutCenter += perpendicular * 2.5f;
+            }
+            else if (centerVariant == 3)
+            {
+                layoutCenter -= perpendicular * 2.5f;
+            }
+            currentRegion3LayoutAttemptDescription =
+                $"Template=CompactPerimeterFallback, Scale={scale:0.##}, " +
+                $"Center={layoutCenter}, Rotation=0";
+            int availableMask = 0;
+
+            for (int i = 0; i < Region3CompactFallbackCandidateCount; i++)
+            {
+                Vector2 offset = ResolveCompactPerimeterCandidate(i, layoutExtents);
+                Vector2 position = layoutCenter + offset;
+                float angle = Mathf.Atan2(offset.y, offset.x) * Mathf.Rad2Deg;
+                float rotation = angle + 90f + (i % 2 == 0 ? 6f : -6f);
+                region3CompactFallbackPositions[i] = position;
+                region3CompactFallbackRotations[i] = rotation;
+                region3CompactFallbackAvailable[i] =
+                    IsRegion3ReflectorCandidateValid(
+                        position,
+                        rotation,
+                        bossPosition,
+                        positions,
+                        0,
+                        reservationSize,
+                        footprintRadius
+                    );
+                if (region3CompactFallbackAvailable[i])
+                {
+                    availableMask |= 1 << i;
+                }
+            }
+
+            int bestSelectionMask = -1;
+            float bestSelectionScore = float.NegativeInfinity;
+            int fullSelectionMask = (1 << Region3CompactFallbackCandidateCount) - 1;
+            for (int omittedA = 0;
+                 omittedA < Region3CompactFallbackCandidateCount - 3;
+                 omittedA++)
+            {
+                for (int omittedB = omittedA + 1;
+                     omittedB < Region3CompactFallbackCandidateCount - 2;
+                     omittedB++)
+                {
+                    for (int omittedC = omittedB + 1;
+                         omittedC < Region3CompactFallbackCandidateCount - 1;
+                         omittedC++)
+                    {
+                        for (int omittedD = omittedC + 1;
+                             omittedD < Region3CompactFallbackCandidateCount;
+                             omittedD++)
+                        {
+                            int omittedMask = (1 << omittedA) | (1 << omittedB) |
+                                (1 << omittedC) | (1 << omittedD);
+                            int selectionMask = fullSelectionMask & ~omittedMask;
+                            EvaluateCompactSelection(
+                                selectionMask,
+                                availableMask,
+                                bossPosition,
+                                ref bestSelectionMask,
+                                ref bestSelectionScore
+                            );
+                        }
+                    }
+                }
+            }
+
+            int selectedCount = 0;
+            for (int i = 0;
+                 i < Region3CompactFallbackCandidateCount && bestSelectionMask >= 0;
+                 i++)
+            {
+                if ((bestSelectionMask & (1 << i)) == 0)
+                {
+                    continue;
+                }
+
+                positions[selectedCount] = region3CompactFallbackPositions[i];
+                rotations[selectedCount] = region3CompactFallbackRotations[i];
+                selectedCount++;
+            }
+
+            if (selectedCount == plateCount &&
+                TryValidateRegion3ReflectorFoundationGeometry(
+                    positions,
+                    plateCount,
+                    bossPosition,
+                    out failureReason))
+            {
+                return true;
+            }
+        }
+
+        if (string.IsNullOrEmpty(failureReason))
+        {
+            failureReason = "deterministic perimeter had fewer than 12 valid slots";
+        }
+
+        return false;
+    }
+
+    private void EvaluateCompactSelection(
+        int selectionMask,
+        int availableMask,
+        Vector2 bossPosition,
+        ref int bestSelectionMask,
+        ref float bestSelectionScore)
+    {
+        if ((selectionMask & ~availableMask) != 0 ||
+            !IsCompactSelectionWellDistributed(selectionMask))
+        {
+            return;
+        }
+
+        float score = 0f;
+        for (int i = 0; i < Region3CompactFallbackCandidateCount; i++)
+        {
+            if ((selectionMask & (1 << i)) == 0)
+            {
+                continue;
+            }
+
+            Vector2 candidate = region3CompactFallbackPositions[i];
+            score += (candidate - startPosition).sqrMagnitude +
+                (candidate - bossPosition).sqrMagnitude * 0.1f;
+        }
+
+        if (score > bestSelectionScore)
+        {
+            bestSelectionScore = score;
+            bestSelectionMask = selectionMask;
+        }
+    }
+
+    private bool IsCompactSelectionWellDistributed(int selectionMask)
+    {
+        float minimumSpacingSqr = ResolveRegion3ReflectorMinimumSpacing();
+        minimumSpacingSqr *= minimumSpacingSqr;
+        float minimumX = float.PositiveInfinity;
+        float maximumX = float.NegativeInfinity;
+        float minimumY = float.PositiveInfinity;
+        float maximumY = float.NegativeInfinity;
+        int quadrantMask = 0;
+        Vector2 center = CameraSafeBounds.center;
+
+        for (int i = 0; i < Region3CompactFallbackCandidateCount; i++)
+        {
+            if ((selectionMask & (1 << i)) == 0)
+            {
+                continue;
+            }
+
+            Vector2 position = region3CompactFallbackPositions[i];
+            minimumX = Mathf.Min(minimumX, position.x);
+            maximumX = Mathf.Max(maximumX, position.x);
+            minimumY = Mathf.Min(minimumY, position.y);
+            maximumY = Mathf.Max(maximumY, position.y);
+            Vector2 relative = position - center;
+            int quadrant = relative.x >= 0f
+                ? (relative.y >= 0f ? 0 : 3)
+                : (relative.y >= 0f ? 1 : 2);
+            quadrantMask |= 1 << quadrant;
+
+            for (int other = 0; other < i; other++)
+            {
+                if ((selectionMask & (1 << other)) != 0 &&
+                    (position - region3CompactFallbackPositions[other]).sqrMagnitude <
+                    minimumSpacingSqr)
+                {
+                    return false;
+                }
+            }
+        }
+
+        float normalizedSpanX = (maximumX - minimumX) / CameraSafeBounds.size.x;
+        float normalizedSpanY = (maximumY - minimumY) / CameraSafeBounds.size.y;
+        return quadrantMask == 0x0F &&
+            normalizedSpanX >= Region3MinimumNormalizedSpan &&
+            normalizedSpanY >= Region3MinimumNormalizedSpan;
+    }
+
+    private static Vector2 ResolveCompactPerimeterCandidate(
+        int index,
+        Vector2 extents)
+    {
+        int wrappedIndex = ((index % Region3CompactFallbackCandidateCount) +
+            Region3CompactFallbackCandidateCount) % Region3CompactFallbackCandidateCount;
+        int side = wrappedIndex / 4;
+        float t = (wrappedIndex % 4) * 0.25f;
+
+        switch (side)
+        {
+            case 0:
+                return new Vector2(Mathf.Lerp(-extents.x, extents.x, t), extents.y);
+            case 1:
+                return new Vector2(extents.x, Mathf.Lerp(extents.y, -extents.y, t));
+            case 2:
+                return new Vector2(Mathf.Lerp(extents.x, -extents.x, t), -extents.y);
+            default:
+                return new Vector2(-extents.x, Mathf.Lerp(-extents.y, extents.y, t));
+        }
+    }
+
+    private bool TryValidateRegion3ReflectorFoundationGeometry(
+        Vector2[] positions,
+        int count,
+        Vector2 bossPosition,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (positions == null || count != Region3ReflectorCount || positions.Length < count)
+        {
+            failureReason = $"expected {Region3ReflectorCount} reflector positions, got {count}";
+            return false;
+        }
+
+        float reservationSize = ResolveRegion3ReflectorReservationSize();
+        float footprintRadius = reservationSize * 0.5f;
+        float playerClearance = ResolveRegion3ReflectorPlayerClearance();
+        float bossClearance = ResolveRegion3ReflectorBossClearance();
+        float minimumSpacing = ResolveRegion3ReflectorMinimumSpacing();
+        float minimumSpacingSqr = minimumSpacing * minimumSpacing;
+        float minimumX = float.PositiveInfinity;
+        float maximumX = float.NegativeInfinity;
+        float minimumY = float.PositiveInfinity;
+        float maximumY = float.NegativeInfinity;
+        int quadrantMask = 0;
+        Vector2 center = CameraSafeBounds.center;
+
+        for (int i = 0; i < count; i++)
+        {
+            Vector2 position = positions[i];
+            if (position.x < CameraSafeBounds.min.x + footprintRadius ||
+                position.x > CameraSafeBounds.max.x - footprintRadius ||
+                position.y < CameraSafeBounds.min.y + footprintRadius ||
+                position.y > CameraSafeBounds.max.y - footprintRadius)
+            {
+                failureReason = $"reflector {i} at {position} is outside footprint-safe bounds";
+                return false;
+            }
+
+            if ((position - startPosition).sqrMagnitude < playerClearance * playerClearance)
+            {
+                failureReason = $"reflector {i} violates Player clearance {playerClearance:0.##}";
+                return false;
+            }
+
+            if ((position - bossPosition).sqrMagnitude < bossClearance * bossClearance)
+            {
+                failureReason = $"reflector {i} violates Boss clearance {bossClearance:0.##}";
+                return false;
+            }
+
+            for (int other = 0; other < i; other++)
+            {
+                if ((position - positions[other]).sqrMagnitude < minimumSpacingSqr)
+                {
+                    failureReason = $"reflectors {other}/{i} violate spacing {minimumSpacing:0.##}";
+                    return false;
+                }
+            }
+
+            minimumX = Mathf.Min(minimumX, position.x);
+            maximumX = Mathf.Max(maximumX, position.x);
+            minimumY = Mathf.Min(minimumY, position.y);
+            maximumY = Mathf.Max(maximumY, position.y);
+            Vector2 relative = position - center;
+            int quadrant = relative.x >= 0f
+                ? (relative.y >= 0f ? 0 : 3)
+                : (relative.y >= 0f ? 1 : 2);
+            quadrantMask |= 1 << quadrant;
+        }
+
+        float normalizedSpanX = CameraSafeBounds.size.x > 0.0001f
+            ? (maximumX - minimumX) / CameraSafeBounds.size.x
             : 0f;
-        return ringAngle + 38f + (index % 2 == 0 ? 8f : -8f);
+        float normalizedSpanY = CameraSafeBounds.size.y > 0.0001f
+            ? (maximumY - minimumY) / CameraSafeBounds.size.y
+            : 0f;
+        if (normalizedSpanX < Region3MinimumNormalizedSpan ||
+            normalizedSpanY < Region3MinimumNormalizedSpan)
+        {
+            failureReason = $"layout span {normalizedSpanX:0.###}x{normalizedSpanY:0.###} " +
+                $"is below {Region3MinimumNormalizedSpan:0.##}";
+            return false;
+        }
+
+        int coveredQuadrants = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            if ((quadrantMask & (1 << i)) != 0)
+            {
+                coveredQuadrants++;
+            }
+        }
+
+        if (coveredQuadrants < Region3RequiredQuadrantCount)
+        {
+            failureReason = $"layout covers only {coveredQuadrants}/4 quadrants";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void FailRegion3BossFoundation(
+        string reason,
+        GameObject bossObject,
+        PhaseReflectorPlate[] plates)
+    {
+        if (!currentRegion3FoundationFailed)
+        {
+            currentRegion3FoundationFailed = true;
+            Debug.LogError(reason ?? "Unknown Region-3 foundation failure.", this);
+        }
+
+        AbortRegion3BossFoundation(bossObject, plates);
+    }
+
+    private void AbortRegion3BossFoundation(
+        GameObject bossObject,
+        PhaseReflectorPlate[] plates)
+    {
+        if (plates != null)
+        {
+            for (int i = 0; i < plates.Length; i++)
+            {
+                PhaseReflectorPlate plate = plates[i];
+                if (plate == null)
+                {
+                    continue;
+                }
+
+                plate.SetGameplayEnabled(false);
+                DestroyGeneratedInstance(plate.gameObject);
+            }
+        }
+
+        if (bossObject != null)
+        {
+            bossObject.SetActive(false);
+            DestroyGeneratedInstance(bossObject);
+        }
+
+        currentRegion3BossEncounter = null;
+        currentRegion3EncounterConfigured = false;
+        currentRegion3ReflectorCandidateCount = 0;
+        currentRegion3ReflectorSpawnedCount = 0;
+        currentRegion3ReflectorCount = 0;
+        currentRegion3ConfiguredReflectorCount = 0;
+        currentRegion3ReflectorLayoutPattern = Region3ReflectorLayoutPattern.None;
+        currentRegion3BossPosition = Vector2.zero;
+        Array.Clear(currentRegion3Reflectors, 0, currentRegion3Reflectors.Length);
+        Array.Clear(
+            currentRegion3ReflectorPositions,
+            0,
+            currentRegion3ReflectorPositions.Length
+        );
+    }
+
+    private static void DestroyGeneratedInstance(GameObject instance)
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.SetActive(false);
+
+        if (Application.isPlaying)
+        {
+            Destroy(instance);
+        }
+        else
+        {
+            DestroyImmediate(instance);
+        }
+    }
+
+    private Vector2 ResolveRegion3ReflectorLayoutCenter(
+        Region3ReflectorLayoutPattern pattern)
+    {
+        Vector2 center = CameraSafeBounds.center;
+        Vector2 awayFromStart = center - startPosition;
+        if (awayFromStart.sqrMagnitude <= 0.0001f)
+        {
+            return center;
+        }
+
+        if (pattern == Region3ReflectorLayoutPattern.OuterRing)
+        {
+            float boundedShift = Mathf.Min(
+                3.5f,
+                Mathf.Min(CameraSafeBounds.extents.x, CameraSafeBounds.extents.y) * 0.08f
+            );
+            Vector2 perpendicular = new Vector2(-awayFromStart.y, awayFromStart.x).normalized;
+            return center + awayFromStart.normalized * boundedShift +
+                perpendicular * UnityEngine.Random.Range(-2f, 2f);
+        }
+
+        if (pattern == Region3ReflectorLayoutPattern.SplitArcs)
+        {
+            float boundedShift = Mathf.Min(
+                2.5f,
+                Mathf.Min(CameraSafeBounds.extents.x, CameraSafeBounds.extents.y) * 0.06f
+            );
+            return center + awayFromStart.normalized * boundedShift;
+        }
+
+        return center;
+    }
+
+    private float ResolveRegion3ReflectorLayoutRotation(
+        Region3ReflectorLayoutPattern pattern,
+        int attempt,
+        int attemptCount,
+        float rotationSeed)
+    {
+        if (pattern == Region3ReflectorLayoutPattern.OuterRing)
+        {
+            float symmetricStep = 45f / Mathf.Max(1, attemptCount);
+            return rotationSeed + attempt * symmetricStep;
+        }
+
+        float variation = Mathf.Clamp(
+            region3ReflectorLayoutRotationVariation,
+            0f,
+            20f
+        );
+        if (pattern == Region3ReflectorLayoutPattern.DiagonalLanes)
+        {
+            int seedQuarterTurn = Mathf.FloorToInt(Mathf.Repeat(rotationSeed, 360f) / 90f);
+            int quarterTurn = (seedQuarterTurn + attempt) % 4;
+            return quarterTurn * 90f + UnityEngine.Random.Range(-variation, variation);
+        }
+
+        float rotationStep = 360f / Mathf.Max(1, attemptCount);
+        return rotationSeed + attempt * rotationStep +
+            UnityEngine.Random.Range(-variation, variation);
+    }
+
+    private static Vector2 ResolveRegion3ReflectorTemplateOffset(
+        Region3ReflectorLayoutPattern pattern,
+        int index,
+        int plateCount)
+    {
+        switch (pattern)
+        {
+            case Region3ReflectorLayoutPattern.OuterRing:
+                return ResolveRingTemplatePoint(index, plateCount, 0.62f, 15f);
+            case Region3ReflectorLayoutPattern.BrokenRing:
+                return ResolveBrokenRingTemplatePoint(index);
+            case Region3ReflectorLayoutPattern.DiagonalLanes:
+                return ResolveDiagonalLaneTemplatePoint(index);
+            case Region3ReflectorLayoutPattern.SplitArcs:
+                return ResolveSplitArcTemplatePoint(index);
+            case Region3ReflectorLayoutPattern.OuterFrameInnerPair:
+                return ResolveOuterFrameTemplatePoint(index);
+            default:
+                return ResolveCrossDiamondTemplatePoint(index);
+        }
+    }
+
+    private static Vector2 ResolveRingTemplatePoint(
+        int index,
+        int plateCount,
+        float radius,
+        float angularOffset)
+    {
+        float angle = angularOffset + 360f * index / Mathf.Max(1, plateCount);
+        return AngleToNormalizedOffset(angle, radius);
+    }
+
+    private static Vector2 ResolveBrokenRingTemplatePoint(int index)
+    {
+        int arcIndex = index / 4;
+        int indexWithinArc = index % 4;
+        float angle = 8f + arcIndex * 120f + indexWithinArc * 14f;
+        float radius = indexWithinArc == 1 || indexWithinArc == 2
+            ? 0.78f
+            : 0.7f;
+        return AngleToNormalizedOffset(angle, radius);
+    }
+
+    private static Vector2 ResolveSplitArcTemplatePoint(int index)
+    {
+        int arcIndex = index / 6;
+        int indexWithinArc = index % 6;
+        float angle = 32f + indexWithinArc * 18f + arcIndex * 180f;
+        float radius = indexWithinArc == 2 || indexWithinArc == 3
+            ? 0.82f
+            : (indexWithinArc == 1 || indexWithinArc == 4 ? 0.76f : 0.68f);
+        return AngleToNormalizedOffset(angle, radius);
+    }
+
+    private static Vector2 ResolveDiagonalLaneTemplatePoint(int index)
+    {
+        int laneIndex = index / 6;
+        int indexWithinLane = index % 6;
+        float alongLane = Mathf.Lerp(-0.72f, 0.72f, indexWithinLane / 5f);
+        float laneOffset = laneIndex == 0 ? 0.14f : -0.14f;
+        return new Vector2(alongLane, alongLane + laneOffset);
+    }
+
+    private static Vector2 ResolveOuterFrameTemplatePoint(int index)
+    {
+        switch (index)
+        {
+            case 0:
+                return new Vector2(-0.72f, -0.72f);
+            case 1:
+                return new Vector2(0f, -0.78f);
+            case 2:
+                return new Vector2(0.72f, -0.72f);
+            case 3:
+                return new Vector2(0.78f, 0f);
+            case 4:
+                return new Vector2(0.72f, 0.72f);
+            case 5:
+                return new Vector2(0f, 0.78f);
+            case 6:
+                return new Vector2(-0.72f, 0.72f);
+            case 7:
+                return new Vector2(-0.78f, 0f);
+            case 8:
+                return new Vector2(-0.24f, -0.24f);
+            case 9:
+                return new Vector2(0.24f, -0.24f);
+            case 10:
+                return new Vector2(0.24f, 0.24f);
+            default:
+                return new Vector2(-0.24f, 0.24f);
+        }
+    }
+
+    private static Vector2 ResolveCrossDiamondTemplatePoint(int index)
+    {
+        if (index < 8)
+        {
+            float outerAngle = 22.5f + index * 45f;
+            return AngleToNormalizedOffset(outerAngle, 0.78f);
+        }
+
+        float innerAngle = 45f + (index - 8) * 90f;
+        return AngleToNormalizedOffset(innerAngle, 0.3f);
+    }
+
+    private static Vector2 AngleToNormalizedOffset(float angle, float radius)
+    {
+        float radians = angle * Mathf.Deg2Rad;
+        return new Vector2(
+            Mathf.Cos(radians) * radius,
+            Mathf.Sin(radians) * radius
+        );
+    }
+
+    private bool IsRegion3ReflectorCandidateValid(
+        Vector2 position,
+        float rotation,
+        Vector2 bossPosition,
+        Vector2[] placedPositions,
+        int placedCount,
+        float reservationSize,
+        float footprintRadius)
+    {
+        if (position.x < CameraSafeBounds.min.x + footprintRadius ||
+            position.x > CameraSafeBounds.max.x - footprintRadius ||
+            position.y < CameraSafeBounds.min.y + footprintRadius ||
+            position.y > CameraSafeBounds.max.y - footprintRadius)
+        {
+            return false;
+        }
+
+        float startClearance = ResolveRegion3ReflectorPlayerClearance();
+        if ((position - startPosition).sqrMagnitude < startClearance * startClearance)
+        {
+            return false;
+        }
+
+        float bossClearance = ResolveRegion3ReflectorBossClearance();
+        if ((position - bossPosition).sqrMagnitude < bossClearance * bossClearance)
+        {
+            return false;
+        }
+
+        float minimumSpacing = ResolveRegion3ReflectorMinimumSpacing();
+        float minimumSpacingSqr = minimumSpacing * minimumSpacing;
+        for (int i = 0; i < placedCount; i++)
+        {
+            if ((position - placedPositions[i]).sqrMagnitude < minimumSpacingSqr)
+            {
+                return false;
+            }
+        }
+
+        Bounds candidateBounds = new Bounds(
+            position,
+            new Vector3(reservationSize, reservationSize, 0f)
+        );
+        if (IntersectsReservedPlacementBounds(candidateBounds, 0f))
+        {
+            return false;
+        }
+
+        return !useBlockedLayerCheck ||
+               Physics2D.OverlapBox(
+                   position,
+                   new Vector2(reservationSize, reservationSize),
+                   rotation,
+                   blockedLayer
+               ) == null;
+    }
+
+    private float ResolveRegion3ReflectorReservationSize()
+    {
+        return Mathf.Max(1f, region3ReflectorPlateLength + 1.5f);
+    }
+
+    private float ResolveRegion3ReflectorPlayerClearance()
+    {
+        return Mathf.Clamp(region3ReflectorPlayerClearance, 8f, 12f);
+    }
+
+    private float ResolveRegion3ReflectorBossClearance()
+    {
+        return Mathf.Clamp(region3ReflectorBossClearance, 6f, 10f);
+    }
+
+    private float ResolveRegion3ReflectorMinimumSpacing()
+    {
+        return Mathf.Max(
+            4.5f,
+            Mathf.Max(
+                region3ReflectorMinimumSpacing,
+                region3ReflectorPlateLength + 0.75f
+            )
+        );
+    }
+
+    private float ResolveRegion3BossMinimumStartClearance()
+    {
+        return Mathf.Clamp(region3BossMinimumStartClearance, 16f, 24f);
+    }
+
+    private static Vector2 RotateVector(Vector2 vector, float degrees)
+    {
+        float radians = degrees * Mathf.Deg2Rad;
+        float cosine = Mathf.Cos(radians);
+        float sine = Mathf.Sin(radians);
+        return new Vector2(
+            vector.x * cosine - vector.y * sine,
+            vector.x * sine + vector.y * cosine
+        );
     }
 
     private Vector2 ResolveRegion3BossPosition()
     {
         Vector2 center = CameraSafeBounds.center;
         Vector2 extents = CameraSafeBounds.extents;
-        Vector2 inset = new Vector2(
-            Mathf.Max(4f, extents.x * 0.72f),
-            Mathf.Max(4f, extents.y * 0.72f)
-        );
+        Vector2 awayFromStart = center - startPosition;
+        if (awayFromStart.sqrMagnitude <= 0.0001f)
+        {
+            awayFromStart = Vector2.right;
+        }
+
+        awayFromStart.Normalize();
+        const float compactBossOffset = 0.24f;
+        float minimumStartDistance = ResolveRegion3BossMinimumStartClearance();
         Vector2 best = center;
         float bestDistance = -1f;
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 8; i++)
         {
-            Vector2 candidate;
-
-            switch (i)
-            {
-                case 0:
-                    candidate = center + new Vector2(inset.x, inset.y);
-                    break;
-                case 1:
-                    candidate = center + new Vector2(inset.x, -inset.y);
-                    break;
-                case 2:
-                    candidate = center + new Vector2(-inset.x, inset.y);
-                    break;
-                default:
-                    candidate = center + new Vector2(-inset.x, -inset.y);
-                    break;
-            }
+            float angleOffset = i == 0
+                ? 0f
+                : (i % 2 == 1 ? 1f : -1f) * ((i + 1) / 2) * 22.5f;
+            Vector2 direction = RotateVector(awayFromStart, angleOffset).normalized;
+            Vector2 candidate = center + new Vector2(
+                direction.x * extents.x * compactBossOffset,
+                direction.y * extents.y * compactBossOffset
+            );
+            candidate = ClampToInsetBounds(
+                candidate,
+                CameraSafeBounds,
+                Mathf.Max(2f, region3BossReservationSize * 0.5f)
+            );
 
             float distance = (candidate - startPosition).sqrMagnitude;
-            if (distance > bestDistance)
+            if (distance < minimumStartDistance * minimumStartDistance ||
+                !IsRegion3BossCandidateClear(candidate) ||
+                distance <= bestDistance)
             {
-                best = candidate;
-                bestDistance = distance;
+                continue;
             }
+
+            best = candidate;
+            bestDistance = distance;
         }
 
-        return ClampToBounds(best, CameraSafeBounds);
+        if (bestDistance >= 0f)
+        {
+            return best;
+        }
+
+        Vector2 deterministicFallback = center + new Vector2(
+            awayFromStart.x * extents.x * compactBossOffset,
+            awayFromStart.y * extents.y * compactBossOffset
+        );
+        return ClampToInsetBounds(
+            deterministicFallback,
+            CameraSafeBounds,
+            Mathf.Max(2f, region3BossReservationSize * 0.5f)
+        );
+    }
+
+    private bool IsRegion3BossCandidateClear(Vector2 candidate)
+    {
+        if (!useBlockedLayerCheck)
+        {
+            return true;
+        }
+
+        return Physics2D.OverlapCircle(
+            candidate,
+            Mathf.Max(1f, region3StartBlockingRadius * 2f),
+            blockedLayer
+        ) == null;
     }
 
     private void BuildPoiLayout()
@@ -884,6 +2138,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
         }
 
         RegisterExistingPoiAnchors();
+
+        if (IsRegion3PhaseGatekeeperMap())
+        {
+            return;
+        }
 
         for (int i = 0; i < config.SalvagePoiCount; i++)
         {
@@ -1171,8 +2430,29 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 ? reservationSize
                 : new Vector2(reservationSize.y, reservationSize.x);
 
+            Bounds localPlacementBounds = new Bounds(
+                Vector3.zero,
+                new Vector3(rotatedReservationSize.x, rotatedReservationSize.y, 0f)
+            );
+            Bounds localPortalArrivalBounds = default;
+            bool hasPortalArrivalBounds = false;
+
+            if (!fieldBaseZone)
+            {
+                ResolveShopPlacementGeometry(
+                    prefab,
+                    reservationSize,
+                    quarterTurns,
+                    out localPlacementBounds,
+                    out localPortalArrivalBounds,
+                    out hasPortalArrivalBounds
+                );
+            }
+
             if (!TryFindLargeZonePosition(
-                    rotatedReservationSize,
+                    localPlacementBounds,
+                    localPortalArrivalBounds,
+                    hasPortalArrivalBounds,
                     out Vector2 position,
                     out bool rejectedByRegion2BossCorridor))
             {
@@ -1197,12 +2477,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 continue;
             }
 
-            Bounds reserved = new Bounds(
-                position,
-                new Vector3(rotatedReservationSize.x, rotatedReservationSize.y, 0f)
-            );
+            Bounds reserved = OffsetLocalBounds(localPlacementBounds, position);
 
             ReservePlacementBounds(reserved);
+            if (hasPortalArrivalBounds)
+            {
+                ReservePlacementBounds(OffsetLocalBounds(localPortalArrivalBounds, position));
+            }
             occupiedPositions.Add(position);
             importantPositions.Add(position);
 
@@ -1254,17 +2535,30 @@ public class ExpeditionMapGenerator : MonoBehaviour
     }
 
     private bool TryFindLargeZonePosition(
-        Vector2 reservationSize,
+        Bounds localPlacementBounds,
+        Bounds localPortalArrivalBounds,
+        bool hasPortalArrivalBounds,
         out Vector2 position,
         out bool rejectedByRegion2BossCorridor)
     {
         position = Vector2.zero;
         rejectedByRegion2BossCorridor = false;
-        Vector2 halfSize = reservationSize * 0.5f;
         float mapHalfWidth = mapSize.x * 0.5f - edgePadding;
         float mapHalfHeight = mapSize.y * 0.5f - edgePadding;
 
-        if (halfSize.x >= mapHalfWidth || halfSize.y >= mapHalfHeight)
+        Bounds localEnvelope = localPlacementBounds;
+        if (hasPortalArrivalBounds)
+        {
+            localEnvelope.Encapsulate(localPortalArrivalBounds.min);
+            localEnvelope.Encapsulate(localPortalArrivalBounds.max);
+        }
+
+        float minimumRootX = -mapHalfWidth - localEnvelope.min.x;
+        float maximumRootX = mapHalfWidth - localEnvelope.max.x;
+        float minimumRootY = -mapHalfHeight - localEnvelope.min.y;
+        float maximumRootY = mapHalfHeight - localEnvelope.max.y;
+
+        if (minimumRootX >= maximumRootX || minimumRootY >= maximumRootY)
         {
             return false;
         }
@@ -1275,14 +2569,14 @@ public class ExpeditionMapGenerator : MonoBehaviour
         for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
         {
             Vector2 candidate = new Vector2(
-                UnityEngine.Random.Range(-mapHalfWidth + halfSize.x, mapHalfWidth - halfSize.x),
-                UnityEngine.Random.Range(-mapHalfHeight + halfSize.y, mapHalfHeight - halfSize.y)
+                UnityEngine.Random.Range(minimumRootX, maximumRootX),
+                UnityEngine.Random.Range(minimumRootY, maximumRootY)
             );
 
-            Bounds candidateBounds = new Bounds(
-                candidate,
-                new Vector3(reservationSize.x, reservationSize.y, 0f)
-            );
+            Bounds candidateBounds = OffsetLocalBounds(localPlacementBounds, candidate);
+            Bounds portalArrivalBounds = hasPortalArrivalBounds
+                ? OffsetLocalBounds(localPortalArrivalBounds, candidate)
+                : default;
             largeZoneDebugCandidateBounds = candidateBounds;
             hasLargeZoneDebugCandidateBounds = true;
 
@@ -1292,6 +2586,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
             }
 
             if (IntersectsRegion2BossCorridor(candidateBounds, largeZoneSpacing))
+            {
+                rejectedByRegion2BossCorridor = true;
+                continue;
+            }
+
+            if (hasPortalArrivalBounds &&
+                IntersectsRegion2BossCorridor(portalArrivalBounds, largeZoneSpacing))
             {
                 rejectedByRegion2BossCorridor = true;
                 continue;
@@ -1313,8 +2614,19 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 continue;
             }
 
+            if (hasPortalArrivalBounds &&
+                IntersectsReservedPlacementBounds(portalArrivalBounds, largeZoneSpacing))
+            {
+                continue;
+            }
+
             if (useBlockedLayerCheck &&
-                Physics2D.OverlapBox(candidate, reservationSize, 0f, blockedLayer) != null)
+                Physics2D.OverlapBox(
+                    candidateBounds.center,
+                    candidateBounds.size,
+                    0f,
+                    blockedLayer
+                ) != null)
             {
                 continue;
             }
@@ -1324,6 +2636,163 @@ public class ExpeditionMapGenerator : MonoBehaviour
         }
 
         return false;
+    }
+
+    private void ResolveShopPlacementGeometry(
+        GameObject prefab,
+        Vector2 reservationSize,
+        int quarterTurns,
+        out Bounds localPlacementBounds,
+        out Bounds localPortalArrivalBounds,
+        out bool hasPortalArrivalBounds)
+    {
+        Bounds unrotatedPlacementBounds = new Bounds(
+            Vector3.zero,
+            new Vector3(reservationSize.x, reservationSize.y, 0f)
+        );
+        Transform prefabRoot = prefab.transform;
+
+        Collider2D[] colliders = prefab.GetComponentsInChildren<Collider2D>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider2D targetCollider = colliders[i];
+            if (targetCollider != null &&
+                targetCollider.enabled &&
+                IsPrefabHierarchyActive(prefabRoot, targetCollider.transform) &&
+                targetCollider.bounds.size.x > 0.01f &&
+                targetCollider.bounds.size.y > 0.01f)
+            {
+                EncapsulateWorldBoundsInRootSpace(
+                    prefabRoot,
+                    targetCollider.bounds,
+                    ref unrotatedPlacementBounds
+                );
+            }
+        }
+
+        Renderer[] renderers = prefab.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer targetRenderer = renderers[i];
+            if (targetRenderer != null &&
+                targetRenderer.enabled &&
+                IsPrefabHierarchyActive(prefabRoot, targetRenderer.transform) &&
+                targetRenderer.bounds.size.x > 0.01f &&
+                targetRenderer.bounds.size.y > 0.01f)
+            {
+                EncapsulateWorldBoundsInRootSpace(
+                    prefabRoot,
+                    targetRenderer.bounds,
+                    ref unrotatedPlacementBounds
+                );
+            }
+        }
+
+        localPlacementBounds = RotateLocalBounds(unrotatedPlacementBounds, quarterTurns);
+        localPortalArrivalBounds = default;
+        hasPortalArrivalBounds = false;
+
+        float arrivalDiameter = Mathf.Max(0.1f, shopPortalArrivalClearanceRadius * 2f);
+        ShopStructure[] shops = prefab.GetComponentsInChildren<ShopStructure>(true);
+        for (int i = 0; i < shops.Length; i++)
+        {
+            ShopStructure shop = shops[i];
+            if (shop == null || shop.PortalArrivalPoint == null)
+            {
+                continue;
+            }
+
+            Vector2 localArrival = ToRootRotationSpace(prefabRoot, shop.PortalArrivalPoint.position);
+            localArrival = RotateLocalPoint(localArrival, quarterTurns);
+            Bounds arrivalBounds = new Bounds(
+                localArrival,
+                new Vector3(arrivalDiameter, arrivalDiameter, 0f)
+            );
+
+            if (!hasPortalArrivalBounds)
+            {
+                localPortalArrivalBounds = arrivalBounds;
+                hasPortalArrivalBounds = true;
+            }
+            else
+            {
+                localPortalArrivalBounds.Encapsulate(arrivalBounds.min);
+                localPortalArrivalBounds.Encapsulate(arrivalBounds.max);
+            }
+        }
+    }
+
+    private static void EncapsulateWorldBoundsInRootSpace(
+        Transform root,
+        Bounds worldBounds,
+        ref Bounds localBounds)
+    {
+        Vector3 minimum = worldBounds.min;
+        Vector3 maximum = worldBounds.max;
+        localBounds.Encapsulate(ToRootRotationSpace(root, new Vector3(minimum.x, minimum.y, 0f)));
+        localBounds.Encapsulate(ToRootRotationSpace(root, new Vector3(minimum.x, maximum.y, 0f)));
+        localBounds.Encapsulate(ToRootRotationSpace(root, new Vector3(maximum.x, minimum.y, 0f)));
+        localBounds.Encapsulate(ToRootRotationSpace(root, new Vector3(maximum.x, maximum.y, 0f)));
+    }
+
+    private static Vector2 ToRootRotationSpace(Transform root, Vector3 worldPoint)
+    {
+        Vector3 relative = Quaternion.Inverse(root.rotation) * (worldPoint - root.position);
+        return new Vector2(relative.x, relative.y);
+    }
+
+    private static bool IsPrefabHierarchyActive(Transform root, Transform candidate)
+    {
+        Transform current = candidate;
+        while (current != null)
+        {
+            if (!current.gameObject.activeSelf)
+            {
+                return false;
+            }
+
+            if (current == root)
+            {
+                return true;
+            }
+
+            current = current.parent;
+        }
+
+        return false;
+    }
+
+    private static Bounds RotateLocalBounds(Bounds bounds, int quarterTurns)
+    {
+        Vector2 minimum = bounds.min;
+        Vector2 maximum = bounds.max;
+        Vector2 corner = RotateLocalPoint(new Vector2(minimum.x, minimum.y), quarterTurns);
+        Bounds rotated = new Bounds(corner, Vector3.zero);
+        rotated.Encapsulate(RotateLocalPoint(new Vector2(minimum.x, maximum.y), quarterTurns));
+        rotated.Encapsulate(RotateLocalPoint(new Vector2(maximum.x, minimum.y), quarterTurns));
+        rotated.Encapsulate(RotateLocalPoint(new Vector2(maximum.x, maximum.y), quarterTurns));
+        return rotated;
+    }
+
+    private static Vector2 RotateLocalPoint(Vector2 point, int quarterTurns)
+    {
+        switch ((quarterTurns % 4 + 4) % 4)
+        {
+            case 1:
+                return new Vector2(-point.y, point.x);
+            case 2:
+                return -point;
+            case 3:
+                return new Vector2(point.y, -point.x);
+            default:
+                return point;
+        }
+    }
+
+    private static Bounds OffsetLocalBounds(Bounds localBounds, Vector2 rootPosition)
+    {
+        localBounds.center += (Vector3)rootPosition;
+        return localBounds;
     }
 
     private void ReservePlacementBounds(Bounds bounds)
@@ -1480,6 +2949,209 @@ public class ExpeditionMapGenerator : MonoBehaviour
         {
             rewardChoiceUI.ConfigureCatalogs(runtimeTraitCatalog, runtimeReinforcementCatalog);
         }
+    }
+
+    private void PlaceMiniTrader()
+    {
+        if (miniTraderPrefab == null)
+        {
+            Debug.LogError(
+                "Region 2/3 Mini Trader generation requires a Field-NPC prefab.",
+                this
+            );
+            return;
+        }
+
+        EnsureProgressionRuntimeSystems();
+
+        if (!TryFindMiniTraderPosition(out Vector2 position, out Bounds reservationBounds))
+        {
+            Debug.LogError(
+                "Mini Trader placement failed after bounded attempts. No unsafe placement was used.",
+                this
+            );
+            return;
+        }
+
+        GameObject spawned = Spawn(miniTraderPrefab, position, "MiniTrader_00");
+        if (spawned == null)
+        {
+            Debug.LogError("Mini Trader prefab failed to spawn.", this);
+            return;
+        }
+
+        Collider2D[] colliders = spawned.GetComponentsInChildren<Collider2D>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            if (colliders[i] != null)
+            {
+                colliders[i].isTrigger = true;
+            }
+        }
+
+        ShopStockController stock = spawned.GetComponent<ShopStockController>();
+        if (stock == null)
+        {
+            stock = spawned.AddComponent<ShopStockController>();
+        }
+
+        MiniTrader trader = spawned.GetComponent<MiniTrader>();
+        if (trader == null)
+        {
+            trader = spawned.AddComponent<MiniTrader>();
+        }
+
+        FieldNpcObjective objective = spawned.GetComponent<FieldNpcObjective>();
+        if (objective == null)
+        {
+            objective = spawned.AddComponent<FieldNpcObjective>();
+        }
+
+        RadarTarget radarTarget = spawned.GetComponent<RadarTarget>();
+        if (radarTarget == null)
+        {
+            radarTarget = spawned.AddComponent<RadarTarget>();
+        }
+
+        TraitCatalog traderTraitCatalog = runtimeTraitCatalog != null
+            ? runtimeTraitCatalog
+            : objective.TraitCatalog;
+        ReinforcementCatalog traderReinforcementCatalog = runtimeReinforcementCatalog != null
+            ? runtimeReinforcementCatalog
+            : objective.ReinforcementCatalog;
+
+        trader.Configure(
+            stock,
+            traderTraitCatalog,
+            traderReinforcementCatalog,
+            miniTraderTraitOfferCount,
+            miniTraderReinforcementOfferCount
+        );
+        objective.ConfigureAsMiniTrader(trader);
+
+        radarTarget.SetMarkerType(RadarMarkerType.FieldNpc);
+        Sprite markerSprite = fieldNpcRadarMarkerSprite != null
+            ? fieldNpcRadarMarkerSprite
+            : radarTarget.MarkerSprite;
+        radarTarget.SetMarkerVisual(markerSprite, miniTraderMarkerColor, 1.15f);
+        radarTarget.SetVisible(true);
+        radarTarget.SetShowOnMap(true);
+        radarTarget.SetMapDiscovered(false);
+
+        currentMiniTrader = trader;
+        currentMiniTraderReservationBounds = reservationBounds;
+        ReservePlacementBounds(reservationBounds);
+        occupiedPositions.Add(position);
+        importantPositions.Add(position);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (logGenerationResult)
+        {
+            Debug.Log(
+                $"[Mini Trader] Region={ResolveCurrentDepth()} Spawned=True " +
+                $"Position={position} UsingPrefab={miniTraderPrefab.name} " +
+                $"TradingAuthority={nameof(ShopStockController)}",
+                trader
+            );
+        }
+#endif
+    }
+
+    private bool TryFindMiniTraderPosition(
+        out Vector2 position,
+        out Bounds reservationBounds)
+    {
+        Vector2 reservationSize = new Vector2(
+            Mathf.Max(1f, miniTraderReservationSize.x),
+            Mathf.Max(1f, miniTraderReservationSize.y)
+        );
+        Vector2 halfSize = reservationSize * 0.5f;
+        Vector2 minimum = (Vector2)CameraSafeBounds.min + halfSize;
+        Vector2 maximum = (Vector2)CameraSafeBounds.max - halfSize;
+        float startSafeRadius = config != null ? config.StartSafeRadius : 10f;
+        float importantClearance = Mathf.Max(0f, miniTraderImportantClearance);
+
+        position = Vector2.zero;
+        reservationBounds = default;
+
+        if (minimum.x >= maximum.x || minimum.y >= maximum.y)
+        {
+            return false;
+        }
+
+        for (int attempt = 0; attempt < maxPlacementAttempts; attempt++)
+        {
+            Vector2 candidate = new Vector2(
+                UnityEngine.Random.Range(minimum.x, maximum.x),
+                UnityEngine.Random.Range(minimum.y, maximum.y)
+            );
+            Bounds candidateBounds = new Bounds(
+                candidate,
+                new Vector3(reservationSize.x, reservationSize.y, 0f)
+            );
+            Vector3 startPoint3D = new Vector3(
+                startPosition.x,
+                startPosition.y,
+                candidateBounds.center.z
+            );
+
+            if (candidateBounds.SqrDistance(startPoint3D) < startSafeRadius * startSafeRadius)
+            {
+                continue;
+            }
+
+            if (!HasMinimumDistance(candidate, importantPositions, importantClearance))
+            {
+                continue;
+            }
+
+            if (IsAboveRegion2MajorPoiCeiling(candidateBounds.max.y) ||
+                IntersectsRegion2BossCorridor(
+                    candidateBounds,
+                    miniTraderReservationPadding
+                ))
+            {
+                continue;
+            }
+
+            if (IsRegion3PhaseGatekeeperMap())
+            {
+                float encounterClearance = Mathf.Max(8f, region3MiniTraderArenaClearance);
+                Bounds encounterBounds = new Bounds(
+                    currentRegion3BossPosition,
+                    new Vector3(encounterClearance * 2f, encounterClearance * 2f, 0f)
+                );
+
+                if (candidateBounds.Intersects(encounterBounds))
+                {
+                    continue;
+                }
+            }
+
+            if (IntersectsReservedPlacementBounds(
+                    candidateBounds,
+                    miniTraderReservationPadding))
+            {
+                continue;
+            }
+
+            if (useBlockedLayerCheck &&
+                Physics2D.OverlapBox(
+                    candidateBounds.center,
+                    candidateBounds.size,
+                    0f,
+                    blockedLayer
+                ) != null)
+            {
+                continue;
+            }
+
+            position = candidate;
+            reservationBounds = candidateBounds;
+            return true;
+        }
+
+        return false;
     }
 
     private void PlaceFieldNpcBatch(int count)
@@ -1645,8 +3317,21 @@ public class ExpeditionMapGenerator : MonoBehaviour
         int destroyedHullCount = config != null ? config.DestroyedHullCount : 8;
         int smallMeteorCount = config != null ? config.SmallMeteorCount : 30;
         int largeMeteorCount = config != null ? config.LargeMeteorCount : 3;
+        int activeContainerCount = Mathf.Max(0, specialActiveContainerCount);
+        int passiveContainerCount = Mathf.Max(0, specialPassiveContainerCount);
+        bool region3BossFocused = IsRegion3PhaseGatekeeperMap();
 
-        if (applySeaRegionObjectCountModifiers && currentSeaRegion != null)
+        if (region3BossFocused)
+        {
+            highValueWreckCount = Mathf.Max(0, region3HighValueWreckCount);
+            supplyContainerCount = Mathf.Max(0, region3SupplyContainerCount);
+            destroyedHullCount = Mathf.Max(0, region3DestroyedHullCount);
+            smallMeteorCount = Mathf.Max(0, region3SmallMeteorCount);
+            largeMeteorCount = 0;
+            activeContainerCount = 0;
+            passiveContainerCount = 0;
+        }
+        else if (applySeaRegionObjectCountModifiers && currentSeaRegion != null)
         {
             highValueWreckCount = ApplyCountModifier(highValueWreckCount, currentSeaRegion.ExtraHighValueWreckCount);
             supplyContainerCount = ApplyCountModifier(supplyContainerCount, currentSeaRegion.ExtraSupplyContainerCount);
@@ -1658,7 +3343,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
         PlaceHarvestPrefabBatchDistributed(
             specialActiveContainerPrefabs,
             specialActiveContainerPrefab,
-            Mathf.Max(0, specialActiveContainerCount),
+            activeContainerCount,
             generalMinDistance,
             "SpecialActiveContainer",
             MapSpawnCategory.SpecialActiveContainer,
@@ -1669,7 +3354,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
         PlaceHarvestPrefabBatchDistributed(
             specialPassiveContainerPrefabs,
             specialPassiveContainerPrefab,
-            Mathf.Max(0, specialPassiveContainerCount),
+            passiveContainerCount,
             generalMinDistance,
             "SpecialPassiveContainer",
             MapSpawnCategory.SpecialPassiveContainer,
@@ -1737,6 +3422,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private void PlaceEnemies()
     {
+        if (IsRegion3PhaseGatekeeperMap())
+        {
+            return;
+        }
+
         int basicCount = config != null ? config.BasicEnemyCount : 20;
         int shotgunCount = config != null ? config.ShotgunEnemyCount : 5;
         int chargingCount = config != null ? config.ChargingEnemyCount : 4;
@@ -3718,6 +5408,32 @@ public class ExpeditionMapGenerator : MonoBehaviour
         );
     }
 
+    private static Vector2 ClampToInsetBounds(Vector2 point, Bounds bounds, float inset)
+    {
+        float safeInset = Mathf.Max(0f, inset);
+        float minimumX = bounds.min.x + safeInset;
+        float maximumX = bounds.max.x - safeInset;
+        float minimumY = bounds.min.y + safeInset;
+        float maximumY = bounds.max.y - safeInset;
+
+        if (minimumX > maximumX)
+        {
+            minimumX = bounds.center.x;
+            maximumX = bounds.center.x;
+        }
+
+        if (minimumY > maximumY)
+        {
+            minimumY = bounds.center.y;
+            maximumY = bounds.center.y;
+        }
+
+        return new Vector2(
+            Mathf.Clamp(point.x, minimumX, maximumX),
+            Mathf.Clamp(point.y, minimumY, maximumY)
+        );
+    }
+
     private bool HasValidPrefab(GameObject[] prefabs, GameObject fallbackPrefab)
     {
         if (fallbackPrefab != null)
@@ -3861,6 +5577,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         if (harvestObject != null)
         {
+            if (IsRegion3PhaseGatekeeperMap())
+            {
+                harvestObject.SetReinforcementSpawnChance(0f);
+            }
+
             bool enemyProjectileDamageEnabled = category switch
             {
                 MapSpawnCategory.SupplyContainer => enemyProjectilesDamageSupplyContainers,
@@ -4009,9 +5730,18 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
     private void PlaceEnvironmentDressing()
     {
-        if (config == null ||
-            !config.EnableEnvironmentDressing ||
-            !HasEnvironmentDressingSprites())
+        if (!HasEnvironmentDressingSprites())
+        {
+            return;
+        }
+
+        if (IsRegion3PhaseGatekeeperMap())
+        {
+            PlaceTransitEnvironmentDressing(Mathf.Max(0, region3EnvironmentDressingCount));
+            return;
+        }
+
+        if (config == null || !config.EnableEnvironmentDressing)
         {
             return;
         }
@@ -4419,22 +6149,175 @@ public class ExpeditionMapGenerator : MonoBehaviour
             return;
         }
 
+        if (currentRegion3FoundationFailed)
+        {
+            return;
+        }
+
         if (spawnedCoreObjects.Count != 0 ||
             spawnedFieldBases.Count != 0 ||
-            spawnedShopStructures.Count != 0)
+            spawnedShopStructures.Count != 0 ||
+            spawnedEventObjects.Count != 0 ||
+            currentMiniTrader != null)
         {
             Debug.LogError(
-                "Region-3 map validation failed: Core, field-base, or shop-base " +
-                "generation remained active.",
+                "Region-3 map validation failed: Core, field-base, shop-base, event, " +
+                "or Mini Trader generation remained active.",
                 this
             );
         }
 
-        if (currentRegion3BossEncounter == null)
+        if (currentRegion3BossEncounter == null || !currentRegion3EncounterConfigured)
         {
             Debug.LogError(
-                "Region-3 map validation failed: the Phase Gatekeeper encounter was not generated.",
+                "Region-3 map validation failed: the transactional Phase Gatekeeper " +
+                "foundation did not publish a configured encounter.",
                 this
+            );
+            return;
+        }
+
+        if (!CameraSafeBounds.Contains(startPosition))
+        {
+            Debug.LogError(
+                $"Region-3 map validation failed: Player start {startPosition} is outside CameraSafeBounds.",
+                this
+            );
+            return;
+        }
+
+        float bossDistance = Vector2.Distance(startPosition, currentRegion3BossPosition);
+        float requiredBossDistance = ResolveRegion3BossMinimumStartClearance();
+        if (bossDistance < requiredBossDistance)
+        {
+            Debug.LogError(
+                $"Region-3 map validation failed: Boss is only {bossDistance:0.##} units from " +
+                $"the Player start; required {requiredBossDistance:0.##}.",
+                this
+            );
+            return;
+        }
+
+        int expectedCount = Region3ReflectorCount;
+        if (currentRegion3ReflectorCandidateCount != expectedCount ||
+            currentRegion3ReflectorSpawnedCount != expectedCount ||
+            currentRegion3ReflectorCount != expectedCount ||
+            currentRegion3ConfiguredReflectorCount != expectedCount)
+        {
+            Debug.LogError(
+                $"Region-3 map validation failed: template {currentRegion3ReflectorLayoutPattern} " +
+                $"Candidates={currentRegion3ReflectorCandidateCount}, " +
+                $"Spawned={currentRegion3ReflectorSpawnedCount}, " +
+                $"Registered={currentRegion3ReflectorCount}, " +
+                $"Configured={currentRegion3ConfiguredReflectorCount}, " +
+                $"Required={expectedCount}.",
+                this
+            );
+            return;
+        }
+
+        for (int i = 0; i < expectedCount; i++)
+        {
+            PhaseReflectorPlate plate = currentRegion3Reflectors[i];
+            if (plate == null)
+            {
+                Debug.LogError(
+                    $"Region-3 map validation failed: the published 12-plate foundation " +
+                    $"contains a null entry at index {i}.",
+                    this
+                );
+                return;
+            }
+
+            currentRegion3ReflectorPositions[i] = plate.transform.position;
+        }
+
+        if (TryValidateRegion3ReflectorFoundationGeometry(
+                currentRegion3ReflectorPositions,
+                expectedCount,
+                currentRegion3BossPosition,
+                out string geometryFailureReason))
+        {
+            return;
+        }
+
+        StringBuilder details = new StringBuilder(768);
+        details.Append("[Region3 Validation] ");
+        details.Append("Template=").Append(currentRegion3ReflectorLayoutPattern);
+        details.Append(" StartSector=").Append(currentRegion3StartSector);
+        details.Append(" Player=").Append(startPosition);
+        details.Append(" Boss=").Append(currentRegion3BossPosition);
+        details.Append(" BoundsCenter=").Append((Vector2)CameraSafeBounds.center);
+        details.Append(" BoundsExtents=").Append((Vector2)CameraSafeBounds.extents);
+        details.Append(" Candidates=").Append(currentRegion3ReflectorCandidateCount);
+        details.Append(" Spawned=").Append(currentRegion3ReflectorSpawnedCount);
+        details.Append(" Registered=").Append(currentRegion3ReflectorCount);
+        details.Append(" Configured=").Append(currentRegion3ConfiguredReflectorCount);
+        details.Append(" Failure=").Append(geometryFailureReason);
+        details.Append(" Attempt=").Append(currentRegion3LayoutAttemptDescription);
+
+        for (int i = 0; i < expectedCount; i++)
+        {
+            details.Append("\n  Reflector[").Append(i).Append("]=");
+            details.Append(currentRegion3ReflectorPositions[i]);
+        }
+
+        Debug.LogError(details.ToString(), this);
+    }
+
+    private void ValidateMiniTraderGeneration()
+    {
+        ExpeditionDepth depth = ResolveCurrentDepth();
+        bool expectsMiniTrader = depth == ExpeditionDepth.DeepZone1;
+
+        if (!expectsMiniTrader)
+        {
+            if (currentMiniTrader != null)
+            {
+                Debug.LogError(
+                    $"Mini Trader validation failed: Region {depth} must not generate a Mini Trader.",
+                    currentMiniTrader
+                );
+            }
+
+            return;
+        }
+
+        if (spawnedShopStructures.Count != 0)
+        {
+            Debug.LogError(
+                $"Mini Trader validation failed: Region {depth} generated " +
+                $"{spawnedShopStructures.Count} fortified Shop structures.",
+                this
+            );
+        }
+
+        if (currentMiniTrader == null)
+        {
+            Debug.LogError(
+                $"Mini Trader validation failed: Region {depth} did not generate its trader.",
+                this
+            );
+            return;
+        }
+
+        Vector3 minimum = currentMiniTraderReservationBounds.min;
+        Vector3 maximum = currentMiniTraderReservationBounds.max;
+        if (!CameraSafeBounds.Contains(minimum) || !CameraSafeBounds.Contains(maximum))
+        {
+            Debug.LogError(
+                $"Mini Trader validation failed: reservation " +
+                $"{currentMiniTraderReservationBounds} is outside CameraSafeBounds.",
+                currentMiniTrader
+            );
+        }
+
+        if (depth == ExpeditionDepth.DeepZone1 &&
+            IntersectsRegion2BossCorridor(currentMiniTraderReservationBounds, 0f))
+        {
+            Debug.LogError(
+                "Mini Trader validation failed: Region-2 trader intersects the Boss corridor.",
+                currentMiniTrader
             );
         }
     }
@@ -4513,12 +6396,28 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 continue;
             }
 
-            if (CompositeIntersectsRegion2BossCorridor(shop.gameObject) ||
-                (shop.PortalArrivalPoint != null &&
-                 region2BossCorridor.ReservedBounds.Contains(shop.PortalArrivalPoint.position)))
+            bool compositeOverlap = TryFindRegion2CorridorIntersection(
+                shop.gameObject,
+                out Component overlappingComponent
+            );
+            bool portalArrivalOverlap = false;
+            if (shop.PortalArrivalPoint != null)
             {
+                float arrivalDiameter = Mathf.Max(0.1f, shopPortalArrivalClearanceRadius * 2f);
+                Bounds arrivalBounds = new Bounds(
+                    shop.PortalArrivalPoint.position,
+                    new Vector3(arrivalDiameter, arrivalDiameter, 0f)
+                );
+                portalArrivalOverlap = arrivalBounds.Intersects(region2BossCorridor.ReservedBounds);
+            }
+
+            if (compositeOverlap || portalArrivalOverlap)
+            {
+                string reason = portalArrivalOverlap
+                    ? "portal arrival clearance"
+                    : $"component '{overlappingComponent?.name ?? "unknown"}'";
                 Debug.LogError(
-                    $"Region-2 map validation failed: Shop '{shop.name}' or its portal arrival point intersects the Boss corridor.",
+                    $"Region-2 map validation failed: Shop '{shop.name}' {reason} intersects the Boss corridor.",
                     shop
                 );
             }
@@ -4527,18 +6426,21 @@ public class ExpeditionMapGenerator : MonoBehaviour
         for (int i = 0; i < spawnedFieldBases.Count; i++)
         {
             FieldBaseController fieldBase = spawnedFieldBases[i];
-            if (fieldBase != null && CompositeIntersectsRegion2BossCorridor(fieldBase.gameObject))
+            if (fieldBase != null &&
+                TryFindRegion2CorridorIntersection(fieldBase.gameObject, out Component overlappingComponent))
             {
                 Debug.LogError(
-                    $"Region-2 map validation failed: Field Base '{fieldBase.name}' has child bounds intersecting the Boss corridor.",
+                    $"Region-2 map validation failed: Field Base '{fieldBase.name}' component " +
+                    $"'{overlappingComponent?.name ?? "unknown"}' intersects the Boss corridor.",
                     fieldBase
                 );
             }
         }
     }
 
-    private bool CompositeIntersectsRegion2BossCorridor(GameObject root)
+    private bool TryFindRegion2CorridorIntersection(GameObject root, out Component overlappingComponent)
     {
+        overlappingComponent = null;
         if (root == null || !hasRegion2BossCorridor)
         {
             return false;
@@ -4548,8 +6450,14 @@ public class ExpeditionMapGenerator : MonoBehaviour
         for (int i = 0; i < colliders.Length; i++)
         {
             Collider2D collider = colliders[i];
-            if (collider != null && collider.bounds.Intersects(region2BossCorridor.ReservedBounds))
+            if (collider != null &&
+                collider.enabled &&
+                collider.gameObject.activeInHierarchy &&
+                collider.bounds.size.x > 0.01f &&
+                collider.bounds.size.y > 0.01f &&
+                collider.bounds.Intersects(region2BossCorridor.ReservedBounds))
             {
+                overlappingComponent = collider;
                 return true;
             }
         }
@@ -4558,8 +6466,14 @@ public class ExpeditionMapGenerator : MonoBehaviour
         for (int i = 0; i < renderers.Length; i++)
         {
             Renderer targetRenderer = renderers[i];
-            if (targetRenderer != null && targetRenderer.bounds.Intersects(region2BossCorridor.ReservedBounds))
+            if (targetRenderer != null &&
+                targetRenderer.enabled &&
+                targetRenderer.gameObject.activeInHierarchy &&
+                targetRenderer.bounds.size.x > 0.01f &&
+                targetRenderer.bounds.size.y > 0.01f &&
+                targetRenderer.bounds.Intersects(region2BossCorridor.ReservedBounds))
             {
+                overlappingComponent = targetRenderer;
                 return true;
             }
         }
@@ -4586,9 +6500,11 @@ public class ExpeditionMapGenerator : MonoBehaviour
             new Vector3(size.x, size.y, 0f)
         );
 
-        Vector2 start = startPoint != null
-            ? (Vector2)startPoint.position
-            : fallbackStartPosition;
+        Vector2 start = Application.isPlaying && depth == ExpeditionDepth.DeepZone2
+            ? startPosition
+            : startPoint != null
+                ? (Vector2)startPoint.position
+                : fallbackStartPosition;
 
         float safeRadius = config != null ? config.StartSafeRadius : 10f;
 
@@ -4645,6 +6561,30 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 Gizmos.DrawWireCube(
                     largeZoneDebugCandidateBounds.center,
                     largeZoneDebugCandidateBounds.size
+                );
+            }
+        }
+
+        if (depth == ExpeditionDepth.DeepZone2 && Application.isPlaying)
+        {
+            Bounds cameraSafeBounds = ResolveCameraSafeBounds(size);
+            Gizmos.color = new Color(0.2f, 0.75f, 1f, 0.55f);
+            Gizmos.DrawWireCube(cameraSafeBounds.center, cameraSafeBounds.size);
+
+            Gizmos.color = new Color(1f, 0.2f, 0.8f, 0.85f);
+            Gizmos.DrawWireSphere(currentRegion3BossPosition, 1f);
+
+            float reservationSize = Mathf.Max(1f, region3ReflectorPlateLength + 1.5f);
+            Gizmos.color = new Color(0.35f, 0.85f, 1f, 0.65f);
+            for (int i = 0; i < currentRegion3ReflectorCount; i++)
+            {
+                PhaseReflectorPlate plate = currentRegion3Reflectors[i];
+                Vector2 position = plate != null
+                    ? (Vector2)plate.transform.position
+                    : currentRegion3ReflectorPositions[i];
+                Gizmos.DrawWireCube(
+                    position,
+                    new Vector3(reservationSize, reservationSize, 0f)
                 );
             }
         }

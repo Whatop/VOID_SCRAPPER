@@ -94,6 +94,8 @@ public class PlayerController2D : MonoBehaviour
         new Dictionary<object, float>();
     private readonly Dictionary<object, CameraViewportConstraint> temporaryCameraViewportConstraints =
         new Dictionary<object, CameraViewportConstraint>();
+    private readonly Dictionary<object, Bounds> temporaryWorldBoundsConstraints =
+        new Dictionary<object, Bounds>();
     private float externalMoveSpeedMultiplier = 1f;
 
     public InputActionAsset InputActions => inputActions;
@@ -140,6 +142,7 @@ public class PlayerController2D : MonoBehaviour
         movementVelocityOverride = Vector2.zero;
         movementInputActive = false;
         temporaryCameraViewportConstraints.Clear();
+        temporaryWorldBoundsConstraints.Clear();
 
         if (rb != null)
         {
@@ -256,7 +259,7 @@ public class PlayerController2D : MonoBehaviour
         }
 
         Vector2 resolvedVelocity = inputVelocity + pushVelocity;
-        ApplyTemporaryCameraViewportConstraints(ref resolvedVelocity);
+        ApplyTemporaryMovementConstraints(ref resolvedVelocity);
         rb.linearVelocity = resolvedVelocity;
     }
 
@@ -455,6 +458,48 @@ public class PlayerController2D : MonoBehaviour
                TryResolveConstraintBounds(constraint, out bounds);
     }
 
+    public bool AcquireTemporaryWorldBoundsConstraint(object owner, Bounds worldBounds)
+    {
+        if (owner == null ||
+            !IsFinite(worldBounds.min) ||
+            !IsFinite(worldBounds.max) ||
+            worldBounds.min.x >= worldBounds.max.x ||
+            worldBounds.min.y >= worldBounds.max.y)
+        {
+            return false;
+        }
+
+        temporaryWorldBoundsConstraints[owner] = worldBounds;
+
+        if (rb != null)
+        {
+            Vector2 velocity = rb.linearVelocity;
+            ApplyTemporaryMovementConstraints(ref velocity);
+            rb.linearVelocity = velocity;
+        }
+
+        return true;
+    }
+
+    public void ReleaseTemporaryWorldBoundsConstraint(object owner)
+    {
+        if (owner != null)
+        {
+            temporaryWorldBoundsConstraints.Remove(owner);
+        }
+    }
+
+    public bool HasTemporaryWorldBoundsConstraint(object owner)
+    {
+        return owner != null && temporaryWorldBoundsConstraints.ContainsKey(owner);
+    }
+
+    public bool TryGetTemporaryWorldBoundsConstraint(object owner, out Bounds bounds)
+    {
+        bounds = default;
+        return owner != null && temporaryWorldBoundsConstraints.TryGetValue(owner, out bounds);
+    }
+
     public void ApplyExternalPush(
         Vector2 direction,
         float distance,
@@ -601,10 +646,11 @@ public class PlayerController2D : MonoBehaviour
         return !float.IsNaN(value) && !float.IsInfinity(value);
     }
 
-    private void ApplyTemporaryCameraViewportConstraints(ref Vector2 velocity)
+    private void ApplyTemporaryMovementConstraints(ref Vector2 velocity)
     {
-        if (temporaryCameraViewportConstraints.Count == 0 ||
-            !TryResolveCombinedCameraViewportBounds(out Bounds allowedBounds))
+        if ((temporaryCameraViewportConstraints.Count == 0 &&
+             temporaryWorldBoundsConstraints.Count == 0) ||
+            !TryResolveCombinedTemporaryBounds(out Bounds allowedBounds))
         {
             return;
         }
@@ -649,7 +695,7 @@ public class PlayerController2D : MonoBehaviour
         );
     }
 
-    private bool TryResolveCombinedCameraViewportBounds(out Bounds combinedBounds)
+    private bool TryResolveCombinedTemporaryBounds(out Bounds combinedBounds)
     {
         combinedBounds = default;
         bool hasBounds = false;
@@ -662,6 +708,24 @@ public class PlayerController2D : MonoBehaviour
             {
                 continue;
             }
+
+            if (!hasBounds)
+            {
+                combinedMinimum = constraintBounds.min;
+                combinedMaximum = constraintBounds.max;
+                hasBounds = true;
+                continue;
+            }
+
+            combinedMinimum.x = Mathf.Max(combinedMinimum.x, constraintBounds.min.x);
+            combinedMinimum.y = Mathf.Max(combinedMinimum.y, constraintBounds.min.y);
+            combinedMaximum.x = Mathf.Min(combinedMaximum.x, constraintBounds.max.x);
+            combinedMaximum.y = Mathf.Min(combinedMaximum.y, constraintBounds.max.y);
+        }
+
+        foreach (KeyValuePair<object, Bounds> entry in temporaryWorldBoundsConstraints)
+        {
+            Bounds constraintBounds = entry.Value;
 
             if (!hasBounds)
             {

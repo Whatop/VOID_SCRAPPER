@@ -61,6 +61,11 @@ public sealed class ExpeditionOperationController : MonoBehaviour
     [SerializeField, Min(0f)] private float resolvedHudDuration = 2.5f;
     [SerializeField, Min(0)] private int sectorOneStabilizedAlloyBonus = 1;
 
+    [Header("Region 3 Investigation")]
+    [SerializeField] private Sprite region3InvestigationMarkerSprite;
+    [SerializeField] private Color region3InvestigationMarkerColor = new Color(0.48f, 0.72f, 1f, 1f);
+    [SerializeField, Range(0.8f, 1.6f)] private float region3InvestigationMarkerScale = 1.2f;
+
     private readonly List<OperationCandidate> candidateBuffer = new List<OperationCandidate>(16);
 
     private RunManager boundRunManager;
@@ -70,12 +75,14 @@ public sealed class ExpeditionOperationController : MonoBehaviour
     private HarvestObjectHealth targetHarvestObject;
     private ExpeditionEventObject targetEventObject;
     private FieldBaseController targetFieldBase;
+    private PhaseGatekeeperBossController targetPhaseGatekeeper;
     private RadarTarget targetRadar;
     private ExpeditionOperationType operationType;
     private ExpeditionOperationState state;
     private Vector2 searchRegionCenter;
     private float searchRegionRadius;
     private string directionLabel;
+    private bool region3BossInvestigation;
 
     public ExpeditionOperationType OperationType => operationType;
     public ExpeditionOperationState State => state;
@@ -137,6 +144,7 @@ public sealed class ExpeditionOperationController : MonoBehaviour
         RadarTarget.RegistryChanged -= HandleRadarRegistryChanged;
         StopResolvedHudRoutine();
         UnbindTarget();
+        ReleaseRegion3BossTracking();
         UnbindRadarScanner();
         UnbindRunManager();
         HideOperationHud();
@@ -159,6 +167,11 @@ public sealed class ExpeditionOperationController : MonoBehaviour
 
     private void InitializeOperation(ExpeditionMapGenerator generatedMap)
     {
+        if (TryInitializeRegion3BossInvestigation(generatedMap))
+        {
+            return;
+        }
+
         float preferredDistance = Mathf.Max(0f, preferredMinimumTargetDistance);
         CollectEligibleCandidates(generatedMap, preferredDistance);
 
@@ -197,6 +210,61 @@ public sealed class ExpeditionOperationController : MonoBehaviour
         BindTarget();
         RefreshPresentation();
         AudioManager.Play(SoundEventIds.MissionReceived);
+    }
+
+    private bool TryInitializeRegion3BossInvestigation(ExpeditionMapGenerator generatedMap)
+    {
+        RunManager runManager = RunManager.Instance;
+        if (runManager == null ||
+            !runManager.HasActiveRun ||
+            runManager.CurrentRun.ExpeditionDepth != ExpeditionDepth.DeepZone2)
+        {
+            return false;
+        }
+
+        PhaseGatekeeperBossController phaseGatekeeper = generatedMap.CurrentRegion3BossEncounter;
+        if (phaseGatekeeper == null || !phaseGatekeeper.isActiveAndEnabled)
+        {
+            Debug.LogError(
+                "Region-3 operation could not bind the generated Phase Gatekeeper encounter.",
+                this
+            );
+            ClearOperation();
+            return true;
+        }
+
+        RadarTarget radarTarget = phaseGatekeeper.GetComponent<RadarTarget>();
+        if (radarTarget == null)
+        {
+            radarTarget = phaseGatekeeper.gameObject.AddComponent<RadarTarget>();
+        }
+
+        region3BossInvestigation = true;
+        operationType = ExpeditionOperationType.SignalInvestigation;
+        targetSource = phaseGatekeeper;
+        targetPhaseGatekeeper = phaseGatekeeper;
+        targetRadar = radarTarget;
+        state = ExpeditionOperationState.Identified;
+        searchRegionCenter = phaseGatekeeper.EncounterAnchor;
+        searchRegionRadius = 0f;
+        directionLabel = ResolveDirectionLabel(generatedMap.StartPosition, searchRegionCenter);
+
+        expeditionHUD?.SetCoreTrackingVisible(false);
+        targetRadar.SetVisible(true);
+        targetRadar.SetShowOnMap(true);
+        targetRadar.SetMarkerType(RadarMarkerType.Unknown);
+        targetRadar.SetMarkerVisual(
+            region3InvestigationMarkerSprite,
+            region3InvestigationMarkerColor,
+            region3InvestigationMarkerScale
+        );
+        targetRadar.SetTemporaryReveal(this, float.MaxValue);
+        mapDiscoveryController?.DiscoverTarget(targetRadar, false);
+
+        BindTarget();
+        RefreshPresentation();
+        AudioManager.Play(SoundEventIds.MissionReceived);
+        return true;
     }
 
     private void CollectEligibleCandidates(ExpeditionMapGenerator generatedMap, float minimumDistance)
@@ -401,6 +469,48 @@ public sealed class ExpeditionOperationController : MonoBehaviour
         }
     }
 
+    private void HandlePhaseGatekeeperEncounterStarted()
+    {
+        if (!region3BossInvestigation || targetPhaseGatekeeper == null || IsResolved())
+        {
+            return;
+        }
+
+        if (targetRadar != null)
+        {
+            mapDiscoveryController?.DiscoverTarget(targetRadar, false);
+            targetRadar.ClearTemporaryReveal(this);
+        }
+
+        CompleteRegion3BossInvestigation();
+    }
+
+    private void CompleteRegion3BossInvestigation()
+    {
+        state = ExpeditionOperationState.Completed;
+        UnbindTarget();
+        HideOperationHud();
+        OperationCompleted?.Invoke(operationType);
+        state = ExpeditionOperationState.Inactive;
+        OperationChanged?.Invoke();
+    }
+
+    private void HandlePhaseGatekeeperEncounterEnded()
+    {
+        if (targetRadar != null)
+        {
+            targetRadar.ClearTemporaryReveal(this);
+            targetRadar.SetVisible(false);
+        }
+
+        if (targetPhaseGatekeeper != null)
+        {
+            targetPhaseGatekeeper.EncounterEnded -= HandlePhaseGatekeeperEncounterEnded;
+        }
+
+        targetPhaseGatekeeper = null;
+    }
+
     private void HandleRadarRegistryChanged()
     {
         if (state != ExpeditionOperationState.Search && state != ExpeditionOperationState.Identified)
@@ -572,6 +682,11 @@ public sealed class ExpeditionOperationController : MonoBehaviour
 
     private string ResolveOperationTitle()
     {
+        if (region3BossInvestigation)
+        {
+            return "위상 신호 조사";
+        }
+
         return operationType switch
         {
             ExpeditionOperationType.HighValueSalvage => "고밀도 잔해 조사",
@@ -590,6 +705,11 @@ public sealed class ExpeditionOperationController : MonoBehaviour
 
     private string ResolveIdentifiedDetail()
     {
+        if (region3BossInvestigation)
+        {
+            return "확인되지 않은 신호 위치를 조사하십시오.";
+        }
+
         return operationType switch
         {
             ExpeditionOperationType.HighValueSalvage => "고가치 잔해 위치 확인",
@@ -645,6 +765,12 @@ public sealed class ExpeditionOperationController : MonoBehaviour
         {
             targetFieldBase.ObjectiveCompleted += HandleFieldBaseObjectiveCompleted;
         }
+
+        if (targetPhaseGatekeeper != null)
+        {
+            targetPhaseGatekeeper.EncounterStarted += HandlePhaseGatekeeperEncounterStarted;
+            targetPhaseGatekeeper.EncounterEnded += HandlePhaseGatekeeperEncounterEnded;
+        }
     }
 
     private void UnbindTarget()
@@ -662,6 +788,11 @@ public sealed class ExpeditionOperationController : MonoBehaviour
         if (targetFieldBase != null)
         {
             targetFieldBase.ObjectiveCompleted -= HandleFieldBaseObjectiveCompleted;
+        }
+
+        if (targetPhaseGatekeeper != null)
+        {
+            targetPhaseGatekeeper.EncounterStarted -= HandlePhaseGatekeeperEncounterStarted;
         }
     }
 
@@ -756,19 +887,37 @@ public sealed class ExpeditionOperationController : MonoBehaviour
     {
         StopResolvedHudRoutine();
         UnbindTarget();
+        ReleaseRegion3BossTracking();
         candidateBuffer.Clear();
         targetSource = null;
         targetHarvestObject = null;
         targetEventObject = null;
         targetFieldBase = null;
+        targetPhaseGatekeeper = null;
         targetRadar = null;
         operationType = ExpeditionOperationType.None;
         state = ExpeditionOperationState.Inactive;
         searchRegionCenter = default;
         searchRegionRadius = 0f;
         directionLabel = string.Empty;
+        region3BossInvestigation = false;
         HideOperationHud();
         OperationChanged?.Invoke();
+    }
+
+    private void ReleaseRegion3BossTracking()
+    {
+        if (targetPhaseGatekeeper != null)
+        {
+            targetPhaseGatekeeper.EncounterStarted -= HandlePhaseGatekeeperEncounterStarted;
+            targetPhaseGatekeeper.EncounterEnded -= HandlePhaseGatekeeperEncounterEnded;
+        }
+
+        if (targetRadar != null && region3BossInvestigation)
+        {
+            targetRadar.ClearTemporaryReveal(this);
+            targetRadar.SetVisible(false);
+        }
     }
 
     private void StopResolvedHudRoutine()

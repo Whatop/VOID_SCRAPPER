@@ -34,6 +34,7 @@ public class BossArenaLaserWall : MonoBehaviour
     private string currentLayerName;
     private bool initialized;
     private bool allowHorizontalProjectileRicochet;
+    private bool presentationVisible = true;
 
     public bool AllowsHorizontalProjectileRicochet =>
         initialized && allowHorizontalProjectileRicochet;
@@ -160,6 +161,50 @@ public class BossArenaLaserWall : MonoBehaviour
         );
     }
 
+    public void InitializeMovableBetween(
+        Vector2 start,
+        Vector2 end,
+        float thickness,
+        bool solidBlock,
+        float damageAmount,
+        float damageCooldown,
+        Material lineMaterial,
+        Color lineColor,
+        string sortingLayerName,
+        int sortingOrder,
+        string layerName)
+    {
+        followTargets = false;
+        followStart = null;
+        followEnd = null;
+        allowHorizontalProjectileRicochet = false;
+
+        StoreDamage(damageAmount, damageCooldown);
+        StoreVisualSettings(
+            thickness,
+            lineMaterial,
+            lineColor,
+            sortingLayerName,
+            sortingOrder,
+            layerName,
+            solidBlock
+        );
+
+        ApplyBetween(
+            start,
+            end,
+            currentThickness,
+            solidBlock,
+            currentLineMaterial,
+            currentLineColor,
+            currentSortingLayerName,
+            currentSortingOrder,
+            currentLayerName,
+            !initialized,
+            true
+        );
+    }
+
     public void Initialize(
         Vector2 center,
         Vector2 direction,
@@ -217,6 +262,17 @@ public class BossArenaLaserWall : MonoBehaviour
     public void ConfigureProjectileRicochet(bool allowRicochet)
     {
         allowHorizontalProjectileRicochet = allowRicochet;
+    }
+
+    public void SetPresentationVisible(bool visible)
+    {
+        presentationVisible = visible;
+        EnsureComponents();
+
+        if (lineRenderer != null)
+        {
+            lineRenderer.enabled = initialized && presentationVisible;
+        }
     }
 
     public bool TryReflectHorizontalProjectile(
@@ -409,7 +465,7 @@ public class BossArenaLaserWall : MonoBehaviour
             return;
         }
 
-        lineRenderer.enabled = true;
+        lineRenderer.enabled = presentationVisible;
         lineRenderer.useWorldSpace = false;
         lineRenderer.positionCount = 2;
         lineRenderer.SetPosition(0, new Vector3(-length * 0.5f, 0f, 0f));

@@ -24,10 +24,12 @@ public sealed class CoreTrackingSignalController : MonoBehaviour
     private CoreObject coreObject;
     private int currentSignalCount;
     private bool coreRevealed;
+    private bool trackingActive = true;
 
     public int CurrentSignalCount => currentSignalCount;
     public int RequiredSignalCount => Mathf.Max(1, requiredSignalCount);
     public bool IsCoreRevealed => coreRevealed;
+    public bool IsTrackingActive => trackingActive;
 
     public event Action<int, int> ProgressChanged;
     public event Action CoreRevealed;
@@ -60,12 +62,14 @@ public sealed class CoreTrackingSignalController : MonoBehaviour
     private void HandleMapGenerated(ExpeditionMapGenerator generatedMap)
     {
         UnbindSources();
+        trackingActive = !IsRegion3CorelessDepth();
         ResetRuntimeState();
 
         mapGenerator = generatedMap;
         ResolveReferences();
+        ResolveHud()?.SetCoreTrackingVisible(trackingActive);
 
-        if (generatedMap == null)
+        if (generatedMap == null || !trackingActive)
         {
             RaiseProgressChanged();
             return;
@@ -108,6 +112,14 @@ public sealed class CoreTrackingSignalController : MonoBehaviour
         }
 
         RaiseProgressChanged();
+    }
+
+    private static bool IsRegion3CorelessDepth()
+    {
+        RunManager runManager = RunManager.Instance;
+        return runManager != null &&
+               runManager.HasActiveRun &&
+               runManager.CurrentRun.ExpeditionDepth == ExpeditionDepth.DeepZone2;
     }
 
     private int BindEligibleSources(ExpeditionMapGenerator generatedMap)
@@ -332,7 +344,9 @@ public sealed class CoreTrackingSignalController : MonoBehaviour
     private void HandleRunEnded(RunResultData result)
     {
         UnbindSources();
+        trackingActive = false;
         ResetRuntimeState();
+        ResolveHud()?.SetCoreTrackingVisible(false);
     }
 
     private void RaiseProgressChanged()

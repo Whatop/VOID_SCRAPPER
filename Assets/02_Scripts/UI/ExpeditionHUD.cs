@@ -344,6 +344,11 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
+    public void SetCoreTrackingVisible(bool visible)
+    {
+        SetGameObjectVisible(objectiveRoot, visible);
+    }
+
     public void ShowCommunication(
         ShipCommunicationChannel channel,
         string message,
@@ -2258,16 +2263,30 @@ public class ExpeditionHUD : MonoBehaviour
     private void RefreshObjectiveProgress()
     {
         EnsureCoreTrackingPresentation();
+        if (IsRegion3CorelessDepth())
+        {
+            SetCoreTrackingVisible(false);
+            return;
+        }
+
         coreTrackingController ??= FindFirstObjectByType<CoreTrackingSignalController>();
 
         if (coreTrackingController != null)
         {
+            SetCoreTrackingVisible(coreTrackingController.IsTrackingActive);
+            if (!coreTrackingController.IsTrackingActive)
+            {
+                return;
+            }
+
             RefreshObjectiveProgress(
                 coreTrackingController.CurrentSignalCount,
                 coreTrackingController.RequiredSignalCount
             );
             return;
         }
+
+        SetCoreTrackingVisible(true);
 
         if (objectiveDirector == null && Application.isPlaying && !disableObjectiveDirectorAutoResolution)
         {
@@ -2277,6 +2296,14 @@ public class ExpeditionHUD : MonoBehaviour
         int current = objectiveDirector != null ? objectiveDirector.SignalCount : 0;
         int required = objectiveDirector != null ? objectiveDirector.SignalsRequiredToRevealCore : 2;
         RefreshObjectiveProgress(current, required);
+    }
+
+    private static bool IsRegion3CorelessDepth()
+    {
+        RunManager runManager = RunManager.Instance;
+        return runManager != null &&
+               runManager.HasActiveRun &&
+               runManager.CurrentRun.ExpeditionDepth == ExpeditionDepth.DeepZone2;
     }
 
     private void RefreshObjectiveProgress(int current, int required)

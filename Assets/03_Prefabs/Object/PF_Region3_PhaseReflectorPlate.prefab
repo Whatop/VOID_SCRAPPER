@@ -51,6 +51,10 @@ MonoBehaviour:
   lineWidth: 0.16
   sortingLayerName: Default
   sortingOrder: 12
+  chainTelegraphPulseColor: {r: 0.7, g: 1, b: 1, a: 1}
+  chainTelegraphWidthMultiplier: 2.75
+  arenaTransitionPulseColor: {r: 0.7, g: 0.3, b: 1, a: 1}
+  arenaTransitionWidthMultiplier: 3.25
   hitPulseColor: {r: 0.85, g: 0.45, b: 1, a: 1}
   hitPulseDuration: 0.18
   hitPulseWidthMultiplier: 2.25

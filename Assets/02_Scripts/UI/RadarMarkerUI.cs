@@ -62,6 +62,7 @@ public static class RadarMarkerPresentation
             RadarMarkerType.Meteor => meteorColor,
             RadarMarkerType.Shop => specialColor,
             RadarMarkerType.Event => eventColor,
+            RadarMarkerType.Unknown => eventColor,
             RadarMarkerType.FieldNpc => specialColor,
             RadarMarkerType.Core => coreColor,
             RadarMarkerType.ReturnBeacon => coreColor,
@@ -96,6 +97,7 @@ public static class RadarMarkerPresentation
 
             case RadarMarkerType.RewardObject:
             case RadarMarkerType.Event:
+            case RadarMarkerType.Unknown:
                 shape = RadarMarkerShape.Circle;
                 return true;
 
@@ -198,7 +200,8 @@ public class RadarMarkerUI : MonoBehaviour
     {
         RadarMarkerShape shape = RadarMarkerShape.Circle;
         bool hollow = true;
-        bool useCanonicalShape = markerType.HasValue &&
+        bool useUnknownIcon = markerType == RadarMarkerType.Unknown && sprite != null;
+        bool useCanonicalShape = !useUnknownIcon && markerType.HasValue &&
                                  RadarMarkerPresentation.TryResolveShape(
                                      markerType.Value,
                                      out shape,
