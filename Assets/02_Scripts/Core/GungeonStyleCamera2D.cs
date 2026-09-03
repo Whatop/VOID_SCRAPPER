@@ -88,6 +88,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
     private bool cinematicFocusActive;
     private bool cinematicReturnActive;
     private bool cinematicInputOffsetLocked;
+    private object cinematicFocusOwner;
     private Vector3 cinematicFocusWorldPosition;
     private bool cinematicFocusBlendActive;
     private Vector3 cinematicFocusBlendStart;
@@ -145,6 +146,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
     {
         cinematicFocusActive = false;
         cinematicReturnActive = false;
+        cinematicFocusOwner = null;
         CancelCinematicFocusBlend(false);
         cinematicInputOffsetLocked = false;
         mouseLookAheadActive = false;
@@ -337,6 +339,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     public void SetCinematicFocus(Vector3 worldPosition, bool immediate = false)
     {
+        cinematicFocusOwner = null;
         ResolveReferences();
         CancelCinematicFocusBlend(false);
         cinematicFocusWorldPosition = worldPosition;
@@ -356,11 +359,66 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     public void UpdateCinematicFocus(Vector3 worldPosition)
     {
+        cinematicFocusOwner = null;
         CancelCinematicFocusBlend(false);
         cinematicFocusWorldPosition = worldPosition;
     }
 
     public Vector3 BeginCinematicFocusBlend(
+        Vector3 worldPosition,
+        float duration,
+        AnimationCurve transitionCurve)
+    {
+        cinematicFocusOwner = null;
+        return BeginCinematicFocusBlendInternal(worldPosition, duration, transitionCurve);
+    }
+
+    public bool TryBeginOwnedCinematicFocusBlend(
+        object owner,
+        Vector3 worldPosition,
+        float duration,
+        AnimationCurve transitionCurve,
+        out Vector3 resolvedTarget)
+    {
+        resolvedTarget = default;
+        bool hasUnownedCinematic = cinematicFocusOwner == null &&
+                                   (cinematicFocusActive ||
+                                    cinematicFocusBlendActive ||
+                                    cinematicReturnActive);
+        if (owner == null ||
+            scriptedVerticalScrollOwner != null ||
+            hasUnownedCinematic ||
+            cinematicFocusOwner != null && !ReferenceEquals(cinematicFocusOwner, owner))
+        {
+            return false;
+        }
+
+        cinematicFocusOwner = owner;
+        resolvedTarget = BeginCinematicFocusBlendInternal(
+            worldPosition,
+            duration,
+            transitionCurve);
+        return true;
+    }
+
+    public bool IsCinematicFocusOwnedBy(object owner)
+    {
+        return owner != null && ReferenceEquals(cinematicFocusOwner, owner);
+    }
+
+    public bool ReleaseOwnedCinematicFocus(object owner, bool immediate)
+    {
+        if (!IsCinematicFocusOwnedBy(owner))
+        {
+            return false;
+        }
+
+        cinematicFocusOwner = null;
+        ClearCinematicFocusInternal(immediate);
+        return true;
+    }
+
+    private Vector3 BeginCinematicFocusBlendInternal(
         Vector3 worldPosition,
         float duration,
         AnimationCurve transitionCurve)
@@ -427,6 +485,28 @@ public class GungeonStyleCamera2D : MonoBehaviour
     }
 
     public void ClearCinematicFocus(bool immediate = false)
+    {
+        cinematicFocusOwner = null;
+        ClearCinematicFocusInternal(immediate);
+    }
+
+    public bool TryReleaseUnownedCinematicFocusAtCurrentPosition()
+    {
+        if (cinematicFocusOwner != null)
+        {
+            return false;
+        }
+
+        CancelCinematicFocusBlend(false);
+        cinematicFocusActive = false;
+        cinematicReturnActive = false;
+        currentCameraCenter = transform.position;
+        currentCameraCenter.z = cameraWorldZ;
+        cameraCenterInitialized = true;
+        return true;
+    }
+
+    private void ClearCinematicFocusInternal(bool immediate)
     {
         CancelCinematicFocusBlend(false);
         cinematicFocusActive = false;

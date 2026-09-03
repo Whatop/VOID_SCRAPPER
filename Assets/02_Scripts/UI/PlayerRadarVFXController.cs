@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -5,38 +6,26 @@ public class PlayerRadarVFXController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Transform effectOrigin;
-    [SerializeField] private PlayerChargeGaugeUI chargeGauge;
-
-    [Header("Charge Gauge")]
-    [SerializeField] private bool controlChargeGauge = true;
-
-    [Tooltip("켜면 레이더 충전 게이지를 쓰지 않고 이펙트/사운드 중심으로 표현합니다. 슬라이더 과밀 방지용 기본값입니다.")]
-    [SerializeField] private bool useEffectOnlyFeedback = true;
-
-    [Header("Charge Loop Effect")]
-    [SerializeField] private GameObject chargeLoopEffectPrefab;
-    [SerializeField] private bool parentChargeLoopToOrigin = true;
-    [SerializeField] private float chargeMinScale = 0.75f;
-    [SerializeField] private float chargeMaxScale = 1.25f;
-    [SerializeField] private float chargeLoopDestroyDelay = 0.15f;
 
     [Header("Scan Pulse Effect")]
     [SerializeField] private GameObject scanPulseEffectPrefab;
-    [SerializeField] private float scanPulseLifeTime = 0.45f;
+    [SerializeField] private float scanPulseLifeTime = 0.3f;
     [SerializeField] private bool scalePulseByScanRadius = true;
     [SerializeField] private float scanRadius = 15f;
     [SerializeField] private float scanPulseScaleMultiplier = 2f;
     [SerializeField] private bool usePoolForPulse = true;
+    [SerializeField] private Color scanPulseColor = new Color(0.15f, 0.82f, 1f, 0.15f);
 
-    private GameObject activeChargeEffect;
-    private float currentChargeRatio;
+    private Sequence activePulseSequence;
+    private GameObject activePulseEffect;
 
-    public bool IsCharging { get; private set; }
+    public bool IsPulseActive => activePulseEffect != null;
+    public Color EffectiveScanPulseColor => ResolvePulseColor(scanPulseColor);
+    public float EffectiveScanPulseDuration => ResolvePulseDuration(scanPulseLifeTime);
 
     private void Reset()
     {
         effectOrigin = transform;
-        chargeGauge = FindFirstObjectByType<PlayerChargeGaugeUI>(FindObjectsInactive.Include);
     }
 
     private void Awake()
@@ -46,72 +35,12 @@ public class PlayerRadarVFXController : MonoBehaviour
 
     private void OnDisable()
     {
-        CancelCharge();
+        StopActivePulse();
     }
 
-    public void BeginCharge()
+    private void OnDestroy()
     {
-        IsCharging = true;
-        currentChargeRatio = 0f;
-
-        if (ShouldControlGauge())
-        {
-            chargeGauge.ShowRatio(0f);
-        }
-
-        SpawnChargeLoop();
-        ApplyChargeLoopScale(0f);
-    }
-
-    public void SetChargeRatio(float ratio)
-    {
-        currentChargeRatio = Mathf.Clamp01(ratio);
-
-        if (ShouldControlGauge())
-        {
-            chargeGauge.ShowRatio(currentChargeRatio);
-        }
-
-        if (activeChargeEffect != null)
-        {
-            Transform origin = GetOrigin();
-
-            if (!parentChargeLoopToOrigin)
-            {
-                activeChargeEffect.transform.position = origin.position;
-                activeChargeEffect.transform.rotation = origin.rotation;
-            }
-
-            ApplyChargeLoopScale(currentChargeRatio);
-        }
-    }
-
-    public void CancelCharge()
-    {
-        IsCharging = false;
-        currentChargeRatio = 0f;
-
-        if (ShouldControlGauge())
-        {
-            chargeGauge.Hide();
-        }
-
-        StopChargeLoop();
-    }
-
-    public void CompleteScan()
-    {
-        IsCharging = false;
-        currentChargeRatio = 1f;
-
-        if (ShouldControlGauge())
-        {
-            chargeGauge.ShowRatio(1f);
-            chargeGauge.Hide();
-        }
-
-        StopChargeLoop();
-        SpawnScanPulse();
+        StopActivePulse();
     }
 
     public void PlayPulse(float radius)
@@ -120,14 +49,14 @@ public class PlayerRadarVFXController : MonoBehaviour
         SpawnScanPulse();
     }
 
+    public void StopPulse()
+    {
+        StopActivePulse();
+    }
+
     public void SetScanRadius(float radius)
     {
         scanRadius = Mathf.Max(0.1f, radius);
-    }
-
-    private bool ShouldControlGauge()
-    {
-        return controlChargeGauge && !useEffectOnlyFeedback && chargeGauge != null;
     }
 
     private void CacheReferences()
@@ -136,11 +65,6 @@ public class PlayerRadarVFXController : MonoBehaviour
         {
             effectOrigin = transform;
         }
-
-        if (chargeGauge == null)
-        {
-            chargeGauge = FindFirstObjectByType<PlayerChargeGaugeUI>(FindObjectsInactive.Include);
-        }
     }
 
     private Transform GetOrigin()
@@ -148,79 +72,10 @@ public class PlayerRadarVFXController : MonoBehaviour
         return effectOrigin != null ? effectOrigin : transform;
     }
 
-    private void SpawnChargeLoop()
-    {
-        if (chargeLoopEffectPrefab == null)
-        {
-            return;
-        }
-
-        if (activeChargeEffect != null)
-        {
-            return;
-        }
-
-        Transform origin = GetOrigin();
-
-        if (parentChargeLoopToOrigin)
-        {
-            activeChargeEffect = Instantiate(
-                chargeLoopEffectPrefab,
-                origin.position,
-                origin.rotation,
-                origin
-            );
-
-            activeChargeEffect.transform.localPosition = Vector3.zero;
-            activeChargeEffect.transform.localRotation = Quaternion.identity;
-        }
-        else
-        {
-            activeChargeEffect = Instantiate(
-                chargeLoopEffectPrefab,
-                origin.position,
-                origin.rotation
-            );
-        }
-
-        ApplyChargeLoopScale(currentChargeRatio);
-    }
-
-    private void StopChargeLoop()
-    {
-        if (activeChargeEffect == null)
-        {
-            return;
-        }
-
-        ParticleSystem[] particles = activeChargeEffect.GetComponentsInChildren<ParticleSystem>(true);
-        foreach (ParticleSystem particle in particles)
-        {
-            if (particle == null)
-            {
-                continue;
-            }
-
-            particle.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-        }
-
-        Destroy(activeChargeEffect, Mathf.Max(0f, chargeLoopDestroyDelay));
-        activeChargeEffect = null;
-    }
-
-    private void ApplyChargeLoopScale(float ratio)
-    {
-        if (activeChargeEffect == null)
-        {
-            return;
-        }
-
-        float scale = Mathf.Lerp(chargeMinScale, chargeMaxScale, Mathf.Clamp01(ratio));
-        activeChargeEffect.transform.localScale = Vector3.one * Mathf.Max(0.01f, scale);
-    }
-
     private void SpawnScanPulse()
     {
+        StopActivePulse();
+
         if (scanPulseEffectPrefab == null)
         {
             return;
@@ -243,19 +98,102 @@ public class PlayerRadarVFXController : MonoBehaviour
             return;
         }
 
-        if (scalePulseByScanRadius)
+        activePulseEffect = effect;
+        effect.transform.localScale = Vector3.one;
+
+        Animator animator = effect.GetComponentInChildren<Animator>(true);
+        if (animator != null)
         {
-            float scale = scanRadius * scanPulseScaleMultiplier;
-            effect.transform.localScale = Vector3.one * Mathf.Max(0.01f, scale);
+            animator.enabled = false;
         }
+
+        DashShockwaveVFX legacyShockwave =
+            effect.GetComponentInChildren<DashShockwaveVFX>(true);
+        if (legacyShockwave != null)
+        {
+            legacyShockwave.enabled = false;
+        }
+
+        SpriteRenderer pulseRenderer = effect.GetComponentInChildren<SpriteRenderer>(true);
+        if (pulseRenderer == null)
+        {
+            StopActivePulse();
+            return;
+        }
+
+        float targetScale = ResolveTargetScale(pulseRenderer);
+        Transform visual = pulseRenderer.transform;
+        visual.localScale = Vector3.one * Mathf.Max(0.01f, targetScale * 0.15f);
+        pulseRenderer.color = ResolvePulseColor(scanPulseColor);
+
+        float duration = ResolvePulseDuration(scanPulseLifeTime);
+        activePulseSequence = DOTween.Sequence()
+            .SetUpdate(true)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        activePulseSequence.Join(
+            visual.DOScale(Vector3.one * targetScale, duration)
+                .SetEase(Ease.OutCubic));
+        activePulseSequence.Join(
+            pulseRenderer.DOFade(0f, duration)
+                .SetEase(Ease.OutQuad));
+        activePulseSequence.OnComplete(CompleteActivePulse);
+    }
+
+    public static Color ResolvePulseColor(Color configuredColor)
+    {
+        configuredColor.r = Mathf.Clamp(configuredColor.r, 0f, 0.35f);
+        configuredColor.g = Mathf.Clamp(configuredColor.g, 0.55f, 0.95f);
+        configuredColor.b = Mathf.Clamp(configuredColor.b, 0.85f, 1f);
+        configuredColor.a = Mathf.Clamp(configuredColor.a, 0.1f, 0.18f);
+        return configuredColor;
+    }
+
+    public static float ResolvePulseDuration(float configuredDuration)
+    {
+        return Mathf.Clamp(configuredDuration, 0.2f, 0.35f);
+    }
+
+    private float ResolveTargetScale(SpriteRenderer pulseRenderer)
+    {
+        float diameter = scanRadius * (scalePulseByScanRadius
+            ? Mathf.Clamp(scanPulseScaleMultiplier, 1f, 2f)
+            : 1f);
+        float spriteWidth = pulseRenderer.sprite != null
+            ? pulseRenderer.sprite.bounds.size.x
+            : 1f;
+        return Mathf.Max(0.01f, diameter / Mathf.Max(0.01f, spriteWidth));
+    }
+
+    private void CompleteActivePulse()
+    {
+        activePulseSequence = null;
+        ReleaseActivePulseEffect();
+    }
+
+    private void StopActivePulse()
+    {
+        activePulseSequence?.Kill();
+        activePulseSequence = null;
+        ReleaseActivePulseEffect();
+    }
+
+    private void ReleaseActivePulseEffect()
+    {
+        if (activePulseEffect == null)
+        {
+            return;
+        }
+
+        GameObject effect = activePulseEffect;
+        activePulseEffect = null;
 
         if (PoolManager.Instance != null && usePoolForPulse)
         {
-            PoolManager.Instance.ReleaseAfter(effect, scanPulseLifeTime);
+            PoolManager.Instance.Release(effect);
         }
         else
         {
-            Destroy(effect, scanPulseLifeTime);
+            Destroy(effect);
         }
     }
 }

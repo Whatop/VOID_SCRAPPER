@@ -131,6 +131,7 @@ GameObject:
   m_Component:
   - component: {fileID: 22496680}
   - component: {fileID: 11424526}
+  - component: {fileID: 8100000000000010001}
   m_Layer: 5
   m_Name: PF_CommunicationDialogueUI
   m_TagString: Untagged
@@ -203,6 +204,30 @@ MonoBehaviour:
     - {fileID: 191022}
   addEventSystemIfNeeded: 0
   verifyPanelAssignments: 1
+--- !u!114 &8100000000000010001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 101180}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e4eaf4293a64eb1b975a6ad4037574a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  overlayTransitionDuration: 0.18
+  panelTransitionDuration: 0.15
+  sourcePanelAnimationDuration: 0.5
+  compactPanelHeight: 60
+  cinematicPanelHeight: 72
+  portraitAreaWidth: 44
+  cinematicTopBarHeight: 14
+  operatorAccent: {r: 0.22, g: 0.76, b: 0.95, a: 1}
+  curseAccent: {r: 0.68, g: 0.28, b: 0.96, a: 1}
+  settlementAccent: {r: 0.96, g: 0.72, b: 0.38, a: 1}
+  neutralAccent: {r: 0.84, g: 0.86, b: 0.88, a: 1}
+  panelBackground: {r: 0.025, g: 0.055, b: 0.085, a: 0.97}
 --- !u!1 &114678
 GameObject:
   m_ObjectHideFlags: 0
@@ -2656,29 +2681,29 @@ MonoBehaviour:
   m_GameObject: {fileID: 219833929726823430}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1360375efe462cd4ab520d1661206035, type: 3}
+  m_Script: {fileID: 11500000, guid: 34e51f9cbd5a4cab88f21c26ea0d3492, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   rightToLeft: 0
-  charactersPerSecond: 50
-  audioClip: {fileID: 0}
+  charactersPerSecond: 33.333332
+  audioClip: {fileID: 8300000, guid: abf44d1030127c34d902e9b6653fc233, type: 3}
   alternateAudioClips: []
   audioSource: {fileID: 0}
   usePlayOneShot: 0
-  interruptAudioClip: 0
-  stopAudioOnSilentCharacters: 0
-  stopAudioOnPauseCodes: 0
+  interruptAudioClip: 1
+  stopAudioOnSilentCharacters: 1
+  stopAudioOnPauseCodes: 1
   silentCharacters: 
   fullPauseCharacters: 
   quarterPauseCharacters: 
-  fullPauseDuration: 1
-  quarterPauseDuration: 0.25
+  fullPauseDuration: 0.18
+  quarterPauseDuration: 0.08
   fadeAudioOnStopTyping: 0
   fadeAudioDuration: 0.5
   removeDuplicateTypewriterEffects: 1
   playOnEnable: 1
   waitOneFrameBeforeStarting: 0
-  stopOnConversationEnd: 0
+  stopOnConversationEnd: 1
   autoScrollSettings:
     autoScrollEnabled: 0
     scrollRect: {fileID: 0}
@@ -2692,6 +2717,22 @@ MonoBehaviour:
   onEnd:
     m_PersistentCalls:
       m_Calls: []
+  visibleGlyphInterval: 0.03
+  commaPause: 0.08
+  sentencePause: 0.18
+  ellipsisPause: 0.28
+  voicedActorName: Operator
+  blipGlyphCadence: 2
+  minimumPitch: 0.97
+  maximumPitch: 1.03
+  dialogueMixerGroup: {fileID: -1098248039532489961, guid: becf2b14273120442b18c1aad1db79a1, type: 2}
+  voiceVolume: 0.45
+  curseVoiceClip: {fileID: 8300000, guid: 25f49c11ee8fc6f4daad89d58ee4c109, type: 3}
+  curseBlipGlyphCadence: 2
+  curseVoiceVolume: 0.38
+  settlementVoiceClip: {fileID: 8300000, guid: afe514f30f8474949ad8746918b446bb, type: 3}
+  settlementBlipGlyphCadence: 2
+  settlementVoiceVolume: 0.4
 --- !u!114 &6195654800340094052
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3541,29 +3582,29 @@ MonoBehaviour:
   m_GameObject: {fileID: 2002979518155190774}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1360375efe462cd4ab520d1661206035, type: 3}
+  m_Script: {fileID: 11500000, guid: 34e51f9cbd5a4cab88f21c26ea0d3492, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   rightToLeft: 0
-  charactersPerSecond: 50
+  charactersPerSecond: 33.333332
   audioClip: {fileID: 0}
   alternateAudioClips: []
   audioSource: {fileID: 0}
   usePlayOneShot: 0
-  interruptAudioClip: 0
-  stopAudioOnSilentCharacters: 0
-  stopAudioOnPauseCodes: 0
+  interruptAudioClip: 1
+  stopAudioOnSilentCharacters: 1
+  stopAudioOnPauseCodes: 1
   silentCharacters: 
   fullPauseCharacters: 
   quarterPauseCharacters: 
-  fullPauseDuration: 1
-  quarterPauseDuration: 0.25
+  fullPauseDuration: 0.18
+  quarterPauseDuration: 0.08
   fadeAudioOnStopTyping: 0
   fadeAudioDuration: 0.5
   removeDuplicateTypewriterEffects: 1
   playOnEnable: 1
   waitOneFrameBeforeStarting: 0
-  stopOnConversationEnd: 0
+  stopOnConversationEnd: 1
   autoScrollSettings:
     autoScrollEnabled: 0
     scrollRect: {fileID: 0}
@@ -3577,6 +3618,16 @@ MonoBehaviour:
   onEnd:
     m_PersistentCalls:
       m_Calls: []
+  visibleGlyphInterval: 0.03
+  commaPause: 0.08
+  sentencePause: 0.18
+  ellipsisPause: 0.28
+  voicedActorName: Operator
+  blipGlyphCadence: 2
+  minimumPitch: 0.97
+  maximumPitch: 1.03
+  dialogueMixerGroup: {fileID: -1098248039532489961, guid: becf2b14273120442b18c1aad1db79a1, type: 2}
+  voiceVolume: 0.45
 --- !u!114 &6974768358429176497
 MonoBehaviour:
   m_ObjectHideFlags: 0

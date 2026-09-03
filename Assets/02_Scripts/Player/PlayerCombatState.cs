@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class PlayerCombatState : MonoBehaviour
@@ -17,17 +18,21 @@ public class PlayerCombatState : MonoBehaviour
     public float LastHitTime => lastHitTime;
     public float ThreatCheckRadius => threatCheckRadius;
 
+    public event Action CombatActivityRegistered;
+
     public bool RecentlyAttacked => Time.time - lastAttackTime < noAttackTime;
     public bool RecentlyHit => Time.time - lastHitTime < noHitTime;
 
     public void RegisterAttack()
     {
         lastAttackTime = Time.time;
+        CombatActivityRegistered?.Invoke();
     }
 
     public void RegisterHit()
     {
         lastHitTime = Time.time;
+        CombatActivityRegistered?.Invoke();
     }
 
     public bool IsOutOfCombat()

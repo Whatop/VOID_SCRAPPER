@@ -50,8 +50,8 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         new RebindRowDefinition("Move Right", "이동 오른쪽", "Player", "Move", 4, "D"),
         new RebindRowDefinition("Fire", "사격", "Player", "Fire", 0, "LMB"),
         new RebindRowDefinition("Dash", "대시", "Player", "Dash", 0, "RMB"),
-        new RebindRowDefinition("Radar", "레이더", "Player", "Radar", 0, "Q"),
-        new RebindRowDefinition("Quick Radar Scan", "즉시 레이더 탐색", "Player", "RadarQuickScan", 0, "Mouse 4"),
+        new RebindRowDefinition("Radar Toggle", "레이더 켜기 / 끄기", "Player", "Radar", 0, "Q"),
+        new RebindRowDefinition("Instant Radar Scan", "레이더 즉시 스캔", "Player", "RadarQuickScan", 0, "Mouse 4"),
         new RebindRowDefinition("Interact", "상호작용", "Player", "Interact", 0, "F"),
         new RebindRowDefinition("Inventory", "인벤토리", "Player", "Inventory", 0, "E"),
         new RebindRowDefinition("Map", "지도", "Player", "Map", 0, "Tab"),
@@ -70,27 +70,49 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
             "Space")
     };
 
-    private InputActionAsset inputActions;
-    private AudioMixer masterAudioMixer;
-    private TMP_FontAsset uiFont;
-    private Button backButton;
-    private Button returnToMainMenuButton;
-    private SettingsMenuTabController tabController;
-    private SettlementSettingsPanel settingsPanel;
-    private GameObject displayConfirmationRoot;
-    private bool useKoreanLabels;
-    private bool configureTabButtonSounds;
-    private bool showReturnToMainMenuAction;
-    private bool built;
+    [SerializeField] private InputActionAsset inputActions;
+    [SerializeField] private AudioMixer masterAudioMixer;
+    [SerializeField] private TMP_FontAsset uiFont;
+    [SerializeField] private Button backButton;
+    [SerializeField] private Button returnToMainMenuButton;
+    [SerializeField] private SettingsMenuTabController tabController;
+    [SerializeField] private SettlementSettingsPanel settingsPanel;
+    [SerializeField] private GameObject displayConfirmationRoot;
+    [SerializeField] private bool useKoreanLabels;
+    [SerializeField] private bool configureTabButtonSounds;
+    [SerializeField] private bool showReturnToMainMenuAction;
+    [SerializeField] private bool built;
 
     public bool IsOpen => settingsPanel != null && settingsPanel.IsOpen;
     public Button BackButton => backButton;
     public SettlementSettingsPanel SettingsPanel => settingsPanel;
     public SettingsMenuTabController TabController => tabController;
     public GameObject DisplayConfirmationRoot => displayConfirmationRoot;
+    public bool HasAuthoredLayout =>
+        built &&
+        backButton != null &&
+        tabController != null &&
+        settingsPanel != null &&
+        displayConfirmationRoot != null;
 
     public event Action BackRequested;
     public event Action ReturnToMainMenuRequested;
+
+#if UNITY_EDITOR
+    public void RepairAuthoredReferences()
+    {
+        Transform back = FindChildRecursive(transform, "OptionsBackButton");
+        Transform confirmation = FindChildRecursive(transform, "DisplayConfirmation");
+        backButton = back != null ? back.GetComponent<Button>() : null;
+        tabController = GetComponent<SettingsMenuTabController>();
+        settingsPanel = GetComponent<SettlementSettingsPanel>();
+        displayConfirmationRoot = confirmation != null ? confirmation.gameObject : null;
+        built = backButton != null &&
+                tabController != null &&
+                settingsPanel != null &&
+                displayConfirmationRoot != null;
+    }
+#endif
 
     public void Configure(
         InputActionAsset actions,
@@ -349,8 +371,15 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
 
     private static GameObject CreateRectObject(string objectName, Transform parent, Vector2 position, Vector2 size)
     {
+#if UNITY_EDITOR
+        GameObject target = BootMainMenuAuthoringObjectFactory.CreateChild(
+            objectName,
+            parent,
+            typeof(RectTransform));
+#else
         GameObject target = new GameObject(objectName, typeof(RectTransform));
         target.transform.SetParent(parent, false);
+#endif
         RectTransform rect = target.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0.5f, 0.5f);
         rect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -362,8 +391,15 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
 
     private static GameObject CreateStretchObject(string objectName, Transform parent)
     {
+#if UNITY_EDITOR
+        GameObject target = BootMainMenuAuthoringObjectFactory.CreateChild(
+            objectName,
+            parent,
+            typeof(RectTransform));
+#else
         GameObject target = new GameObject(objectName, typeof(RectTransform));
         target.transform.SetParent(parent, false);
+#endif
         RectTransform rect = target.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
@@ -500,7 +536,11 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
     {
         GameObject target = TMP_DefaultControls.CreateDropdown(default);
         target.name = objectName;
+#if UNITY_EDITOR
+        BootMainMenuAuthoringObjectFactory.MoveRootAndParent(target, parent);
+#else
         target.transform.SetParent(parent, false);
+#endif
         RectTransform rect = target.GetComponent<RectTransform>();
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = position;

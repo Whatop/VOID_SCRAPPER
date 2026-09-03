@@ -364,7 +364,8 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 17_shop_buy_success
-    clips: []
+    clips:
+    - {fileID: 8300000, guid: 42d77031271836702986d6a46e96882c, type: 3}
     volume: 0.82
     pitchMin: 0.98
     pitchMax: 1.03
@@ -2115,8 +2116,7 @@ MonoBehaviour:
     maxSimultaneousVoices: 0
     minimumRetriggerInterval: -1
   - eventId: 95_amb_settlement_loop
-    clips:
-    - {fileID: 8300000, guid: a16334f3dc6f42f69b3999e3031ea114, type: 3}
+    clips: []
     volume: 0.18
     pitchMin: 1
     pitchMax: 1
@@ -2138,7 +2138,7 @@ MonoBehaviour:
     minimumRetriggerInterval: -1
   - eventId: 96_music_combat_loop
     clips:
-    - {fileID: 8300000, guid: 523be6538ce314345a69c7fbc145b6b0, type: 3}
+    - {fileID: 8300000, guid: 4f25d33a6a7888a4aa8d58dc908c593e, type: 3}
     volume: 0.2
     pitchMin: 1
     pitchMax: 1

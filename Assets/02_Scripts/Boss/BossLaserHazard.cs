@@ -31,19 +31,43 @@ public class BossLaserHazard : MonoBehaviour
             lifetimeRoutine = null;
         }
 
-        lastDamageTimes.Clear();
-        initialized = false;
-        damageEnabled = false;
+        ResetRuntimeState();
+    }
 
-        if (boxCollider != null)
+    public void InitializeBetweenAttached(
+        Transform runtimeAnchor,
+        Vector2 start,
+        Vector2 end,
+        float width,
+        float duration,
+        float damageAmount,
+        float damageCooldown,
+        Material lineMaterial,
+        Color lineColor,
+        string sortingLayerName,
+        int sortingOrder,
+        float recoveryDuration = 0f,
+        int lineCapVertices = 0)
+    {
+        if (runtimeAnchor != null)
         {
-            boxCollider.enabled = false;
+            transform.SetParent(runtimeAnchor, true);
         }
 
-        if (lineRenderer != null)
-        {
-            lineRenderer.enabled = false;
-        }
+        InitializeBetween(
+            start,
+            end,
+            width,
+            duration,
+            damageAmount,
+            damageCooldown,
+            lineMaterial,
+            lineColor,
+            sortingLayerName,
+            sortingOrder,
+            recoveryDuration,
+            lineCapVertices
+        );
     }
 
     public void InitializeBetween(
@@ -324,20 +348,38 @@ public class BossLaserHazard : MonoBehaviour
             lifetimeRoutine = null;
         }
 
+        ResetRuntimeState();
+
+        ReleaseOrDestroy();
+    }
+
+    private void ResetRuntimeState()
+    {
+        lastDamageTimes.Clear();
         initialized = false;
         damageEnabled = false;
 
         if (boxCollider != null)
         {
             boxCollider.enabled = false;
+            boxCollider.offset = Vector2.zero;
+            boxCollider.size = new Vector2(0.01f, 0.01f);
+        }
+
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+            rb.simulated = false;
         }
 
         if (lineRenderer != null)
         {
             lineRenderer.enabled = false;
+            lineRenderer.positionCount = 0;
+            lineRenderer.startWidth = 0f;
+            lineRenderer.endWidth = 0f;
         }
-
-        ReleaseOrDestroy();
     }
 
     private void ReleaseOrDestroy()

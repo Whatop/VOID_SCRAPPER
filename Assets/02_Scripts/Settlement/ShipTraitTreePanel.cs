@@ -1341,7 +1341,16 @@ public class ShipTraitTreePanel : MonoBehaviour
         SetCostIconVisuals(entry);
         SetDetailLockVisual(!selectable);
         SetUnlockButton(canUnlock, BuildUnlockButtonLabel(entry, selectable, unlocked));
-        SetActivationToggleButton(unlocked, BuildActivationToggleButtonLabel(entry, unlocked, active), unlocked || !hideActivationToggleButtonUntilUnlocked);
+        SetActivationToggleButton(
+            unlocked,
+            BuildActivationToggleButtonLabel(entry, unlocked, active),
+            ShouldShowActivationToggle(unlocked)
+        );
+    }
+
+    public static bool ShouldShowActivationToggle(bool unlocked)
+    {
+        return unlocked;
     }
 
     private bool CanUnlockEntry(ShipTraitBranchNodeEntry entry, int unlockedShipCount)

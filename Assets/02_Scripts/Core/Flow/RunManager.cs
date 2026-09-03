@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class RunManager : MonoBehaviour
@@ -256,6 +257,9 @@ public class RunManager : MonoBehaviour
         currentRun.MarkBossDefeated(bossId);
 
         bool firstPermanentDefeat = false;
+        int previousPixelCurseLevel = PermanentProgress.Instance != null
+            ? PermanentProgress.Instance.PixelCurseLevel
+            : 0;
 
         if (PermanentProgress.Instance != null)
         {
@@ -268,6 +272,12 @@ public class RunManager : MonoBehaviour
             {
                 SaveManager.Instance.Save(PermanentProgress.Instance);
             }
+
+            int currentPixelCurseLevel = PermanentProgress.Instance.PixelCurseLevel;
+            if (currentPixelCurseLevel != previousPixelCurseLevel)
+            {
+                ShowPixelCurseLevelChanged(currentPixelCurseLevel);
+            }
         }
 
         if (firstRunDefeat)
@@ -276,6 +286,28 @@ public class RunManager : MonoBehaviour
         }
 
         return firstPermanentDefeat;
+    }
+
+    private static void ShowPixelCurseLevelChanged(int level)
+    {
+        if (!VoidScrapperLocalizationService.HasInstance)
+        {
+            return;
+        }
+
+        Dictionary<string, string> arguments = new Dictionary<string, string>(1)
+        {
+            { "level", level.ToString(System.Globalization.CultureInfo.InvariantCulture) }
+        };
+        string message = VoidScrapperLocalizationService.Instance.FormatText(
+            PixelCurseProgressionIds.LevelUpNotificationTextKey,
+            arguments);
+
+        UnityEngine.Object.FindFirstObjectByType<ExpeditionHUD>()?.ShowCommunication(
+            ShipCommunicationChannel.System,
+            message,
+            ShipCommunicationSeverity.Confirmation,
+            3f);
     }
 
     public void SetShopHostileThisRun(bool hostile)

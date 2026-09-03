@@ -56,7 +56,7 @@ Transform:
   m_GameObject: {fileID: 1646217402769430381}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.206, y: -0.365, z: 0}
+  m_LocalPosition: {x: -0.071, y: -0.36, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -305,14 +305,14 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: -0.18, y: -0.38}
-      - {x: 0.18, y: -0.38}
-      - {x: 0.27, y: -0.14}
-      - {x: 0.22, y: 0.25}
-      - {x: 0.1, y: 0.39}
-      - {x: -0.1, y: 0.39}
-      - {x: -0.22, y: 0.25}
-      - {x: -0.27, y: -0.14}
+    - - {x: -0.21984571, y: -0.5574938}
+      - {x: 0.20173384, y: -0.5611162}
+      - {x: 0.43662676, y: -0.23780248}
+      - {x: 0.4228501, y: 0.3188243}
+      - {x: 0.31009483, y: 0.6326953}
+      - {x: -0.29922733, y: 0.6218286}
+      - {x: -0.48080724, y: 0.25}
+      - {x: -0.37504762, y: -0.32473823}
   m_UseDelaunayMesh: 0
 --- !u!50 &8656573508738637437
 Rigidbody2D:
@@ -414,6 +414,13 @@ MonoBehaviour:
   defaultTauntDuration: 4
   preferredCombatDistanceRatio: 0.75
   closeCombatDistanceRatio: 0.45
+  scoutManeuverSpeedMultiplier: 0.7
+  scoutApproachLateralBlend: 0.35
+  ambusherInterceptLeadTime: 0.4
+  ambusherMaximumLeadDistance: 2
+  ambusherFlankDistanceRatio: 0.22
+  interceptorApproachLeadTime: 0.35
+  interceptorMaximumLeadDistance: 1.75
   chargingPreferredDistanceMinRatio: 0.55
   chargingPreferredDistanceMaxRatio: 0.82
   chargingRepositionDuration: 1
@@ -439,6 +446,7 @@ MonoBehaviour:
   runtimeMachineGunRightFirePoint: {fileID: 0}
   projectileOwner: 1
   ignoreShopSecurityTargets: 0
+  projectileSourceRoot: {fileID: 0}
   projectileDefinition: {fileID: 11400000, guid: a461677f565b052499eb7847e2058dee, type: 2}
   attackRange: 9
   attackInterval: 1.2
@@ -738,7 +746,7 @@ Transform:
   m_GameObject: {fileID: 8898435797988744819}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.216, y: -0.376, z: 0}
+  m_LocalPosition: {x: 0.079, y: -0.474, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

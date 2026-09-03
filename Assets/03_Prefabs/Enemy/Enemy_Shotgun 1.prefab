@@ -124,7 +124,7 @@ Transform:
   m_GameObject: {fileID: 6114645370823435704}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.073, y: -0.224, z: 0}
+  m_LocalPosition: {x: 0.259, y: -0.55, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -304,16 +304,18 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: -0.0017344952, y: -0.53493613}
-      - {x: 0.33636034, y: -0.467028}
-      - {x: 0.4832108, y: -0.25567907}
-      - {x: 0.38735485, y: 0.10611749}
-      - {x: 0.09472132, y: 0.38055563}
-      - {x: -0.09410387, y: 0.38176495}
-      - {x: -0.19028425, y: 0.29770398}
-      - {x: -0.3745854, y: 0.11978769}
-      - {x: -0.453125, y: -0.234375}
-      - {x: -0.33882946, y: -0.45907804}
+    - - {x: 0.010467291, y: -0.7179653}
+      - {x: 0.4126228, y: -0.62565315}
+      - {x: 0.7608049, y: -0.25567913}
+      - {x: 0.6875932, y: 0.20494443}
+      - {x: 0.5185261, y: 0.39591384}
+      - {x: 0.27164936, y: 0.72831106}
+      - {x: -0.005639851, y: 0.83018667}
+      - {x: -0.26462436, y: 0.7564986}
+      - {x: -0.47703004, y: 0.30685544}
+      - {x: -0.7711489, y: 0.019121647}
+      - {x: -0.73682046, y: -0.34114194}
+      - {x: -0.2900216, y: -0.70311713}
   m_UseDelaunayMesh: 0
 --- !u!50 &8656573508738637437
 Rigidbody2D:
@@ -415,6 +417,13 @@ MonoBehaviour:
   defaultTauntDuration: 4
   preferredCombatDistanceRatio: 0.75
   closeCombatDistanceRatio: 0.45
+  scoutManeuverSpeedMultiplier: 0.7
+  scoutApproachLateralBlend: 0.35
+  ambusherInterceptLeadTime: 0.4
+  ambusherMaximumLeadDistance: 2
+  ambusherFlankDistanceRatio: 0.22
+  interceptorApproachLeadTime: 0.35
+  interceptorMaximumLeadDistance: 1.75
   chargingPreferredDistanceMinRatio: 0.55
   chargingPreferredDistanceMaxRatio: 0.82
   chargingRepositionDuration: 1
@@ -440,6 +449,7 @@ MonoBehaviour:
   runtimeMachineGunRightFirePoint: {fileID: 0}
   projectileOwner: 1
   ignoreShopSecurityTargets: 0
+  projectileSourceRoot: {fileID: 0}
   projectileDefinition: {fileID: 11400000, guid: a461677f565b052499eb7847e2058dee, type: 2}
   attackRange: 9
   attackInterval: 1.2
@@ -706,7 +716,7 @@ Transform:
   m_GameObject: {fileID: 8898435797988744819}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.065, y: -0.224, z: 0}
+  m_LocalPosition: {x: -0.26, y: -0.553, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

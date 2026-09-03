@@ -6,10 +6,64 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.Serialization;
 
+[Serializable]
+public sealed class RadarModeInputState
+{
+    private bool isRadarActive;
+    private float nextScanAllowedTime = float.NegativeInfinity;
+
+    public bool IsRadarActive => isRadarActive;
+
+    public bool TryToggle(bool inputAvailable, out bool activeAfterToggle)
+    {
+        activeAfterToggle = isRadarActive;
+        if (!inputAvailable)
+        {
+            return false;
+        }
+
+        isRadarActive = !isRadarActive;
+        activeAfterToggle = isRadarActive;
+        return true;
+    }
+
+    public bool TrySetActive(bool active)
+    {
+        if (isRadarActive == active)
+        {
+            return false;
+        }
+
+        isRadarActive = active;
+        return true;
+    }
+
+    public bool TryBeginInstantScan(
+        bool inputAvailable,
+        float unscaledTime,
+        float cooldown)
+    {
+        if (!inputAvailable || !isRadarActive || unscaledTime < nextScanAllowedTime)
+        {
+            return false;
+        }
+
+        nextScanAllowedTime = unscaledTime + Mathf.Max(0f, cooldown);
+        return true;
+    }
+
+    public void Reset()
+    {
+        isRadarActive = false;
+        nextScanAllowedTime = float.NegativeInfinity;
+    }
+}
+
 [DisallowMultipleComponent]
 public class PlayerRadarScanner : MonoBehaviour
 {
     private readonly HashSet<object> externalInputLocks = new HashSet<object>();
+    private readonly RadarModeInputState radarModeInputState = new RadarModeInputState();
     [Header("Input Actions")]
     [SerializeField] private InputActionAsset inputActions;
     [SerializeField] private string actionMapName = "Player";
@@ -22,7 +76,6 @@ public class PlayerRadarScanner : MonoBehaviour
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerWeaponController weaponController;
     [SerializeField] private PlayerRuntimeBonusState runtimeBonusState;
-    [SerializeField] private ExpeditionHUD expeditionHUD;
     [SerializeField] private RadarPanelAnimator radarPanelAnimator;
     [SerializeField] private RadarHUD radarHUD;
     [SerializeField] private PlayerRadarVFXController radarVFX;
@@ -30,15 +83,12 @@ public class PlayerRadarScanner : MonoBehaviour
     [SerializeField] private ExpeditionObjectiveDirector objectiveDirector;
 
     [Header("Scan Rule")]
-    [SerializeField] private float holdTime = 1f;
     [SerializeField] private float scanRadius = 15f;
     [SerializeField] private LayerMask radarTargetLayer = ~0;
-    [SerializeField, Min(0f)] private float quickScanCooldown = 0.5f;
+    [FormerlySerializedAs("quickScanCooldown")]
+    [SerializeField, Min(0f)] private float scanCooldown = 0.5f;
 
     [Header("Audio Volume Scales")]
-    [SerializeField, Range(0f, 1f)] private float chargeStartVolumeScale = 0.55f;
-    [SerializeField, Range(0f, 1f)] private float chargeLoopVolumeScale = 0.3f;
-    [SerializeField, Range(0f, 1f)] private float chargeCancelVolumeScale = 0.4f;
     [SerializeField, Range(0f, 1f)] private float scanPulseVolumeScale = 0.75f;
 
     [Header("Passive Local Radar")]
@@ -50,9 +100,6 @@ public class PlayerRadarScanner : MonoBehaviour
     [SerializeField, Min(0.1f)] private float passiveRadarTravelStep = 0.75f;
     [SerializeField, Min(0.1f)] private float passiveRadarRefreshInterval = 0.35f;
 
-    [Tooltip("레이더가 열려 있을 때 Q를 짧게 누르면 닫습니다. 길게 누르면 다시 스캔합니다.")]
-    [SerializeField] private bool shortPressClosesRadar = true;
-
     [Header("Global Revealed Targets")]
     [Tooltip("코어 추적 신호로 공개된 코어는 현재 스캔 반경 밖이어도 레이더 방향 표식에 포함합니다.")]
     [SerializeField] private bool includeGloballyRevealedCore = true;
@@ -60,22 +107,13 @@ public class PlayerRadarScanner : MonoBehaviour
     [Header("Sniper Option")]
     [SerializeField] private float sniperLingerTime = 6f;
 
-    [Header("Warning Messages")]
-    [SerializeField] private string holdNotEnoughMessage = "{0}를 길게 눌러 스캔할 수 있습니다.";
-    [SerializeField] private string noTargetMessage = "탐지된 대상이 없습니다.";
-
     [Header("Debug")]
     [SerializeField] private bool drawScanRadius = true;
 
     private InputAction radarAction;
     private InputAction quickScanAction;
-    private bool isHolding;
-    private bool isRadarOpen;
-    private bool passiveAutoOpenSuppressed;
     private bool hasNormalRadarPresentation;
-    private float holdTimer;
     private float lastScanTime = -999f;
-    private float nextQuickScanAllowedTime;
     private float lastNormalScanRadius;
     private float lastPassiveRadarRadius;
     private float nextPassiveRadarRefreshTime;
@@ -101,10 +139,9 @@ public class PlayerRadarScanner : MonoBehaviour
         public float radius;
     }
 
-    public bool IsHolding => isHolding;
-    public bool IsRadarOpen => isRadarOpen;
-    public bool IsRadarPanelOpen => radarPanelAnimator != null ? radarPanelAnimator.IsOpen : isRadarOpen;
-    public float HoldRatio => holdTime <= 0f ? 1f : Mathf.Clamp01(holdTimer / holdTime);
+    public bool IsRadarActive => radarModeInputState.IsRadarActive;
+    public bool IsRadarOpen => IsRadarActive;
+    public bool IsRadarPanelOpen => IsRadarActive;
     public float ScanRadius => ResolveEffectiveScanRadius();
     public float PassiveRadarRadius => ResolveEffectiveScanRadius() * Mathf.Clamp01(passiveRadarRadiusRatio);
     public float LastScanTime => lastScanTime;
@@ -124,6 +161,7 @@ public class PlayerRadarScanner : MonoBehaviour
     );
 
     public event Action<Vector2, float, IReadOnlyList<RadarTarget>> ScanCompleted;
+    public event Action<bool> RadarActiveChanged;
 
     private void Reset()
     {
@@ -144,7 +182,7 @@ public class PlayerRadarScanner : MonoBehaviour
         lastPassiveRadarPosition = transform.position;
         hasPassiveRadarPosition = true;
         nextPassiveRadarRefreshTime = 0f;
-        passiveAutoOpenSuppressed = false;
+        radarModeInputState.Reset();
         objectiveDirector ??= ExpeditionObjectiveDirector.Instance;
 
         if (includeGloballyRevealedCore && objectiveDirector != null)
@@ -162,7 +200,6 @@ public class PlayerRadarScanner : MonoBehaviour
 
         radarAction?.Disable();
         quickScanAction?.Disable();
-        CancelHold();
         ClearAllTemporaryReveals();
         passiveRadarTargets.Clear();
         passiveRadarSet.Clear();
@@ -173,13 +210,11 @@ public class PlayerRadarScanner : MonoBehaviour
     {
         if (GameplayPauseManager.IsPaused)
         {
-            CancelHold();
             return;
         }
 
         if (playerHealth != null && playerHealth.IsDead)
         {
-            CancelHold();
             CloseRadar();
             return;
         }
@@ -188,12 +223,10 @@ public class PlayerRadarScanner : MonoBehaviour
 
         if (externalInputLocks.Count > 0)
         {
-            CancelHold();
             return;
         }
 
-        UpdateQuickScanInput();
-        UpdateHoldInput();
+        UpdateRadarInput();
     }
 
     public void SetExternalInputLocked(object source, bool locked)
@@ -206,7 +239,6 @@ public class PlayerRadarScanner : MonoBehaviour
         if (locked)
         {
             externalInputLocks.Add(source);
-            CancelHold();
         }
         else
         {
@@ -278,21 +310,7 @@ public class PlayerRadarScanner : MonoBehaviour
 
     private void RefreshPassiveRadarPresentation()
     {
-        if (passiveRadarTargets.Count > 0)
-        {
-            if (isRadarOpen)
-            {
-                RefreshRadarPresentation();
-            }
-            else if (!passiveAutoOpenSuppressed)
-            {
-                OpenRadar(lastPassiveRadarRadius, false, false);
-            }
-
-            return;
-        }
-
-        if (!isRadarOpen)
+        if (!IsRadarActive)
         {
             return;
         }
@@ -306,7 +324,6 @@ public class PlayerRadarScanner : MonoBehaviour
         weaponController ??= GetComponent<PlayerWeaponController>();
         runtimeBonusState ??= GetComponent<PlayerRuntimeBonusState>();
         radarVFX ??= GetComponent<PlayerRadarVFXController>();
-        expeditionHUD ??= FindFirstObjectByType<ExpeditionHUD>();
         radarPanelAnimator ??= FindFirstObjectByType<RadarPanelAnimator>();
         radarHUD ??= FindFirstObjectByType<RadarHUD>();
         mapDiscoveryController ??= MapDiscoveryController.Instance;
@@ -326,14 +343,17 @@ public class PlayerRadarScanner : MonoBehaviour
         quickScanAction?.Enable();
     }
 
-    private void UpdateQuickScanInput()
+    private void UpdateRadarInput()
     {
-        if (!isRadarOpen || isHolding || !WasQuickScanPressedThisFrame())
+        if (WasRadarPressedThisFrame())
         {
-            return;
+            TryToggleRadarMode();
         }
 
-        TryQuickScan();
+        if (WasQuickScanPressedThisFrame())
+        {
+            TryInstantScan();
+        }
     }
 
     private bool WasQuickScanPressedThisFrame()
@@ -344,36 +364,6 @@ public class PlayerRadarScanner : MonoBehaviour
         }
 
         return Mouse.current != null && Mouse.current.backButton.wasPressedThisFrame;
-    }
-
-    private void UpdateHoldInput()
-    {
-        bool pressedThisFrame = WasRadarPressedThisFrame();
-        bool held = IsRadarHeld();
-        bool releasedThisFrame = WasRadarReleasedThisFrame();
-
-        if (pressedThisFrame && isRadarOpen && shortPressClosesRadar)
-        {
-            CancelHold();
-            CloseRadar();
-            return;
-        }
-
-        if (pressedThisFrame)
-        {
-            BeginHold();
-        }
-
-        if (isHolding && held)
-        {
-            holdTimer += Time.deltaTime;
-            radarVFX?.SetChargeRatio(HoldRatio);
-        }
-
-        if (releasedThisFrame)
-        {
-            EndHold();
-        }
     }
 
     private bool WasRadarPressedThisFrame()
@@ -387,159 +377,57 @@ public class PlayerRadarScanner : MonoBehaviour
         return key != null && key.wasPressedThisFrame;
     }
 
-    private bool IsRadarHeld()
+    public bool TryToggleRadarMode()
     {
-        if (radarAction != null)
+        if (!radarModeInputState.TryToggle(
+                CanAcceptRadarInput(),
+                out bool activeAfterToggle))
         {
-            return radarAction.IsPressed();
+            return false;
         }
 
-        KeyControl key = Keyboard.current != null ? Keyboard.current[radarFallbackKey] : null;
-        return key != null && key.isPressed;
+        ApplyRadarActivePresentation(activeAfterToggle, true);
+        RadarActiveChanged?.Invoke(activeAfterToggle);
+        return true;
     }
 
-    private bool WasRadarReleasedThisFrame()
+    public bool TryInstantScan()
     {
-        if (radarAction != null)
+        if (!radarModeInputState.TryBeginInstantScan(
+                CanAcceptRadarInput(),
+                Time.unscaledTime,
+                scanCooldown))
         {
-            return radarAction.WasReleasedThisFrame();
+            return false;
         }
 
-        KeyControl key = Keyboard.current != null ? Keyboard.current[radarFallbackKey] : null;
-        return key != null && key.wasReleasedThisFrame;
-    }
-
-    private void BeginHold()
-    {
-        if (playerHealth != null && playerHealth.IsDead)
-        {
-            return;
-        }
-
-        isHolding = true;
-        holdTimer = 0f;
-
-        AudioManager.PlayAt(SoundEventIds.RadarChargeStart, transform.position, chargeStartVolumeScale);
-        AudioManager.PlayLoop(SoundEventIds.RadarChargeLoop, "radar_charge", chargeLoopVolumeScale);
-
-        float effectiveRadius = ResolveEffectiveScanRadius();
-        if (radarVFX != null)
-        {
-            radarVFX.SetScanRadius(effectiveRadius);
-            radarVFX.BeginCharge();
-            radarVFX.SetChargeRatio(0f);
-        }
-    }
-
-    private void EndHold()
-    {
-        if (!isHolding)
-        {
-            return;
-        }
-
-        float finalHoldTime = holdTimer;
-        isHolding = false;
-        holdTimer = 0f;
-
-        if (finalHoldTime < holdTime)
-        {
-            AudioManager.StopLoop("radar_charge");
-            AudioManager.PlayAt(SoundEventIds.RadarChargeCancel, transform.position, chargeCancelVolumeScale);
-            radarVFX?.CancelCharge();
-
-            if (isRadarOpen && shortPressClosesRadar)
-            {
-                CloseRadar();
-                return;
-            }
-
-            ShowWarning(ResolveHoldNotEnoughMessage());
-            return;
-        }
-
-        TryScan();
-    }
-
-    private void CancelHold()
-    {
-        bool wasHolding = isHolding;
-        isHolding = false;
-        holdTimer = 0f;
-
-        if (wasHolding)
-        {
-            AudioManager.StopLoop("radar_charge");
-        }
-
-        radarVFX?.CancelCharge();
-    }
-
-    private string ResolveHoldNotEnoughMessage()
-    {
-        string radarKey = InputBindingUtility.GetDisplayString(
-            inputActions,
-            actionMapName,
-            radarActionName,
-            radarFallbackKey.ToString()
-        );
-
-        return string.IsNullOrWhiteSpace(holdNotEnoughMessage)
-            ? radarKey
-            : string.Format(holdNotEnoughMessage, radarKey);
+        return ExecuteActiveScan();
     }
 
     public bool TryScan()
     {
-        if (externalInputLocks.Count > 0)
-        {
-            return false;
-        }
-
-        return ExecuteActiveScan(false);
+        return TryInstantScan();
     }
 
     public bool TryQuickScan()
     {
-        if (externalInputLocks.Count > 0 || !isRadarOpen || isHolding ||
-            Time.unscaledTime < nextQuickScanAllowedTime)
-        {
-            return false;
-        }
-
-        nextQuickScanAllowedTime = Time.unscaledTime + Mathf.Max(0f, quickScanCooldown);
-        return ExecuteActiveScan(true);
+        return TryInstantScan();
     }
 
-    private bool ExecuteActiveScan(bool isQuickScan)
+    private bool ExecuteActiveScan()
     {
         if (playerHealth != null && playerHealth.IsDead)
         {
-            radarVFX?.CancelCharge();
             return false;
         }
 
         float effectiveRadius = ResolveEffectiveScanRadius();
-
-        if (!isQuickScan)
-        {
-            AudioManager.StopLoop("radar_charge");
-        }
-
         AudioManager.PlayAt(SoundEventIds.RadarScanPulse, transform.position, scanPulseVolumeScale);
 
         if (radarVFX != null)
         {
             radarVFX.SetScanRadius(effectiveRadius);
-
-            if (isQuickScan)
-            {
-                radarVFX.PlayPulse(effectiveRadius);
-            }
-            else
-            {
-                radarVFX.CompleteScan();
-            }
+            radarVFX.PlayPulse(effectiveRadius);
         }
 
         mapDiscoveryController ??= MapDiscoveryController.Instance;
@@ -551,20 +439,24 @@ public class PlayerRadarScanner : MonoBehaviour
 
         ScanCompleted?.Invoke(transform.position, effectiveRadius, scannedTargets);
         lastScanTime = Time.time;
+        radarHUD?.SetSuccessfulScanPresentation(true);
 
         if (scannedTargets.Count == 0)
         {
-            if (!isQuickScan)
-            {
-                ShowWarning(noTargetMessage);
-            }
-
-            OpenRadar(effectiveRadius);
+            RefreshRadarPresentation();
             return true;
         }
 
-        OpenRadar(effectiveRadius);
+        RefreshRadarPresentation();
         return true;
+    }
+
+    private bool CanAcceptRadarInput()
+    {
+        return isActiveAndEnabled &&
+               externalInputLocks.Count == 0 &&
+               !GameplayPauseManager.IsPaused &&
+               (playerHealth == null || !playerHealth.IsDead);
     }
 
     public int RevealTargetsTemporarily(UnityEngine.Object source, float radius, float duration)
@@ -623,7 +515,10 @@ public class PlayerRadarScanner : MonoBehaviour
         state.radius = Mathf.Max(state.radius, effectiveRadius);
 
         radarVFX?.PlayPulse(effectiveRadius);
-        OpenRadar(effectiveRadius);
+        if (IsRadarActive)
+        {
+            RefreshRadarPresentation();
+        }
 
         if (temporaryRevealRoutine == null)
         {
@@ -656,7 +551,7 @@ public class PlayerRadarScanner : MonoBehaviour
         mapDiscoveryController?.DiscoverTarget(target, revealMapCell);
         hasNormalRadarPresentation = scannedTargets.Count > 0;
 
-        if (isRadarOpen)
+        if (IsRadarActive)
         {
             RefreshRadarPresentation();
         }
@@ -726,64 +621,56 @@ public class PlayerRadarScanner : MonoBehaviour
         mapDiscoveryController?.DiscoverTarget(target, false);
     }
 
-    private void OpenRadar(
-        float effectiveRadius,
-        bool animatePanel = true,
-        bool clearPassiveAutoOpenSuppression = true)
+    private void ApplyRadarActivePresentation(bool active, bool animatePanel)
     {
-        if (externalInputLocks.Count > 0)
+        if (!active)
         {
+            ClearRadarPresentation(animatePanel);
             return;
-        }
-
-        if (clearPassiveAutoOpenSuppression)
-        {
-            passiveAutoOpenSuppressed = false;
         }
 
         BuildDisplayedTargets();
 
         if (radarHUD != null)
         {
-            radarHUD.SetScanRadius(ResolveDisplayedRadius(effectiveRadius));
+            radarHUD.SetScanRadius(ResolveDisplayedRadius(ResolveEffectiveScanRadius()));
             radarHUD.SetTargets(displayedTargets, transform);
         }
 
-        if (!isRadarOpen)
+        if (radarPanelAnimator != null)
         {
-            if (radarPanelAnimator != null)
+            if (animatePanel)
             {
-                if (animatePanel)
-                {
-                    radarPanelAnimator.Open();
-                }
-                else
-                {
-                    radarPanelAnimator.OpenImmediate();
-                }
+                radarPanelAnimator.Open();
+            }
+            else
+            {
+                radarPanelAnimator.OpenImmediate();
             }
         }
-
-        isRadarOpen = true;
     }
 
     public void CloseRadar()
     {
-        CloseRadar(true);
+        bool changed = radarModeInputState.TrySetActive(false);
+        ClearRadarPresentation(true);
+
+        if (changed)
+        {
+            RadarActiveChanged?.Invoke(false);
+        }
     }
 
-    private void CloseRadar(bool animatePanel)
+    private void ClearRadarPresentation(bool animatePanel)
     {
-        if (!isRadarOpen)
-        {
-            return;
-        }
+        radarVFX?.StopPulse();
 
         // Unity scene shutdown can destroy either UI object before this player
         // component. Use Unity's overloaded null check instead of ?. so a stale
         // native object is not invoked while leaving Tutorial/Expedition.
         if (radarHUD != null)
         {
+            radarHUD.SetSuccessfulScanPresentation(false);
             radarHUD.Clear();
         }
 
@@ -799,8 +686,6 @@ public class PlayerRadarScanner : MonoBehaviour
             }
         }
 
-        isRadarOpen = false;
-        passiveAutoOpenSuppressed = true;
         hasNormalRadarPresentation = false;
     }
 
@@ -832,7 +717,7 @@ public class PlayerRadarScanner : MonoBehaviour
             }
         }
 
-        if (changed && isRadarOpen && radarHUD != null)
+        if (changed && IsRadarActive && radarHUD != null)
         {
             RefreshRadarPresentation();
         }
@@ -848,7 +733,7 @@ public class PlayerRadarScanner : MonoBehaviour
 
             PruneExpiredTemporaryReveals();
 
-            if (!isRadarOpen)
+            if (!IsRadarActive)
             {
                 continue;
             }
@@ -973,7 +858,7 @@ public class PlayerRadarScanner : MonoBehaviour
 
     private void RefreshRadarPresentation()
     {
-        if (!isRadarOpen || radarHUD == null)
+        if (!IsRadarActive || radarHUD == null)
         {
             return;
         }
@@ -1023,30 +908,6 @@ public class PlayerRadarScanner : MonoBehaviour
         return WeaponTreeType.MachineGun;
     }
 
-    private void ShowWarning(string message)
-    {
-        if (string.IsNullOrWhiteSpace(message))
-        {
-            return;
-        }
-
-        if (expeditionHUD != null)
-        {
-            expeditionHUD.ShowCommunication(
-                ShipCommunicationChannel.Radar,
-                message,
-                ShipCommunicationSeverity.Warning
-            );
-            return;
-        }
-
-        FindFirstObjectByType<WarningMessageUI>()?.ShowCommunication(
-            ShipCommunicationChannel.Radar,
-            message,
-            ShipCommunicationSeverity.Warning
-        );
-    }
-
     private void OnDrawGizmosSelected()
     {
         if (!drawScanRadius)
@@ -1070,12 +931,8 @@ public class PlayerRadarScanner : MonoBehaviour
 
     private void OnValidate()
     {
-        holdTime = Mathf.Max(0f, holdTime);
         scanRadius = Mathf.Max(0.1f, scanRadius);
-        quickScanCooldown = Mathf.Max(0f, quickScanCooldown);
-        chargeStartVolumeScale = Mathf.Clamp01(chargeStartVolumeScale);
-        chargeLoopVolumeScale = Mathf.Clamp01(chargeLoopVolumeScale);
-        chargeCancelVolumeScale = Mathf.Clamp01(chargeCancelVolumeScale);
+        scanCooldown = Mathf.Max(0f, scanCooldown);
         scanPulseVolumeScale = Mathf.Clamp01(scanPulseVolumeScale);
     }
 }

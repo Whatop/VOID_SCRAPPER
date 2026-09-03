@@ -8,6 +8,7 @@ public static class GameSettingsRuntime
     private const string TextScaleKey = "settings_text_scale";
     private const string CameraShakeKey = "settings_camera_shake";
     private const string WarningOpacityKey = "settings_warning_opacity";
+    private const string LanguageCodeKey = "settings_language";
 
     private static bool loaded;
     private static bool showHudKeyHints = true;
@@ -15,6 +16,7 @@ public static class GameSettingsRuntime
     private static float textScale = 1f;
     private static float cameraShakeMultiplier = 1f;
     private static float warningOpacity = 1f;
+    private static string languageCode = LocalizationLanguageCodes.Korean;
 
     public static bool ShowHudKeyHints
     {
@@ -58,6 +60,15 @@ public static class GameSettingsRuntime
         {
             EnsureLoaded();
             return warningOpacity;
+        }
+    }
+
+    public static string LanguageCode
+    {
+        get
+        {
+            EnsureLoaded();
+            return languageCode;
         }
     }
 
@@ -110,6 +121,21 @@ public static class GameSettingsRuntime
         SaveAndNotify();
     }
 
+    public static void SetLanguageCode(string value)
+    {
+        EnsureLoaded();
+        string normalized = LocalizationLanguageCodes.NormalizeOrKorean(value);
+
+        if (string.Equals(languageCode, normalized, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        languageCode = normalized;
+        PlayerPrefs.SetString(LanguageCodeKey, languageCode);
+        SaveAndNotify();
+    }
+
     private static void EnsureLoaded()
     {
         if (loaded)
@@ -123,6 +149,8 @@ public static class GameSettingsRuntime
         textScale = Mathf.Clamp(PlayerPrefs.GetFloat(TextScaleKey, 1f), 0.8f, 1.5f);
         cameraShakeMultiplier = Mathf.Clamp01(PlayerPrefs.GetFloat(CameraShakeKey, 1f));
         warningOpacity = Mathf.Clamp(PlayerPrefs.GetFloat(WarningOpacityKey, 1f), 0.25f, 1f);
+        languageCode = LocalizationLanguageCodes.NormalizeOrKorean(
+            PlayerPrefs.GetString(LanguageCodeKey, LocalizationLanguageCodes.Korean));
     }
 
     private static void SaveAndNotify()

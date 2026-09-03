@@ -20718,6 +20718,9 @@ MonoBehaviour:
   conversationCompleted:
     m_PersistentCalls:
       m_Calls: []
+  completionActionConditionId: 0
+  completionActionId: 2
+  requireNaturalCompletionMarker: 1
   startOnSceneLoadWhenRequiredFlagPresent: 1
   requiredUnlockFlag: story_first_settlement_unknown_core_pending
   completionUnlockFlag: story_first_settlement_unknown_core_complete

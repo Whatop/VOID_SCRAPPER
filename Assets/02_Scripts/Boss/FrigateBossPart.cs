@@ -82,6 +82,21 @@ public sealed class FrigateBossPart : MonoBehaviour, IDamageable
     public Transform PrimaryFirePoint => primaryFirePoint;
     public EnemyHealth AggregateHealth => aggregateHealth;
 
+    public Vector2 ResolveHomingAimPoint(Vector2 seekerPosition)
+    {
+        if (damageCollider == null || !damageCollider.enabled ||
+            !damageCollider.gameObject.activeInHierarchy)
+        {
+            return transform.position;
+        }
+
+        Vector2 colliderCenter = damageCollider.bounds.center;
+        Vector2 closestPoint = damageCollider.ClosestPoint(seekerPosition);
+        return (closestPoint - seekerPosition).sqrMagnitude <= 0.000001f
+            ? colliderCenter
+            : closestPoint;
+    }
+
     public event Action<FrigateBossPart, float, float> HealthChanged;
     public event Action<FrigateBossPart, FrigateBossPartState> StateChanged;
     public event Action<FrigateBossPart> Destroyed;

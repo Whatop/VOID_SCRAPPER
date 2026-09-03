@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -64,6 +65,10 @@ public class RunResultPanelUI : MonoBehaviour
     private Image recordAccentRail;
     private Sequence showSequence;
     private bool presentationLayoutReady;
+    private bool runtimeInitialized;
+    private bool runtimeCallbacksBound;
+    private bool invalidOwnershipReported;
+    private Coroutine deferredInitializationRoutine;
 
     private static readonly Color BackdropColor = new Color(0.018f, 0.035f, 0.052f, 1f);
     private static readonly Color CardColor = new Color(0.027f, 0.055f, 0.078f, 0.98f);
@@ -75,6 +80,84 @@ public class RunResultPanelUI : MonoBehaviour
 
     private void Awake()
     {
+        TryInitializeRuntime();
+    }
+
+    private void OnEnable()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        if (TryInitializeRuntime())
+        {
+            BindRuntimeCallbacks();
+        }
+    }
+
+    private void Start()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        if (TryInitializeRuntime())
+        {
+            BindRuntimeCallbacks();
+            return;
+        }
+
+        ScheduleDeferredInitialization();
+    }
+
+    private void Update()
+    {
+        if (runtimeInitialized && subscribedRunManager == null)
+        {
+            SubscribeRunManager();
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        if (deferredInitializationRoutine != null)
+        {
+            StopCoroutine(deferredInitializationRoutine);
+            deferredInitializationRoutine = null;
+        }
+
+        showSequence?.Kill();
+        showSequence = null;
+
+        RunManager runManager = RunManager.Instance;
+
+        if (runManager != null && runManager.IsCompletingRun)
+        {
+            runManager.ReleaseRunEndingPresentationOwnership();
+        }
+
+        UnbindRuntimeCallbacks();
+    }
+
+    private bool TryInitializeRuntime()
+    {
+        if (runtimeInitialized)
+        {
+            return true;
+        }
+
+        if (!Application.isPlaying || !HasUsableSceneOwnership(transform))
+        {
+            return false;
+        }
+
         if (dontDestroyOnLoad)
         {
             Transform authoredRoot = transform.root;
@@ -89,54 +172,135 @@ public class RunResultPanelUI : MonoBehaviour
                 transform.SetParent(null, true);
             }
 
-            if (!inheritedFromBootstrapRoot)
+            if (!inheritedFromBootstrapRoot && !IsDontDestroyOnLoadScene(gameObject.scene))
             {
                 DontDestroyOnLoad(gameObject);
             }
         }
 
+        if (!HasUsableSceneOwnership(transform))
+        {
+            return false;
+        }
+
         CacheReferences();
+        if (panelRoot == null || !HasUsableSceneOwnership(panelRoot.transform))
+        {
+            return false;
+        }
+
         BuildCounterPool();
-        EnsurePresentationLayout();
+        if (!EnsurePresentationLayout())
+        {
+            return false;
+        }
+
         HideImmediate();
+        runtimeInitialized = true;
+        invalidOwnershipReported = false;
+        return true;
     }
 
-    private void OnEnable()
+    private void ScheduleDeferredInitialization()
     {
-        SubscribeRunManager();
+        if (ShouldScheduleDeferredInitialization(
+                Application.isPlaying,
+                runtimeInitialized,
+                HasUsableSceneOwnership(transform),
+                deferredInitializationRoutine != null,
+                isActiveAndEnabled))
+        {
+            deferredInitializationRoutine = StartCoroutine(InitializeAfterSceneRestoration());
+        }
+    }
 
+    private static bool ShouldScheduleDeferredInitialization(
+        bool isPlaying,
+        bool isInitialized,
+        bool hasUsableSceneOwnership,
+        bool isAlreadyScheduled,
+        bool isActiveAndEnabled)
+    {
+        return isPlaying &&
+               !isInitialized &&
+               !hasUsableSceneOwnership &&
+               !isAlreadyScheduled &&
+               isActiveAndEnabled;
+    }
+
+    private IEnumerator InitializeAfterSceneRestoration()
+    {
+        yield return null;
+        deferredInitializationRoutine = null;
+
+        if (TryInitializeRuntime())
+        {
+            BindRuntimeCallbacks();
+            yield break;
+        }
+
+        ReportInvalidOwnershipOnce();
+    }
+
+    private void ReportInvalidOwnershipOnce()
+    {
+        if (invalidOwnershipReported || !Application.isPlaying)
+        {
+            return;
+        }
+
+        invalidOwnershipReported = true;
+        Scene scene = gameObject.scene;
+        Debug.LogError(
+            $"[{nameof(RunResultPanelUI)}] '{name}' could not initialize after Unity scene " +
+            $"restoration. Scene='{scene.name}', Path='{scene.path}', Valid={scene.IsValid()}, " +
+            $"Loaded={scene.isLoaded}. Keep it under a valid loaded CoreRoot hierarchy.",
+            this);
+    }
+
+    private void BindRuntimeCallbacks()
+    {
+        if (runtimeCallbacksBound)
+        {
+            return;
+        }
+
+        SubscribeRunManager();
         if (continueButton != null)
         {
+            continueButton.onClick.RemoveListener(Close);
             continueButton.onClick.AddListener(Close);
         }
+
+        runtimeCallbacksBound = true;
     }
 
-    private void Update()
+    private void UnbindRuntimeCallbacks()
     {
-        if (subscribedRunManager == null)
-        {
-            SubscribeRunManager();
-        }
-    }
-
-    private void OnDisable()
-    {
-        showSequence?.Kill();
-        showSequence = null;
-
-        RunManager runManager = RunManager.Instance;
-
-        if (runManager != null && runManager.IsCompletingRun)
-        {
-            runManager.ReleaseRunEndingPresentationOwnership();
-        }
-
         UnsubscribeRunManager();
-
         if (continueButton != null)
         {
             continueButton.onClick.RemoveListener(Close);
         }
+
+        runtimeCallbacksBound = false;
+    }
+
+    private static bool HasUsableSceneOwnership(Transform target)
+    {
+        if (target == null)
+        {
+            return false;
+        }
+
+        Scene scene = target.gameObject.scene;
+        return scene.IsValid() && scene.isLoaded;
+    }
+
+    private static bool IsDontDestroyOnLoadScene(Scene scene)
+    {
+        return scene.IsValid() &&
+               string.Equals(scene.name, "DontDestroyOnLoad", StringComparison.Ordinal);
     }
 
     public void Close()
@@ -734,18 +898,23 @@ public class RunResultPanelUI : MonoBehaviour
         };
     }
 
-    private void EnsurePresentationLayout()
+    private bool EnsurePresentationLayout()
     {
-        if (presentationLayoutReady || panelRoot == null)
+        if (presentationLayoutReady)
         {
-            return;
+            return true;
+        }
+
+        if (panelRoot == null || !HasUsableSceneOwnership(panelRoot.transform))
+        {
+            return false;
         }
 
         RectTransform panelRect = panelRoot.transform as RectTransform;
 
         if (panelRect == null)
         {
-            return;
+            return false;
         }
 
         Image backdrop = panelRoot.GetComponent<Image>();
@@ -817,6 +986,7 @@ public class RunResultPanelUI : MonoBehaviour
         permanentTotalsText.textWrappingMode = TextWrappingModes.NoWrap;
 
         presentationLayoutReady = true;
+        return true;
     }
 
     private void ConfigureRecordPanel(RectTransform panelRect, Sprite panelSprite)
@@ -1140,14 +1310,14 @@ public class RunResultPanelUI : MonoBehaviour
         Color color,
         Sprite sprite)
     {
-        GameObject panelObject = new GameObject(
+        GameObject panelObject = CreateSceneOwnedRuntimeObject(
             objectName,
+            parent,
             typeof(RectTransform),
             typeof(CanvasRenderer),
             typeof(Image)
         );
         RectTransform rectTransform = panelObject.GetComponent<RectTransform>();
-        rectTransform.SetParent(parent, false);
         SetCenteredRect(rectTransform, anchoredPosition, size);
 
         Image image = panelObject.GetComponent<Image>();
@@ -1185,14 +1355,14 @@ public class RunResultPanelUI : MonoBehaviour
         TextAlignmentOptions alignment,
         Color color)
     {
-        GameObject textObject = new GameObject(
+        GameObject textObject = CreateSceneOwnedRuntimeObject(
             objectName,
+            parent,
             typeof(RectTransform),
             typeof(CanvasRenderer),
             typeof(TextMeshProUGUI)
         );
         RectTransform rectTransform = textObject.GetComponent<RectTransform>();
-        rectTransform.SetParent(parent, false);
         SetCenteredRect(rectTransform, anchoredPosition, size);
 
         TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
@@ -1211,6 +1381,79 @@ public class RunResultPanelUI : MonoBehaviour
         text.richText = true;
         return text;
     }
+
+    private static GameObject CreateSceneOwnedRuntimeObject(
+        string objectName,
+        Transform parent,
+        params Type[] componentTypes)
+    {
+        if (parent == null)
+        {
+            throw new ArgumentNullException(nameof(parent));
+        }
+
+        Scene targetScene = parent.gameObject.scene;
+        if (!targetScene.IsValid() || !targetScene.isLoaded)
+        {
+            throw new InvalidOperationException(
+                $"Cannot create result UI '{objectName}' under '{parent.name}' because its " +
+                "scene is invalid or unloaded.");
+        }
+
+        GameObject target = new GameObject(objectName, typeof(RectTransform));
+        if (target.scene != targetScene)
+        {
+            SceneManager.MoveGameObjectToScene(target, targetScene);
+        }
+
+        target.transform.SetParent(parent, false);
+        Type[] requestedTypes = componentTypes ?? Array.Empty<Type>();
+        for (int i = 0; i < requestedTypes.Length; i++)
+        {
+            Type componentType = requestedTypes[i];
+            if (componentType == null ||
+                componentType == typeof(Transform) ||
+                componentType == typeof(RectTransform) ||
+                target.GetComponent(componentType) != null)
+            {
+                continue;
+            }
+
+            target.AddComponent(componentType);
+        }
+
+        return target;
+    }
+
+#if UNITY_EDITOR
+    public static GameObject CreateSceneOwnedRuntimeObjectForEditorAndTests(
+        string objectName,
+        Transform parent,
+        params Type[] componentTypes)
+    {
+        return CreateSceneOwnedRuntimeObject(objectName, parent, componentTypes);
+    }
+
+    public static bool HasUsableSceneOwnershipForEditorAndTests(Transform target)
+    {
+        return HasUsableSceneOwnership(target);
+    }
+
+    public static bool ShouldScheduleDeferredInitializationForEditorAndTests(
+        bool isPlaying,
+        bool isInitialized,
+        bool hasUsableSceneOwnership,
+        bool isAlreadyScheduled,
+        bool isActiveAndEnabled)
+    {
+        return ShouldScheduleDeferredInitialization(
+            isPlaying,
+            isInitialized,
+            hasUsableSceneOwnership,
+            isAlreadyScheduled,
+            isActiveAndEnabled);
+    }
+#endif
 
     private void ConfigureTextRect(
         TextMeshProUGUI text,

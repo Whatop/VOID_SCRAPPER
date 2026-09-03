@@ -114,11 +114,8 @@ public sealed class SettlementRestorationViewData
     }
 }
 
-public class SettlementController : MonoBehaviour
+public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestStartAuthority
 {
-    private const string FirstSettlementPendingFlag = "story_first_settlement_unknown_core_pending";
-    private const string FirstSettlementCompleteFlag = "story_first_settlement_unknown_core_complete";
-
     public static SettlementController Instance { get; private set; }
 
     [Header("Selection Defaults")]
@@ -156,6 +153,16 @@ public class SettlementController : MonoBehaviour
     public IReadOnlyList<ShipDefinition> ShipDefinitions => shipDefinitions;
     public IReadOnlyList<BuildingDefinition> BuildingDefinitions => buildingDefinitions;
     public IReadOnlyList<TraitDefinition> TraitDefinitions => traitDefinitions;
+    public MainDamagedAccessKeyQuestState DamagedAccessKeyQuestState =>
+        PermanentProgress.Instance != null
+            ? PermanentProgress.Instance.DamagedAccessKeyQuestState
+            : MainDamagedAccessKeyQuestState.Invalid;
+    public int DamagedAccessKeyCollectedPartCount =>
+        PermanentProgress.Instance != null
+            ? PermanentProgress.Instance.DamagedAccessKeyCollectedPartCount
+            : 0;
+    public int DamagedAccessKeyRequiredPartCount =>
+        MainDamagedAccessKeyQuestIds.RequiredPartCount;
 
     public string LastMessage { get; private set; } = "정착지에 도착했다.";
 
@@ -237,8 +244,8 @@ public class SettlementController : MonoBehaviour
 
     private bool TryInitializeFirstSettlementMachineGunSelection(PermanentProgress progress)
     {
-        if (!progress.HasUnlockFlag(FirstSettlementPendingFlag) ||
-            progress.HasUnlockFlag(FirstSettlementCompleteFlag))
+        if (!progress.HasUnlockFlag(StoryProgressionIds.FirstSettlementPendingFlag) ||
+            progress.HasUnlockFlag(StoryProgressionIds.FirstSettlementCompleteFlag))
         {
             return false;
         }
@@ -277,6 +284,125 @@ public class SettlementController : MonoBehaviour
         progress.SetLastSelectedWeaponTree(selectedWeaponTree);
         SaveProgress();
         return true;
+    }
+
+    public bool TryStartDamagedAccessKeyQuest()
+    {
+        PermanentProgress progress = PermanentProgress.Instance;
+        SaveManager saveManager = SaveManager.Instance;
+
+        if (progress == null || saveManager == null ||
+            progress.DamagedAccessKeyQuestState !=
+            MainDamagedAccessKeyQuestState.NotStarted)
+        {
+            return false;
+        }
+
+        if (!progress.TryStartDamagedAccessKeyQuest())
+        {
+            return false;
+        }
+
+        saveManager.Save(progress);
+        ShowLocalizedMessage(MainDamagedAccessKeyQuestIds.StartedNotificationTextKey);
+        return true;
+    }
+
+    public bool TryCompleteFirstSettlementStory()
+    {
+        PermanentProgress progress = PermanentProgress.Instance;
+        SaveManager saveManager = SaveManager.Instance;
+
+        if (progress == null || saveManager == null ||
+            progress.DamagedAccessKeyQuestState ==
+            MainDamagedAccessKeyQuestState.Invalid)
+        {
+            return false;
+        }
+
+        bool questStarted = false;
+        if (progress.DamagedAccessKeyQuestState ==
+            MainDamagedAccessKeyQuestState.NotStarted)
+        {
+            questStarted = progress.TryStartDamagedAccessKeyQuest();
+            if (!questStarted)
+            {
+                return false;
+            }
+        }
+
+        bool storyWasComplete = progress.HasUnlockFlag(
+            StoryProgressionIds.FirstSettlementCompleteFlag);
+        if (!storyWasComplete)
+        {
+            progress.AddUnlockFlag(StoryProgressionIds.FirstSettlementCompleteFlag);
+        }
+
+        if (questStarted || !storyWasComplete)
+        {
+            saveManager.Save(progress);
+        }
+
+        if (questStarted)
+        {
+            ShowLocalizedMessage(
+                MainDamagedAccessKeyQuestIds.StartedNotificationTextKey);
+        }
+
+        return progress.DamagedAccessKeyQuestState !=
+                   MainDamagedAccessKeyQuestState.NotStarted &&
+               progress.HasUnlockFlag(
+                   StoryProgressionIds.FirstSettlementCompleteFlag);
+    }
+
+    public bool CanRestoreDamagedAccessKey()
+    {
+        return PermanentProgress.Instance != null &&
+               PermanentProgress.Instance.DamagedAccessKeyQuestState ==
+               MainDamagedAccessKeyQuestState.ReadyToRestore;
+    }
+
+    public bool TryRestoreDamagedAccessKey()
+    {
+        PermanentProgress progress = PermanentProgress.Instance;
+        SaveManager saveManager = SaveManager.Instance;
+
+        if (progress == null || saveManager == null ||
+            !progress.TryRestoreDamagedAccessKey())
+        {
+            return false;
+        }
+
+        saveManager.Save(progress);
+        ShowLocalizedMessage(
+            MainDamagedAccessKeyQuestIds.RestoredNotificationTextKey);
+        return true;
+    }
+
+    public SettlementRestorationViewData BuildDamagedAccessKeyRestorationViewData()
+    {
+        PermanentProgress progress = PermanentProgress.Instance;
+        MainDamagedAccessKeyQuestState state = progress != null
+            ? progress.DamagedAccessKeyQuestState
+            : MainDamagedAccessKeyQuestState.Invalid;
+        bool complete = state == MainDamagedAccessKeyQuestState.Completed;
+        bool ready = state == MainDamagedAccessKeyQuestState.ReadyToRestore;
+
+        return new SettlementRestorationViewData(
+            GetLocalizedText(MainDamagedAccessKeyQuestIds.TitleTextKey),
+            GetLocalizedText(
+                MainDamagedAccessKeyQuestIds.RestorationDescriptionTextKey),
+            GetLocalizedText(
+                complete
+                    ? MainDamagedAccessKeyQuestIds.RestorationCompletedTextKey
+                    : MainDamagedAccessKeyQuestIds.RestorationReadyTextKey),
+            FormatDamagedAccessKeyObjective(progress),
+            GetLocalizedText(
+                MainDamagedAccessKeyQuestIds.RestorationCompletedTextKey),
+            GetLocalizedText(
+                MainDamagedAccessKeyQuestIds.RestorationActionTextKey),
+            complete,
+            ready);
     }
 
     public void SelectWeaponTree(WeaponTreeType weaponTreeType)
@@ -930,25 +1056,42 @@ public class SettlementController : MonoBehaviour
         return builder.ToString();
     }
 
-    public void LaunchExpedition()
+    public bool LaunchExpedition()
     {
+        return TryLaunchExpedition(out _);
+    }
+
+    public bool TryLaunchExpedition(out SettlementExpeditionLaunchFailure failure)
+    {
+        if (!SettlementExpeditionLaunchGuard.TryPassMandatoryStoryGate(
+            SettlementExpeditionLaunchGuard.IsDialogueActive,
+            SettlementExpeditionLaunchGuard.IsMandatoryFirstSettlementStoryPending,
+            out failure))
+        {
+            ShowLocalizedMessage(SettlementExpeditionLaunchGuard.DialogueActiveTextKey);
+            return false;
+        }
+
         if (RunManager.Instance == null)
         {
+            failure = SettlementExpeditionLaunchFailure.MissingRunManager;
             SetMessage("RunManager가 없어 출격할 수 없습니다.");
-            return;
+            return false;
         }
 
         ShipDefinition selectedShip = FindShipDefinition(SelectedShipId);
         if (selectedShip == null)
         {
+            failure = SettlementExpeditionLaunchFailure.MissingSelectedShip;
             SetMessage("선택된 기체 데이터가 없습니다. 기체를 먼저 선택하세요.");
-            return;
+            return false;
         }
 
         if (!IsShipUnlocked(selectedShip))
         {
+            failure = SettlementExpeditionLaunchFailure.SelectedShipLocked;
             SetMessage("선택된 기체가 개발되지 않았습니다.");
-            return;
+            return false;
         }
 
         selectedWeaponTree = ResolveWeaponTreeForShip(selectedShip);
@@ -962,11 +1105,32 @@ public class SettlementController : MonoBehaviour
         SaveProgress();
 
         SetMessage($"탐사 시작: {selectedShip.DisplayName} / {GetWeaponDisplayName(selectedWeaponTree)}");
+
+        if (!SettlementExpeditionLaunchGuard.TryPassMandatoryStoryGate(
+            SettlementExpeditionLaunchGuard.IsDialogueActive,
+            SettlementExpeditionLaunchGuard.IsMandatoryFirstSettlementStoryPending,
+            out failure))
+        {
+            ShowLocalizedMessage(SettlementExpeditionLaunchGuard.DialogueActiveTextKey);
+            return false;
+        }
+
         RunManager.Instance.StartNewRunAndLoadExpedition(selectedWeaponTree, selectedShip.ShipId);
+        failure = SettlementExpeditionLaunchFailure.None;
+        return true;
     }
 
     public bool LaunchFinalExpedition()
     {
+        if (!SettlementExpeditionLaunchGuard.TryPassMandatoryStoryGate(
+            SettlementExpeditionLaunchGuard.IsDialogueActive,
+            SettlementExpeditionLaunchGuard.IsMandatoryFirstSettlementStoryPending,
+            out _))
+        {
+            ShowLocalizedMessage(SettlementExpeditionLaunchGuard.DialogueActiveTextKey);
+            return false;
+        }
+
         if (RunManager.Instance == null)
         {
             SetMessage("RunManager가 없어 중앙 물류망으로 출격할 수 없습니다.");
@@ -993,6 +1157,16 @@ public class SettlementController : MonoBehaviour
         SaveProgress();
 
         SetMessage($"중앙 물류망 출격: {selectedShip.DisplayName} / {GetWeaponDisplayName(selectedWeaponTree)}");
+
+        if (!SettlementExpeditionLaunchGuard.TryPassMandatoryStoryGate(
+            SettlementExpeditionLaunchGuard.IsDialogueActive,
+            SettlementExpeditionLaunchGuard.IsMandatoryFirstSettlementStoryPending,
+            out _))
+        {
+            ShowLocalizedMessage(SettlementExpeditionLaunchGuard.DialogueActiveTextKey);
+            return false;
+        }
+
         return RunManager.Instance.StartFinalExpeditionAndLoad(
             selectedWeaponTree,
             selectedShip.ShipId
@@ -1561,6 +1735,47 @@ public class SettlementController : MonoBehaviour
         LastMessage = message;
         Debug.Log(message, this);
         NotifyChanged();
+    }
+
+    private void ShowLocalizedMessage(string textKey)
+    {
+        string message = GetLocalizedText(textKey);
+        SetMessage(message);
+    }
+
+    private static string GetLocalizedText(string textKey)
+    {
+        return VoidScrapperLocalizationService.HasInstance
+            ? VoidScrapperLocalizationService.Instance.GetText(textKey)
+            : textKey;
+    }
+
+    private static string FormatDamagedAccessKeyObjective(
+        PermanentProgress progress)
+    {
+        if (!VoidScrapperLocalizationService.HasInstance)
+        {
+            return MainDamagedAccessKeyQuestIds.ObjectiveTextKey;
+        }
+
+        Dictionary<string, string> arguments = new Dictionary<string, string>(2)
+        {
+            {
+                "collected",
+                (progress != null
+                    ? progress.DamagedAccessKeyCollectedPartCount
+                    : 0).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            },
+            {
+                "total",
+                MainDamagedAccessKeyQuestIds.RequiredPartCount.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture)
+            }
+        };
+
+        return VoidScrapperLocalizationService.Instance.FormatText(
+            MainDamagedAccessKeyQuestIds.ObjectiveTextKey,
+            arguments);
     }
 
     private void NotifyChanged()

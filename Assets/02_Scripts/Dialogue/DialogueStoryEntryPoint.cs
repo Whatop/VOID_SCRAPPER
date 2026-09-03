@@ -15,6 +15,11 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
     [Header("Completion")]
     [SerializeField] private UnityEvent conversationStarted;
     [SerializeField] private UnityEvent conversationCompleted;
+    [SerializeField] private DialogueConditionId completionActionConditionId =
+        DialogueConditionId.None;
+    [SerializeField] private DialogueGameplayActionId completionActionId =
+        DialogueGameplayActionId.None;
+    [SerializeField] private bool requireNaturalCompletionMarker;
 
     [Header("Optional Progression Gate")]
     [SerializeField] private bool startOnSceneLoadWhenRequiredFlagPresent;
@@ -23,6 +28,7 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
     [SerializeField] private bool saveCompletionUnlockFlag = true;
 
     private DialogueSystemController activeController;
+    private DialogueSystemController deferredStartController;
     private string activeConversationTitle;
     private Coroutine sceneLoadStartRoutine;
 
@@ -154,6 +160,7 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
             sceneLoadStartRoutine = null;
         }
 
+        ClearDeferredStart();
         ClearActiveConversation();
     }
 
@@ -169,10 +176,74 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
             return;
         }
 
+        if (!TryRequestCompletionAction())
+        {
+            Debug.LogError(
+                $"[{nameof(DialogueStoryEntryPoint)}] Conversation " +
+                $"'{activeConversationTitle}' ended, but its required completion " +
+                "action failed. Progression completion was not recorded.",
+                this
+            );
+            ClearActiveConversation();
+            return;
+        }
+
         ClearActiveConversation();
-        MarkProgressionConversationCompleted();
+        if (completionActionId == DialogueGameplayActionId.None)
+        {
+            MarkProgressionConversationCompleted();
+        }
         conversationCompleted?.Invoke();
         Completed?.Invoke(this);
+    }
+
+    private bool TryRequestCompletionAction()
+    {
+        if (activeController == null)
+        {
+            return completionActionId == DialogueGameplayActionId.None &&
+                   !requireNaturalCompletionMarker;
+        }
+
+        DialoguePixelCrushersBridge bridge =
+            activeController.GetComponent<DialoguePixelCrushersBridge>();
+        if (bridge == null &&
+            (completionActionConditionId != DialogueConditionId.None ||
+             completionActionId != DialogueGameplayActionId.None ||
+             requireNaturalCompletionMarker))
+        {
+            return false;
+        }
+
+        if (requireNaturalCompletionMarker &&
+            !bridge.WasConversationCompletedNaturally(activeConversationTitle))
+        {
+            return false;
+        }
+
+        if (completionActionId == DialogueGameplayActionId.None)
+        {
+            return true;
+        }
+
+        if (completionActionConditionId != DialogueConditionId.None)
+        {
+            if (!bridge.TryEvaluateCondition(
+                    completionActionConditionId,
+                    out bool shouldRequestAction))
+            {
+                return false;
+            }
+
+            if (!shouldRequestAction)
+            {
+                return true;
+            }
+        }
+
+        return bridge.TryDispatchCompletedConversationAction(
+            completionActionId,
+            activeConversationTitle);
     }
 
     private IEnumerator TryStartFromProgressionRoutine()
@@ -193,6 +264,18 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
             yield break;
         }
 
+        if (DialogueManager.hasInstance &&
+            DialogueManager.instance != null &&
+            DialogueManager.isConversationActive)
+        {
+            deferredStartController = DialogueManager.instance;
+            deferredStartController.conversationEnded -=
+                HandleDeferredConversationEnded;
+            deferredStartController.conversationEnded +=
+                HandleDeferredConversationEnded;
+            yield break;
+        }
+
         if (!TryStart())
         {
             Debug.LogWarning(
@@ -200,6 +283,26 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
                 $"'{conversationTitle}' could not start.",
                 this
             );
+        }
+    }
+
+    private void HandleDeferredConversationEnded(Transform actor)
+    {
+        ClearDeferredStart();
+        if (isActiveAndEnabled && sceneLoadStartRoutine == null)
+        {
+            sceneLoadStartRoutine = StartCoroutine(
+                TryStartFromProgressionRoutine());
+        }
+    }
+
+    private void ClearDeferredStart()
+    {
+        if (deferredStartController != null)
+        {
+            deferredStartController.conversationEnded -=
+                HandleDeferredConversationEnded;
+            deferredStartController = null;
         }
     }
 

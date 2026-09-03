@@ -365,7 +365,7 @@ MonoBehaviour:
   converterCreditCost: 25
   blackMarketCreditCost: 45
   blackMarketChoiceCount: 3
-  registerAdditionalSignalOnContactService: 0
+  registerAdditionalSignalOnContactService: 1
   traitCatalog: {fileID: 11400000, guid: 3e5fea5df49917b46b18c1d3712065a1, type: 2}
   reinforcementCatalog: {fileID: 11400000, guid: d810a93b6d46bc347b7603f18bf37ec6, type: 2}
   rewardChoiceUI: {fileID: 0}

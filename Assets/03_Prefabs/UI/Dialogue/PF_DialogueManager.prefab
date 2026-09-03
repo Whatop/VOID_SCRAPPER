@@ -111,6 +111,8 @@ GameObject:
   - component: {fileID: 11471062}
   - component: {fileID: 11424616}
   - component: {fileID: 3902687146439726831}
+  - component: {fileID: 7149930150329874001}
+  - component: {fileID: 7286041614387091201}
   m_Layer: 0
   m_Name: Dialogue Manager
   m_TagString: Untagged
@@ -332,3 +334,30 @@ MonoBehaviour:
   pauseConversationsByDefault: 1
   pauseGameplayFieldName: Pause Gameplay
   allowEscapeToStopConversation: 0
+--- !u!114 &7149930150329874001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 125852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d595e4bb69f34d09bca36a0936552edf, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  localizationCatalog: {fileID: 11400000, guid: 72f3724e1a6c4694831c6dc6fdb2fcf8, type: 2}
+  forwardLanguageToPixelCrushers: 1
+  logKoreanFallbacksInDevelopment: 0
+--- !u!114 &7286041614387091201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 125852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 175159789d484dca886547ec95b627a0, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:

@@ -599,7 +599,7 @@ public sealed class FrigateTriadBossController : MonoBehaviour
                 yield break;
             }
 
-            elapsed += Time.deltaTime;
+            elapsed += Time.unscaledDeltaTime;
 
             for (int i = 0; i < parts.Length; i++)
             {
@@ -2465,7 +2465,8 @@ public sealed class FrigateTriadBossController : MonoBehaviour
             return;
         }
 
-        activeLaserHazard.InitializeBetween(
+        activeLaserHazard.InitializeBetweenAttached(
+            transform,
             lineStart,
             lineEnd,
             laserWidth,

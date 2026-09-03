@@ -818,23 +818,56 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield break;
         }
 
-        CloseCoreActivationPresentation();
-        ResetCameraZoom();
-
-        if (gungeonCamera != null)
-        {
-            gungeonCamera.CancelCinematicFocusBlend(false);
-            gungeonCamera.ClearCinematicFocus(true);
-        }
-
         ExpeditionMapGenerator mapGenerator =
             FindFirstObjectByType<ExpeditionMapGenerator>(FindObjectsInactive.Include);
         activeSalvageCorridor = mapGenerator != null
             ? mapGenerator.CurrentRegion2BossCorridorRuntime
             : null;
 
-        if (activeSalvageCorridor == null ||
-            !activeSalvageCorridor.PrepareCorridorRuntime())
+        if (activeSalvageCorridor == null)
+        {
+            Debug.LogError(
+                "The dedicated Salvage Devourer intro could not resolve the Phase-2 corridor runtime.",
+                this
+            );
+            CleanupSalvageDevourerIntro(true);
+            yield break;
+        }
+
+        CloseCoreActivationPresentation();
+        ResetCameraZoom();
+
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.BeginCinematicFocusBlend(
+                activeSalvageCorridor.CameraStartCenter,
+                bossRevealFocusPanDuration,
+                bossRevealFocusPanCurve
+            );
+
+            while (gungeonCamera.IsCinematicFocusBlendActive)
+            {
+                if (ShouldAbortIntro())
+                {
+                    CleanupSalvageDevourerIntro(true);
+                    yield break;
+                }
+
+                yield return null;
+            }
+
+            if (!gungeonCamera.TryReleaseUnownedCinematicFocusAtCurrentPosition())
+            {
+                Debug.LogError(
+                    "The Salvage Devourer intro could not hand camera ownership to the corridor.",
+                    this
+                );
+                CleanupSalvageDevourerIntro(true);
+                yield break;
+            }
+        }
+
+        if (!activeSalvageCorridor.PrepareCorridorRuntime())
         {
             Debug.LogError(
                 "The dedicated Salvage Devourer intro could not prepare the Phase-2 corridor runtime.",
@@ -1597,7 +1630,7 @@ public class CoreBossIntroSequence : MonoBehaviour
                 yield break;
             }
 
-            timer += Time.deltaTime;
+            timer += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(timer / duration);
             float eased = managerShipMoveCurve != null ? managerShipMoveCurve.Evaluate(t) : t;
 
@@ -2014,7 +2047,7 @@ public class CoreBossIntroSequence : MonoBehaviour
                 yield break;
             }
 
-            timer += Time.deltaTime;
+            timer += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(timer / duration);
             float eased = bossMoveCurve != null ? bossMoveCurve.Evaluate(t) : t;
 
@@ -3204,7 +3237,7 @@ public class CoreBossIntroSequence : MonoBehaviour
                 yield break;
             }
 
-            timer += Time.deltaTime;
+            timer += Time.unscaledDeltaTime;
             yield return null;
         }
     }

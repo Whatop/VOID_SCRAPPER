@@ -14,7 +14,6 @@ public class GameBalanceConfig : ScriptableObject
     [SerializeField] private float chasingEnemyCheckRadius = 12f;
 
     [Header("Radar")]
-    [SerializeField] private float radarScanHoldTime = 1f;
     [SerializeField] private float radarScanRadius = 15f;
 
     [Header("Return")]
@@ -37,7 +36,6 @@ public class GameBalanceConfig : ScriptableObject
     public float OutOfCombatNoHitTime => outOfCombatNoHitTime;
     public float ChasingEnemyCheckRadius => chasingEnemyCheckRadius;
 
-    public float RadarScanHoldTime => radarScanHoldTime;
     public float RadarScanRadius => radarScanRadius;
 
     public float EmergencyReturnPrepareTime => emergencyReturnPrepareTime;

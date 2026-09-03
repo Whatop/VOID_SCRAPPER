@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public enum RadarMarkerShape
 {
@@ -135,6 +136,7 @@ public class RadarMarkerUI : MonoBehaviour
     [SerializeField] private RectTransform rectTransform;
     [SerializeField] private Image iconImage;
     [SerializeField] private RadarMarkerShapeGraphic shapeGraphic;
+    [SerializeField] private TextMeshProUGUI unknownLabel;
 
     public RectTransform RectTransform => rectTransform;
 
@@ -200,15 +202,26 @@ public class RadarMarkerUI : MonoBehaviour
     {
         RadarMarkerShape shape = RadarMarkerShape.Circle;
         bool hollow = true;
-        bool useUnknownIcon = markerType == RadarMarkerType.Unknown && sprite != null;
-        bool useCanonicalShape = !useUnknownIcon && markerType.HasValue &&
-                                 RadarMarkerPresentation.TryResolveShape(
+        bool useUnknownLabel = markerType == RadarMarkerType.Unknown;
+        bool useCanonicalShape = !useUnknownLabel && markerType.HasValue &&
+                                  RadarMarkerPresentation.TryResolveShape(
                                      markerType.Value,
                                      out shape,
                                      out hollow
                                  );
 
-        if (useCanonicalShape)
+        if (useUnknownLabel)
+        {
+            EnsureUnknownLabel();
+            unknownLabel.color = color;
+            unknownLabel.enabled = true;
+
+            if (shapeGraphic != null)
+            {
+                shapeGraphic.enabled = false;
+            }
+        }
+        else if (useCanonicalShape)
         {
             EnsureShapeGraphic();
             shapeGraphic.Configure(shape, hollow, color);
@@ -219,11 +232,16 @@ public class RadarMarkerUI : MonoBehaviour
             shapeGraphic.enabled = false;
         }
 
+        if (!useUnknownLabel && unknownLabel != null)
+        {
+            unknownLabel.enabled = false;
+        }
+
         if (iconImage != null)
         {
             iconImage.sprite = sprite;
             iconImage.color = color;
-            iconImage.enabled = !useCanonicalShape && sprite != null;
+            iconImage.enabled = !useUnknownLabel && !useCanonicalShape && sprite != null;
         }
 
         if (rectTransform != null)
@@ -262,6 +280,42 @@ public class RadarMarkerUI : MonoBehaviour
 
         shapeGraphic = shapeObject.GetComponent<RadarMarkerShapeGraphic>();
         shapeGraphic.raycastTarget = false;
+    }
+
+    private void EnsureUnknownLabel()
+    {
+        if (unknownLabel != null)
+        {
+            return;
+        }
+
+        unknownLabel = GetComponentInChildren<TextMeshProUGUI>(true);
+        if (unknownLabel != null)
+        {
+            return;
+        }
+
+        GameObject labelObject = new GameObject(
+            "UnknownMarkerLabel",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(TextMeshProUGUI)
+        );
+        labelObject.layer = gameObject.layer;
+
+        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+        labelRect.SetParent(transform, false);
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+
+        unknownLabel = labelObject.GetComponent<TextMeshProUGUI>();
+        unknownLabel.text = "?";
+        unknownLabel.alignment = TextAlignmentOptions.Center;
+        unknownLabel.fontSize = 12f;
+        unknownLabel.textWrappingMode = TextWrappingModes.NoWrap;
+        unknownLabel.raycastTarget = false;
     }
 }
 

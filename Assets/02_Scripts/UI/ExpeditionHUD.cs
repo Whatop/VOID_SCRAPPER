@@ -138,6 +138,7 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private ResourceCounterUI tuningChipCounter;
     [SerializeField] private bool hideZeroResources = true;
     [SerializeField] private Color stabilizedAlloyCounterColor = new Color(0.72f, 0.9f, 0.96f, 1f);
+    [SerializeField] private Color tuningChipCounterColor = new Color(0.25f, 0.86f, 1f, 1f);
     [SerializeField, Min(1f)] private float resourceCounterRowSpacing = 12f;
 
     [Header("Reinforcement / Heat")]
@@ -199,6 +200,7 @@ public class ExpeditionHUD : MonoBehaviour
         EnsureMenuHintPresentation();
         ApplySharedHudLayout();
         EnsureStabilizedAlloyCounter();
+        EnsureTuningChipCounter();
         CacheResourceCounterOrigin();
         ResolveCinematicCanvasGroup();
         SetCanvasGroupVisible(true);
@@ -217,6 +219,7 @@ public class ExpeditionHUD : MonoBehaviour
         EnsureMenuHintPresentation();
         ApplySharedHudLayout();
         EnsureStabilizedAlloyCounter();
+        EnsureTuningChipCounter();
         CacheResourceCounterOrigin();
         Subscribe();
         InputSystem.onActionChange += HandleInputActionChange;
@@ -2451,6 +2454,36 @@ public class ExpeditionHUD : MonoBehaviour
             if (anchorRect != null)
             {
                 alloyRect.anchoredPosition = anchorRect.anchoredPosition + Vector2.down * 12f;
+            }
+        }
+    }
+
+    private void EnsureTuningChipCounter()
+    {
+        if (tuningChipCounter != null || scrapCounter == null)
+        {
+            return;
+        }
+
+        Transform counterParent = scrapCounter.transform.parent;
+        tuningChipCounter = Instantiate(scrapCounter, counterParent);
+        tuningChipCounter.name = "TuningChipCounter";
+        tuningChipCounter.SetDisplayName("튜닝 칩");
+        tuningChipCounter.SetIconColor(tuningChipCounterColor);
+        tuningChipCounter.SetHideWhenZero(hideZeroResources);
+
+        if (tuningChipCounter.transform is RectTransform tuningRect)
+        {
+            RectTransform anchorRect = stabilizedAlloyCounter != null
+                ? stabilizedAlloyCounter.transform as RectTransform
+                : coreShardCounter != null
+                    ? coreShardCounter.transform as RectTransform
+                    : scrapCounter.transform as RectTransform;
+
+            if (anchorRect != null)
+            {
+                tuningRect.anchoredPosition = anchorRect.anchoredPosition +
+                                              Vector2.down * resourceCounterRowSpacing;
             }
         }
     }

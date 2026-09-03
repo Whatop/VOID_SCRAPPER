@@ -3,6 +3,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;
+using PixelCrushers.DialogueSystem;
 
 public enum SettlementPanelKind
 {
@@ -109,6 +110,9 @@ public class SettlementUIController : MonoBehaviour
     private Button[] primaryNavigationButtons = new Button[0];
     private int primaryNavigationIndex;
     private CanvasGroup settlementInputGroup;
+    private DialogueSystemController dialogueController;
+    private bool dialogueModalActive;
+    private bool settlementInputRequested = true;
 
     [Header("Start")]
     [SerializeField] private SettlementPanelKind startPanel = SettlementPanelKind.Main;
@@ -118,6 +122,7 @@ public class SettlementUIController : MonoBehaviour
     private SettlementPanelKind currentPanel = SettlementPanelKind.Main;
     private SettlementSelectionKind selectedKind = SettlementSelectionKind.None;
     private BuildingType selectedBuilding;
+    private bool accessKeyRecoveryPresentationActive;
     private WeaponTreeType selectedWeapon;
     private TraitDefinition selectedTrait;
 
@@ -162,6 +167,7 @@ public class SettlementUIController : MonoBehaviour
         }
 
         selectedBuilding = defaultBuilding;
+        RefreshAccessKeyRecoverySelection();
         selectedTrait = GetTraitByIndex(defaultTraitIndex);
 
         if (settlementController != null)
@@ -185,6 +191,8 @@ public class SettlementUIController : MonoBehaviour
         ConfigureSettlementButtonSounds();
         SubscribeController();
         SubscribeButtons();
+        SubscribeDialogueLifecycle();
+        RefreshDialogueModalState();
     }
 
     private void Start()
@@ -197,6 +205,7 @@ public class SettlementUIController : MonoBehaviour
     {
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null || primaryNavigationButtons.Length == 0 ||
+            dialogueModalActive ||
             (settingsMenuController != null && settingsMenuController.IsOpen))
         {
             return;
@@ -242,7 +251,10 @@ public class SettlementUIController : MonoBehaviour
 
     private void OnDisable()
     {
-        SetSettlementInputEnabled(true);
+        UnsubscribeDialogueLifecycle();
+        dialogueModalActive = false;
+        settlementInputRequested = true;
+        ApplySettlementInputState();
         UnsubscribeController();
         UnsubscribeButtons();
     }
@@ -353,6 +365,7 @@ public class SettlementUIController : MonoBehaviour
     {
         selectedKind = SettlementSelectionKind.Building;
         selectedBuilding = buildingType;
+        RefreshAccessKeyRecoverySelection();
         ShowPanel(SettlementPanelKind.Repair);
     }
 
@@ -452,7 +465,7 @@ public class SettlementUIController : MonoBehaviour
         if (settlementController != null)
         {
             int levelBefore = settlementController.GetBuildingLevel(selectedBuilding);
-            bool success = settlementController.TryCompleteRestorationProject(selectedBuilding);
+            bool success = TryExecuteSelectedRestorationAction();
             PlayProgressActionResultSound(success, levelBefore);
         }
 
@@ -480,7 +493,7 @@ public class SettlementUIController : MonoBehaviour
         switch (selectedKind)
         {
             case SettlementSelectionKind.Building:
-                settlementController.TryCompleteRestorationProject(selectedBuilding);
+                TryExecuteSelectedRestorationAction();
                 break;
 
             case SettlementSelectionKind.Trait:
@@ -503,7 +516,7 @@ public class SettlementUIController : MonoBehaviour
                 }
                 else if (currentPanel == SettlementPanelKind.Repair)
                 {
-                    settlementController.TryCompleteRestorationProject(selectedBuilding);
+                    TryExecuteSelectedRestorationAction();
                 }
                 else if (currentPanel == SettlementPanelKind.Trait)
                 {
@@ -522,8 +535,10 @@ public class SettlementUIController : MonoBehaviour
             return;
         }
 
-        AudioManager.Play(SoundEventIds.UiLaunch);
-        settlementController.LaunchExpedition();
+        bool launched = settlementController.LaunchExpedition();
+        AudioManager.Play(launched
+            ? SoundEventIds.UiLaunch
+            : SoundEventIds.UiDisabled);
     }
 
     public void Refresh()
@@ -618,7 +633,15 @@ public class SettlementUIController : MonoBehaviour
             return;
         }
 
-        SettlementRestorationViewData restorationViewData = settlementController.BuildRestorationViewData(selectedBuilding);
+        if (!accessKeyRecoveryPresentationActive)
+        {
+            RefreshAccessKeyRecoverySelection();
+        }
+
+        SettlementRestorationViewData restorationViewData =
+            accessKeyRecoveryPresentationActive
+                ? settlementController.BuildDamagedAccessKeyRestorationViewData()
+                : settlementController.BuildRestorationViewData(selectedBuilding);
         int currentLevel = settlementController.GetBuildingLevel(selectedBuilding);
 
         hud.SetRestorationDetail(restorationViewData);
@@ -669,7 +692,9 @@ public class SettlementUIController : MonoBehaviour
         {
             repairActionButton.interactable =
                 settlementController != null &&
-                settlementController.CanExecuteBuildingAction(selectedBuilding);
+                (accessKeyRecoveryPresentationActive
+                    ? settlementController.CanRestoreDamagedAccessKey()
+                    : settlementController.CanExecuteBuildingAction(selectedBuilding));
         }
 
         if (traitActionButton != null)
@@ -679,7 +704,7 @@ public class SettlementUIController : MonoBehaviour
 
         if (launchButton != null)
         {
-            launchButton.interactable = true;
+            launchButton.interactable = !dialogueModalActive;
         }
     }
 
@@ -1243,14 +1268,95 @@ public class SettlementUIController : MonoBehaviour
 
     private void SetSettlementInputEnabled(bool inputEnabled)
     {
+        settlementInputRequested = inputEnabled;
+        ApplySettlementInputState();
+    }
+
+    private void ApplySettlementInputState()
+    {
         if (settlementInputGroup == null)
         {
             return;
         }
 
+        bool inputEnabled = settlementInputRequested && !dialogueModalActive;
         settlementInputGroup.interactable = inputEnabled;
         settlementInputGroup.blocksRaycasts = inputEnabled;
     }
+
+    private void SubscribeDialogueLifecycle()
+    {
+        UnsubscribeDialogueLifecycle();
+
+        if (!DialogueManager.hasInstance)
+        {
+            return;
+        }
+
+        dialogueController = DialogueManager.instance;
+        if (dialogueController == null)
+        {
+            return;
+        }
+
+        dialogueController.conversationStarted += HandleConversationStarted;
+        dialogueController.conversationEnded += HandleConversationEnded;
+    }
+
+    private void UnsubscribeDialogueLifecycle()
+    {
+        if (dialogueController == null)
+        {
+            return;
+        }
+
+        dialogueController.conversationStarted -= HandleConversationStarted;
+        dialogueController.conversationEnded -= HandleConversationEnded;
+        dialogueController = null;
+    }
+
+    private void RefreshDialogueModalState()
+    {
+        SetDialogueModalActive(
+            dialogueController != null && dialogueController.isConversationActive);
+    }
+
+    private void HandleConversationStarted(Transform actor)
+    {
+        SetDialogueModalActive(true);
+    }
+
+    private void HandleConversationEnded(Transform actor)
+    {
+        SetDialogueModalActive(false);
+    }
+
+    private void SetDialogueModalActive(bool active)
+    {
+        dialogueModalActive = active;
+        ApplySettlementInputState();
+
+        if (active && EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+
+        Refresh();
+    }
+
+#if UNITY_EDITOR
+    public void ConfigureDialogueModalForEditorAndTests(CanvasGroup inputGroup)
+    {
+        settlementInputGroup = inputGroup;
+        settlementInputRequested = true;
+        ApplySettlementInputState();
+    }
+
+    public void SetDialogueModalActiveForEditorAndTests(bool active)
+    {
+        SetDialogueModalActive(active);
+    }
+#endif
 
     internal void SelectPrimaryNavigationIndex(int index, bool playSound)
     {
@@ -1502,6 +1608,7 @@ public class SettlementUIController : MonoBehaviour
 
         selectedKind = SettlementSelectionKind.Building;
         selectedBuilding = buildingOrder[index];
+        RefreshAccessKeyRecoverySelection();
         Refresh();
     }
 
@@ -1512,7 +1619,28 @@ public class SettlementUIController : MonoBehaviour
 
         selectedKind = SettlementSelectionKind.Building;
         selectedBuilding = buildingOrder[index];
+        RefreshAccessKeyRecoverySelection();
         Refresh();
+    }
+
+    private bool TryExecuteSelectedRestorationAction()
+    {
+        if (settlementController == null)
+        {
+            return false;
+        }
+
+        return accessKeyRecoveryPresentationActive
+            ? settlementController.TryRestoreDamagedAccessKey()
+            : settlementController.TryCompleteRestorationProject(selectedBuilding);
+    }
+
+    private void RefreshAccessKeyRecoverySelection()
+    {
+        accessKeyRecoveryPresentationActive =
+            selectedBuilding == BuildingType.RecoveryProcessor &&
+            settlementController != null &&
+            settlementController.CanRestoreDamagedAccessKey();
     }
 
     private int GetSelectedBuildingIndex()

@@ -5557,8 +5557,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7fd8ea7fbb842d8974c55eafefe3ac2, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  interactionText: "??? [???]\n\uBCF4\uB77C\uC0C9 \uBE5B\uC774 \uAC10\uB3C8\uB2E4.\n\uC54C
-    \uC218 \uC5C6\uB294 \uD798\uC774 \uC694\uB3D9\uCE5C\uB2E4."
+  interactionText: "\uBBF8\uD655\uC778 \uCF54\uC5B4 \uBD84\uC11D"
   interactionEnabled: 0
   inactiveVisual: {fileID: 0}
   activatedVisual: {fileID: 0}
@@ -8592,7 +8591,7 @@ MonoBehaviour:
     dialogueTrigger: {fileID: 0}
   - step: 18
     worldRoot: {fileID: 0}
-    instructionTemplate: "???\n\uC2E0\uD638\uC6D0\uC744 \uD655\uC778\uD558\uC2ED\uC2DC\uC624."
+    instructionTemplate: "\uBBF8\uD655\uC778 \uC2E0\uD638\n\uC2E0\uD638\uC6D0\uC744 \uD655\uC778\uD558\uC2ED\uC2DC\uC624."
     actionMapName: Player
     actionName:
     fallbackBindingDisplay: '?'
@@ -8616,7 +8615,7 @@ MonoBehaviour:
     dialogueTrigger: {fileID: 0}
   - step: 21
     worldRoot: {fileID: 0}
-    instructionTemplate: "\uD0D0\uC9C0\uB41C ??? \uCF54\uC5B4\uB85C \uC774\uB3D9\uD558\uC138\uC694"
+    instructionTemplate: "\uD0D0\uC9C0\uB41C \uBBF8\uD655\uC778 \uCF54\uC5B4\uB85C \uC774\uB3D9\uD558\uC138\uC694"
     actionMapName: Player
     actionName:
     fallbackBindingDisplay:
@@ -8624,7 +8623,7 @@ MonoBehaviour:
     dialogueTrigger: {fileID: 0}
   - step: 22
     worldRoot: {fileID: 0}
-    instructionTemplate: "{0} ??? [???]\n\uBCF4\uB77C\uC0C9 \uBE5B\uC774 \uAC10\uB3C8\uB2E4.\n\uC54C \uC218 \uC5C6\uB294 \uD798\uC774 \uC694\uB3D9\uCE5C\uB2E4."
+    instructionTemplate: "{0} \uBBF8\uD655\uC778 \uCF54\uC5B4 \uBD84\uC11D"
     actionMapName: Player
     actionName: Interact
     fallbackBindingDisplay: '?'
@@ -8729,6 +8728,11 @@ MonoBehaviour:
   highValueSalvagePrefab: {fileID: 9130793367736434943, guid: a3314154cb0202b429bedfd706166d8f, type: 3}
   highValueSalvagePosition: {x: 0, y: 0}
   highValueDiscoveryDistance: 4.5
+  targetFocusDuration: 0.6
+  targetReturnDuration: 0.5
+  targetSafeViewportMin: {x: 0.1, y: 0.12}
+  targetSafeViewportMax: {x: 0.9, y: 0.88}
+  targetSafeViewportHoldDuration: 0.15
   highValueTeachingReward: {fileID: 11400000, guid: 9f3e4b7c2d814c6ca6f74b362dc8e201, type: 2}
   defensiveReinforcementDefinition: {fileID: 11400000, guid: f9973a52af3645ef8e3d01666f6d722f, type: 2}
   combatEnemyPrefabs:
@@ -8741,6 +8745,9 @@ MonoBehaviour:
   radarScanTarget: {fileID: 1094238182}
   interactionTarget: {fileID: 1094238179}
   interactionTargetComponent: {fileID: 1094238181}
+  signalDevicePulseRenderer: {fileID: 511745484}
+  tutorialPurpleEffectPrefab: {fileID: 708775973121913217, guid: 75beeaa1a3c92eb46bb073047c8b788d, type: 3}
+  signalDevicePulseDuration: 0.38
   proximityAutoRegistrationDistance: 5
   unknownSearchAreaOffset: {x: -2.5, y: 1.5}
   unknownSearchAreaRadius: 5
@@ -8753,19 +8760,28 @@ MonoBehaviour:
   alienSignalVisualRoot: {fileID: 910300011}
   alienSignalCoreRenderer: {fileID: 910300022}
   alienSignalPulseRenderer: {fileID: 910300032}
+  purpleCoreRevealStartScale: 0.7
+  purpleCoreRevealDuration: 0.55
+  purpleCoreIdleFloatDistance: 0.1
+  purpleCoreIdleFloatDuration: 1.75
   pixelCurseDefinition: {fileID: 11400000, guid: 2acdf8b0594e4b7b9ebaae09a8860b6a, type: 2}
   playerVisualStateController: {fileID: 354113159}
   statusEffectPresenter: {fileID: 910310003}
-  corruptionPeakDelay: 0.65
   acquisitionFeedbackDuration: 0.75
-  corruptionDarkenDuration: 0.14
-  corruptionRecoveryDuration: 0.2
+  curseImpactPauseDuration: 0.12
+  curseFadeOutDuration: 0.32
+  curseFadeInDuration: 0.36
   corruptionShakeAmplitude: 0.12
   corruptionShakeDuration: 0.24
+  curseTransferDuration: 0.68
+  curseTransferImpactScale: 1.75
   alienSignalPeakColor: {r: 0.75, g: 0.2, b: 1, a: 1}
-  curseAcquiredFeedback: "??? \uC2E0\uD638\uAC00 \uAE30\uCCB4 \uAD6C\uC870\uB97C
-    \uCE68\uC2DD\uD588\uC2B5\uB2C8\uB2E4."
+  curseLetterboxDuration: 0.18
+  curseCameraFocusDuration: 0.58
+  curseCameraZoomMultiplier: 0.78
+  curseLetterboxHeightRatio: 0.075
   openingConversation: TUTORIAL_OperatorOpening
+  unknownAccessKeyConversation: TUTORIAL_UnknownAccessKeyContact
   rescueSignalDelay: 0.7
   emergencyReturnDefinition: {fileID: 11400000, guid: b3f8b9d2e6c24edca53e508e2f119b70, type: 2}
   reinforcementPickupPrefab: {fileID: 5731060007047836178, guid: 68a782fdd93f485418b72f76aa265798, type: 3}
@@ -8883,7 +8899,7 @@ Transform:
   m_GameObject: {fileID: 1094238179}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 6, y: 3, z: 0}
+  m_LocalPosition: {x: -8.9, y: 15.33, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

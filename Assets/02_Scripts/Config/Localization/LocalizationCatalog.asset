@@ -1,0 +1,530 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72d935b62e9e4c4084486380c0f258d1, type: 3}
+  m_Name: LocalizationCatalog
+  m_EditorClassIdentifier: 
+  entries:
+  - textKey: dialogue.rescue_contact.service.choice.accept
+    korean: 신호를 공유받는다.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: RescueContact service accept choice
+    notes: Executes the registered RescueContact action when available
+    maxLengthHint: 24
+  - textKey: dialogue.rescue_contact.service.choice.decline
+    korean: 지금은 필요 없다.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: RescueContact service decline choice
+    notes: Closes without a gameplay action
+    maxLengthHint: 24
+  - textKey: dialogue.rescue_contact.service.line_01
+    korean: 구조 신호를 따라온 건가? 살았다는 게 아직 실감이 안 나는군.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: RescueContact service opening line
+    notes: Approved Korean source
+    maxLengthHint: 72
+  - textKey: dialogue.rescue_contact.service.line_02
+    korean: 숨어 있는 동안 이 해역의 코어 추적 신호를 모아뒀어. 받아가면 목표 위치를 더 빨리 좁힐 수 있을 거야.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: RescueContact service offer line
+    notes: Approved Korean source
+    maxLengthHint: 112
+  - textKey: dialogue.rescue_contact.service.unavailable
+    korean: 이미 공유받았거나 현재는 신호를 받을 수 없다.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: RescueContact unavailable response
+    notes: Used instead of a disabled-choice reason in Phase 2B
+    maxLengthHint: 56
+  - textKey: dialogue.story.first_settlement_unknown_core.line_01
+    korean: 귀환 신호에서 비정상 파형이 검출됐다. 회수한 물체와 기체 기록을 격리 분석 중이다.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: First Settlement unknown-core analysis line 1
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 96
+  - textKey: dialogue.story.first_settlement_unknown_core.line_02
+    korean: 네 기체에 붙은 건 단순한 오염이 아니야. 붕괴 전 물류망에 접속하던 키 구조와 닮았어.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: First Settlement unknown-core analysis line 2
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 104
+  - textKey: dialogue.story.first_settlement_unknown_core.line_03
+    korean: 문제는 손상됐다는 거야. 그대로 두면 어디에 연결되는지조차 알 수 없어.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: First Settlement unknown-core analysis line 3
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 88
+  - textKey: dialogue.story.first_settlement_unknown_core.line_04
+    korean: 정착지 단말에서 임시 경로 세 개를 복원했어. 각 해역의 관리 장치에 안정화 부품이 남아 있을 가능성이 높아.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: First Settlement quest route line 4
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 120
+  - textKey: dialogue.story.first_settlement_unknown_core.line_05
+    korean: 구획 안정기, 물질 압축로, 위상 항법 렌즈. 세 부품을 확보하면 접속키를 완성할 수 있어.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: First Settlement quest parts line 5
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 104
+  - textKey: dialogue.story.first_settlement_unknown_core.line_06
+    korean: 탐사 경로를 등록할게. 준비가 끝나면 출발해.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: First Settlement quest start line 6
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 64
+  - textKey: dialogue.story.main_damaged_access_key.active_0
+    korean: 경로는 세 곳 모두 살아 있어. 가까운 신호부터 확인해.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Damaged access-key repeat dialogue at zero parts
+    notes: Read-only authoritative quest state
+    maxLengthHint: 64
+  - textKey: dialogue.story.main_damaged_access_key.active_1
+    korean: 첫 부품은 안정적이야. 두 개 남았어.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Damaged access-key repeat dialogue at one part
+    notes: Read-only authoritative quest state
+    maxLengthHint: 48
+  - textKey: dialogue.story.main_damaged_access_key.active_2
+    korean: 두 신호가 맞물렸어. 마지막 부품만 있으면 조립할 수 있어.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Damaged access-key repeat dialogue at two parts
+    notes: Read-only authoritative quest state
+    maxLengthHint: 72
+  - textKey: dialogue.story.main_damaged_access_key.completed
+    korean: 접속키가 안정화됐어. 이제 중앙 네트워크로 이어진 경로를 추적할 수 있어.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Damaged access-key repeat dialogue after completion
+    notes: Read-only RouteCore state
+    maxLengthHint: 88
+  - textKey: dialogue.story.main_damaged_access_key.ready_to_restore
+    korean: 세 부품 확인 완료. 정착지 복구에서 접속키를 복원할 수 있어.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Damaged access-key repeat dialogue when all parts are ready
+    notes: Read-only authoritative quest state
+    maxLengthHint: 72
+  - textKey: dialogue.tutorial.fake_operator_takeover.line_01
+    korean: 경로를 확인했어. 레이더의 미확인 신호를 따라가.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial corrupted Operator takeover
+    notes: FakeOperator uses the Operator display name while retaining a stable hidden actor identity
+    maxLengthHint: 64
+  - textKey: dialogue.tutorial.operator_ancient_signal.line_01
+    korean: 고가치 잔해 신호야. 방어 기체가 있을 수 있으니 조심해.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial ancient-signal guidance
+    notes: Shown only after the ancient wreck signal is detected
+    maxLengthHint: 64
+  - textKey: dialogue.tutorial.operator_opening.line_01
+    korean: 들리면 추진기를 움직여 봐. 여기서는 직접 길을 찾아야 해.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial movement guidance
+    notes: Shown when the movement objective becomes active
+    maxLengthHint: 64
+  - textKey: dialogue.tutorial.operator_radar.line_01
+    korean: '[var=VS_RadarToggleBinding]로 레이더를 켠 뒤, [var=VS_RadarScanBinding]로 스캔해.'
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial Radar guidance
+    notes: Input binding variables are populated immediately before conversation start
+    maxLengthHint: 72
+  - textKey: dialogue.tutorial.operator_supply_container.line_01
+    korean: 보급 컨테이너를 찾았어. 접근해서 파괴하고 자원을 회수해.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial supply-container guidance
+    notes: Starts after the owner-scoped camera finishes focusing the discovered target
+    maxLengthHint: 72
+  - textKey: dialogue.tutorial.rescue_after_curse.line_01
+    korean: …들려?
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial rescue line 1 after communication recovery
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 16
+  - textKey: dialogue.tutorial.rescue_after_curse.line_02
+    korean: 지금까지 통신이 완전히 끊겨 있었어.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial rescue line 2 after communication recovery
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 48
+  - textKey: dialogue.tutorial.rescue_after_curse.line_03
+    korean: 기체 표면에 정체불명의 접속 패턴이 번지고 있어. 회수 신호를 열었어. 당장 돌아와.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial rescue line 3 requesting existing return flow
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 96
+  - textKey: dialogue.tutorial.signal_relay_analysis.line_01
+    korean: 신호 장치 분석 완료. 미확인 좌표를 복원하고 있어.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial signal-relay analysis line 1
+    notes: Real Operator confirms authoritative relay analysis
+    maxLengthHint: 64
+  - textKey: dialogue.tutorial.signal_relay_analysis.line_02
+    korean: 잠깐, 통신 채널에 비정상 간섭이—
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial signal-relay analysis line 2
+    notes: Real Operator transmission cuts off before the fake takeover
+    maxLengthHint: 56
+  - textKey: dialogue.tutorial.unknown_access_key.line_01
+    korean: 이 신호… 붕괴 전 물류망 규격과 비슷해.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial unknown access-key contact line 1
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 56
+  - textKey: dialogue.tutorial.unknown_access_key.line_02
+    korean: 잠깐, 접속 패턴이 기체 쪽으로—
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial unknown access-key contact line 2
+    notes: Approved Phase 2C Korean source
+    maxLengthHint: 48
+  - textKey: quest.main_damaged_access_key.notification.restored
+    korean: 손상된 접속키 복구 완료.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Main quest restoration completion notification
+    notes: Published once by Settlement Recovery authority
+    maxLengthHint: 40
+  - textKey: quest.main_damaged_access_key.notification.started
+    korean: 메인 퀘스트 시작 — 손상된 접속키
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Main quest start notification
+    notes: Published by Settlement authority after persistent start
+    maxLengthHint: 48
+  - textKey: quest.main_damaged_access_key.objective.parts
+    korean: "안정화 부품 회수: {collected}/{total}"
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Main quest HUD objective
+    notes: Named arguments come from authoritative progress
+    maxLengthHint: 48
+  - textKey: quest.main_damaged_access_key.restoration.action
+    korean: 접속키 복구
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Settlement Recovery action label
+    notes: Uses existing restoration confirmation button
+    maxLengthHint: 24
+  - textKey: quest.main_damaged_access_key.restoration.completed
+    korean: 접속키 복구 완료
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Settlement Recovery completed state
+    notes: Read-only authoritative quest state
+    maxLengthHint: 24
+  - textKey: quest.main_damaged_access_key.restoration.description
+    korean: 세 안정화 부품을 결합해 손상된 접속키를 복원합니다.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Settlement Recovery description
+    notes: Explicit player-confirmed quest completion
+    maxLengthHint: 64
+  - textKey: quest.main_damaged_access_key.restoration.ready
+    korean: 복구 준비 완료
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Settlement Recovery ready state
+    notes: Requires all three distinct boss parts
+    maxLengthHint: 24
+  - textKey: quest.main_damaged_access_key.title
+    korean: 손상된 접속키
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Main quest title
+    notes: Stable ID MAIN_DAMAGED_ACCESS_KEY
+    maxLengthHint: 24
+  - textKey: speaker.fake_operator.name
+    korean: 오퍼레이터
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Hidden fake Operator speaker display name
+    notes: Stable FakeOperator actor identity must remain separate from its concealed display name
+    maxLengthHint: 16
+  - textKey: speaker.operator.name
+    korean: 오퍼레이터
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Operator speaker display name
+    notes: Pixel Crushers actor display-name source
+    maxLengthHint: 16
+  - textKey: speaker.rescue_contact.name
+    korean: 구조 연락원
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: RescueContact speaker display name
+    notes: Pixel Crushers actor display-name source
+    maxLengthHint: 16
+  - textKey: speaker.settlement_control.name
+    korean: 정착지 관제
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Settlement Control speaker display name
+    notes: Pixel Crushers actor display-name source
+    maxLengthHint: 16
+  - textKey: system.pixel_curse.level_up
+    korean: "픽셀 저주 동기화 단계 상승: {level}"
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Pixel Curse level-up notification
+    notes: Shown only when derived authoritative level changes
+    maxLengthHint: 48
+  - textKey: system.settlement.expedition.dialogue_active
+    korean: 통신이 끝난 후 탐사를 시작할 수 있습니다.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Settlement expedition launch blocked by active dialogue
+    notes: Shown through the Settlement status message path
+    maxLengthHint: 48
+  - textKey: tutorial.curse.system_error.body
+    korean: 미확인 신호가 기체 구조를 침식했습니다.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial Pixel Curse transformation feedback body
+    notes: Shown only after the core-to-player transfer reaches the ship
+    maxLengthHint: 48
+  - textKey: tutorial.curse.system_error.title
+    korean: 시스템 오류
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial Pixel Curse transformation feedback title
+    notes: Player-facing replacement for the internal mystery placeholder
+    maxLengthHint: 24
+  - textKey: tutorial.radar.scan_only
+    korean: '{scan}으로 미확인 신호를 스캔하세요.'
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial unknown-signal Radar objective while Radar is active
+    notes: Named argument uses the current Input System scan binding
+    maxLengthHint: 56
+  - textKey: tutorial.radar.toggle_and_scan
+    korean: '{radar}로 레이더를 켜고 {scan}으로 주변 신호를 스캔하세요.'
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial Radar objective detail
+    notes: Named arguments use current Input System binding display strings
+    maxLengthHint: 72
+  - textKey: tutorial.signal.purple_core.interact
+    korean: 미확인 코어를 조사하세요.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial Purple Core interaction prompt
+    notes: Replaces internal mystery placeholder in player-facing text
+    maxLengthHint: 40
+  - textKey: tutorial.signal.purple_core.travel
+    korean: 드러난 미확인 코어에 접근하세요.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial Purple Core travel objective
+    notes: Shown after the materialization reveal completes
+    maxLengthHint: 48
+  - textKey: tutorial.signal.unknown.objective
+    korean: 미확인 신호원을 조사하세요.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial unknown-signal search objective
+    notes: Stable player-facing label for unresolved signal data
+    maxLengthHint: 40
+  - textKey: tutorial.signal.unknown.title
+    korean: 미확인 신호
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial unknown-signal objective title
+    notes: Stable player-facing replacement for raw mystery placeholder
+    maxLengthHint: 24
+  - textKey: tutorial.supply.route_optional
+    korean: 지도에서 경로를 표시하거나 보급 컨테이너로 이동하세요.
+    english:
+    japanese:
+    simplifiedChinese:
+    traditionalChinese:
+    context: Tutorial optional route objective detail
+    notes: Route placement is optional and target approach remains authoritative
+    maxLengthHint: 72
+  - textKey: ui.settings.language
+    korean: 언어
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Options menu language heading
+    notes: Phase 2A foundation entry
+    maxLengthHint: 12
+  - textKey: ui.settings.language.en
+    korean: 영어
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: English language option
+    notes: Phase 2A foundation entry
+    maxLengthHint: 12
+  - textKey: ui.settings.language.ja
+    korean: 일본어
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Japanese language option
+    notes: Phase 2A foundation entry
+    maxLengthHint: 12
+  - textKey: ui.settings.language.ko
+    korean: 한국어
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Korean language option
+    notes: Phase 2A foundation entry
+    maxLengthHint: 12
+  - textKey: ui.settings.language.zh_hans
+    korean: 중국어(간체)
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Simplified Chinese language option
+    notes: Phase 2A foundation entry
+    maxLengthHint: 16
+  - textKey: ui.settings.language.zh_hant
+    korean: 중국어(번체)
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Traditional Chinese language option
+    notes: Phase 2A foundation entry
+    maxLengthHint: 16
+  sourceAssetPath: Assets/02_Scripts/Config/Localization/Source/Localization.csv
+  contentHash: 966517bdf63ca759f14e4998344c08da43545d1e9f34f419197f26ae513bce0c

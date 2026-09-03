@@ -1,0 +1,58 @@
+TextKey,ko,en,ja,zh-Hans,zh-Hant,Context,Notes,MaxLengthHint
+dialogue.rescue_contact.service.choice.accept,신호를 공유받는다.,,,,,RescueContact service accept choice,Executes the registered RescueContact action when available,24
+dialogue.rescue_contact.service.choice.decline,지금은 필요 없다.,,,,,RescueContact service decline choice,Closes without a gameplay action,24
+dialogue.rescue_contact.service.line_01,구조 신호를 따라온 건가? 살았다는 게 아직 실감이 안 나는군.,,,,,RescueContact service opening line,Approved Korean source,72
+dialogue.rescue_contact.service.line_02,숨어 있는 동안 이 해역의 코어 추적 신호를 모아뒀어. 받아가면 목표 위치를 더 빨리 좁힐 수 있을 거야.,,,,,RescueContact service offer line,Approved Korean source,112
+dialogue.rescue_contact.service.unavailable,이미 공유받았거나 현재는 신호를 받을 수 없다.,,,,,RescueContact unavailable response,Used instead of a disabled-choice reason in Phase 2B,56
+dialogue.story.first_settlement_unknown_core.line_01,귀환 신호에서 비정상 파형이 검출됐다. 회수한 물체와 기체 기록을 격리 분석 중이다.,,,,,First Settlement unknown-core analysis line 1,Approved Phase 2C Korean source,96
+dialogue.story.first_settlement_unknown_core.line_02,네 기체에 붙은 건 단순한 오염이 아니야. 붕괴 전 물류망에 접속하던 키 구조와 닮았어.,,,,,First Settlement unknown-core analysis line 2,Approved Phase 2C Korean source,104
+dialogue.story.first_settlement_unknown_core.line_03,문제는 손상됐다는 거야. 그대로 두면 어디에 연결되는지조차 알 수 없어.,,,,,First Settlement unknown-core analysis line 3,Approved Phase 2C Korean source,88
+dialogue.story.first_settlement_unknown_core.line_04,정착지 단말에서 임시 경로 세 개를 복원했어. 각 해역의 관리 장치에 안정화 부품이 남아 있을 가능성이 높아.,,,,,First Settlement quest route line 4,Approved Phase 2C Korean source,120
+dialogue.story.first_settlement_unknown_core.line_05,"구획 안정기, 물질 압축로, 위상 항법 렌즈. 세 부품을 확보하면 접속키를 완성할 수 있어.",,,,,First Settlement quest parts line 5,Approved Phase 2C Korean source,104
+dialogue.story.first_settlement_unknown_core.line_06,탐사 경로를 등록할게. 준비가 끝나면 출발해.,,,,,First Settlement quest start line 6,Approved Phase 2C Korean source,64
+dialogue.story.main_damaged_access_key.active_0,경로는 세 곳 모두 살아 있어. 가까운 신호부터 확인해.,,,,,Damaged access-key repeat dialogue at zero parts,Read-only authoritative quest state,64
+dialogue.story.main_damaged_access_key.active_1,첫 부품은 안정적이야. 두 개 남았어.,,,,,Damaged access-key repeat dialogue at one part,Read-only authoritative quest state,48
+dialogue.story.main_damaged_access_key.active_2,두 신호가 맞물렸어. 마지막 부품만 있으면 조립할 수 있어.,,,,,Damaged access-key repeat dialogue at two parts,Read-only authoritative quest state,72
+dialogue.story.main_damaged_access_key.completed,접속키가 안정화됐어. 이제 중앙 네트워크로 이어진 경로를 추적할 수 있어.,,,,,Damaged access-key repeat dialogue after completion,Read-only RouteCore state,88
+dialogue.story.main_damaged_access_key.ready_to_restore,세 부품 확인 완료. 정착지 복구에서 접속키를 복원할 수 있어.,,,,,Damaged access-key repeat dialogue when all parts are ready,Read-only authoritative quest state,72
+dialogue.tutorial.fake_operator_takeover.line_01,경로를 확인했어. 레이더의 미확인 신호를 따라가.,,,,,Tutorial corrupted Operator takeover,FakeOperator uses the Operator display name while retaining a stable hidden actor identity,64
+dialogue.tutorial.operator_ancient_signal.line_01,고가치 잔해 신호야. 방어 기체가 있을 수 있으니 조심해.,,,,,Tutorial ancient-signal guidance,Shown only after the ancient wreck signal is detected,64
+dialogue.tutorial.operator_opening.line_01,들리면 추진기를 움직여 봐. 여기서는 직접 길을 찾아야 해.,,,,,Tutorial movement guidance,Shown when the movement objective becomes active,64
+dialogue.tutorial.operator_radar.line_01,"[var=VS_RadarToggleBinding]로 레이더를 켠 뒤, [var=VS_RadarScanBinding]로 스캔해.",,,,,Tutorial Radar guidance,Input binding variables are populated immediately before conversation start,72
+dialogue.tutorial.operator_supply_container.line_01,보급 컨테이너를 찾았어. 접근해서 파괴하고 자원을 회수해.,,,,,Tutorial supply-container guidance,Starts after the owner-scoped camera finishes focusing the discovered target,72
+dialogue.tutorial.rescue_after_curse.line_01,…들려?,,,,,Tutorial rescue line 1 after communication recovery,Approved Phase 2C Korean source,16
+dialogue.tutorial.rescue_after_curse.line_02,지금까지 통신이 완전히 끊겨 있었어.,,,,,Tutorial rescue line 2 after communication recovery,Approved Phase 2C Korean source,48
+dialogue.tutorial.rescue_after_curse.line_03,기체 표면에 정체불명의 접속 패턴이 번지고 있어. 회수 신호를 열었어. 당장 돌아와.,,,,,Tutorial rescue line 3 requesting existing return flow,Approved Phase 2C Korean source,96
+dialogue.tutorial.signal_relay_analysis.line_01,신호 장치 분석 완료. 미확인 좌표를 복원하고 있어.,,,,,Tutorial signal-relay analysis line 1,Real Operator confirms authoritative relay analysis,64
+dialogue.tutorial.signal_relay_analysis.line_02,"잠깐, 통신 채널에 비정상 간섭이—",,,,,Tutorial signal-relay analysis line 2,Real Operator transmission cuts off before the fake takeover,56
+dialogue.tutorial.unknown_access_key.line_01,이 신호… 붕괴 전 물류망 규격과 비슷해.,,,,,Tutorial unknown access-key contact line 1,Approved Phase 2C Korean source,56
+dialogue.tutorial.unknown_access_key.line_02,"잠깐, 접속 패턴이 기체 쪽으로—",,,,,Tutorial unknown access-key contact line 2,Approved Phase 2C Korean source,48
+quest.main_damaged_access_key.notification.restored,손상된 접속키 복구 완료.,,,,,Main quest restoration completion notification,Published once by Settlement Recovery authority,40
+quest.main_damaged_access_key.notification.started,메인 퀘스트 시작 — 손상된 접속키,,,,,Main quest start notification,Published by Settlement authority after persistent start,48
+quest.main_damaged_access_key.objective.parts,안정화 부품 회수: {collected}/{total},,,,,Main quest HUD objective,Named arguments come from authoritative progress,48
+quest.main_damaged_access_key.restoration.action,접속키 복구,,,,,Settlement Recovery action label,Uses existing restoration confirmation button,24
+quest.main_damaged_access_key.restoration.completed,접속키 복구 완료,,,,,Settlement Recovery completed state,Read-only authoritative quest state,24
+quest.main_damaged_access_key.restoration.description,세 안정화 부품을 결합해 손상된 접속키를 복원합니다.,,,,,Settlement Recovery description,Explicit player-confirmed quest completion,64
+quest.main_damaged_access_key.restoration.ready,복구 준비 완료,,,,,Settlement Recovery ready state,Requires all three distinct boss parts,24
+quest.main_damaged_access_key.title,손상된 접속키,,,,,Main quest title,Stable ID MAIN_DAMAGED_ACCESS_KEY,24
+speaker.fake_operator.name,오퍼레이터,,,,,Hidden fake Operator speaker display name,Stable FakeOperator actor identity must remain separate from its concealed display name,16
+speaker.operator.name,오퍼레이터,,,,,Operator speaker display name,Pixel Crushers actor display-name source,16
+speaker.rescue_contact.name,구조 연락원,,,,,RescueContact speaker display name,Pixel Crushers actor display-name source,16
+speaker.settlement_control.name,정착지 관제,,,,,Settlement Control speaker display name,Pixel Crushers actor display-name source,16
+system.pixel_curse.level_up,픽셀 저주 동기화 단계 상승: {level},,,,,Pixel Curse level-up notification,Shown only when derived authoritative level changes,48
+system.settlement.expedition.dialogue_active,통신이 끝난 후 탐사를 시작할 수 있습니다.,,,,,Settlement expedition launch blocked by active dialogue,Shown through the Settlement status message path,48
+tutorial.curse.system_error.body,미확인 신호가 기체 구조를 침식했습니다.,,,,,Tutorial Pixel Curse transformation feedback body,Shown only after the core-to-player transfer reaches the ship,48
+tutorial.curse.system_error.title,시스템 오류,,,,,Tutorial Pixel Curse transformation feedback title,Player-facing replacement for the internal mystery placeholder,24
+tutorial.radar.scan_only,{scan}으로 미확인 신호를 스캔하세요.,,,,,Tutorial unknown-signal Radar objective while Radar is active,Named argument uses the current Input System scan binding,56
+tutorial.radar.toggle_and_scan,{radar}로 레이더를 켜고 {scan}으로 주변 신호를 스캔하세요.,,,,,Tutorial Radar objective detail,Named arguments use current Input System binding display strings,72
+tutorial.signal.purple_core.interact,미확인 코어를 조사하세요.,,,,,Tutorial Purple Core interaction prompt,Replaces internal mystery placeholder in player-facing text,40
+tutorial.signal.purple_core.travel,드러난 미확인 코어에 접근하세요.,,,,,Tutorial Purple Core travel objective,Shown after the materialization reveal completes,48
+tutorial.signal.unknown.objective,미확인 신호원을 조사하세요.,,,,,Tutorial unknown-signal search objective,Stable player-facing label for unresolved signal data,40
+tutorial.signal.unknown.title,미확인 신호,,,,,Tutorial unknown-signal objective title,Stable player-facing replacement for raw mystery placeholder,24
+tutorial.supply.route_optional,지도에서 경로를 표시하거나 보급 컨테이너로 이동하세요.,,,,,Tutorial optional route objective detail,Route placement is optional and target approach remains authoritative,72
+ui.settings.language,언어,,,,,Options menu language heading,Phase 2A foundation entry,12
+ui.settings.language.en,영어,,,,,English language option,Phase 2A foundation entry,12
+ui.settings.language.ja,일본어,,,,,Japanese language option,Phase 2A foundation entry,12
+ui.settings.language.ko,한국어,,,,,Korean language option,Phase 2A foundation entry,12
+ui.settings.language.zh_hans,중국어(간체),,,,,Simplified Chinese language option,Phase 2A foundation entry,16
+ui.settings.language.zh_hant,중국어(번체),,,,,Traditional Chinese language option,Phase 2A foundation entry,16

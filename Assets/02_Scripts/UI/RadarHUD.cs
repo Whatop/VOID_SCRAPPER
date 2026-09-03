@@ -23,6 +23,7 @@ public class RadarHUD : MonoBehaviour
     [SerializeField] private Color scopeRingColor = new Color(0.18f, 0.65f, 0.78f, 0.28f);
     [SerializeField] private Color scopeCrosshairColor = new Color(0.18f, 0.65f, 0.78f, 0.18f);
     [SerializeField, Range(1, 4)] private int scopeRingCount = 3;
+    [SerializeField, Range(0.45f, 0.6f)] private float postScanBackgroundAlphaMultiplier = 0.55f;
 
     [Header("Fallback Colors")]
     [SerializeField] private Color enemyColor = new Color(1f, 0.22f, 0.18f, 1f);
@@ -119,6 +120,14 @@ public class RadarHUD : MonoBehaviour
 
         markerMap.Clear();
         currentTargets.Clear();
+    }
+
+    public void SetSuccessfulScanPresentation(bool successfulScanVisible)
+    {
+        EnsureScopePresentation();
+        scopeGraphic?.SetBackgroundAlphaMultiplier(
+            successfulScanVisible ? postScanBackgroundAlphaMultiplier : 1f
+        );
     }
 
     public void RefreshMarkerPositions()
@@ -393,6 +402,7 @@ public sealed class RadarScopeGraphic : MaskableGraphic
     [SerializeField, Min(0.25f)] private float borderWidth = 1.25f;
     [SerializeField, Min(0.25f)] private float ringWidth = 0.5f;
     [SerializeField, Min(0.25f)] private float crosshairWidth = 0.5f;
+    private float backgroundAlphaMultiplier = 1f;
 
     public void Configure(
         Color newBackgroundColor,
@@ -409,6 +419,18 @@ public sealed class RadarScopeGraphic : MaskableGraphic
         SetVerticesDirty();
     }
 
+    public void SetBackgroundAlphaMultiplier(float multiplier)
+    {
+        float clamped = Mathf.Clamp01(multiplier);
+        if (Mathf.Approximately(backgroundAlphaMultiplier, clamped))
+        {
+            return;
+        }
+
+        backgroundAlphaMultiplier = clamped;
+        SetVerticesDirty();
+    }
+
     protected override void OnPopulateMesh(VertexHelper vertexHelper)
     {
         vertexHelper.Clear();
@@ -422,7 +444,9 @@ public sealed class RadarScopeGraphic : MaskableGraphic
         }
 
         const int segments = 48;
-        AddSolidCircle(vertexHelper, center, radius, backgroundColor, segments);
+        Color resolvedBackground = backgroundColor;
+        resolvedBackground.a *= backgroundAlphaMultiplier;
+        AddSolidCircle(vertexHelper, center, radius, resolvedBackground, segments);
         AddLine(
             vertexHelper,
             center + Vector2.left * (radius - 2f),

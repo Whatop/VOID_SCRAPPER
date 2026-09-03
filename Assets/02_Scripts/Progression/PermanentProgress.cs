@@ -41,7 +41,7 @@ public class SectorTechnologyLevelState
     }
 }
 
-public class PermanentProgress : MonoBehaviour
+public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAuthority
 {
     private const string PersistentStoryTraitUnlockPrefix = "story_trait:";
     private const string TutorialCompletedUnlockFlag = "tutorial_completed";
@@ -125,6 +125,12 @@ public class PermanentProgress : MonoBehaviour
     public bool CanActivateRouteCore => CurrentRouteCoreState == RouteCoreState.Assembled;
     public bool CanLaunchFinalExpedition => CurrentRouteCoreState == RouteCoreState.Activated && settlementDefenseCleared;
     public bool IsTutorialCompleted => HasUnlockFlag(TutorialCompletedUnlockFlag);
+    public MainDamagedAccessKeyQuestState DamagedAccessKeyQuestState =>
+        ResolveDamagedAccessKeyQuestState();
+    public int DamagedAccessKeyCollectedPartCount => AcquiredBossStoryPartCount;
+    public int DamagedAccessKeyRequiredPartCount =>
+        MainDamagedAccessKeyQuestIds.RequiredPartCount;
+    public int PixelCurseLevel => ResolvePixelCurseLevel();
 
     public int GetCoreSynchronizationStage()
     {
@@ -141,6 +147,7 @@ public class PermanentProgress : MonoBehaviour
     }
 
     public event Action Changed;
+    public event Action<int, int> PixelCurseLevelChanged;
 
     private void Awake()
     {
@@ -157,6 +164,8 @@ public class PermanentProgress : MonoBehaviour
 
     public void LoadFromSave(SaveData saveData)
     {
+        int previousPixelCurseLevel = PixelCurseLevel;
+
         if (saveData == null)
         {
             ResetProgress();
@@ -263,6 +272,7 @@ public class PermanentProgress : MonoBehaviour
         PruneDisabledPermanentTraitIds();
         EnsureDefaultBuildings();
         Changed?.Invoke();
+        NotifyPixelCurseLevelChanged(previousPixelCurseLevel);
     }
 
     public SaveData CreateSaveData()
@@ -331,6 +341,8 @@ public class PermanentProgress : MonoBehaviour
 
     public void ResetProgress()
     {
+        int previousPixelCurseLevel = PixelCurseLevel;
+
         scrapParts = 0;
         coreShards = 0;
         stabilizedAlloy = 0;
@@ -362,6 +374,7 @@ public class PermanentProgress : MonoBehaviour
 
         EnsureDefaultBuildings();
         Changed?.Invoke();
+        NotifyPixelCurseLevelChanged(previousPixelCurseLevel);
     }
 
     public void SetLastSelectedWeaponTree(WeaponTreeType weaponTreeType)
@@ -675,6 +688,18 @@ public class PermanentProgress : MonoBehaviour
         return true;
     }
 
+    public bool TryStartDamagedAccessKeyQuest()
+    {
+        if (HasUnlockFlag(MainDamagedAccessKeyQuestIds.StartedUnlockFlag))
+        {
+            return false;
+        }
+
+        unlockFlags.Add(MainDamagedAccessKeyQuestIds.StartedUnlockFlag);
+        Changed?.Invoke();
+        return true;
+    }
+
     public bool HasPersistentStoryTrait(TraitDefinition trait)
     {
         return trait != null &&
@@ -695,6 +720,7 @@ public class PermanentProgress : MonoBehaviour
             return false;
         }
 
+        int previousPixelCurseLevel = PixelCurseLevel;
         string unlockFlag = BuildPersistentStoryTraitUnlockFlag(trait.TraitId);
 
         if (HasUnlockFlag(unlockFlag))
@@ -704,6 +730,7 @@ public class PermanentProgress : MonoBehaviour
 
         unlockFlags.Add(unlockFlag);
         Changed?.Invoke();
+        NotifyPixelCurseLevelChanged(previousPixelCurseLevel);
         return true;
     }
 
@@ -735,6 +762,7 @@ public class PermanentProgress : MonoBehaviour
             return false;
         }
 
+        int previousPixelCurseLevel = PixelCurseLevel;
         bool changed = AddUniqueBossId(defeatedCampaignBosses, bossId);
 
         if (bossId == CampaignBossId.NullDispatcher)
@@ -759,22 +787,30 @@ public class PermanentProgress : MonoBehaviour
             Changed?.Invoke();
         }
 
+        NotifyPixelCurseLevelChanged(previousPixelCurseLevel);
+
         return changed;
     }
 
-    public bool TryAssembleRouteCore()
+    public bool TryRestoreDamagedAccessKey()
     {
         RefreshCampaignDerivedState();
 
-        if (!HasAllRouteCoreParts || ResolveRouteCoreState() != RouteCoreState.ReadyToAssemble)
+        if (DamagedAccessKeyQuestState !=
+            MainDamagedAccessKeyQuestState.ReadyToRestore)
         {
             return false;
         }
 
         routeCoreState = RouteCoreState.Assembled;
-        AddUnlockFlag("campaign_route_core_assembled");
+        AddUniqueString(unlockFlags, "campaign_route_core_assembled");
         Changed?.Invoke();
         return true;
+    }
+
+    public bool TryAssembleRouteCore()
+    {
+        return TryRestoreDamagedAccessKey();
     }
 
     public bool TryActivateRouteCore()
@@ -1021,6 +1057,50 @@ public class PermanentProgress : MonoBehaviour
         }
 
         return routeCoreState;
+    }
+
+    private MainDamagedAccessKeyQuestState ResolveDamagedAccessKeyQuestState()
+    {
+        if (!HasUnlockFlag(MainDamagedAccessKeyQuestIds.StartedUnlockFlag))
+        {
+            return MainDamagedAccessKeyQuestState.NotStarted;
+        }
+
+        RouteCoreState currentRouteCoreState = ResolveRouteCoreState();
+        if (currentRouteCoreState == RouteCoreState.Assembled ||
+            currentRouteCoreState == RouteCoreState.Activated)
+        {
+            return MainDamagedAccessKeyQuestState.Completed;
+        }
+
+        return AcquiredBossStoryPartCount switch
+        {
+            0 => MainDamagedAccessKeyQuestState.Active0,
+            1 => MainDamagedAccessKeyQuestState.Active1,
+            2 => MainDamagedAccessKeyQuestState.Active2,
+            _ => MainDamagedAccessKeyQuestState.ReadyToRestore
+        };
+    }
+
+    private int ResolvePixelCurseLevel()
+    {
+        if (!HasPersistentStoryTrait(PixelCurseProgressionIds.TraitId))
+        {
+            return 0;
+        }
+
+        return Mathf.Min(
+            1 + AcquiredBossStoryPartCount,
+            PixelCurseProgressionIds.MaximumLevel);
+    }
+
+    private void NotifyPixelCurseLevelChanged(int previousLevel)
+    {
+        int currentLevel = PixelCurseLevel;
+        if (currentLevel != previousLevel)
+        {
+            PixelCurseLevelChanged?.Invoke(previousLevel, currentLevel);
+        }
     }
 
     private int CountRequiredStoryParts()

@@ -22,7 +22,8 @@ public enum FieldNpcState
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider2D))]
-public class FieldNpcObjective : MonoBehaviour, IInteractable
+public class FieldNpcObjective : MonoBehaviour, IInteractable,
+    IRescueContactDialogueServiceAuthority
 {
     [Header("NPC")]
     [SerializeField] private FieldNpcServiceType serviceType = FieldNpcServiceType.Technician;
@@ -104,6 +105,12 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
     public bool UseBaseRescueFlow => useBaseRescueFlow;
     public bool IsCaptiveInBase => useBaseRescueFlow && state == FieldNpcState.WaitingForRescue;
+    public bool IsRescueContactDialogueServiceAvailable =>
+        miniTrader == null &&
+        serviceType == FieldNpcServiceType.RescueContact &&
+        state == FieldNpcState.Available &&
+        !serviceUsed &&
+        CanRegisterRescueContactBonus();
 
     public event Action<FieldNpcObjective> CaptivityReleased;
     public event Action<FieldNpcObjective> ServiceUnlocked;
@@ -128,6 +135,8 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
         reinforcementCatalog = configuredReinforcementCatalog;
         rewardChoiceUI = configuredRewardChoiceUI;
         objectiveId = configuredObjectiveId;
+        registerAdditionalSignalOnContactService =
+            configuredServiceType == FieldNpcServiceType.RescueContact;
 
         if (configuredRewardCapsulePrefab != null)
         {
@@ -295,7 +304,8 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
             return;
         }
 
-        if (!TryBeginServiceDialogue(interactor))
+        if (!TryBeginServiceDialogue(interactor) &&
+            serviceType != FieldNpcServiceType.RescueContact)
         {
             ExecuteService(interactor);
         }
@@ -406,6 +416,11 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
         UnsubscribePendingDialogueController();
         pendingServiceInteractor = null;
         pendingConversationTitle = null;
+
+        if (serviceType == FieldNpcServiceType.RescueContact)
+        {
+            return;
+        }
 
         if (isActiveAndEnabled)
         {
@@ -713,12 +728,22 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
         return true;
     }
 
-    private void ExecuteService(GameObject interactor)
+    public bool TryExecuteRescueContactDialogueService(GameObject interactor)
+    {
+        if (!IsRescueContactDialogueServiceAvailable)
+        {
+            return false;
+        }
+
+        return ExecuteService(interactor);
+    }
+
+    private bool ExecuteService(GameObject interactor)
     {
         if (oneUseService && serviceUsed)
         {
             state = FieldNpcState.Exhausted;
-            return;
+            return false;
         }
 
         bool success = serviceType switch
@@ -732,7 +757,7 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
         if (!success)
         {
-            return;
+            return false;
         }
 
         serviceUsed = true;
@@ -741,6 +766,8 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
         {
             state = FieldNpcState.Exhausted;
         }
+
+        return true;
     }
 
     private bool ExecuteTechnician()
@@ -858,17 +885,58 @@ public class FieldNpcObjective : MonoBehaviour, IInteractable
 
     private bool ExecuteRescueContact()
     {
-        ShowWarning("특수 화물 신호와 코어 추적 데이터를 갱신했습니다.");
-
         if (registerAdditionalSignalOnContactService)
         {
-            ExpeditionObjectiveDirector.Instance?.RegisterObjective(
-                $"{ResolveObjectiveId()}_contact_bonus",
-                HighValueObjectiveSource.NpcRescue
-            );
+            ExpeditionObjectiveDirector director = ExpeditionObjectiveDirector.Instance;
+
+            if (director == null ||
+                !director.RegisterObjective(
+                    ResolveRescueContactBonusObjectiveId(),
+                    HighValueObjectiveSource.NpcRescue))
+            {
+                return false;
+            }
+        }
+
+        ShowWarning("특수 화물 신호와 코어 추적 데이터를 갱신했습니다.");
+        return true;
+    }
+
+    private bool CanRegisterRescueContactBonus()
+    {
+        if (!registerAdditionalSignalOnContactService)
+        {
+            return true;
+        }
+
+        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
+        {
+            return false;
+        }
+
+        IReadOnlyList<string> completedIds =
+            RunManager.Instance.CurrentRun.CompletedObjectiveIds;
+        string contactBonusId = ResolveRescueContactBonusObjectiveId();
+
+        if (completedIds == null)
+        {
+            return true;
+        }
+
+        for (int i = 0; i < completedIds.Count; i++)
+        {
+            if (string.Equals(completedIds[i], contactBonusId, StringComparison.Ordinal))
+            {
+                return false;
+            }
         }
 
         return true;
+    }
+
+    private string ResolveRescueContactBonusObjectiveId()
+    {
+        return $"{ResolveObjectiveId()}_contact_bonus";
     }
 
     private bool HasCurrency(CurrencyType type, int amount)

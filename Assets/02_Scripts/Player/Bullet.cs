@@ -918,11 +918,18 @@ public class Bullet : MonoBehaviour
             return;
         }
 
-        Vector2 targetDirection = ((Vector2)target.position - (Vector2)transform.position).normalized;
+        Vector2 targetPosition = ResolveHomingTargetPosition(target);
+        Vector2 targetOffset = targetPosition - (Vector2)transform.position;
+        if (targetOffset.sqrMagnitude <= 0.000001f)
+        {
+            return;
+        }
+
+        Vector2 targetDirection = targetOffset.normalized;
 
         if (useTerminalGuidance &&
             terminalGuidanceCloseSteeringDistance > 0f &&
-            ((Vector2)target.position - (Vector2)transform.position).sqrMagnitude <=
+            targetOffset.sqrMagnitude <=
             terminalGuidanceCloseSteeringDistance * terminalGuidanceCloseSteeringDistance)
         {
             moveDirection = targetDirection;
@@ -997,7 +1004,10 @@ public class Bullet : MonoBehaviour
                 : enemyHealth != null
                     ? enemyHealth.transform
                     : hit.transform;
-            float sqrDistance = ((Vector2)candidate.position - (Vector2)transform.position).sqrMagnitude;
+            Vector2 aimPoint = frigatePart != null
+                ? frigatePart.ResolveHomingAimPoint(transform.position)
+                : candidate.position;
+            float sqrDistance = (aimPoint - (Vector2)transform.position).sqrMagnitude;
 
             if (sqrDistance < nearestSqrDistance)
             {
@@ -1020,15 +1030,19 @@ public class Bullet : MonoBehaviour
             ? terminalGuidanceRetentionRangeMultiplier
             : 1f);
 
-        if (((Vector2)target.position - (Vector2)transform.position).sqrMagnitude > retentionRange * retentionRange)
-        {
-            return false;
-        }
-
         EnemyHealth enemyHealth = target.GetComponentInParent<EnemyHealth>();
 
         FrigateBossPart frigatePart = target.GetComponentInParent<FrigateBossPart>();
         if (frigatePart != null && !frigatePart.CanReceiveDamage)
+        {
+            return false;
+        }
+
+        Vector2 targetPosition = frigatePart != null
+            ? frigatePart.ResolveHomingAimPoint(transform.position)
+            : target.position;
+        if ((targetPosition - (Vector2)transform.position).sqrMagnitude >
+            retentionRange * retentionRange)
         {
             return false;
         }
@@ -1053,6 +1067,24 @@ public class Bullet : MonoBehaviour
         }
 
         return true;
+    }
+
+    private Vector2 ResolveHomingTargetPosition(Transform target)
+    {
+        if (target == null)
+        {
+            return transform.position;
+        }
+
+        FrigateBossPart frigatePart = target.GetComponent<FrigateBossPart>();
+        if (frigatePart == null)
+        {
+            frigatePart = target.GetComponentInParent<FrigateBossPart>();
+        }
+
+        return frigatePart != null
+            ? frigatePart.ResolveHomingAimPoint(transform.position)
+            : target.position;
     }
 
     private bool IsPlayerHomingTargetEligible(EnemyHealth enemyHealth)
@@ -1377,6 +1409,31 @@ public class Bullet : MonoBehaviour
 
         if (ignoreShopSecurityTargets)
         {
+            ReleaseSelf(true);
+            return;
+        }
+
+        IProjectileDamageReceiver projectileDamageReceiver =
+            other.GetComponentInParent<IProjectileDamageReceiver>();
+        Component projectileDamageReceiverComponent =
+            projectileDamageReceiver as Component;
+
+        if (projectileDamageReceiver != null &&
+            projectileDamageReceiverComponent != null)
+        {
+            int receiverId = projectileDamageReceiverComponent.GetInstanceID();
+            if (!damagedTargets.Contains(receiverId))
+            {
+                damagedTargets.Add(receiverId);
+                ProjectileDamageContext context = new ProjectileDamageContext(
+                    owner,
+                    sourceRoot,
+                    damage,
+                    hitPoint,
+                    GetInstanceID());
+                projectileDamageReceiver.TryReceiveProjectileDamage(in context);
+            }
+
             ReleaseSelf(true);
             return;
         }

@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 935899b62f48ae5498594680ed17d133, type: 3}
   m_Name: VOID_SCRAPPER_DialogueDatabase
-  m_EditorClassIdentifier:
-  version:
-  author:
-  description:
-  globalUserScript:
+  m_EditorClassIdentifier: 
+  version: 
+  author: 
+  description: 
+  globalUserScript: 
   emphasisSettings:
   - color: {r: 0, g: 0, b: 0, a: 0}
     bold: 0
@@ -38,17 +38,17 @@ MonoBehaviour:
   - id: 1
     fields:
     - title: Name
-      value: 스크래퍼
+      value: "\uC2A4\uD06C\uB798\uD37C"
       type: 0
-      typeString:
+      typeString: 
     - title: Pictures
       value: '[]'
       type: 3
       typeString: CustomFieldType_Files
     - title: Description
-      value:
+      value: 
       type: 0
-      typeString:
+      typeString: 
     - title: IsPlayer
       value: True
       type: 2
@@ -60,15 +60,15 @@ MonoBehaviour:
   - id: 2
     fields:
     - title: Name
-      value: 현장 기술자
+      value: "\uD604\uC7A5 \uAE30\uC220\uC790"
       type: 0
-      typeString:
+      typeString: 
     - title: Pictures
       value: '[]'
       type: 3
       typeString: CustomFieldType_Files
     - title: Description
-      value:
+      value: 
       type: 0
       typeString: CustomFieldType_Text
     - title: IsPlayer
@@ -82,15 +82,15 @@ MonoBehaviour:
   - id: 3
     fields:
     - title: Name
-      value: 장비 변환상
+      value: "\uC7A5\uBE44 \uBCC0\uD658\uC0C1"
       type: 0
-      typeString:
+      typeString: 
     - title: Pictures
       value: '[]'
       type: 3
       typeString: CustomFieldType_Files
     - title: Description
-      value:
+      value: 
       type: 0
       typeString: CustomFieldType_Text
     - title: IsPlayer
@@ -104,15 +104,15 @@ MonoBehaviour:
   - id: 4
     fields:
     - title: Name
-      value: 암시장 중개인
+      value: "\uC554\uC2DC\uC7A5 \uC911\uAC1C\uC778"
       type: 0
-      typeString:
+      typeString: 
     - title: Pictures
       value: '[]'
       type: 3
       typeString: CustomFieldType_Files
     - title: Description
-      value:
+      value: 
       type: 0
       typeString: CustomFieldType_Text
     - title: IsPlayer
@@ -126,21 +126,29 @@ MonoBehaviour:
   - id: 5
     fields:
     - title: Name
-      value: 구조 연락원
+      value: "\uAD6C\uC870 \uC5F0\uB77D\uC6D0"
       type: 0
-      typeString:
+      typeString: 
     - title: Pictures
       value: '[]'
       type: 3
       typeString: CustomFieldType_Files
     - title: Description
-      value:
+      value: 
       type: 0
       typeString: CustomFieldType_Text
     - title: IsPlayer
       value: False
       type: 2
       typeString: CustomFieldType_Boolean
+    - title: Name TextKey
+      value: speaker.rescue_contact.name
+      type: 0
+      typeString: 
+    - title: Display Name
+      value: "\uAD6C\uC870 \uC5F0\uB77D\uC6D0"
+      type: 0
+      typeString: 
     portrait: {fileID: 0}
     spritePortrait: {fileID: 0}
     alternatePortraits: []
@@ -148,15 +156,45 @@ MonoBehaviour:
   - id: 6
     fields:
     - title: Name
-      value: 정착지 관제
+      value: "\uC815\uCC29\uC9C0 \uAD00\uC81C"
       type: 0
-      typeString:
+      typeString: 
     - title: Pictures
       value: '[]'
       type: 3
       typeString: CustomFieldType_Files
     - title: Description
-      value:
+      value: 
+      type: 0
+      typeString: CustomFieldType_Text
+    - title: IsPlayer
+      value: False
+      type: 2
+      typeString: CustomFieldType_Boolean
+    - title: Name TextKey
+      value: speaker.settlement_control.name
+      type: 0
+      typeString: 
+    - title: Display Name
+      value: "\uC815\uCC29\uC9C0 \uAD00\uC81C"
+      type: 0
+      typeString: 
+    portrait: {fileID: 0}
+    spritePortrait: {fileID: 0}
+    alternatePortraits: []
+    spritePortraits: []
+  - id: 7
+    fields:
+    - title: Name
+      value: "\uCF54\uC5B4 \uBC29\uC704\uCCB4"
+      type: 0
+      typeString: 
+    - title: Pictures
+      value: '[]'
+      type: 3
+      typeString: CustomFieldType_Files
+    - title: Description
+      value: 
       type: 0
       typeString: CustomFieldType_Text
     - title: IsPlayer
@@ -167,24 +205,62 @@ MonoBehaviour:
     spritePortrait: {fileID: 0}
     alternatePortraits: []
     spritePortraits: []
-  - id: 7
+  - id: 8
     fields:
     - title: Name
-      value: 코어 방위체
+      value: Operator
       type: 0
-      typeString:
+      typeString: 
     - title: Pictures
       value: '[]'
       type: 3
       typeString: CustomFieldType_Files
     - title: Description
-      value:
+      value: 
       type: 0
-      typeString: CustomFieldType_Text
+      typeString: 
     - title: IsPlayer
       value: False
       type: 2
       typeString: CustomFieldType_Boolean
+    - title: Name TextKey
+      value: speaker.operator.name
+      type: 0
+      typeString: 
+    - title: Display Name
+      value: "\uC624\uD37C\uB808\uC774\uD130"
+      type: 0
+      typeString: 
+    portrait: {fileID: 0}
+    spritePortrait: {fileID: 0}
+    alternatePortraits: []
+    spritePortraits: []
+  - id: 9
+    fields:
+    - title: Name
+      value: FakeOperator
+      type: 0
+      typeString: 
+    - title: Pictures
+      value: '[]'
+      type: 3
+      typeString: CustomFieldType_Files
+    - title: Description
+      value: 
+      type: 0
+      typeString: 
+    - title: IsPlayer
+      value: False
+      type: 2
+      typeString: CustomFieldType_Boolean
+    - title: Name TextKey
+      value: speaker.fake_operator.name
+      type: 0
+      typeString: 
+    - title: Display Name
+      value: "\uC624\uD37C\uB808\uC774\uD130"
+      type: 0
+      typeString: 
     portrait: {fileID: 0}
     spritePortrait: {fileID: 0}
     alternatePortraits: []
@@ -200,7 +276,7 @@ MonoBehaviour:
       type: 0
       typeString: CustomFieldType_Text
     - title: Description
-      value:
+      value: 
       type: 0
       typeString: CustomFieldType_Text
     - title: Actor
@@ -226,9 +302,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -237,25 +313,25 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
@@ -265,21 +341,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 1
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -290,8 +366,8 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -304,13 +380,13 @@ MonoBehaviour:
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 2
         type: 5
@@ -320,21 +396,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
         value: Signal received.
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       conversationID: 1
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -345,8 +421,8 @@ MonoBehaviour:
         destinationDialogueID: 2
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -359,13 +435,13 @@ MonoBehaviour:
     - id: 2
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
@@ -375,21 +451,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
         value: Understood.
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       conversationID: 1
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -400,8 +476,8 @@ MonoBehaviour:
         destinationDialogueID: 3
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -414,13 +490,13 @@ MonoBehaviour:
     - id: 3
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 2
         type: 5
@@ -430,27 +506,27 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
         value: Your ship telemetry is unstable.
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       conversationID: 1
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -478,7 +554,7 @@ MonoBehaviour:
       type: 5
       typeString: CustomFieldType_Actor
     - title: Conversant
-      value: 2
+      value: 8
       type: 5
       typeString: CustomFieldType_Actor
     - title: Pause Gameplay
@@ -496,9 +572,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -507,49 +583,49 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
-        value: 2
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 2
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -560,8 +636,8 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -569,20 +645,20 @@ MonoBehaviour:
         serializedVersion: 2
         x: 400
         y: 30
-        width: 160
+        width: 180
         height: 30
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 2
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
@@ -590,21 +666,25 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: ...들려?
+        value: "\u2026\uB4E4\uB824?"
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.rescue_after_curse.line_01
+        type: 0
+        typeString: 
       conversationID: 2
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -615,29 +695,29 @@ MonoBehaviour:
         destinationDialogueID: 2
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 80
-        width: 160
+        x: 436
+        y: 82
+        width: 180
         height: 30
     - id: 2
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 2
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
@@ -645,21 +725,26 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 지금까지 통신이 완전히 끊겨 있었어.
+        value: "\uC9C0\uAE08\uAE4C\uC9C0 \uD1B5\uC2E0\uC774 \uC644\uC804\uD788 \uB04A\uACA8
+          \uC788\uC5C8\uC5B4."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.rescue_after_curse.line_02
+        type: 0
+        typeString: 
       conversationID: 2
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -670,51 +755,57 @@ MonoBehaviour:
         destinationDialogueID: 3
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 130
-        width: 160
+        x: 472
+        y: 134
+        width: 180
         height: 30
     - id: 3
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 1
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
-        value: 2
+        value: 1
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value: 무슨 일이 있었던 거지?
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 무슨 일이 있었던 거지?
+        value: "\uAE30\uCCB4 \uD45C\uBA74\uC5D0 \uC815\uCCB4\uBD88\uBA85\uC758 \uC811\uC18D
+          \uD328\uD134\uC774 \uBC88\uC9C0\uACE0 \uC788\uC5B4. \uD68C\uC218 \uC2E0\uD638\uB97C
+          \uC5F4\uC5C8\uC5B4. \uB2F9\uC7A5 \uB3CC\uC544\uC640."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.rescue_after_curse.line_03
+        type: 0
+        typeString: 
       conversationID: 2
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -725,230 +816,65 @@ MonoBehaviour:
         destinationDialogueID: 4
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 180
-        width: 160
+        x: 508
+        y: 186
+        width: 180
         height: 30
     - id: 4
       fields:
       - title: Title
-        value:
+        value: END
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
-      - title: Actor
-        value: 2
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Conversant
-        value: 1
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Menu Text
-        value:
-        type: 0
-        typeString:
-      - title: Dialogue Text
-        value: 대체 무슨 일이 있었던 거야?
-        type: 0
-        typeString:
-      - title: Sequence
-        value:
-        type: 0
-        typeString:
-      conversationID: 2
-      isRoot: 0
-      isGroup: 0
-      nodeColor:
-      delaySimStatus: 0
-      falseConditionAction: Block
-      conditionPriority: 2
-      outgoingLinks:
-      - originConversationID: 2
-        originDialogueID: 4
-        destinationConversationID: 2
-        destinationDialogueID: 5
-        isConnector: 0
-        priority: 2
-      conditionsString:
-      userScript:
-      onExecute:
-        m_PersistentCalls:
-          m_Calls: []
-      canvasRect:
-        serializedVersion: 2
-        x: 400
-        y: 230
-        width: 160
-        height: 30
-    - id: 5
-      fields:
-      - title: Title
-        value:
-        type: 0
-        typeString:
-      - title: Description
-        value:
-        type: 0
-        typeString:
-      - title: Actor
-        value: 2
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Conversant
-        value: 1
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Menu Text
-        value:
-        type: 0
-        typeString:
-      - title: Dialogue Text
-        value: 잠깐, 기체 식별 신호도 이상해.
-        type: 0
-        typeString:
-      - title: Sequence
-        value:
-        type: 0
-        typeString:
-      conversationID: 2
-      isRoot: 0
-      isGroup: 0
-      nodeColor:
-      delaySimStatus: 0
-      falseConditionAction: Block
-      conditionPriority: 2
-      outgoingLinks:
-      - originConversationID: 2
-        originDialogueID: 5
-        destinationConversationID: 2
-        destinationDialogueID: 6
-        isConnector: 0
-        priority: 2
-      conditionsString:
-      userScript:
-      onExecute:
-        m_PersistentCalls:
-          m_Calls: []
-      canvasRect:
-        serializedVersion: 2
-        x: 400
-        y: 280
-        width: 160
-        height: 30
-    - id: 6
-      fields:
-      - title: Title
-        value:
-        type: 0
-        typeString:
-      - title: Description
-        value:
-        type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
-        value: 2
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value: 미확인 신호에 접촉했다.
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 미확인 신호에 접촉했다.
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 2
       isRoot: 0
       isGroup: 0
-      nodeColor:
-      delaySimStatus: 0
-      falseConditionAction: Block
-      conditionPriority: 2
-      outgoingLinks:
-      - originConversationID: 2
-        originDialogueID: 6
-        destinationConversationID: 2
-        destinationDialogueID: 7
-        isConnector: 0
-        priority: 2
-      conditionsString:
-      userScript:
-      onExecute:
-        m_PersistentCalls:
-          m_Calls: []
-      canvasRect:
-        serializedVersion: 2
-        x: 400
-        y: 330
-        width: 160
-        height: 30
-    - id: 7
-      fields:
-      - title: Title
-        value:
-        type: 0
-        typeString:
-      - title: Description
-        value:
-        type: 0
-        typeString:
-      - title: Actor
-        value: 2
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Conversant
-        value: 1
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Menu Text
-        value:
-        type: 0
-        typeString:
-      - title: Dialogue Text
-        value: 설명은 나중에 해. 일단 복귀해!
-        type: 0
-        typeString:
-      - title: Sequence
-        value:
-        type: 0
-        typeString:
-      conversationID: 2
-      isRoot: 0
-      isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: VS_MarkConversationComplete("TUTORIAL_RescueAfterCurse")
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 380
-        width: 160
+        x: 544
+        y: 238
+        width: 180
         height: 30
     entryGroups: []
     canvasScrollPosition: {x: 0, y: 0}
@@ -960,7 +886,7 @@ MonoBehaviour:
       type: 0
       typeString: CustomFieldType_Text
     - title: Description
-      value: 'Field technician service introduction.'
+      value: Field technician service introduction.
       type: 0
       typeString: CustomFieldType_Text
     - title: Actor
@@ -986,9 +912,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -997,25 +923,25 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
@@ -1025,21 +951,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 3
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -1050,8 +976,8 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -1064,13 +990,13 @@ MonoBehaviour:
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 2
         type: 5
@@ -1080,27 +1006,29 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: '현장 기술자다. 튜닝 칩이 있으면 보유 특성을 조정해 주지. 필요하면 바로 점검하겠다.'
+        value: "\uD604\uC7A5 \uAE30\uC220\uC790\uB2E4. \uD29C\uB2DD \uCE69\uC774
+          \uC788\uC73C\uBA74 \uBCF4\uC720 \uD2B9\uC131\uC744 \uC870\uC815\uD574 \uC8FC\uC9C0.
+          \uD544\uC694\uD558\uBA74 \uBC14\uB85C \uC810\uAC80\uD558\uACA0\uB2E4."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       conversationID: 3
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -1120,7 +1048,7 @@ MonoBehaviour:
       type: 0
       typeString: CustomFieldType_Text
     - title: Description
-      value: 'Equipment converter service introduction.'
+      value: Equipment converter service introduction.
       type: 0
       typeString: CustomFieldType_Text
     - title: Actor
@@ -1146,9 +1074,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -1157,25 +1085,25 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
@@ -1185,21 +1113,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 4
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -1210,8 +1138,8 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -1224,13 +1152,13 @@ MonoBehaviour:
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 3
         type: 5
@@ -1240,27 +1168,29 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: '장비 변환을 맡고 있다. 장착 중인 강화 장비를 같은 등급의 다른 장비로 바꿀 수 있다.'
+        value: "\uC7A5\uBE44 \uBCC0\uD658\uC744 \uB9E1\uACE0 \uC788\uB2E4. \uC7A5\uCC29
+          \uC911\uC778 \uAC15\uD654 \uC7A5\uBE44\uB97C \uAC19\uC740 \uB4F1\uAE09\uC758
+          \uB2E4\uB978 \uC7A5\uBE44\uB85C \uBC14\uAFC0 \uC218 \uC788\uB2E4."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       conversationID: 4
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -1280,7 +1210,7 @@ MonoBehaviour:
       type: 0
       typeString: CustomFieldType_Text
     - title: Description
-      value: 'Black market service introduction.'
+      value: Black market service introduction.
       type: 0
       typeString: CustomFieldType_Text
     - title: Actor
@@ -1306,9 +1236,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -1317,25 +1247,25 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
@@ -1345,21 +1275,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 5
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -1370,8 +1300,8 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -1384,13 +1314,13 @@ MonoBehaviour:
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 4
         type: 5
@@ -1400,27 +1330,29 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: '정규 유통망 밖의 장비를 취급한다. 출처보다 선택지가 중요한 때 찾아와.'
+        value: "\uC815\uADDC \uC720\uD1B5\uB9DD \uBC16\uC758 \uC7A5\uBE44\uB97C \uCDE8\uAE09\uD55C\uB2E4.
+          \uCD9C\uCC98\uBCF4\uB2E4 \uC120\uD0DD\uC9C0\uAC00 \uC911\uC694\uD55C \uB54C
+          \uCC3E\uC544\uC640."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       conversationID: 5
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -1440,7 +1372,7 @@ MonoBehaviour:
       type: 0
       typeString: CustomFieldType_Text
     - title: Description
-      value: 'Rescue contact service introduction.'
+      value: Rescue contact service introduction.
       type: 0
       typeString: CustomFieldType_Text
     - title: Actor
@@ -1466,9 +1398,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -1477,25 +1409,25 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
@@ -1505,21 +1437,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 6
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -1530,8 +1462,8 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -1544,13 +1476,13 @@ MonoBehaviour:
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 5
         type: 5
@@ -1560,34 +1492,351 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: '구조 신호와 항로 정보를 정리한다. 놓친 고가치 신호가 있다면 추가 좌표를 확인해 주지.'
+        value: "\uAD6C\uC870 \uC2E0\uD638\uB97C \uB530\uB77C\uC628 \uAC74\uAC00?
+          \uC0B4\uC558\uB2E4\uB294 \uAC8C \uC544\uC9C1 \uC2E4\uAC10\uC774 \uC548
+          \uB098\uB294\uAD70."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
+      - title: TextKey
+        value: dialogue.rescue_contact.service.line_01
+        type: 0
+        typeString: 
       conversationID: 6
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
-      outgoingLinks: []
-      conditionsString:
-      userScript:
+      outgoingLinks:
+      - originConversationID: 6
+        originDialogueID: 1
+        destinationConversationID: 6
+        destinationDialogueID: 2
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 80
+        x: 440
+        y: 90
+        width: 160
+        height: 30
+    - id: 2
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 5
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC228\uC5B4 \uC788\uB294 \uB3D9\uC548 \uC774 \uD574\uC5ED\uC758
+          \uCF54\uC5B4 \uCD94\uC801 \uC2E0\uD638\uB97C \uBAA8\uC544\uB480\uC5B4.
+          \uBC1B\uC544\uAC00\uBA74 \uBAA9\uD45C \uC704\uCE58\uB97C \uB354 \uBE68\uB9AC
+          \uC881\uD790 \uC218 \uC788\uC744 \uAC70\uC57C."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.rescue_contact.service.line_02
+        type: 0
+        typeString: 
+      conversationID: 6
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 6
+        originDialogueID: 2
+        destinationConversationID: 6
+        destinationDialogueID: 3
+        isConnector: 0
+        priority: 2
+      - originConversationID: 6
+        originDialogueID: 2
+        destinationConversationID: 6
+        destinationDialogueID: 4
+        isConnector: 0
+        priority: 2
+      - originConversationID: 6
+        originDialogueID: 2
+        destinationConversationID: 6
+        destinationDialogueID: 5
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 480
+        y: 150
+        width: 160
+        height: 30
+    - id: 3
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 5
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: "\uC2E0\uD638\uB97C \uACF5\uC720\uBC1B\uB294\uB2E4."
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC2E0\uD638\uB97C \uACF5\uC720\uBC1B\uB294\uB2E4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.rescue_contact.service.choice.accept
+        type: 0
+        typeString: 
+      - title: Menu TextKey
+        value: dialogue.rescue_contact.service.choice.accept
+        type: 0
+        typeString: 
+      conversationID: 6
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks: []
+      conditionsString: VS_CheckCondition("RescueContactAvailable")
+      userScript: VS_DispatchAction("RescueContactAccept")
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 520
+        y: 210
+        width: 160
+        height: 30
+    - id: 4
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 5
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: "\uC9C0\uAE08\uC740 \uD544\uC694 \uC5C6\uB2E4."
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC9C0\uAE08\uC740 \uD544\uC694 \uC5C6\uB2E4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.rescue_contact.service.choice.decline
+        type: 0
+        typeString: 
+      - title: Menu TextKey
+        value: dialogue.rescue_contact.service.choice.decline
+        type: 0
+        typeString: 
+      conversationID: 6
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks: []
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 560
+        y: 270
+        width: 160
+        height: 30
+    - id: 5
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 5
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: "\uC2E0\uD638\uB97C \uACF5\uC720\uBC1B\uB294\uB2E4."
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC2E0\uD638\uB97C \uACF5\uC720\uBC1B\uB294\uB2E4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.rescue_contact.service.choice.accept
+        type: 0
+        typeString: 
+      - title: Menu TextKey
+        value: dialogue.rescue_contact.service.choice.accept
+        type: 0
+        typeString: 
+      conversationID: 6
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 6
+        originDialogueID: 5
+        destinationConversationID: 6
+        destinationDialogueID: 6
+        isConnector: 0
+        priority: 2
+      conditionsString: not VS_CheckCondition("RescueContactAvailable")
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 600
+        y: 330
+        width: 160
+        height: 30
+    - id: 6
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 5
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC774\uBBF8 \uACF5\uC720\uBC1B\uC558\uAC70\uB098 \uD604\uC7AC\uB294
+          \uC2E0\uD638\uB97C \uBC1B\uC744 \uC218 \uC5C6\uB2E4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.rescue_contact.service.unavailable
+        type: 0
+        typeString: 
+      conversationID: 6
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks: []
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 640
+        y: 390
         width: 160
         height: 30
     entryGroups: []
@@ -1600,7 +1849,7 @@ MonoBehaviour:
       type: 0
       typeString: CustomFieldType_Text
     - title: Description
-      value: 'Prepared first-return hook for the unknown Purple Core incident.'
+      value: Prepared first-return hook for the unknown Purple Core incident.
       type: 0
       typeString: CustomFieldType_Text
     - title: Actor
@@ -1626,9 +1875,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -1637,25 +1886,25 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
@@ -1665,21 +1914,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 7
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -1690,8 +1939,38 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      - originConversationID: 7
+        originDialogueID: 0
+        destinationConversationID: 7
+        destinationDialogueID: 7
+        isConnector: 0
+        priority: 2
+      - originConversationID: 7
+        originDialogueID: 0
+        destinationConversationID: 7
+        destinationDialogueID: 8
+        isConnector: 0
+        priority: 2
+      - originConversationID: 7
+        originDialogueID: 0
+        destinationConversationID: 7
+        destinationDialogueID: 9
+        isConnector: 0
+        priority: 2
+      - originConversationID: 7
+        originDialogueID: 0
+        destinationConversationID: 7
+        destinationDialogueID: 10
+        isConnector: 0
+        priority: 2
+      - originConversationID: 7
+        originDialogueID: 0
+        destinationConversationID: 7
+        destinationDialogueID: 11
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -1699,18 +1978,18 @@ MonoBehaviour:
         serializedVersion: 2
         x: 400
         y: 30
-        width: 160
+        width: 180
         height: 30
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 6
         type: 5
@@ -1720,21 +1999,27 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: '귀환 신호에서 비정상 파형이 검출됐다. 회수한 물체를 격리 보관하겠다.'
+        value: "\uADC0\uD658 \uC2E0\uD638\uC5D0\uC11C \uBE44\uC815\uC0C1 \uD30C\uD615\uC774
+          \uAC80\uCD9C\uB410\uB2E4. \uD68C\uC218\uD55C \uBB3C\uCCB4\uC640 \uAE30\uCCB4
+          \uAE30\uB85D\uC744 \uACA9\uB9AC \uBD84\uC11D \uC911\uC774\uB2E4."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.first_settlement_unknown_core.line_01
+        type: 0
+        typeString: 
       conversationID: 7
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -1745,51 +2030,57 @@ MonoBehaviour:
         destinationDialogueID: 2
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: VS_CheckCondition("MainDamagedAccessKeyNotStarted")
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 80
-        width: 160
+        x: 436
+        y: 82
+        width: 180
         height: 30
     - id: 2
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 1
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Conversant
         value: 6
         type: 5
         typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: '보라색 빛이 감도는 정체불명의 코어였다.'
+        value: "\uB124 \uAE30\uCCB4\uC5D0 \uBD99\uC740 \uAC74 \uB2E8\uC21C\uD55C
+          \uC624\uC5FC\uC774 \uC544\uB2C8\uC57C. \uBD95\uAD34 \uC804 \uBB3C\uB958\uB9DD\uC5D0
+          \uC811\uC18D\uD558\uB358 \uD0A4 \uAD6C\uC870\uC640 \uB2EE\uC558\uC5B4."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.first_settlement_unknown_core.line_02
+        type: 0
+        typeString: 
       conversationID: 7
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -1800,27 +2091,27 @@ MonoBehaviour:
         destinationDialogueID: 3
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 130
-        width: 160
+        x: 472
+        y: 134
+        width: 180
         height: 30
     - id: 3
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 6
         type: 5
@@ -1830,35 +2121,581 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: '선체 기록과 신호 변화를 확인하겠다. 원인을 알 때까지 이상 징후를 보고해.'
+        value: "\uBB38\uC81C\uB294 \uC190\uC0C1\uB410\uB2E4\uB294 \uAC70\uC57C. \uADF8\uB300\uB85C
+          \uB450\uBA74 \uC5B4\uB514\uC5D0 \uC5F0\uACB0\uB418\uB294\uC9C0\uC870\uCC28
+          \uC54C \uC218 \uC5C6\uC5B4."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.first_settlement_unknown_core.line_03
+        type: 0
+        typeString: 
       conversationID: 7
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
-      outgoingLinks: []
-      conditionsString:
-      userScript:
+      outgoingLinks:
+      - originConversationID: 7
+        originDialogueID: 3
+        destinationConversationID: 7
+        destinationDialogueID: 4
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 180
-        width: 160
+        x: 508
+        y: 186
+        width: 180
+        height: 30
+    - id: 4
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC815\uCC29\uC9C0 \uB2E8\uB9D0\uC5D0\uC11C \uC784\uC2DC \uACBD\uB85C
+          \uC138 \uAC1C\uB97C \uBCF5\uC6D0\uD588\uC5B4. \uAC01 \uD574\uC5ED\uC758
+          \uAD00\uB9AC \uC7A5\uCE58\uC5D0 \uC548\uC815\uD654 \uBD80\uD488\uC774 \uB0A8\uC544
+          \uC788\uC744 \uAC00\uB2A5\uC131\uC774 \uB192\uC544."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.first_settlement_unknown_core.line_04
+        type: 0
+        typeString: 
+      conversationID: 7
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 7
+        originDialogueID: 4
+        destinationConversationID: 7
+        destinationDialogueID: 5
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 544
+        y: 238
+        width: 180
+        height: 30
+    - id: 5
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uAD6C\uD68D \uC548\uC815\uAE30, \uBB3C\uC9C8 \uC555\uCD95\uB85C,
+          \uC704\uC0C1 \uD56D\uBC95 \uB80C\uC988. \uC138 \uBD80\uD488\uC744 \uD655\uBCF4\uD558\uBA74
+          \uC811\uC18D\uD0A4\uB97C \uC644\uC131\uD560 \uC218 \uC788\uC5B4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.first_settlement_unknown_core.line_05
+        type: 0
+        typeString: 
+      conversationID: 7
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 7
+        originDialogueID: 5
+        destinationConversationID: 7
+        destinationDialogueID: 6
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 580
+        y: 290
+        width: 180
+        height: 30
+    - id: 6
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uD0D0\uC0AC \uACBD\uB85C\uB97C \uB4F1\uB85D\uD560\uAC8C. \uC900\uBE44\uAC00
+          \uB05D\uB098\uBA74 \uCD9C\uBC1C\uD574."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.first_settlement_unknown_core.line_06
+        type: 0
+        typeString: 
+      conversationID: 7
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 7
+        originDialogueID: 6
+        destinationConversationID: 7
+        destinationDialogueID: 12
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 616
+        y: 342
+        width: 180
+        height: 30
+    - id: 7
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uACBD\uB85C\uB294 \uC138 \uACF3 \uBAA8\uB450 \uC0B4\uC544 \uC788\uC5B4.
+          \uAC00\uAE4C\uC6B4 \uC2E0\uD638\uBD80\uD130 \uD655\uC778\uD574."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.main_damaged_access_key.active_0
+        type: 0
+        typeString: 
+      conversationID: 7
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 7
+        originDialogueID: 7
+        destinationConversationID: 7
+        destinationDialogueID: 12
+        isConnector: 0
+        priority: 2
+      conditionsString: VS_CheckCondition("MainDamagedAccessKeyActive0")
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 652
+        y: 394
+        width: 180
+        height: 30
+    - id: 8
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uCCAB \uBD80\uD488\uC740 \uC548\uC815\uC801\uC774\uC57C. \uB450
+          \uAC1C \uB0A8\uC558\uC5B4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.main_damaged_access_key.active_1
+        type: 0
+        typeString: 
+      conversationID: 7
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 7
+        originDialogueID: 8
+        destinationConversationID: 7
+        destinationDialogueID: 12
+        isConnector: 0
+        priority: 2
+      conditionsString: VS_CheckCondition("MainDamagedAccessKeyActive1")
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 688
+        y: 446
+        width: 180
+        height: 30
+    - id: 9
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uB450 \uC2E0\uD638\uAC00 \uB9DE\uBB3C\uB838\uC5B4. \uB9C8\uC9C0\uB9C9
+          \uBD80\uD488\uB9CC \uC788\uC73C\uBA74 \uC870\uB9BD\uD560 \uC218 \uC788\uC5B4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.main_damaged_access_key.active_2
+        type: 0
+        typeString: 
+      conversationID: 7
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 7
+        originDialogueID: 9
+        destinationConversationID: 7
+        destinationDialogueID: 12
+        isConnector: 0
+        priority: 2
+      conditionsString: VS_CheckCondition("MainDamagedAccessKeyActive2")
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 724
+        y: 498
+        width: 180
+        height: 30
+    - id: 10
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC138 \uBD80\uD488 \uD655\uC778 \uC644\uB8CC. \uC815\uCC29\uC9C0
+          \uBCF5\uAD6C\uC5D0\uC11C \uC811\uC18D\uD0A4\uB97C \uBCF5\uC6D0\uD560 \uC218
+          \uC788\uC5B4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.main_damaged_access_key.ready_to_restore
+        type: 0
+        typeString: 
+      conversationID: 7
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 7
+        originDialogueID: 10
+        destinationConversationID: 7
+        destinationDialogueID: 12
+        isConnector: 0
+        priority: 2
+      conditionsString: VS_CheckCondition("MainDamagedAccessKeyReadyToRestore")
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 760
+        y: 550
+        width: 180
+        height: 30
+    - id: 11
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC811\uC18D\uD0A4\uAC00 \uC548\uC815\uD654\uB410\uC5B4. \uC774\uC81C
+          \uC911\uC559 \uB124\uD2B8\uC6CC\uD06C\uB85C \uC774\uC5B4\uC9C4 \uACBD\uB85C\uB97C
+          \uCD94\uC801\uD560 \uC218 \uC788\uC5B4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.story.main_damaged_access_key.completed
+        type: 0
+        typeString: 
+      conversationID: 7
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 7
+        originDialogueID: 11
+        destinationConversationID: 7
+        destinationDialogueID: 12
+        isConnector: 0
+        priority: 2
+      conditionsString: VS_CheckCondition("MainDamagedAccessKeyCompleted")
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 796
+        y: 602
+        width: 180
+        height: 30
+    - id: 12
+      fields:
+      - title: Title
+        value: END
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 6
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 7
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks: []
+      conditionsString: 
+      userScript: VS_MarkConversationComplete("STORY_FirstSettlementUnknownCore")
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 832
+        y: 654
+        width: 180
         height: 30
     entryGroups: []
     canvasScrollPosition: {x: 0, y: 0}
@@ -1870,7 +2707,7 @@ MonoBehaviour:
       type: 0
       typeString: CustomFieldType_Text
     - title: Description
-      value: 'Optional blocking pre-battle communication hook.'
+      value: Optional blocking pre-battle communication hook.
       type: 0
       typeString: CustomFieldType_Text
     - title: Actor
@@ -1896,9 +2733,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -1907,25 +2744,25 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
@@ -1935,21 +2772,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 8
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -1960,8 +2797,8 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -1974,13 +2811,13 @@ MonoBehaviour:
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 7
         type: 5
@@ -1990,27 +2827,28 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: '침입 신호 확인. 코어 방어 절차를 개시한다.'
+        value: "\uCE68\uC785 \uC2E0\uD638 \uD655\uC778. \uCF54\uC5B4 \uBC29\uC5B4
+          \uC808\uCC28\uB97C \uAC1C\uC2DC\uD55C\uB2E4."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       conversationID: 8
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -2030,7 +2868,7 @@ MonoBehaviour:
       type: 0
       typeString: CustomFieldType_Text
     - title: Description
-      value: 'Optional post-defeat communication hook.'
+      value: Optional post-defeat communication hook.
       type: 0
       typeString: CustomFieldType_Text
     - title: Actor
@@ -2056,9 +2894,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -2067,25 +2905,25 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
@@ -2095,21 +2933,21 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 9
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -2120,8 +2958,8 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -2134,13 +2972,13 @@ MonoBehaviour:
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 7
         type: 5
@@ -2150,27 +2988,28 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: '방어 절차 중단. 남은 신호가 심층 구역으로 후퇴한다.'
+        value: "\uBC29\uC5B4 \uC808\uCC28 \uC911\uB2E8. \uB0A8\uC740 \uC2E0\uD638\uAC00
+          \uC2EC\uCE35 \uAD6C\uC5ED\uC73C\uB85C \uD6C4\uD1F4\uD55C\uB2E4."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       conversationID: 9
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -2198,7 +3037,7 @@ MonoBehaviour:
       type: 5
       typeString: CustomFieldType_Actor
     - title: Conversant
-      value: 2
+      value: 8
       type: 5
       typeString: CustomFieldType_Actor
     - title: Pause Gameplay
@@ -2216,9 +3055,9 @@ MonoBehaviour:
       minSubtitleSeconds: 2
       continueButton: 0
       overrideSequenceSettings: 0
-      defaultSequence:
-      defaultPlayerSequence:
-      defaultResponseMenuSequence:
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
       overrideInputSettings: 0
       alwaysForceResponseMenu: 1
       includeInvalidEntries: 0
@@ -2227,49 +3066,49 @@ MonoBehaviour:
       emTagForInvalidResponses: 0
       cancelSubtitle:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       cancelConversation:
         key: 27
-        buttonName:
+        buttonName: 
         inputAction: {fileID: 0}
       actorSubtitlePanelOverrides: []
-    nodeColor:
+    nodeColor: 
     dialogueEntries:
     - id: 0
       fields:
       - title: Title
         value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
         value: 1
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
-        value: 2
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
         value: None()
         type: 0
-        typeString:
+        typeString: 
       conversationID: 10
       isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
@@ -2280,8 +3119,8 @@ MonoBehaviour:
         destinationDialogueID: 1
         isConnector: 0
         priority: 2
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
@@ -2289,20 +3128,20 @@ MonoBehaviour:
         serializedVersion: 2
         x: 400
         y: 30
-        width: 160
+        width: 180
         height: 30
     - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 2
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
@@ -2310,48 +3149,215 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 신호 잡혔어. 기체 반응부터 확인해 보자.
+        value: "\uB4E4\uB9AC\uBA74 \uCD94\uC9C4\uAE30\uB97C \uC6C0\uC9C1\uC5EC \uBD10.
+          \uC5EC\uAE30\uC11C\uB294 \uC9C1\uC811 \uAE38\uC744 \uCC3E\uC544\uC57C \uD574."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.operator_opening.line_01
+        type: 0
+        typeString: 
       conversationID: 10
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
-      outgoingLinks: []
-      conditionsString:
-      userScript:
+      outgoingLinks:
+      - originConversationID: 10
+        originDialogueID: 1
+        destinationConversationID: 10
+        destinationDialogueID: 2
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 80
-        width: 160
+        x: 436
+        y: 82
+        width: 180
         height: 30
     - id: 2
       fields:
       - title: Title
-        value:
+        value: END
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 2
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 10
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks: []
+      conditionsString: 
+      userScript: VS_MarkConversationComplete("TUTORIAL_OperatorOpening")
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 472
+        y: 134
+        width: 180
+        height: 30
+    entryGroups: []
+    canvasScrollPosition: {x: 0, y: 0}
+    canvasZoom: 1
+  - id: 11
+    fields:
+    - title: Title
+      value: TUTORIAL_UnknownAccessKeyContact
+      type: 0
+      typeString: 
+    - title: Description
+      value: Tutorial contact at the unknown access-key interaction boundary.
+      type: 0
+      typeString: 
+    - title: Actor
+      value: 1
+      type: 5
+      typeString: CustomFieldType_Actor
+    - title: Conversant
+      value: 8
+      type: 5
+      typeString: CustomFieldType_Actor
+    overrideSettings:
+      useOverrides: 0
+      overrideSubtitleSettings: 0
+      showNPCSubtitlesDuringLine: 1
+      showNPCSubtitlesWithResponses: 1
+      showPCSubtitlesDuringLine: 0
+      skipPCSubtitleAfterResponseMenu: 0
+      subtitleCharsPerSecond: 30
+      minSubtitleSeconds: 2
+      continueButton: 0
+      overrideSequenceSettings: 0
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
+      overrideInputSettings: 0
+      alwaysForceResponseMenu: 1
+      includeInvalidEntries: 0
+      responseTimeout: 0
+      emTagForOldResponses: 0
+      emTagForInvalidResponses: 0
+      cancelSubtitle:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      cancelConversation:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      actorSubtitlePanelOverrides: []
+    nodeColor: 
+    dialogueEntries:
+    - id: 0
+      fields:
+      - title: Title
+        value: START
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 11
+      isRoot: 1
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 11
+        originDialogueID: 0
+        destinationConversationID: 11
+        destinationDialogueID: 1
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 400
+        y: 30
+        width: 180
+        height: 30
+    - id: 1
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
@@ -2359,146 +3365,274 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 좋아. 추진기는 정상인 것 같네. 무장도 확인해.
+        value: "\uC774 \uC2E0\uD638\u2026 \uBD95\uAD34 \uC804 \uBB3C\uB958\uB9DD
+          \uADDC\uACA9\uACFC \uBE44\uC2B7\uD574."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
-      conversationID: 10
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.unknown_access_key.line_01
+        type: 0
+        typeString: 
+      conversationID: 11
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
-      outgoingLinks: []
-      conditionsString:
-      userScript:
+      outgoingLinks:
+      - originConversationID: 11
+        originDialogueID: 1
+        destinationConversationID: 11
+        destinationDialogueID: 2
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 130
-        width: 160
+        x: 436
+        y: 82
+        width: 180
+        height: 30
+    - id: 2
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC7A0\uAE50, \uC811\uC18D \uD328\uD134\uC774 \uAE30\uCCB4 \uCABD\uC73C\uB85C\u2014"
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.unknown_access_key.line_02
+        type: 0
+        typeString: 
+      conversationID: 11
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 11
+        originDialogueID: 2
+        destinationConversationID: 11
+        destinationDialogueID: 3
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 472
+        y: 134
+        width: 180
         height: 30
     - id: 3
       fields:
       - title: Title
-        value:
+        value: END
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 2
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Conversant
         value: 1
         type: 5
         typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 눈에 보이는 것만 찾지 마. 센서를 써. 근처에 회수 가능한 신호가 있어.
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: None()
         type: 0
-        typeString:
-      conversationID: 10
+        typeString: 
+      conversationID: 11
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: VS_MarkConversationComplete("TUTORIAL_UnknownAccessKeyContact")
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 180
-        width: 160
+        x: 508
+        y: 186
+        width: 180
         height: 30
-    - id: 4
+    entryGroups: []
+    canvasScrollPosition: {x: 0, y: 0}
+    canvasZoom: 1
+  - id: 12
+    fields:
+    - title: Title
+      value: TUTORIAL_OperatorRadar
+      type: 0
+      typeString: 
+    - title: Description
+      value: Deterministically installed VOID SCRAPPER Phase 2C story content.
+      type: 0
+      typeString: 
+    - title: Actor
+      value: 1
+      type: 5
+      typeString: CustomFieldType_Actor
+    - title: Conversant
+      value: 8
+      type: 5
+      typeString: CustomFieldType_Actor
+    overrideSettings:
+      useOverrides: 0
+      overrideSubtitleSettings: 0
+      showNPCSubtitlesDuringLine: 1
+      showNPCSubtitlesWithResponses: 1
+      showPCSubtitlesDuringLine: 0
+      skipPCSubtitleAfterResponseMenu: 0
+      subtitleCharsPerSecond: 30
+      minSubtitleSeconds: 2
+      continueButton: 0
+      overrideSequenceSettings: 0
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
+      overrideInputSettings: 0
+      alwaysForceResponseMenu: 1
+      includeInvalidEntries: 0
+      responseTimeout: 0
+      emTagForOldResponses: 0
+      emTagForInvalidResponses: 0
+      cancelSubtitle:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      cancelConversation:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      actorSubtitlePanelOverrides: []
+    nodeColor: 
+    dialogueEntries:
+    - id: 0
       fields:
       - title: Title
-        value:
+        value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 2
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Conversant
         value: 1
         type: 5
         typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 회수 확인했어. 적재량도 정상적으로 잡히고 있어.
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: None()
         type: 0
-        typeString:
-      conversationID: 10
-      isRoot: 0
+        typeString: 
+      conversationID: 12
+      isRoot: 1
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
-      outgoingLinks: []
-      conditionsString:
-      userScript:
+      outgoingLinks:
+      - originConversationID: 12
+        originDialogueID: 0
+        destinationConversationID: 12
+        destinationDialogueID: 1
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
         x: 400
-        y: 230
-        width: 160
+        y: 30
+        width: 180
         height: 30
-    - id: 5
+    - id: 1
       fields:
       - title: Title
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 2
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
@@ -2506,97 +3640,215 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 특이한 장비네. 현장에서 바로 쓸 수 있으니 장착하고 작동을 확인해 봐.
+        value: "[var=VS_RadarToggleBinding]\uB85C \uB808\uC774\uB354\uB97C \uCF20
+          \uB4A4, [var=VS_RadarScanBinding]\uB85C \uC2A4\uCE94\uD574."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
-      conversationID: 10
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.operator_radar.line_01
+        type: 0
+        typeString: 
+      conversationID: 12
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
-      outgoingLinks: []
-      conditionsString:
-      userScript:
+      outgoingLinks:
+      - originConversationID: 12
+        originDialogueID: 1
+        destinationConversationID: 12
+        destinationDialogueID: 2
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 280
-        width: 160
+        x: 436
+        y: 82
+        width: 180
         height: 30
-    - id: 6
+    - id: 2
       fields:
       - title: Title
-        value:
+        value: END
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 2
-        type: 5
-        typeString: CustomFieldType_Actor
-      - title: Conversant
         value: 1
         type: 5
         typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 좋아, 보호 장비 작동 확인했어. 이제 실제 위협에도 대응해 보자.
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: None()
         type: 0
-        typeString:
-      conversationID: 10
+        typeString: 
+      conversationID: 12
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: VS_MarkConversationComplete("TUTORIAL_OperatorRadar")
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
-        x: 400
-        y: 330
-        width: 160
+        x: 472
+        y: 134
+        width: 180
         height: 30
-    - id: 7
+    entryGroups: []
+    canvasScrollPosition: {x: 0, y: 0}
+    canvasZoom: 1
+  - id: 13
+    fields:
+    - title: Title
+      value: TUTORIAL_OperatorSupplyContainer
+      type: 0
+      typeString: 
+    - title: Description
+      value: Deterministically installed VOID SCRAPPER Phase 2C story content.
+      type: 0
+      typeString: 
+    - title: Actor
+      value: 1
+      type: 5
+      typeString: CustomFieldType_Actor
+    - title: Conversant
+      value: 8
+      type: 5
+      typeString: CustomFieldType_Actor
+    overrideSettings:
+      useOverrides: 0
+      overrideSubtitleSettings: 0
+      showNPCSubtitlesDuringLine: 1
+      showNPCSubtitlesWithResponses: 1
+      showPCSubtitlesDuringLine: 0
+      skipPCSubtitleAfterResponseMenu: 0
+      subtitleCharsPerSecond: 30
+      minSubtitleSeconds: 2
+      continueButton: 0
+      overrideSequenceSettings: 0
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
+      overrideInputSettings: 0
+      alwaysForceResponseMenu: 1
+      includeInvalidEntries: 0
+      responseTimeout: 0
+      emTagForOldResponses: 0
+      emTagForInvalidResponses: 0
+      cancelSubtitle:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      cancelConversation:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      actorSubtitlePanelOverrides: []
+    nodeColor: 
+    dialogueEntries:
+    - id: 0
       fields:
       - title: Title
-        value:
+        value: START
         type: 0
-        typeString:
+        typeString: 
       - title: Description
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Actor
-        value: 2
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 13
+      isRoot: 1
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 13
+        originDialogueID: 0
+        destinationConversationID: 13
+        destinationDialogueID: 1
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 400
+        y: 30
+        width: 180
+        height: 30
+    - id: 1
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
         type: 5
         typeString: CustomFieldType_Actor
       - title: Conversant
@@ -2604,35 +3856,803 @@ MonoBehaviour:
         type: 5
         typeString: CustomFieldType_Actor
       - title: Menu Text
-        value:
+        value: 
         type: 0
-        typeString:
+        typeString: 
       - title: Dialogue Text
-        value: 저걸 파괴해서 자원을 회수하자.
+        value: "\uBCF4\uAE09 \uCEE8\uD14C\uC774\uB108\uB97C \uCC3E\uC558\uC5B4. \uC811\uADFC\uD574\uC11C
+          \uD30C\uAD34\uD558\uACE0 \uC790\uC6D0\uC744 \uD68C\uC218\uD574."
         type: 0
-        typeString:
+        typeString: 
       - title: Sequence
-        value:
+        value: 
         type: 0
-        typeString:
-      conversationID: 10
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.operator_supply_container.line_01
+        type: 0
+        typeString: 
+      conversationID: 13
       isRoot: 0
       isGroup: 0
-      nodeColor:
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 13
+        originDialogueID: 1
+        destinationConversationID: 13
+        destinationDialogueID: 2
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 436
+        y: 82
+        width: 180
+        height: 30
+    - id: 2
+      fields:
+      - title: Title
+        value: END
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 13
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
       delaySimStatus: 0
       falseConditionAction: Block
       conditionPriority: 2
       outgoingLinks: []
-      conditionsString:
-      userScript:
+      conditionsString: 
+      userScript: VS_MarkConversationComplete("TUTORIAL_OperatorSupplyContainer")
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 472
+        y: 134
+        width: 180
+        height: 30
+    entryGroups: []
+    canvasScrollPosition: {x: 0, y: 0}
+    canvasZoom: 1
+  - id: 14
+    fields:
+    - title: Title
+      value: TUTORIAL_OperatorAncientSignal
+      type: 0
+      typeString: 
+    - title: Description
+      value: Deterministically installed VOID SCRAPPER Phase 2C story content.
+      type: 0
+      typeString: 
+    - title: Actor
+      value: 1
+      type: 5
+      typeString: CustomFieldType_Actor
+    - title: Conversant
+      value: 8
+      type: 5
+      typeString: CustomFieldType_Actor
+    overrideSettings:
+      useOverrides: 0
+      overrideSubtitleSettings: 0
+      showNPCSubtitlesDuringLine: 1
+      showNPCSubtitlesWithResponses: 1
+      showPCSubtitlesDuringLine: 0
+      skipPCSubtitleAfterResponseMenu: 0
+      subtitleCharsPerSecond: 30
+      minSubtitleSeconds: 2
+      continueButton: 0
+      overrideSequenceSettings: 0
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
+      overrideInputSettings: 0
+      alwaysForceResponseMenu: 1
+      includeInvalidEntries: 0
+      responseTimeout: 0
+      emTagForOldResponses: 0
+      emTagForInvalidResponses: 0
+      cancelSubtitle:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      cancelConversation:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      actorSubtitlePanelOverrides: []
+    nodeColor: 
+    dialogueEntries:
+    - id: 0
+      fields:
+      - title: Title
+        value: START
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 14
+      isRoot: 1
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 14
+        originDialogueID: 0
+        destinationConversationID: 14
+        destinationDialogueID: 1
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
       onExecute:
         m_PersistentCalls:
           m_Calls: []
       canvasRect:
         serializedVersion: 2
         x: 400
-        y: 380
-        width: 160
+        y: 30
+        width: 180
+        height: 30
+    - id: 1
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uACE0\uAC00\uCE58 \uC794\uD574 \uC2E0\uD638\uC57C. \uBC29\uC5B4
+          \uAE30\uCCB4\uAC00 \uC788\uC744 \uC218 \uC788\uC73C\uB2C8 \uC870\uC2EC\uD574."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.operator_ancient_signal.line_01
+        type: 0
+        typeString: 
+      conversationID: 14
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 14
+        originDialogueID: 1
+        destinationConversationID: 14
+        destinationDialogueID: 2
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 436
+        y: 82
+        width: 180
+        height: 30
+    - id: 2
+      fields:
+      - title: Title
+        value: END
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 14
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks: []
+      conditionsString: 
+      userScript: VS_MarkConversationComplete("TUTORIAL_OperatorAncientSignal")
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 472
+        y: 134
+        width: 180
+        height: 30
+    entryGroups: []
+    canvasScrollPosition: {x: 0, y: 0}
+    canvasZoom: 1
+  - id: 15
+    fields:
+    - title: Title
+      value: TUTORIAL_SignalRelayAnalysis
+      type: 0
+      typeString: 
+    - title: Description
+      value: Deterministically installed VOID SCRAPPER Phase 2C story content.
+      type: 0
+      typeString: 
+    - title: Actor
+      value: 1
+      type: 5
+      typeString: CustomFieldType_Actor
+    - title: Conversant
+      value: 8
+      type: 5
+      typeString: CustomFieldType_Actor
+    overrideSettings:
+      useOverrides: 0
+      overrideSubtitleSettings: 0
+      showNPCSubtitlesDuringLine: 1
+      showNPCSubtitlesWithResponses: 1
+      showPCSubtitlesDuringLine: 0
+      skipPCSubtitleAfterResponseMenu: 0
+      subtitleCharsPerSecond: 30
+      minSubtitleSeconds: 2
+      continueButton: 0
+      overrideSequenceSettings: 0
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
+      overrideInputSettings: 0
+      alwaysForceResponseMenu: 1
+      includeInvalidEntries: 0
+      responseTimeout: 0
+      emTagForOldResponses: 0
+      emTagForInvalidResponses: 0
+      cancelSubtitle:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      cancelConversation:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      actorSubtitlePanelOverrides: []
+    nodeColor: 
+    dialogueEntries:
+    - id: 0
+      fields:
+      - title: Title
+        value: START
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 15
+      isRoot: 1
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 15
+        originDialogueID: 0
+        destinationConversationID: 15
+        destinationDialogueID: 1
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 400
+        y: 30
+        width: 180
+        height: 30
+    - id: 1
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC2E0\uD638 \uC7A5\uCE58 \uBD84\uC11D \uC644\uB8CC. \uBBF8\uD655\uC778
+          \uC88C\uD45C\uB97C \uBCF5\uC6D0\uD558\uACE0 \uC788\uC5B4."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.signal_relay_analysis.line_01
+        type: 0
+        typeString: 
+      conversationID: 15
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 15
+        originDialogueID: 1
+        destinationConversationID: 15
+        destinationDialogueID: 2
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 436
+        y: 82
+        width: 180
+        height: 30
+    - id: 2
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uC7A0\uAE50, \uD1B5\uC2E0 \uCC44\uB110\uC5D0 \uBE44\uC815\uC0C1
+          \uAC04\uC12D\uC774\u2014"
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.signal_relay_analysis.line_02
+        type: 0
+        typeString: 
+      conversationID: 15
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 15
+        originDialogueID: 2
+        destinationConversationID: 15
+        destinationDialogueID: 3
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 472
+        y: 134
+        width: 180
+        height: 30
+    - id: 3
+      fields:
+      - title: Title
+        value: END
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 8
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 15
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks: []
+      conditionsString: 
+      userScript: VS_MarkConversationComplete("TUTORIAL_SignalRelayAnalysis")
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 508
+        y: 186
+        width: 180
+        height: 30
+    entryGroups: []
+    canvasScrollPosition: {x: 0, y: 0}
+    canvasZoom: 1
+  - id: 16
+    fields:
+    - title: Title
+      value: TUTORIAL_FakeOperatorTakeover
+      type: 0
+      typeString: 
+    - title: Description
+      value: Deterministically installed VOID SCRAPPER Phase 2C story content.
+      type: 0
+      typeString: 
+    - title: Actor
+      value: 1
+      type: 5
+      typeString: CustomFieldType_Actor
+    - title: Conversant
+      value: 9
+      type: 5
+      typeString: CustomFieldType_Actor
+    overrideSettings:
+      useOverrides: 0
+      overrideSubtitleSettings: 0
+      showNPCSubtitlesDuringLine: 1
+      showNPCSubtitlesWithResponses: 1
+      showPCSubtitlesDuringLine: 0
+      skipPCSubtitleAfterResponseMenu: 0
+      subtitleCharsPerSecond: 30
+      minSubtitleSeconds: 2
+      continueButton: 0
+      overrideSequenceSettings: 0
+      defaultSequence: 
+      defaultPlayerSequence: 
+      defaultResponseMenuSequence: 
+      overrideInputSettings: 0
+      alwaysForceResponseMenu: 1
+      includeInvalidEntries: 0
+      responseTimeout: 0
+      emTagForOldResponses: 0
+      emTagForInvalidResponses: 0
+      cancelSubtitle:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      cancelConversation:
+        key: 27
+        buttonName: 
+        inputAction: {fileID: 0}
+      actorSubtitlePanelOverrides: []
+    nodeColor: 
+    dialogueEntries:
+    - id: 0
+      fields:
+      - title: Title
+        value: START
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 9
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 16
+      isRoot: 1
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 16
+        originDialogueID: 0
+        destinationConversationID: 16
+        destinationDialogueID: 1
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 400
+        y: 30
+        width: 180
+        height: 30
+    - id: 1
+      fields:
+      - title: Title
+        value: 
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 9
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: "\uACBD\uB85C\uB97C \uD655\uC778\uD588\uC5B4. \uB808\uC774\uB354\uC758
+          \uBBF8\uD655\uC778 \uC2E0\uD638\uB97C \uB530\uB77C\uAC00."
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: 
+        type: 0
+        typeString: 
+      - title: TextKey
+        value: dialogue.tutorial.fake_operator_takeover.line_01
+        type: 0
+        typeString: 
+      conversationID: 16
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks:
+      - originConversationID: 16
+        originDialogueID: 1
+        destinationConversationID: 16
+        destinationDialogueID: 2
+        isConnector: 0
+        priority: 2
+      conditionsString: 
+      userScript: 
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 436
+        y: 82
+        width: 180
+        height: 30
+    - id: 2
+      fields:
+      - title: Title
+        value: END
+        type: 0
+        typeString: 
+      - title: Description
+        value: 
+        type: 0
+        typeString: 
+      - title: Actor
+        value: 1
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Conversant
+        value: 9
+        type: 5
+        typeString: CustomFieldType_Actor
+      - title: Menu Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Dialogue Text
+        value: 
+        type: 0
+        typeString: 
+      - title: Sequence
+        value: None()
+        type: 0
+        typeString: 
+      conversationID: 16
+      isRoot: 0
+      isGroup: 0
+      nodeColor: 
+      delaySimStatus: 0
+      falseConditionAction: Block
+      conditionPriority: 2
+      outgoingLinks: []
+      conditionsString: 
+      userScript: VS_MarkConversationComplete("TUTORIAL_FakeOperatorTakeover")
+      onExecute:
+        m_PersistentCalls:
+          m_Calls: []
+      canvasRect:
+        serializedVersion: 2
+        x: 472
+        y: 134
+        width: 180
         height: 30
     entryGroups: []
     canvasScrollPosition: {x: 0, y: 0}

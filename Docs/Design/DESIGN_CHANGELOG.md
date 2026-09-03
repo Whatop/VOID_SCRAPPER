@@ -740,3 +740,460 @@ System-design impact:
 - 현재 테스트 수치를 최종 설계로 승인한 별도 근거 문서
 
 이 항목들은 저장 상태나 코드 훅이 있다는 이유만으로 구현 완료 또는 확정 설계로 승격하면 안 된다.
+
+## 2026-08-31 — Dialogue and Localization Phase 2A
+
+Status:
+- Implementation
+- Static Verification
+
+Change:
+- Pixel Crushers Dialogue System remains the authoritative conversation runtime.
+- Added a project-owned Korean-first localization catalog and service around the
+  installed runtime instead of creating a second dialogue framework.
+- Localization source is authored as UTF-8 CSV and imported into generated Unity
+  runtime assets. Runtime XLSX/CSV loading is prohibited.
+- Korean is mandatory source text and the fallback for empty `en`, `ja`, `zh-Hans`,
+  and `zh-Hant` cells.
+- Unity Localization was not added because the installed dialogue system already
+  supplies the required language API and a second table runtime would duplicate
+  ownership at the current project scale.
+- Gameplay dialogue actions, conditions, Pixel Crushers conversation migration, and
+  the RescueContact vertical slice are deferred to Phase 2B.
+
+Reason:
+- The project needs stable localization keys, deterministic spreadsheet authoring,
+  device-local language selection, and editor validation before dialogue content can
+  safely request gameplay changes.
+
+System-design impact:
+- `Docs/Design/SYSTEM_DESIGN.md` is now the authoritative boundary for localization,
+  dialogue runtime ownership, authoring/import rules, and Phase 2B deferrals.
+
+## 2026-09-01 — RescueContact Dialogue Phase 2B Vertical Slice
+
+Status:
+- Implementation
+- Static Verification
+- Unity Dialogue Database installation pending
+
+Change:
+- Added one project-owned Pixel Crushers bridge with typed, fail-closed condition
+  and gameplay-action registries for `NPC_RescueContact_Service` only.
+- RescueContact accept requests the existing `FieldNpcObjective` service authority;
+  decline has no gameplay action and no automatic post-conversation service call.
+- Added per-conversation duplicate-action protection without taking ownership of
+  Core Signal, objectives, run state, saving, or NPC completion.
+- Added six Korean-first localization keys for the speaker, two lines, two choices,
+  and unavailable feedback. Optional language cells remain empty and fall back to
+  Korean.
+- Added a validated Editor installer that replaces only the existing RescueContact
+  conversation entries. Direct YAML rewriting of the Dialogue Database was rejected.
+
+Reason:
+- A single low-risk interaction must prove localized choices, read-only conditions,
+  typed action dispatch, and existing gameplay ownership before broader migration.
+
+System-design impact:
+- Pixel Crushers remains the only dialogue runtime. The bridge is an adapter, not a
+  gameplay service, and new actions require explicit typed registration and tests.
+
+## 2026-09-01 — Dialogue Lifecycle and Settlement Transition Stability (Phase 2B.1)
+
+Status:
+- Implementation
+- Static Verification
+- Play Mode Verification pending
+
+Change:
+- Made the persistent Boot-owned `PF_DialogueManager` the single application-lifetime
+  dialogue root and added early duplicate-Boot pruning before incoming services awake.
+- Kept localization-service duplicate detection as a defensive whole-root cleanup,
+  rather than silently disabling one component on a live duplicate manager.
+- Made Settlement dialogue modal over ship selection and expedition controls using
+  Pixel Crushers conversation lifecycle events and the existing Settlement input group.
+- Added an authoritative expedition transition guard and Korean-first localized blocked
+  feedback at `system.settlement.expedition.dialogue_active`.
+
+Reason:
+- Reloading Boot from Main Menu recreated its persistent manager prefab, and Settlement
+  UI/launch authority did not consider an active mandatory conversation.
+
+System-design impact:
+- Phase 2C migration remains gated on repeated MainMenu/Boot/Settlement lifecycle and
+  modal-input Play Mode verification.
+
+## 2026-09-01 — Tutorial Story and Damaged Access-Key Quest Foundation (Phase 2C)
+
+Status:
+- Implementation
+- Static Verification
+- Dialogue Database installation and Play Mode Verification pending
+
+Change:
+- Defined Korean-first content and deterministic Pixel Crushers graphs for the
+  tutorial opening, unknown access-key contact, post-Curse rescue, and first
+  Settlement analysis.
+- Added a terminal completion marker so interrupted conversations cannot advance a
+  tutorial checkpoint or start persistent story state.
+- Extended the existing typed condition/action bridge only for read-only
+  `MAIN_DAMAGED_ACCESS_KEY` states and an exact-once quest-start request.
+- Represented the main quest as a saved started flag plus a read-only projection of
+  existing `BossStoryPart` and `RouteCoreState`; no parallel quest or reward store was
+  introduced.
+- Extended the Phase 2B.1 launch guard so the pending mandatory Settlement story
+  blocks expedition launch even before its conversation-start event.
+
+Reason:
+- The first story migration must prove interruption safety, existing gameplay
+  authority, persistent idempotency, and state-aware repeat dialogue without
+  allowing Pixel Crushers entries to mutate tutorial, reward, or save state.
+
+System-design impact:
+- Pixel Crushers remains the sole conversation runtime. `TutorialFlowController`
+  owns tutorial and return transitions, `PermanentProgress` owns saved campaign
+  identity, and `SettlementController` owns quest-start save/notification behavior.
+- Phase 2D retains the main-quest HUD binding, live boss-part progression checks,
+  and the next NPC/story migration after Unity lifecycle validation.
+
+## 2026-09-01 — Staged Tutorial and Access-Key Recovery (Phase 2C.1)
+
+Status:
+- Implementation
+- Static Verification
+- Dialogue Database installation and Play Mode Verification pending
+
+Change:
+- Split the four tutorial instructions into deterministic one-line Pixel Crushers
+  conversations at Move, Radar, supply-container, and detected ancient-signal stages.
+  Only natural terminal completion records the matching guidance checkpoint.
+- Kept the first Settlement story as the exact-once quest-start boundary. Scene load
+  alone still cannot start `MAIN_DAMAGED_ACCESS_KEY`.
+- Changed 3/3 progression to `ReadyToRestore`. Explicit confirmation through the
+  existing Settlement Recovery surface now restores the access key and saves once.
+- Derived Pixel Curse level from persistent Curse ownership plus distinct campaign
+  boss parts (`0`, then `1..4`) without adding duplicate saved state.
+- Added Korean-first restoration and Curse-level notification keys and expanded the
+  deterministic installer from four to seven story graphs.
+
+Reason:
+- Story guidance must coincide with the gameplay situation it explains, while quest
+  completion and Curse progression must remain projections/actions of existing
+  campaign and Settlement authorities rather than dialogue-owned mutations.
+
+System-design impact:
+- Boss rewards still own distinct `BossStoryPart` grants. `PermanentProgress` owns
+  derived quest/Curse state, `SettlementController` owns the explicit recovery/save
+  transaction, and Pixel Crushers remains presentation and lifecycle only.
+
+## 2026-09-02 — High-Value Wreck Focus and Optional Route (Phase 2C.2)
+
+Status:
+- Implementation
+- Static Verification
+- EditMode and Play Mode Verification pending
+
+Change:
+- High-value wreck discovery now starts an owner-scoped camera/input presentation
+  before `TUTORIAL_OperatorAncientSignal`; the conversation cannot start until the
+  existing camera finishes its target blend.
+- Focus and player-return blends use the camera's unscaled cinematic path. Natural
+  completion returns to the player before advancing; interruption and lifecycle
+  cleanup release ownership without completing the checkpoint.
+- The supply-box route waypoint is optional. Route placement and physical approach
+  converge on the same travel/destruction sequence, while `HarvestObjectHealth.Died`
+  remains the authoritative completion event.
+
+Reason:
+- Radar discovery can identify an offscreen wreck, so dialogue without camera context
+  obscures what the Operator is describing. Route planning is useful navigation but
+  should not be a mandatory resource-progression action.
+
+System-design impact:
+- `TutorialFlowController` remains the tutorial state owner, `GungeonStyleCamera2D`
+  provides narrowly owner-scoped cinematic focus, and existing source-aware player
+  input locks prevent control leaks. No new cinematic, route, or resource authority
+  was introduced.
+
+## 2026-09-02 — Radar Toggle, Instant Scan, and Shared Target Focus (Phase 2C.3)
+
+Status:
+- Implementation
+- Static Verification
+- EditMode and Play Mode Verification pending
+
+Change:
+- Changed Q from hold/release scanning to the sole Radar mode toggle. Mouse 4 now
+  requests one immediate scan on press only while that mode is active; the existing
+  cooldown and input locks remain authoritative.
+- Retired Radar-only hold timing, release/cancel state, charge sounds/effects, and
+  charge-gauge coupling without changing shared weapon charging UI.
+- Made Radar activation and successful supply-target detection separate tutorial
+  signals. Q alone cannot complete the scan objective.
+- Generalized the Phase 2C.2 owner-scoped target presentation so the discovered
+  supply container and high-value wreck share one unscaled camera/input pipeline.
+- Shortened the four tutorial lines, resolved current binding displays at runtime,
+  and made manual newlines in tutorial localization a validation error.
+
+Reason:
+- The previous Q charge and release semantics conflicted with the intended persistent
+  Radar mode, while the supply dialogue lacked the same visual context as the wreck.
+  Long authored lines also produced avoidable low-resolution dialogue wrapping risk.
+
+System-design impact:
+- `PlayerRadarScanner` remains the single Radar state/scan authority;
+  `TutorialFlowController` observes its events and owns only tutorial sequencing.
+  Pixel Crushers remains the dialogue runtime, TMP remains the wrapping authority,
+  and route placement remains optional.
+
+## 2026-09-02 — Korean-Safe Dialogue Reveal and Operator Text Voice (Phase 2C.4)
+
+Status:
+- Implementation
+- Static Verification
+- EditMode and Play Mode Verification pending
+
+Change:
+- Replaced the project communication subtitle's vendor wrapper component with a
+  project-owned subclass of the same Pixel Crushers TMP typewriter authority.
+- Added post-resolution TMP-supported U+2060 word joiners for whitespace-delimited
+  tokens and non-breaking Input System binding display strings; generated formatting is never
+  stored in localization source.
+- Kept full-text TMP layout and `maxVisibleCharacters` reveal, with configurable
+  unscaled glyph and punctuation timing and the existing two-press continue adapter.
+- Added one temporary Operator text-voice profile using the existing short talk clip,
+  one reusable 2D source, UI mixer routing, two-glyph cadence, and bounded pitch.
+- Extended Editor validation with actual reference-prefab TMP measurement for the
+  two-line 480x270 target, oversized tokens, unresolved bindings, and rich-text balance.
+
+Reason:
+- TMP's ordinary Korean wrapping may split a whitespace token between syllables, and
+  progressively changing text can destabilize layout. Presentation-time token
+  protection preserves clean authoring while stable mesh reveal and sparse blips
+  improve low-resolution readability without a second dialogue or audio framework.
+
+System-design impact:
+- Pixel Crushers still owns subtitle, typewriter, pause, and continue lifecycles.
+  Localization remains Korean-first CSV/catalog data, while the project-owned layer
+  owns only resolved-text wrapping policy and the initial Operator voice profile.
+
+## 2026-09-02 — Typed Cinematic Communication Presentation (Phase 2C.5)
+
+Status:
+- Implementation
+- Static Verification
+- EditMode and Play Mode Verification pending
+
+Change:
+- Added stable-ID presentation policy for compact guidance, externally focused
+  context dialogue, and cinematic communication without adding dialogue actions or
+  a second conversation UI.
+- Extended `PF_CommunicationDialogueUI` with reusable dim/top-bar/accent presentation,
+  a 480x270 lower panel layout, and a small selectable continuation indicator.
+- Added Operator, Curse, Settlement, and neutral actor themes. The existing subtitle
+  AudioSource now selects the three existing Talk clips by stable actor identity.
+- Added unscaled overlay/panel timing and one idempotent cleanup path for completion,
+  interruption, scene unload, disable, and destruction.
+
+Reason:
+- One full-screen treatment made short gameplay guidance unnecessarily intrusive,
+  while major Curse/Settlement transmissions lacked hierarchy and actor identity.
+  Stable typed profiles provide cinematic emphasis without coupling gameplay state to
+  localized text or Dialogue Database scripts.
+
+System-design impact:
+- Pixel Crushers remains the sole conversation, subtitle, typewriter, continue,
+  pause, and completion authority. Tutorial camera/input ownership remains outside
+  the UI; the adapter may own only its `ExpeditionHUD` cinematic request and visual
+  transition state.
+
+## 2026-09-02 — QA Stabilization Pass 1
+
+Status:
+- Implementation
+- Static Verification
+- EditMode and Play Mode Verification pending
+
+Change:
+- Added deterministic, bounded, exact-once placement for post-boss Return Beacon and
+  next-region exits without changing safe-return or progression ownership.
+- Attached Region-2 damaging lasers to the moving boss frame, reset pooled hazard
+  geometry explicitly, and aimed homing projectiles at active damageable colliders.
+- Smoothed Region-2 entrance framing through the existing camera authority and made
+  boss presentation timing unscaled; the existing Region-1 offscreen entrance remains
+  authoritative.
+- Kept Radar open after successful scans, closed it from combat activity or manual Q,
+  faded only its background, and used a cyan reused scan pulse.
+- Added exact-once tutorial unknown-objective Radar presentation and stable-key
+  open-versus-scan-only guidance.
+- Added runtime-safe Tuning Chip currency-counter fallback wiring and hid the legacy
+  Settlement Use control until the selected facility is unlocked.
+- Wired the existing Shop purchase-success clip into its existing Sound Event entry;
+  playback remains after confirmed transactions only.
+
+Reason:
+- The playthrough exposed ownership mismatches: reward exits trusted raw moving boss
+  coordinates, Frigate hazards detached from their scrolling root, homing used a poor
+  composite pivot, and Radar/tutorial/UI surfaces did not consistently reflect their
+  authoritative state.
+
+System-design impact:
+- Existing boss, camera, projectile, Radar, tutorial, wallet, Settlement, localization,
+  pooling, and shop-audio authorities remain in place. No new manager, camera system,
+  targeting framework, objective authority, dialogue runtime, or per-frame allocation
+  path was introduced.
+
+## 2026-09-03 — Tutorial QA Presentation Pass 2
+
+Status:
+- Implementation
+- Static Verification
+- EditMode and Play Mode Verification pending
+
+Change:
+- Delayed the opening Operator conversation until the existing player movement-start
+  event, without bypassing the full movement objective or natural dialogue completion.
+- Replaced the inherited yellow/olive Radar shockwave presentation with one bounded,
+  pooled, unscaled cyan pulse while preserving Radar persistence and marker colors.
+- Replaced player-facing `???` copy with Korean-first unknown-signal and Purple Core
+  localization keys; the unresolved `?` Radar marker remains unchanged.
+- Added an unscaled Purple Core fade/scale reveal with disabled interaction during the
+  reveal and visual-root-only idle motion afterward.
+- Added a reusable Purple Core-to-player transfer, player impact, and restrained dark
+  flash before the existing persistent Pixel Curse acquisition changes the ship visual.
+
+Reason:
+- The recorded tutorial showed scene-entry dialogue before movement, an overlong olive
+  scan flash, raw mystery placeholder copy, a one-frame Core appearance, and a blackout
+  that hid the causal connection between the Core and cursed ship.
+
+System-design impact:
+- Existing tutorial, Pixel Crushers, Radar, DOTween, pause/input, Trait acquisition,
+  localization, and pooled-VFX authorities remain in place. No new tutorial, dialogue,
+  camera, VFX, save, or Curse ownership system was introduced.
+
+## 2026-09-03 — Tutorial QA Presentation Pass 3
+
+Status:
+- Implementation
+- Static Verification
+- EditMode and Play Mode Verification pending
+
+Change:
+- Removed Map/route ownership from supply-container damage and destruction completion;
+  the existing death event now converges optional and no-map paths exactly once.
+- Preserved Radar visibility during tutorial camera focus and ordinary combat while
+  retaining manual close, lifecycle close, and boss-owned suppression.
+- Moved the authored signal relay to (-8.9, 15.33), kept it visible after its one-shot
+  interaction, and added one unscaled purple pulse on its existing renderer.
+- Replaced the detached travelling Curse transfer with a stationary Purple Core
+  expansion/fade before player impact and authoritative persistent Trait acquisition.
+- Guarded tutorial shutdown against Unity-destroyed player visual ownership.
+
+Reason:
+- The map tutorial accidentally gated supply damage, camera/combat events owned Radar
+  visibility they did not author, and scene teardown could invoke a destroyed visual
+  controller. The detached transfer also weakened the spatial relationship between the
+  Purple Core and the Curse event.
+
+System-design impact:
+- Existing tutorial steps, harvest death/reward, Radar, camera/input, DOTween, and Trait
+  authorities remain unchanged; this pass removes invalid coupling and reuses existing
+  presentation objects without a new manager or runtime system.
+
+## 2026-09-03 - Tutorial QA Cinematic Presentation Pass
+
+Status:
+- Implementation
+- Static Verification
+- EditMode and Play Mode Verification pending
+
+Change:
+- Separated target discovery from camera ownership: supply and high-value guidance now
+  waits for 0.15 seconds inside a safe gameplay-camera viewport before focusing.
+- Reused the existing Purple ring prefab for the relay, Core reveal, and visible
+  Core-to-player transfer with unscaled DOTween and pool-safe reset.
+- Added an owner-scoped Core cinematic using the existing letterbox, camera framing,
+  input/pause locks, and `ScreenFader`; world/background state changes only after full
+  black coverage.
+- Replaced serialized `???` fallback copy with readable unknown-signal/Core Korean text.
+
+Reason:
+- Recorded play showed offscreen camera grabs, a static/popping Core, and a blackout
+  that concealed the causal energy transfer. Safe-viewport dwell and explicit visual
+  ordering preserve player orientation while making the Curse event readable.
+
+System-design impact:
+- Pixel Crushers, tutorial checkpoints, Trait acquisition, camera, input, pause, fade,
+  and pooling remain authoritative. No new cutscene, dialogue, VFX, or progression
+  manager was introduced.
+
+## 2026-09-03 — Tutorial Relay Takeover and Purple Core Interaction
+
+Status:
+- Implementation
+- Static Verification
+- EditMode and Play Mode Verification pending
+
+Change:
+- Replaced direct relay-step advancement with deterministic real-Operator cutoff and
+  hidden-identity `FakeOperator` takeover conversations.
+- Removed the post-analysis full-Map search area/Map `?`; retained one Radar-only `?`
+  until Purple Core reveal.
+- Added a typed player-projectile receiver with bounded pellet contribution and one
+  shared `F`/damage acquisition latch; the Core remains non-destructible.
+- Made the actual Core sprite travel into the ship while the pooled purple effect stays
+  an anchored support/ship-origin corruption effect.
+
+Reason:
+- Immediate relay progression did not establish the narrative deception, Map and Radar
+  duplicated tracking information, attacks had no meaningful Core response, and the
+  travelling ring read as the collected object while the Core stayed behind.
+
+System-design impact:
+- Existing tutorial steps, Pixel Crushers, localization, projectile faction data,
+  camera/input ownership, pooled Purple effect, ScreenFader, and persistent Trait
+  acquisition remain authoritative. No enemy health, quest, or cutscene framework was
+  added.
+
+## 2026-09-03 — Boot Main Menu UI Authoring Migration Pass 1
+
+Status:
+- Implementation
+- Static Verification
+- Unity installation and Play Mode verification pending
+
+Change:
+- Replaced `MainMenuController.Awake()` visual construction with a serialized
+  `BootMainMenuView` authority.
+- Added idempotent Editor Install/Validate commands that author the Boot Canvas,
+  background, menu, settings, and confirmation hierarchy without auto-saving.
+- Serialized the Boot `SharedOptionsMenuUI` and animated background references so
+  their visuals are authored once while runtime retains behavior only.
+
+Reason:
+- Runtime-created main-menu objects could not be inspected or tuned reliably in the
+  Hierarchy and Inspector, and allowed Scene and runtime layout authority to diverge.
+
+System-design impact:
+- The Boot scene owns static UI layout and visuals. Existing save, input, settings,
+  audio, ScreenFader, EventSystem, and scene-flow owners remain unchanged.
+
+## 2026-09-03 — Boot Main Menu Partial-Install Repair
+
+Status:
+- Implementation / static verification
+- Unity installer rerun pending
+
+Change:
+- Made background authoring repair each missing star, asteroid, Curse passer, component,
+  and typed view binding in dependency order.
+- Added serialized star references and typed background validation while preserving
+  already-bound renamed objects and user-authored visual values.
+- Missing runtime background data now disables only the animated presentation instead
+  of disabling the complete Boot menu.
+
+Reason:
+- The initial installer treated its aggregate authored flag as sufficient and did not
+  serialize stars, so a partially installed `Background` could skip repair and leave
+  `BootMainMenuView.spaceBackground` unset.

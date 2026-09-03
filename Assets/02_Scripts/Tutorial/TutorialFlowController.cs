@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using DG.Tweening;
 using PixelCrushers.DialogueSystem;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public sealed class TutorialFlowController : MonoBehaviour
 {
-    private const string FirstSettlementPendingFlag = "story_first_settlement_unknown_core_pending";
     private const float ObjectiveCheckInterval = 0.1f;
 
     [Serializable]
@@ -34,6 +34,7 @@ public sealed class TutorialFlowController : MonoBehaviour
     [SerializeField] private Transform playerSpawn;
     [SerializeField] private Transform authoredContentRoot;
     [SerializeField] private TutorialPromptUI promptUI;
+    [SerializeField] private GungeonStyleCamera2D tutorialCamera;
 
     [Header("Production Gameplay Sources")]
     [SerializeField] private PlayerController2D playerController;
@@ -62,6 +63,8 @@ public sealed class TutorialFlowController : MonoBehaviour
     [SerializeField, Min(0f)] private float movementCompletionDelay = 0.4f;
     [SerializeField, Min(0f)] private float dashCompletionDelay = 0.5f;
     [SerializeField, Min(0f)] private float dialogueGuideHandoffDelay = 0.14f;
+    [Tooltip("Optional existing audio-event ID for the incoming Operator transmission. Leave empty until an intended clip is assigned.")]
+    [SerializeField] private string incomingTransmissionSoundEventId = string.Empty;
 
     [Header("Authored 40x40 Layout")]
     [SerializeField] private Vector2 mapCenter = Vector2.zero;
@@ -86,6 +89,13 @@ public sealed class TutorialFlowController : MonoBehaviour
     [SerializeField] private GameObject highValueSalvagePrefab;
     [SerializeField] private Vector2 highValueSalvagePosition = new Vector2(0f, 0f);
     [SerializeField, Min(0.5f)] private float highValueDiscoveryDistance = 4.5f;
+    [FormerlySerializedAs("highValueFocusDuration")]
+    [SerializeField, Range(0.5f, 0.7f)] private float targetFocusDuration = 0.6f;
+    [FormerlySerializedAs("highValueReturnDuration")]
+    [SerializeField, Range(0.4f, 0.6f)] private float targetReturnDuration = 0.5f;
+    [SerializeField] private Vector2 targetSafeViewportMin = new Vector2(0.1f, 0.12f);
+    [SerializeField] private Vector2 targetSafeViewportMax = new Vector2(0.9f, 0.88f);
+    [SerializeField, Range(0.1f, 0.2f)] private float targetSafeViewportHoldDuration = 0.15f;
     [SerializeField] private RewardDefinition highValueTeachingReward;
     [SerializeField] private ReinforcementDefinition defensiveReinforcementDefinition;
     [SerializeField] private GameObject[] combatEnemyPrefabs = Array.Empty<GameObject>();
@@ -96,6 +106,10 @@ public sealed class TutorialFlowController : MonoBehaviour
     [SerializeField] private RadarTarget radarScanTarget;
     [SerializeField] private GameObject interactionTarget;
     [SerializeField] private TutorialInteractionTarget interactionTargetComponent;
+    [SerializeField] private SpriteRenderer signalDevicePulseRenderer;
+    [SerializeField] private GameObject tutorialPurpleEffectPrefab;
+    [SerializeField, Range(0.2f, 0.6f)] private float signalDevicePulseDuration = 0.38f;
+    [SerializeField, Range(0.15f, 0.5f)] private float fakeOperatorTakeoverDelay = 0.3f;
     [SerializeField, Min(0.5f)] private float proximityAutoRegistrationDistance = 5f;
     [SerializeField] private Vector2 unknownSearchAreaOffset = new Vector2(-2.5f, 1.5f);
     [SerializeField, Min(1f)] private float unknownSearchAreaRadius = 5f;
@@ -110,23 +124,51 @@ public sealed class TutorialFlowController : MonoBehaviour
     [SerializeField] private Transform alienSignalVisualRoot;
     [SerializeField] private SpriteRenderer alienSignalCoreRenderer;
     [SerializeField] private SpriteRenderer alienSignalPulseRenderer;
+    [SerializeField, Range(0.65f, 0.75f)] private float purpleCoreRevealStartScale = 0.7f;
+    [SerializeField, Range(0.45f, 0.65f)] private float purpleCoreRevealDuration = 0.55f;
+    [SerializeField, Range(0.08f, 0.15f)] private float purpleCoreIdleFloatDistance = 0.1f;
+    [SerializeField, Range(1.5f, 2f)] private float purpleCoreIdleFloatDuration = 1.75f;
+    [SerializeField, Min(1f)] private float purpleCoreForcedInteractionDamage = 15f;
+    [SerializeField, Range(0.05f, 0.2f)] private float purpleCoreDamageContributionWindow = 0.12f;
+    [SerializeField, Min(0.5f)] private float purpleCoreDamageContributionCap = 4f;
+    [SerializeField, Range(0.08f, 0.18f)] private float purpleCoreHitPunchDuration = 0.12f;
 
     [Header("Pixel Curse Transformation")]
     [SerializeField] private TraitDefinition pixelCurseDefinition;
     [SerializeField] private PlayerVisualStateController playerVisualStateController;
     [SerializeField] private StatusEffectHUDPresenter statusEffectPresenter;
-    [SerializeField, Min(0.1f)] private float corruptionPeakDelay = 0.65f;
     [SerializeField, Min(0.1f)] private float acquisitionFeedbackDuration = 0.75f;
-    [SerializeField, Min(0.01f)] private float corruptionDarkenDuration = 0.14f;
-    [SerializeField, Min(0.01f)] private float corruptionRecoveryDuration = 0.2f;
+    [FormerlySerializedAs("corruptionDarkenDuration")]
+    [SerializeField, Range(0.08f, 0.15f)] private float curseImpactPauseDuration = 0.12f;
+    [SerializeField, Range(0.25f, 0.4f)] private float curseFadeOutDuration = 0.32f;
+    [FormerlySerializedAs("corruptionRecoveryDuration")]
+    [SerializeField, Range(0.3f, 0.45f)] private float curseFadeInDuration = 0.36f;
     [SerializeField, Min(0f)] private float corruptionShakeAmplitude = 0.12f;
     [SerializeField, Min(0f)] private float corruptionShakeDuration = 0.24f;
+    [FormerlySerializedAs("corruptionPeakDelay")]
+    [SerializeField, Range(0.45f, 0.7f)] private float curseTransferDuration = 0.58f;
+    [SerializeField, Range(0.12f, 0.2f)] private float curseCoreAbsorptionDuration = 0.16f;
+    [SerializeField, Range(0.25f, 0.4f)] private float curseShipCorruptionDuration = 0.32f;
+    [SerializeField, Range(1.5f, 2f)] private float curseTransferImpactScale = 1.75f;
     [SerializeField] private Color alienSignalPeakColor = new Color(0.75f, 0.2f, 1f, 1f);
-    [SerializeField, TextArea(1, 2)] private string curseAcquiredFeedback =
-        "??? 신호가 기체 구조를 침식했습니다.";
+    [SerializeField, Range(0.15f, 0.2f)] private float curseLetterboxDuration = 0.18f;
+    [SerializeField, Range(0.45f, 0.7f)] private float curseCameraFocusDuration = 0.58f;
+    [SerializeField, Range(0.55f, 0.9f)] private float curseCameraZoomMultiplier = 0.78f;
+    [SerializeField, Range(0.05f, 0.12f)] private float curseLetterboxHeightRatio = 0.075f;
 
     [Header("Settlement Communication")]
     [SerializeField] private string openingConversation = "TUTORIAL_OperatorOpening";
+    [SerializeField] private string radarConversation = "TUTORIAL_OperatorRadar";
+    [SerializeField] private string supplyContainerConversation =
+        "TUTORIAL_OperatorSupplyContainer";
+    [SerializeField] private string ancientSignalConversation =
+        "TUTORIAL_OperatorAncientSignal";
+    [SerializeField] private string signalRelayAnalysisConversation =
+        "TUTORIAL_SignalRelayAnalysis";
+    [SerializeField] private string fakeOperatorTakeoverConversation =
+        "TUTORIAL_FakeOperatorTakeover";
+    [SerializeField] private string unknownAccessKeyConversation =
+        "TUTORIAL_UnknownAccessKeyContact";
     [SerializeField, Min(0f)] private float rescueSignalDelay = 0.7f;
 
     [Header("Manual Emergency Return")]
@@ -137,6 +179,22 @@ public sealed class TutorialFlowController : MonoBehaviour
     private readonly List<GameObject> spawnedDecorations = new List<GameObject>(8);
     private readonly List<EnemyHealth> activeCombatEnemies = new List<EnemyHealth>(4);
     private readonly Collider2D[] placementBuffer = new Collider2D[24];
+    private readonly Dictionary<string, string> localizationArguments =
+        new Dictionary<string, string>(2, StringComparer.Ordinal);
+    private readonly TutorialStoryGuidanceProgress operatorGuidanceProgress =
+        new TutorialStoryGuidanceProgress();
+    private readonly TutorialRadarGuidanceProgress radarGuidanceProgress =
+        new TutorialRadarGuidanceProgress();
+    private readonly TutorialTargetPresentationProgress targetPresentationProgress =
+        new TutorialTargetPresentationProgress();
+    private readonly TutorialOpeningTransmissionProgress openingTransmissionProgress =
+        new TutorialOpeningTransmissionProgress();
+    private readonly TutorialCorePresentationProgress corePresentationProgress =
+        new TutorialCorePresentationProgress();
+    private readonly TutorialRelayNarrativeProgress relayNarrativeProgress =
+        new TutorialRelayNarrativeProgress();
+    private readonly TutorialPurpleCoreAcquisitionLatch coreAcquisitionLatch =
+        new TutorialPurpleCoreAcquisitionLatch();
 
     private bool isCompleting;
     private bool tutorialRunInitialized;
@@ -147,20 +205,13 @@ public sealed class TutorialFlowController : MonoBehaviour
     private bool unknownMissionPresented;
     private bool combatSpawned;
     private bool openingConversationStarted;
-    private bool openingConversationCompleted;
-    private bool weaponGuidanceCompleted;
-    private bool radarGuidanceCompleted;
-    private bool radarModeGuidanceShown;
-    private bool harvestVisibilityGuidanceCompleted;
-    private bool cargoGuidanceCompleted;
-    private bool activePickupGuidanceCompleted;
-    private bool activeUseGuidanceCompleted;
     private bool highValueAutoRegistered;
     private bool signalDeviceAutoRegistered;
     private bool alienSignalApproachPulsePlayed;
     private bool emergencyReturnPickupSpawned;
     private bool warnedMissingProductionMenu;
     private bool awaitingRescueConversationEnd;
+    private bool awaitingUnknownAccessKeyConversationEnd;
     private int cargoLoadBeforePickup;
     private int routeWaypointCountBeforeStep;
     private PlayerWeaponBase observedWeapon;
@@ -176,18 +227,67 @@ public sealed class TutorialFlowController : MonoBehaviour
     private Coroutine curseTransformationRoutine;
     private Coroutine rescueSequenceRoutine;
     private Coroutine controlPacingRoutine;
+    private Coroutine targetPresentationRoutine;
+    private Coroutine relayNarrativeRoutine;
     private Vector2 lastMovementSamplePosition;
     private float accumulatedMovementDistance;
     private Sequence alienSignalTween;
+    private Sequence alienSignalRevealTween;
+    private Tween alienSignalIdleTween;
+    private Sequence curseInfiltrationTween;
+    private Sequence signalDevicePulseTween;
+    private Sequence tutorialPurpleEffectTween;
+    private Sequence purpleCoreHitTween;
+    private Tween playerCurseImpactTween;
     private Tween dialogueGuideHandoffTween;
     private GameplayPauseManager transformationPauseManager;
     private bool ownsTransformationScreenFade;
     private DialogueSystemController rescueDialogueController;
+    private DialogueSystemController unknownAccessKeyDialogueController;
+    private DialogueSystemController relayDialogueController;
+    private string activeRelayConversationTitle = string.Empty;
+    private RadarTarget unknownSignalObjectiveTarget;
+    private bool ownsTargetPresentationInput;
+    private TutorialStep activeTargetTriggerStep = TutorialStep.Complete;
+    private TutorialStep activeTargetGuidanceStep = TutorialStep.Complete;
+    private Transform activePresentationTarget;
+    private HarvestObjectHealth activePresentationHealth;
+    private Collider2D activePresentationCollider;
+    private Renderer activePresentationRenderer;
+    private string activeTargetConversationTitle = string.Empty;
     private TutorialStep activeOperatorGuidanceStep = TutorialStep.Complete;
+    private string activeOperatorConversationTitle = string.Empty;
     private Vector3 alienSignalVisualRestScale = Vector3.one;
     private Vector3 alienSignalPulseRestScale = Vector3.one;
     private Color alienSignalCoreRestColor = Color.white;
     private Color alienSignalPulseRestColor = Color.white;
+    private Vector3 alienSignalVisualRestLocalPosition;
+    private SpriteRenderer[] alienSignalVisualRenderers = Array.Empty<SpriteRenderer>();
+    private Color[] alienSignalVisualRestColors = Array.Empty<Color>();
+    private Collider2D[] alienSignalColliders = Array.Empty<Collider2D>();
+    private bool[] alienSignalColliderRestStates = Array.Empty<bool>();
+    private Transform playerCurseImpactVisual;
+    private Vector3 playerCurseImpactRestScale = Vector3.one;
+    private Color signalDevicePulseRestColor = Color.white;
+    private bool signalDevicePulseStateCached;
+    private GameObject activeTutorialPurpleEffect;
+    private SpriteRenderer activeTutorialPurpleEffectRenderer;
+    private Animator activeTutorialPurpleEffectAnimator;
+    private DashShockwaveVFX activeTutorialPurpleShockwave;
+    private Vector3 activeTutorialPurpleEffectRestScale = Vector3.one;
+    private Color activeTutorialPurpleEffectRestColor = Color.white;
+    private bool activeTutorialPurpleEffectFromPool;
+    private BossCinematicLetterboxUI curseLetterbox;
+    private bool ownsCurseLetterbox;
+    private bool ownsCurseCameraPresentation;
+    private TutorialPurpleCoreDamageReceiver alienSignalDamageReceiver;
+    private Transform alienSignalCoreTravelTransform;
+    private Transform alienSignalCoreOriginalParent;
+    private Vector3 alienSignalCoreOriginalLocalPosition;
+    private Quaternion alienSignalCoreOriginalLocalRotation = Quaternion.identity;
+    private Vector3 alienSignalCoreOriginalLocalScale = Vector3.one;
+    private bool alienSignalCoreOriginalActive;
+    private bool alienSignalCoreTravelStateCached;
 
     public TutorialStep CurrentStep => currentStep;
     public bool IsCompleting => isCompleting;
@@ -196,6 +296,31 @@ public sealed class TutorialFlowController : MonoBehaviour
     public GameObject RadarTarget => radarTarget;
     public GameObject InteractionTarget => interactionTarget;
     public GameObject AlienSignal => alienSignal;
+    public TutorialTargetPresentationKind ActiveTargetPresentationKind =>
+        targetPresentationProgress.Kind;
+    public TutorialTargetPresentationPhase TargetPresentationPhase =>
+        targetPresentationProgress.Phase;
+    public bool HasConfirmedOpeningMovement =>
+        openingTransmissionProgress.HasConfirmedMovement;
+    public TutorialCorePresentationPhase CorePresentationPhase =>
+        corePresentationProgress.Phase;
+    public TutorialRelayNarrativePhase RelayNarrativePhase =>
+        relayNarrativeProgress.Phase;
+    public float PurpleCoreAccumulatedDamage =>
+        alienSignalDamageReceiver != null
+            ? alienSignalDamageReceiver.AccumulatedDamage
+            : 0f;
+    public float PurpleCoreRevealInitialScale =>
+        Mathf.Clamp(purpleCoreRevealStartScale, 0.65f, 0.75f);
+    public float PurpleCoreRevealSeconds =>
+        Mathf.Clamp(purpleCoreRevealDuration, 0.45f, 0.65f);
+    public float CurseTransferSeconds =>
+        Mathf.Clamp(curseTransferDuration, 0.45f, 0.7f);
+    public Vector2 TargetSafeViewportMin => targetSafeViewportMin;
+    public Vector2 TargetSafeViewportMax => targetSafeViewportMax;
+    public float TargetSafeViewportHoldSeconds =>
+        Mathf.Clamp(targetSafeViewportHoldDuration, 0.1f, 0.2f);
+    public GameObject TutorialPurpleEffectPrefab => tutorialPurpleEffectPrefab;
 
     public event Action<TutorialStep, TutorialStep> StepChanged;
 
@@ -210,6 +335,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         CacheRuntimeReferences();
         ApplyTutorialHealthFloor();
         SubscribeGameplayEvents();
+        RefreshRelayNarrative();
     }
 
     private void Start()
@@ -240,9 +366,14 @@ public sealed class TutorialFlowController : MonoBehaviour
     {
         ClearTutorialHealthFloor();
         StopAllStepRoutines();
+        StopRelayNarrative(true);
         StopRescueSequence();
+        StopWaitingForUnknownAccessKeyConversation(true);
         StopCurseTransformation();
+        StopSignalDevicePulse();
+        ResetPurpleCorePresentation(true);
         ClearPurpleCoreRadarReveal();
+        ClearUnknownSignalObjectiveMarker();
         promptUI?.Hide();
         expeditionHUD?.HideObjectiveBriefing();
         expeditionMapPanel?.ClearExternalObjective();
@@ -253,7 +384,13 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void OnDestroy()
     {
+        StopTargetPresentation(true, true);
+        StopRelayNarrative(true);
+        StopSignalDevicePulse();
+        StopCurseTransformation();
+        ResetPurpleCorePresentation(true);
         ClearTutorialHealthFloor();
+        ClearUnknownSignalObjectiveMarker();
         expeditionMapPanel?.ClearExternalObjective();
         expeditionMapPanel?.ClearExternalSearchRegion();
 
@@ -303,8 +440,14 @@ public sealed class TutorialFlowController : MonoBehaviour
             routeWaypointCountBeforeStep = routePlanner != null ? routePlanner.WaypointCount : 0;
         }
 
+        if (nextStep == TutorialStep.RadarDiscoverSalvage)
+        {
+            radarGuidanceProgress.Reset();
+        }
+
         if (nextStep == TutorialStep.Move && playerRoot != null)
         {
+            openingTransmissionProgress.Reset();
             accumulatedMovementDistance = 0f;
             lastMovementSamplePosition = playerRoot.position;
         }
@@ -363,18 +506,24 @@ public sealed class TutorialFlowController : MonoBehaviour
         unknownMissionPresented = false;
         combatSpawned = false;
         openingConversationStarted = false;
-        openingConversationCompleted = false;
-        weaponGuidanceCompleted = false;
-        radarGuidanceCompleted = false;
-        radarModeGuidanceShown = false;
-        harvestVisibilityGuidanceCompleted = false;
-        cargoGuidanceCompleted = false;
-        activePickupGuidanceCompleted = false;
-        activeUseGuidanceCompleted = false;
+        activeOperatorConversationTitle = string.Empty;
+        operatorGuidanceProgress.Reset();
+        openingTransmissionProgress.Reset();
+        corePresentationProgress.Reset();
+        relayNarrativeProgress.Reset();
+        coreAcquisitionLatch.Reset();
+        alienSignalDamageReceiver?.ResetProgress();
+        radarGuidanceProgress.Reset();
+        targetPresentationProgress.Reset();
+        awaitingUnknownAccessKeyConversationEnd = false;
         highValueAutoRegistered = false;
         signalDeviceAutoRegistered = false;
+        StopSignalDevicePulse();
+        interactionTargetComponent?.ResetTarget();
         activeOperatorGuidanceStep = TutorialStep.Complete;
         emergencyReturnPickupSpawned = false;
+        StopTargetPresentation(true, true);
+        ResetPurpleCorePresentation(true);
         SetStep(TutorialStep.IntroCommunication);
 #else
         Debug.LogWarning("Tutorial checkpoint controls are only available in the Editor or Development Builds.", this);
@@ -569,6 +718,23 @@ public sealed class TutorialFlowController : MonoBehaviour
             emergencyReturnController ??= playerRoot.GetComponent<EmergencyReturnController>();
             emergencyReturnExitSequence ??= playerRoot.GetComponent<EmergencyReturnExitSequence>();
             playerVisualStateController ??= playerRoot.GetComponentInChildren<PlayerVisualStateController>(true);
+
+            if (playerCurseImpactVisual == null)
+            {
+                PlayerShipVisualController shipVisualController =
+                    playerRoot.GetComponentInChildren<PlayerShipVisualController>(true);
+                SpriteRenderer targetRenderer = shipVisualController != null
+                    ? shipVisualController.TargetSpriteRenderer
+                    : playerRoot.GetComponentInChildren<SpriteRenderer>(true);
+                playerCurseImpactVisual = targetRenderer != null
+                    ? targetRenderer.transform
+                    : null;
+
+                if (playerCurseImpactVisual != null)
+                {
+                    playerCurseImpactRestScale = playerCurseImpactVisual.localScale;
+                }
+            }
         }
 
         harvestTargetHealth ??= harvestTarget != null
@@ -583,9 +749,29 @@ public sealed class TutorialFlowController : MonoBehaviour
         interactionTargetComponent ??= interactionTarget != null
             ? interactionTarget.GetComponentInChildren<TutorialInteractionTarget>(true)
             : null;
+        signalDevicePulseRenderer ??= interactionTarget != null
+            ? interactionTarget.GetComponentInChildren<SpriteRenderer>(true)
+            : null;
+        CacheSignalDevicePulseState();
         alienSignalTargetComponent ??= alienSignal != null
             ? alienSignal.GetComponentInChildren<TutorialInteractionTarget>(true)
             : null;
+        if (alienSignal != null)
+        {
+            alienSignalDamageReceiver ??=
+                alienSignal.GetComponent<TutorialPurpleCoreDamageReceiver>();
+            if (alienSignalDamageReceiver == null)
+            {
+                alienSignalDamageReceiver =
+                    alienSignal.AddComponent<TutorialPurpleCoreDamageReceiver>();
+            }
+
+            alienSignalDamageReceiver.Configure(
+                this,
+                purpleCoreForcedInteractionDamage,
+                purpleCoreDamageContributionWindow,
+                purpleCoreDamageContributionCap);
+        }
         alienSignalRadarTarget ??= alienSignal != null
             ? alienSignal.GetComponentInChildren<RadarTarget>(true)
             : null;
@@ -593,6 +779,463 @@ public sealed class TutorialFlowController : MonoBehaviour
         expeditionHUD ??= FindFirstObjectByType<ExpeditionHUD>(FindObjectsInactive.Include);
         expeditionMapPanel ??= FindFirstObjectByType<ExpeditionMapPanelUI>(FindObjectsInactive.Include);
         routePlanner ??= FindFirstObjectByType<ExpeditionRoutePlanner>(FindObjectsInactive.Include);
+        tutorialCamera ??= GungeonStyleCamera2D.Instance != null
+            ? GungeonStyleCamera2D.Instance
+            : FindFirstObjectByType<GungeonStyleCamera2D>(FindObjectsInactive.Include);
+    }
+
+    private void CacheSignalDevicePulseState()
+    {
+        if (signalDevicePulseStateCached || signalDevicePulseRenderer == null)
+        {
+            return;
+        }
+
+        signalDevicePulseRestColor = signalDevicePulseRenderer.color;
+        signalDevicePulseStateCached = true;
+    }
+
+    private void PlaySignalDevicePulse()
+    {
+        Transform visualOrigin = signalDevicePulseRenderer != null
+            ? signalDevicePulseRenderer.transform
+            : interactionTarget != null
+                ? interactionTarget.transform
+                : null;
+        if (visualOrigin == null)
+        {
+            return;
+        }
+
+        StopSignalDevicePulse();
+        float duration = Mathf.Clamp(signalDevicePulseDuration, 0.2f, 0.6f);
+        signalDevicePulseTween = PlayStationaryTutorialPurpleEffect(
+            visualOrigin,
+            ResolveRendererWorldCenter(signalDevicePulseRenderer, visualOrigin.position),
+            1.35f,
+            duration);
+    }
+
+    private void StopSignalDevicePulse()
+    {
+        if (signalDevicePulseTween != null &&
+            ReferenceEquals(signalDevicePulseTween, tutorialPurpleEffectTween))
+        {
+            StopTutorialPurpleEffect();
+        }
+        else
+        {
+            signalDevicePulseTween?.Kill();
+        }
+
+        signalDevicePulseTween = null;
+
+        if (signalDevicePulseStateCached && signalDevicePulseRenderer != null)
+        {
+            signalDevicePulseRenderer.color = signalDevicePulseRestColor;
+        }
+    }
+
+    private bool TryStartRelayNarrative()
+    {
+        if (currentStep != TutorialStep.InteractSignalDevice ||
+            !relayNarrativeProgress.TryBeginAnalysis())
+        {
+            return false;
+        }
+
+        interactionTargetComponent?.SetInteractionEnabled(false);
+        SetTargetPresentationInputLocked(true);
+        PlaySignalDevicePulse();
+        relayNarrativeRoutine = StartCoroutine(RelayNarrativeRoutine());
+        return true;
+    }
+
+    private void RefreshRelayNarrative()
+    {
+        if (!isActiveAndEnabled ||
+            currentStep != TutorialStep.InteractSignalDevice ||
+            relayNarrativeRoutine != null ||
+            relayDialogueController != null)
+        {
+            return;
+        }
+
+        if (relayNarrativeProgress.Phase ==
+                TutorialRelayNarrativePhase.AwaitingRealOperator ||
+            relayNarrativeProgress.Phase ==
+                TutorialRelayNarrativePhase.AwaitingFakeOperator)
+        {
+            SetTargetPresentationInputLocked(true);
+            relayNarrativeRoutine = StartCoroutine(
+                RelayNarrativeContinuationRoutine());
+        }
+    }
+
+    private IEnumerator RelayNarrativeRoutine()
+    {
+        yield return new WaitForSecondsRealtime(
+            Mathf.Clamp(signalDevicePulseDuration, 0.2f, 0.6f));
+        relayNarrativeRoutine = null;
+
+        if (!isActiveAndEnabled ||
+            currentStep != TutorialStep.InteractSignalDevice ||
+            !relayNarrativeProgress.TryCompleteAnalysis())
+        {
+            StopRelayNarrative(false);
+            yield break;
+        }
+
+        ClearRelayMapGuidanceForUnknownTracking();
+        RefreshRelayNarrative();
+    }
+
+    private IEnumerator RelayNarrativeContinuationRoutine()
+    {
+        bool fakeOperator = relayNarrativeProgress.Phase ==
+                            TutorialRelayNarrativePhase.AwaitingFakeOperator;
+        if (fakeOperator &&
+            relayNarrativeProgress.TryMarkFakeTakeoverCuePresented())
+        {
+            PlaySignalDevicePulse();
+            yield return new WaitForSecondsRealtime(
+                Mathf.Clamp(fakeOperatorTakeoverDelay, 0.15f, 0.5f));
+        }
+
+        relayNarrativeRoutine = null;
+        if (!isActiveAndEnabled || currentStep != TutorialStep.InteractSignalDevice)
+        {
+            StopRelayNarrative(false);
+            yield break;
+        }
+
+        TryStartRelayConversation(
+            fakeOperator
+                ? fakeOperatorTakeoverConversation
+                : signalRelayAnalysisConversation,
+            fakeOperator);
+    }
+
+    private bool TryStartRelayConversation(string conversationTitle, bool fakeOperator)
+    {
+        bool phaseStarted = fakeOperator
+            ? relayNarrativeProgress.TryBeginFakeOperator()
+            : relayNarrativeProgress.TryBeginRealOperator();
+        if (!phaseStarted)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(conversationTitle) ||
+            !DialogueManager.hasInstance ||
+            DialogueManager.instance == null ||
+            DialogueManager.MasterDatabase == null ||
+            DialogueManager.MasterDatabase.GetConversation(conversationTitle) == null)
+        {
+            FinishRelayConversationPhase(false, fakeOperator);
+            SetTargetPresentationInputLocked(false);
+            Debug.LogError(
+                $"Tutorial relay conversation '{conversationTitle}' is unavailable. " +
+                "The relay checkpoint remains blocked.",
+                this);
+            return false;
+        }
+
+        relayDialogueController = DialogueManager.instance;
+        relayDialogueController.conversationEnded -= HandleRelayConversationEnded;
+        relayDialogueController.conversationEnded += HandleRelayConversationEnded;
+        activeRelayConversationTitle = conversationTitle;
+        DialogueManager.StartConversation(
+            conversationTitle,
+            playerRoot,
+            interactionTarget != null ? interactionTarget.transform : transform);
+
+        if (!DialogueManager.isConversationActive ||
+            !string.Equals(
+                DialogueManager.lastConversationStarted,
+                conversationTitle,
+                StringComparison.Ordinal))
+        {
+            relayDialogueController.conversationEnded -= HandleRelayConversationEnded;
+            relayDialogueController = null;
+            activeRelayConversationTitle = string.Empty;
+            FinishRelayConversationPhase(false, fakeOperator);
+            SetTargetPresentationInputLocked(false);
+            Debug.LogError(
+                $"Tutorial relay conversation '{conversationTitle}' failed to start.",
+                this);
+            return false;
+        }
+
+        promptUI?.Hide();
+        return true;
+    }
+
+    private void HandleRelayConversationEnded(Transform actor)
+    {
+        if (relayDialogueController == null ||
+            !string.Equals(
+                DialogueManager.lastConversationEnded,
+                activeRelayConversationTitle,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        string completedConversation = activeRelayConversationTitle;
+        bool fakeOperator = string.Equals(
+            completedConversation,
+            fakeOperatorTakeoverConversation,
+            StringComparison.Ordinal);
+        bool completedNaturally = WasConversationCompletedNaturally(
+            completedConversation);
+
+        relayDialogueController.conversationEnded -= HandleRelayConversationEnded;
+        relayDialogueController = null;
+        activeRelayConversationTitle = string.Empty;
+        bool phaseCompleted = FinishRelayConversationPhase(
+            completedNaturally,
+            fakeOperator);
+
+        if (phaseCompleted && fakeOperator)
+        {
+            SetTargetPresentationInputLocked(false);
+            TryAdvanceCheckpoint(TutorialStep.InteractSignalDevice);
+            return;
+        }
+
+        RefreshRelayNarrative();
+    }
+
+    private bool FinishRelayConversationPhase(bool completedNaturally, bool fakeOperator)
+    {
+        return fakeOperator
+            ? relayNarrativeProgress.TryFinishFakeOperator(completedNaturally)
+            : relayNarrativeProgress.TryFinishRealOperator(completedNaturally);
+    }
+
+    private void StopRelayNarrative(bool stopOwnedConversation)
+    {
+        if (relayNarrativeRoutine != null)
+        {
+            StopCoroutine(relayNarrativeRoutine);
+            relayNarrativeRoutine = null;
+        }
+
+        bool conversationOwned = stopOwnedConversation &&
+                                 relayDialogueController != null &&
+                                 DialogueManager.hasInstance &&
+                                 DialogueManager.isConversationActive &&
+                                 string.Equals(
+                                     DialogueManager.lastConversationStarted,
+                                     activeRelayConversationTitle,
+                                     StringComparison.Ordinal);
+        if (relayDialogueController != null)
+        {
+            relayDialogueController.conversationEnded -= HandleRelayConversationEnded;
+        }
+
+        relayDialogueController = null;
+        activeRelayConversationTitle = string.Empty;
+        relayNarrativeProgress.CancelActivePhase();
+        StopSignalDevicePulse();
+        SetTargetPresentationInputLocked(false);
+
+        if (conversationOwned)
+        {
+            DialogueManager.StopConversation();
+        }
+
+        if (currentStep == TutorialStep.InteractSignalDevice &&
+            relayNarrativeProgress.Phase == TutorialRelayNarrativePhase.Idle &&
+            interactionTargetComponent != null)
+        {
+            interactionTargetComponent.ResetTarget();
+            interactionTargetComponent.SetInteractionEnabled(true);
+        }
+    }
+
+    private void ClearRelayMapGuidanceForUnknownTracking()
+    {
+        expeditionMapPanel?.ClearExternalSearchRegion();
+        if (radarScanTarget == null)
+        {
+            return;
+        }
+
+        radarScanTarget.ClearTemporaryReveal(this);
+        radarScanTarget.SetShowOnMap(false);
+        radarScanTarget.SetVisible(false);
+    }
+
+    private Sequence PlayStationaryTutorialPurpleEffect(
+        Transform visualOrigin,
+        Vector3 worldPosition,
+        float endScale,
+        float duration)
+    {
+        if (!TryAcquireTutorialPurpleEffect(visualOrigin, worldPosition))
+        {
+            return null;
+        }
+
+        float safeDuration = Mathf.Max(0.05f, duration);
+        Transform effectTransform = activeTutorialPurpleEffect.transform;
+        Color startColor = activeTutorialPurpleEffectRenderer.color;
+        startColor.r = Mathf.Max(0.45f, startColor.r);
+        startColor.g = Mathf.Min(0.3f, startColor.g);
+        startColor.b = Mathf.Max(0.8f, startColor.b);
+        startColor.a = Mathf.Max(0.3f, startColor.a);
+        activeTutorialPurpleEffectRenderer.color = startColor;
+        effectTransform.localScale = Vector3.one * 0.15f;
+
+        Sequence sequence = DOTween.Sequence()
+            .SetUpdate(true)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        tutorialPurpleEffectTween = sequence;
+        sequence.Join(
+            effectTransform.DOScale(Vector3.one * Mathf.Max(0.2f, endScale), safeDuration)
+                .SetEase(Ease.OutQuad));
+        sequence.Join(
+            activeTutorialPurpleEffectRenderer.DOFade(0f, safeDuration)
+                .SetEase(Ease.InQuad));
+        sequence.OnComplete(() => ReleaseTutorialPurpleEffect(sequence));
+        return sequence;
+    }
+
+    private bool TryAcquireTutorialPurpleEffect(
+        Transform visualOrigin,
+        Vector3 worldPosition)
+    {
+        StopTutorialPurpleEffect();
+        if (tutorialPurpleEffectPrefab == null || visualOrigin == null)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning(
+                "Tutorial Purple presentation requires Assets/03_Prefabs/Purple.prefab.",
+                this);
+#endif
+            return false;
+        }
+
+        activeTutorialPurpleEffectFromPool = PoolManager.Instance != null;
+        activeTutorialPurpleEffect = activeTutorialPurpleEffectFromPool
+            ? PoolManager.Instance.Get(
+                tutorialPurpleEffectPrefab,
+                worldPosition,
+                Quaternion.identity)
+            : Instantiate(
+                tutorialPurpleEffectPrefab,
+                worldPosition,
+                Quaternion.identity);
+        if (activeTutorialPurpleEffect == null)
+        {
+            activeTutorialPurpleEffectFromPool = false;
+            return false;
+        }
+
+        activeTutorialPurpleEffect.transform.SetParent(visualOrigin, true);
+        activeTutorialPurpleEffect.transform.position = worldPosition;
+        activeTutorialPurpleEffect.transform.rotation = Quaternion.identity;
+        activeTutorialPurpleEffectRestScale = activeTutorialPurpleEffect.transform.localScale;
+
+        activeTutorialPurpleEffectAnimator =
+            activeTutorialPurpleEffect.GetComponentInChildren<Animator>(true);
+        if (activeTutorialPurpleEffectAnimator != null)
+        {
+            activeTutorialPurpleEffectAnimator.enabled = false;
+        }
+
+        activeTutorialPurpleShockwave =
+            activeTutorialPurpleEffect.GetComponentInChildren<DashShockwaveVFX>(true);
+        if (activeTutorialPurpleShockwave != null)
+        {
+            activeTutorialPurpleShockwave.enabled = false;
+        }
+
+        activeTutorialPurpleEffectRenderer =
+            activeTutorialPurpleEffect.GetComponentInChildren<SpriteRenderer>(true);
+        if (activeTutorialPurpleEffectRenderer != null)
+        {
+            activeTutorialPurpleEffectRestColor = activeTutorialPurpleEffectRenderer.color;
+            return true;
+        }
+
+        StopTutorialPurpleEffect();
+        return false;
+    }
+
+    private void StopTutorialPurpleEffect()
+    {
+        tutorialPurpleEffectTween?.Kill();
+        tutorialPurpleEffectTween = null;
+        ReleaseTutorialPurpleEffectInstance();
+    }
+
+    private void ReleaseTutorialPurpleEffect(Sequence completedSequence)
+    {
+        if (!ReferenceEquals(tutorialPurpleEffectTween, completedSequence))
+        {
+            return;
+        }
+
+        tutorialPurpleEffectTween = null;
+        ReleaseTutorialPurpleEffectInstance();
+    }
+
+    private void ReleaseTutorialPurpleEffectInstance()
+    {
+        GameObject instance = activeTutorialPurpleEffect;
+        bool releaseToPool = activeTutorialPurpleEffectFromPool;
+        Animator animator = activeTutorialPurpleEffectAnimator;
+        DashShockwaveVFX shockwave = activeTutorialPurpleShockwave;
+        Vector3 restScale = activeTutorialPurpleEffectRestScale;
+        Color restColor = activeTutorialPurpleEffectRestColor;
+        activeTutorialPurpleEffect = null;
+        activeTutorialPurpleEffectRenderer = null;
+        activeTutorialPurpleEffectAnimator = null;
+        activeTutorialPurpleShockwave = null;
+        activeTutorialPurpleEffectRestScale = Vector3.one;
+        activeTutorialPurpleEffectRestColor = Color.white;
+        activeTutorialPurpleEffectFromPool = false;
+
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.transform.localScale = restScale;
+        SpriteRenderer renderer = instance.GetComponentInChildren<SpriteRenderer>(true);
+        if (renderer != null)
+        {
+            renderer.color = restColor;
+        }
+
+        if (animator != null)
+        {
+            animator.enabled = true;
+        }
+
+        if (shockwave != null)
+        {
+            shockwave.enabled = true;
+        }
+
+        if (releaseToPool && PoolManager.Instance != null)
+        {
+            PoolManager.Instance.Release(instance);
+        }
+        else
+        {
+            Destroy(instance);
+        }
+    }
+
+    private static Vector3 ResolveRendererWorldCenter(
+        Renderer renderer,
+        Vector3 fallbackPosition)
+    {
+        return renderer != null ? renderer.bounds.center : fallbackPosition;
     }
 
     private void SubscribeGameplayEvents()
@@ -605,6 +1248,11 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (playerDash != null)
         {
             playerDash.DashEnded += HandleDashEnded;
+        }
+
+        if (playerController != null)
+        {
+            playerController.MovementStarted += HandlePlayerMovementStarted;
         }
 
         if (weaponController != null)
@@ -621,6 +1269,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (radarScanner != null)
         {
             radarScanner.ScanCompleted += HandleRadarScanCompleted;
+            radarScanner.RadarActiveChanged += HandleRadarActiveChanged;
         }
 
         if (playerInteractor != null)
@@ -659,6 +1308,12 @@ public sealed class TutorialFlowController : MonoBehaviour
             routePlanner.RouteChanged -= HandleRouteChanged;
             routePlanner.RouteChanged += HandleRouteChanged;
         }
+
+        if (mapDiscoveryController != null)
+        {
+            mapDiscoveryController.TargetDiscovered -= HandleMapTargetDiscovered;
+            mapDiscoveryController.TargetDiscovered += HandleMapTargetDiscovered;
+        }
     }
 
     private void UnsubscribeGameplayEvents()
@@ -666,6 +1321,11 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (playerDash != null)
         {
             playerDash.DashEnded -= HandleDashEnded;
+        }
+
+        if (playerController != null)
+        {
+            playerController.MovementStarted -= HandlePlayerMovementStarted;
         }
 
         if (weaponController != null)
@@ -688,6 +1348,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (radarScanner != null)
         {
             radarScanner.ScanCompleted -= HandleRadarScanCompleted;
+            radarScanner.RadarActiveChanged -= HandleRadarActiveChanged;
         }
 
         if (playerInteractor != null)
@@ -714,6 +1375,11 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (routePlanner != null)
         {
             routePlanner.RouteChanged -= HandleRouteChanged;
+        }
+
+        if (mapDiscoveryController != null)
+        {
+            mapDiscoveryController.TargetDiscovered -= HandleMapTargetDiscovered;
         }
 
         BindRunManager(null);
@@ -782,13 +1448,13 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void HandleHarvestTargetDied(HarvestObjectHealth target)
     {
-        if (!ReferenceEquals(target, harvestTargetHealth) || currentStep != TutorialStep.DestroyNormalSalvage)
+        if (!ReferenceEquals(target, harvestTargetHealth))
         {
             return;
         }
 
         normalHarvestDestroyed = true;
-        TryAdvanceCheckpoint(TutorialStep.DestroyNormalSalvage);
+        TryAdvanceSupplyProgression(TutorialSupplyProgressSource.TargetDestroyed);
     }
 
     private void HandleCargoChanged(int currentLoad, int maxCapacity)
@@ -822,7 +1488,42 @@ public sealed class TutorialFlowController : MonoBehaviour
             routePlanner != null &&
             routePlanner.WaypointCount > routeWaypointCountBeforeStep)
         {
-            TryAdvanceCheckpoint(TutorialStep.RoutePing);
+            TryAdvanceSupplyProgression(TutorialSupplyProgressSource.RoutePlaced);
+        }
+    }
+
+    private bool TryAdvanceSupplyProgression(TutorialSupplyProgressSource source)
+    {
+        if (!TutorialSupplyProgression.TryResolveNextStep(
+                currentStep,
+                source,
+                out TutorialStep nextStep))
+        {
+            return false;
+        }
+
+        SetStep(nextStep);
+        return currentStep == nextStep;
+    }
+
+    private void HandleMapTargetDiscovered(RadarTarget target)
+    {
+        if (ReferenceEquals(target, highValueSalvageRadarTarget))
+        {
+            RegisterHighValueWreckDiscovery();
+        }
+    }
+
+    private void HandleRadarActiveChanged(bool active)
+    {
+        if (currentStep == TutorialStep.RadarDiscoverSalvage)
+        {
+            radarGuidanceProgress.RecordRadarActiveChanged(active);
+        }
+
+        if (currentStep == TutorialStep.FindSignalDevice)
+        {
+            ApplyCurrentStepPresentation();
         }
     }
 
@@ -861,9 +1562,11 @@ public sealed class TutorialFlowController : MonoBehaviour
                 return;
             }
 
-            if (TryAdvanceCheckpoint(TutorialStep.RadarDiscoverSalvage))
+            radarGuidanceProgress.TryRecordSuccessfulTargetScan(true);
+            if (radarGuidanceProgress.HasSuccessfulTargetScan)
             {
-                ShowRadarModeGuidanceOnce();
+                RequestTargetPresentation(
+                    TutorialTargetPresentationKind.SupplyContainer);
             }
 
             return;
@@ -878,29 +1581,17 @@ public sealed class TutorialFlowController : MonoBehaviour
         }
 
         signalDeviceAutoRegistered = true;
-        return TryAdvanceCheckpoint(TutorialStep.FindSignalDevice);
-    }
-
-    private void ShowRadarModeGuidanceOnce()
-    {
-        if (radarModeGuidanceShown || radarScanner == null || expeditionHUD == null)
+        if (radarScanTarget != null)
         {
-            return;
+            radarScanTarget.SetMarkerType(RadarMarkerType.Unknown);
+            radarScanTarget.SetMarkerVisual(
+                radarScanTarget.MarkerSprite,
+                new Color(0.82f, 0.72f, 1f, 1f),
+                1.2f
+            );
+            radarScanTarget.SetTemporaryReveal(this, 3600f);
         }
-
-        radarModeGuidanceShown = true;
-        string radarBinding = radarScanner.RadarBindingDisplay;
-        string quickScanBinding = radarScanner.QuickScanBindingDisplay;
-        string guidance =
-            $"[{radarBinding}]\uB97C \uC9E7\uAC8C \uB20C\uB7EC \uB808\uC774\uB354 \uD328\uB110\uC744 \uB04C \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n" +
-            $"\uB808\uC774\uB354\uAC00 \uD65C\uC131\uD654\uB41C \uB3D9\uC548 [{quickScanBinding}]\uB97C \uB204\uB974\uBA74 \uC989\uC2DC \uB2E4\uC2DC \uD0D0\uC0C9\uD569\uB2C8\uB2E4.";
-
-        expeditionHUD.ShowCommunication(
-            ShipCommunicationChannel.Radar,
-            guidance,
-            ShipCommunicationSeverity.Information,
-            4.25f
-        );
+        return TryAdvanceCheckpoint(TutorialStep.FindSignalDevice);
     }
 
     private void HandlePlayerInteracted(IInteractable target)
@@ -914,7 +1605,7 @@ public sealed class TutorialFlowController : MonoBehaviour
             interactionTargetComponent != null &&
             targetComponent == interactionTargetComponent)
         {
-            TryAdvanceCheckpoint(TutorialStep.InteractSignalDevice);
+            TryStartRelayNarrative();
             return;
         }
 
@@ -925,15 +1616,8 @@ public sealed class TutorialFlowController : MonoBehaviour
             return;
         }
 
-        if (!ValidatePixelCurseDefinition(true))
-        {
-            alienSignalTargetComponent.ResetTarget();
-            alienSignalTargetComponent.SetInteractionEnabled(true);
-            return;
-        }
-
-        alienSignalTargetComponent.SetInteractionEnabled(false);
-        TryAdvanceCheckpoint(TutorialStep.InteractPurpleCore);
+        TryRequestPurpleCoreAcquisition(
+            TutorialPurpleCoreActivationSource.Interaction);
     }
 
     private void HandleHighValueSalvageDied(HarvestObjectHealth target)
@@ -979,6 +1663,17 @@ public sealed class TutorialFlowController : MonoBehaviour
         SetStep(TutorialStep.Combat);
     }
 
+    private void HandlePlayerMovementStarted()
+    {
+        if (currentStep != TutorialStep.Move ||
+            !openingTransmissionProgress.TryConfirmMovement())
+        {
+            return;
+        }
+
+        RefreshOperatorGuidance();
+    }
+
     private void HandleCombatEnemyDied(EnemyHealth enemyHealth)
     {
         if (enemyHealth != null)
@@ -996,6 +1691,8 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void HandleRunEnded(RunResultData resultData)
     {
+        StopTargetPresentation(true, true);
+
         if (currentStep != TutorialStep.EmergencyReturn ||
             resultData == null ||
             resultData.endReason != RunEndReason.EmergencyReturn)
@@ -1017,6 +1714,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         RefreshCargoFeedback();
         RefreshObjectiveChecks();
         RefreshPurpleCoreReveal();
+        RefreshRelayNarrative();
         RefreshCurseTransformation();
         RefreshUnknownMission();
         RefreshRescueSequence();
@@ -1038,7 +1736,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (harvestTargetHealth != null && !harvestTargetHealth.IsDead)
         {
             harvestTargetHealth.SetPlayerProjectileDamageEnabled(
-                currentStep == TutorialStep.DestroyNormalSalvage,
+                TutorialSupplyProgression.IsTargetDamageEnabled(currentStep),
                 true
             );
         }
@@ -1060,8 +1758,7 @@ public sealed class TutorialFlowController : MonoBehaviour
             );
         }
 
-        bool relayVisible = currentStep >= TutorialStep.FindSignalDevice &&
-                            currentStep <= TutorialStep.UnknownMission;
+        bool relayVisible = currentStep >= TutorialStep.FindSignalDevice;
 
         if (radarTarget != null)
         {
@@ -1075,10 +1772,23 @@ public sealed class TutorialFlowController : MonoBehaviour
 
         if (radarScanTarget != null)
         {
-            radarScanTarget.SetShowOnMap(relayVisible);
+            bool relayObjectiveUnresolved = relayVisible &&
+                                            currentStep <=
+                                            TutorialStep.InteractSignalDevice;
+            radarScanTarget.SetShowOnMap(relayObjectiveUnresolved);
+            radarScanTarget.SetVisible(relayObjectiveUnresolved);
         }
 
-        interactionTargetComponent?.SetInteractionEnabled(currentStep == TutorialStep.InteractSignalDevice);
+        interactionTargetComponent?.SetInteractionEnabled(
+            currentStep == TutorialStep.InteractSignalDevice &&
+            relayNarrativeProgress.Phase == TutorialRelayNarrativePhase.Idle);
+
+        bool coreCanReceiveInput = currentStep == TutorialStep.InteractPurpleCore &&
+                                   corePresentationProgress.Phase ==
+                                   TutorialCorePresentationPhase.Ready &&
+                                   !coreAcquisitionLatch.IsActive &&
+                                   !coreAcquisitionLatch.IsCompleted;
+        alienSignalDamageReceiver?.SetReceivingEnabled(coreCanReceiveInput);
 
         bool radarAvailable = currentStep >= TutorialStep.RadarDiscoverSalvage &&
                               currentStep <= TutorialStep.EmergencyReturn;
@@ -1105,7 +1815,7 @@ public sealed class TutorialFlowController : MonoBehaviour
 
         bool curseOwned = HasPersistentPixelCurse();
         bool showPurpleCore = !curseOwned &&
-                              currentStep >= TutorialStep.TravelSearchArea &&
+                              currentStep >= TutorialStep.RevealPurpleCore &&
                               currentStep <= TutorialStep.CurseTransformation;
 
         if (alienSignal != null)
@@ -1115,7 +1825,7 @@ public sealed class TutorialFlowController : MonoBehaviour
 
         if (alienSignalVisualRoot != null)
         {
-            bool showAlienVisual = showPurpleCore && currentStep >= TutorialStep.TravelPurpleCore;
+            bool showAlienVisual = showPurpleCore && currentStep >= TutorialStep.RevealPurpleCore;
             alienSignalVisualRoot.gameObject.SetActive(showAlienVisual);
         }
 
@@ -1133,9 +1843,14 @@ public sealed class TutorialFlowController : MonoBehaviour
 
         if (alienSignalTargetComponent != null)
         {
-            if (currentStep == TutorialStep.InteractPurpleCore && !curseOwned)
+            if (currentStep == TutorialStep.InteractPurpleCore &&
+                !curseOwned &&
+                corePresentationProgress.Phase == TutorialCorePresentationPhase.Ready)
             {
                 alienSignalTargetComponent.ResetTarget();
+                alienSignalTargetComponent.SetInteractionText(
+                    ResolveLocalizedTutorialText(
+                        Phase2CStoryDialogueIds.TutorialPurpleCoreInteractTextKey));
                 alienSignalTargetComponent.SetInteractionEnabled(true);
             }
             else
@@ -1221,142 +1936,662 @@ public sealed class TutorialFlowController : MonoBehaviour
     {
         yield return new WaitForSecondsRealtime(Mathf.Max(0f, introAdvanceDelay));
         introAdvanceRoutine = null;
-
-        if (openingConversationCompleted)
-        {
-            TryAdvanceCheckpoint(TutorialStep.IntroCommunication);
-            yield break;
-        }
-
-        TryStartOperatorConversation(TutorialStep.IntroCommunication, 1);
+        TryAdvanceCheckpoint(TutorialStep.IntroCommunication);
     }
 
     private void RefreshOperatorGuidance()
     {
-        if (currentStep == TutorialStep.AimAndFire && !weaponGuidanceCompleted)
+        if (currentStep == TutorialStep.RadarDiscoverSalvage &&
+            radarGuidanceProgress.HasSuccessfulTargetScan &&
+            !operatorGuidanceProgress.IsComplete(
+                TutorialStep.DestroyNormalSalvage))
         {
-            TryStartOperatorConversation(TutorialStep.AimAndFire, 2);
+            RequestTargetPresentation(
+                TutorialTargetPresentationKind.SupplyContainer);
+            return;
         }
-        else if (currentStep == TutorialStep.RadarDiscoverSalvage && !radarGuidanceCompleted)
+
+        if (currentStep == TutorialStep.TravelHighValue)
         {
-            TryStartOperatorConversation(TutorialStep.RadarDiscoverSalvage, 3);
+            if (highValueAutoRegistered &&
+                !operatorGuidanceProgress.IsComplete(TutorialStep.TravelHighValue))
+            {
+                RequestTargetPresentation(
+                    TutorialTargetPresentationKind.HighValueWreck);
+            }
+
+            return;
         }
-        else if (currentStep == TutorialStep.DestroyNormalSalvage &&
-                 !harvestVisibilityGuidanceCompleted &&
-                 harvestTarget != null &&
-                 IsInsideCameraView(harvestTarget.transform.position, 0f))
+
+        if (currentStep == TutorialStep.DestroyNormalSalvage)
         {
-            TryStartOperatorConversation(TutorialStep.DestroyNormalSalvage, 7);
+            return;
         }
-        else if (currentStep == TutorialStep.EquipDefensiveActive && !activePickupGuidanceCompleted)
+
+        if (Phase2CStoryDialogueIds.TryGetTutorialGuidanceConversation(
+                currentStep,
+                highValueAutoRegistered,
+                out _) &&
+            !operatorGuidanceProgress.IsComplete(currentStep))
         {
-            TryStartOperatorConversation(TutorialStep.EquipDefensiveActive, 5);
+            TryStartOperatorConversation(
+                currentStep,
+                ResolveOperatorConversationTitle(currentStep));
         }
-        else if (currentStep == TutorialStep.Combat && !activeUseGuidanceCompleted)
-        {
-            TryStartOperatorConversation(TutorialStep.Combat, 6);
-        }
-        else if (currentStep == TutorialStep.Combat)
+
+        if (currentStep == TutorialStep.Combat)
         {
             SpawnGuaranteedCombatGroup();
         }
     }
 
-    private void TryStartOperatorConversation(TutorialStep guidanceStep, int entryId)
+    private string ResolveOperatorConversationTitle(TutorialStep guidanceStep)
     {
-        if (openingConversationStarted || currentStep != guidanceStep)
+        return guidanceStep switch
         {
-            return;
+            TutorialStep.Move => openingConversation,
+            TutorialStep.RadarDiscoverSalvage => radarConversation,
+            TutorialStep.DestroyNormalSalvage => supplyContainerConversation,
+            TutorialStep.TravelHighValue => ancientSignalConversation,
+            _ => string.Empty
+        };
+    }
+
+    private bool TryStartOperatorConversation(
+        TutorialStep guidanceStep,
+        string conversationTitle)
+    {
+        return TryStartOperatorConversation(
+            guidanceStep,
+            guidanceStep,
+            conversationTitle);
+    }
+
+    private bool TryStartOperatorConversation(
+        TutorialStep requiredCurrentStep,
+        TutorialStep guidanceStep,
+        string conversationTitle)
+    {
+        if (openingConversationStarted ||
+            currentStep != requiredCurrentStep ||
+            operatorGuidanceProgress.IsComplete(guidanceStep) ||
+            guidanceStep == TutorialStep.Move &&
+            !openingTransmissionProgress.HasConfirmedMovement)
+        {
+            return false;
         }
 
-        if (string.IsNullOrWhiteSpace(openingConversation) ||
+        if (string.IsNullOrWhiteSpace(conversationTitle) ||
             !DialogueManager.hasInstance ||
             DialogueManager.MasterDatabase == null ||
-            DialogueManager.MasterDatabase.GetConversation(openingConversation) == null)
+            DialogueManager.MasterDatabase.GetConversation(conversationTitle) == null)
         {
             Debug.LogError(
-                $"Tutorial operator conversation '{openingConversation}' is unavailable; continuing through the gameplay objective fallback.",
+                $"Tutorial operator conversation '{conversationTitle}' is unavailable. " +
+                "The tutorial story checkpoint remains blocked.",
                 this
             );
-            CompleteOperatorGuidance(guidanceStep);
-            return;
+            return false;
+        }
+
+        bool requestIncomingCue = false;
+        if (guidanceStep == TutorialStep.Move &&
+            !openingTransmissionProgress.TryBeginTransmission(
+                !string.IsNullOrWhiteSpace(incomingTransmissionSoundEventId),
+                out requestIncomingCue))
+        {
+            return false;
+        }
+
+        if (guidanceStep == TutorialStep.RadarDiscoverSalvage &&
+            radarScanner != null)
+        {
+            DialogueLua.SetVariable(
+                Phase2CStoryDialogueIds.RadarToggleLuaVariable,
+                DialogueWordWrapUtility.ProtectBindingDisplayString(
+                    radarScanner.RadarBindingDisplay));
+            DialogueLua.SetVariable(
+                Phase2CStoryDialogueIds.RadarScanLuaVariable,
+                DialogueWordWrapUtility.ProtectBindingDisplayString(
+                    radarScanner.QuickScanBindingDisplay));
         }
 
         openingConversationStarted = true;
         activeOperatorGuidanceStep = guidanceStep;
+        activeOperatorConversationTitle = conversationTitle;
         rescueDialogueController = DialogueManager.instance;
         rescueDialogueController.conversationEnded -= HandleOpeningConversationEnded;
         rescueDialogueController.conversationEnded += HandleOpeningConversationEnded;
-        DialogueManager.StartConversation(openingConversation, playerRoot, null, entryId);
+
+        if (requestIncomingCue)
+        {
+            AudioManager.Play(incomingTransmissionSoundEventId);
+        }
+
+        DialogueManager.StartConversation(conversationTitle, playerRoot, null);
 
         if (!DialogueManager.isConversationActive ||
-            !string.Equals(DialogueManager.lastConversationStarted, openingConversation, StringComparison.Ordinal))
+            !string.Equals(
+                DialogueManager.lastConversationStarted,
+                conversationTitle,
+                StringComparison.Ordinal))
         {
             rescueDialogueController.conversationEnded -= HandleOpeningConversationEnded;
+            rescueDialogueController = null;
             openingConversationStarted = false;
+            openingTransmissionProgress.FinishTransmission();
             activeOperatorGuidanceStep = TutorialStep.Complete;
-            Debug.LogError($"Tutorial opening conversation '{openingConversation}' failed to start.", this);
-            CompleteOperatorGuidance(guidanceStep);
+            activeOperatorConversationTitle = string.Empty;
+            Debug.LogError(
+                $"Tutorial operator conversation '{conversationTitle}' failed to start.",
+                this);
+            return false;
         }
+
+        return true;
     }
 
     private void HandleOpeningConversationEnded(Transform actor)
     {
         if (!openingConversationStarted ||
-            !string.Equals(DialogueManager.lastConversationEnded, openingConversation, StringComparison.Ordinal))
+            !string.Equals(
+                DialogueManager.lastConversationEnded,
+                activeOperatorConversationTitle,
+                StringComparison.Ordinal))
         {
             return;
         }
 
+        string completedConversation = activeOperatorConversationTitle;
         if (rescueDialogueController != null)
         {
             rescueDialogueController.conversationEnded -= HandleOpeningConversationEnded;
         }
 
+        rescueDialogueController = null;
         openingConversationStarted = false;
         TutorialStep completedGuidance = activeOperatorGuidanceStep;
+        if (completedGuidance == TutorialStep.Move)
+        {
+            openingTransmissionProgress.FinishTransmission();
+        }
+
         activeOperatorGuidanceStep = TutorialStep.Complete;
+        activeOperatorConversationTitle = string.Empty;
+
+        bool completedNaturally = WasConversationCompletedNaturally(
+            completedConversation);
+        if (completedGuidance == activeTargetGuidanceStep &&
+            targetPresentationProgress.Phase ==
+            TutorialTargetPresentationPhase.Dialogue)
+        {
+            targetPresentationProgress.TryBeginReturn(completedNaturally);
+            return;
+        }
+
+        if (!completedNaturally)
+        {
+            ScheduleDialogueGuideHandoff(completedGuidance, false, false);
+            return;
+        }
 
         CompleteOperatorGuidance(completedGuidance);
     }
 
     private void CompleteOperatorGuidance(TutorialStep completedGuidance)
     {
-        if (completedGuidance == TutorialStep.IntroCommunication)
+        if (!operatorGuidanceProgress.TryComplete(completedGuidance, true))
         {
-            openingConversationCompleted = true;
-            ScheduleDialogueGuideHandoff(completedGuidance, true, false);
+            return;
         }
-        else if (completedGuidance == TutorialStep.AimAndFire)
+
+        ScheduleDialogueGuideHandoff(
+            completedGuidance,
+            Phase2CStoryDialogueIds.AdvancesCheckpointAfterGuidance(
+                completedGuidance),
+            false);
+    }
+
+    private void RegisterHighValueWreckDiscovery()
+    {
+        if (currentStep != TutorialStep.TravelHighValue ||
+            operatorGuidanceProgress.IsComplete(TutorialStep.TravelHighValue))
         {
-            weaponGuidanceCompleted = true;
-            ScheduleDialogueGuideHandoff(completedGuidance, false, false);
+            return;
         }
-        else if (completedGuidance == TutorialStep.RadarDiscoverSalvage)
+
+        highValueAutoRegistered = true;
+        RequestTargetPresentation(
+            TutorialTargetPresentationKind.HighValueWreck);
+    }
+
+    private void RequestTargetPresentation(TutorialTargetPresentationKind kind)
+    {
+        if (!TryResolveTargetPresentation(
+                kind,
+                out TutorialStep triggerStep,
+                out TutorialStep guidanceStep,
+                out Transform target,
+                out HarvestObjectHealth targetHealth,
+                out string conversationTitle) ||
+            !isActiveAndEnabled ||
+            isCompleting ||
+            currentStep != triggerStep ||
+            !targetPresentationProgress.TryRequest(
+                kind,
+                IsPresentationTargetValid(target, targetHealth)))
         {
-            radarGuidanceCompleted = true;
-            ScheduleDialogueGuideHandoff(completedGuidance, false, false);
+            return;
         }
-        else if (completedGuidance == TutorialStep.DestroyNormalSalvage)
+
+        activeTargetTriggerStep = triggerStep;
+        activeTargetGuidanceStep = guidanceStep;
+        activePresentationTarget = target;
+        activePresentationHealth = targetHealth;
+        activePresentationCollider = target.GetComponentInChildren<Collider2D>(true);
+        activePresentationRenderer = target.GetComponentInChildren<Renderer>(true);
+        activeTargetConversationTitle = conversationTitle;
+        targetPresentationRoutine = StartCoroutine(TargetPresentationRoutine());
+    }
+
+    private bool TryResolveTargetPresentation(
+        TutorialTargetPresentationKind kind,
+        out TutorialStep triggerStep,
+        out TutorialStep guidanceStep,
+        out Transform target,
+        out HarvestObjectHealth targetHealth,
+        out string conversationTitle)
+    {
+        triggerStep = TutorialStep.Complete;
+        guidanceStep = TutorialStep.Complete;
+        target = null;
+        targetHealth = null;
+        conversationTitle = string.Empty;
+
+        switch (kind)
         {
-            harvestVisibilityGuidanceCompleted = true;
-            ScheduleDialogueGuideHandoff(completedGuidance, false, false);
+            case TutorialTargetPresentationKind.SupplyContainer:
+                if (!radarGuidanceProgress.HasSuccessfulTargetScan ||
+                    operatorGuidanceProgress.IsComplete(
+                        TutorialStep.DestroyNormalSalvage))
+                {
+                    return false;
+                }
+
+                triggerStep = TutorialStep.RadarDiscoverSalvage;
+                guidanceStep = TutorialStep.DestroyNormalSalvage;
+                target = harvestTarget != null ? harvestTarget.transform : null;
+                targetHealth = harvestTargetHealth;
+                conversationTitle = supplyContainerConversation;
+                return true;
+
+            case TutorialTargetPresentationKind.HighValueWreck:
+                if (!highValueAutoRegistered ||
+                    operatorGuidanceProgress.IsComplete(
+                        TutorialStep.TravelHighValue))
+                {
+                    return false;
+                }
+
+                triggerStep = TutorialStep.TravelHighValue;
+                guidanceStep = TutorialStep.TravelHighValue;
+                target = highValueSalvageInstance != null
+                    ? highValueSalvageInstance.transform
+                    : null;
+                targetHealth = highValueSalvageHealth;
+                conversationTitle = ancientSignalConversation;
+                return true;
+
+            default:
+                return false;
         }
-        else if (completedGuidance == TutorialStep.Cargo)
+    }
+
+    private IEnumerator TargetPresentationRoutine()
+    {
+        CacheRuntimeReferences();
+
+        while (targetPresentationProgress.Phase ==
+               TutorialTargetPresentationPhase.WaitingForSafeViewport)
         {
-            cargoGuidanceCompleted = true;
-            ScheduleDialogueGuideHandoff(completedGuidance, true, false);
+            if (!CanContinueTargetPresentation())
+            {
+                FinishTargetPresentationWithoutCheckpoint();
+                yield break;
+            }
+
+            bool insideSafeViewport = IsPresentationTargetInsideSafeViewport();
+            if (targetPresentationProgress.TryBeginFocus(
+                    insideSafeViewport,
+                    Time.unscaledDeltaTime,
+                    Mathf.Clamp(targetSafeViewportHoldDuration, 0.1f, 0.2f)))
+            {
+                break;
+            }
+
+            yield return null;
         }
-        else if (completedGuidance == TutorialStep.EquipDefensiveActive)
+
+        if (targetPresentationProgress.Phase !=
+            TutorialTargetPresentationPhase.Focusing)
         {
-            activePickupGuidanceCompleted = true;
-            ScheduleDialogueGuideHandoff(completedGuidance, false, false);
+            FinishTargetPresentationWithoutCheckpoint();
+            yield break;
         }
-        else if (completedGuidance == TutorialStep.Combat)
+
+        SetTargetPresentationInputLocked(true);
+
+        if (tutorialCamera == null ||
+            !tutorialCamera.TryBeginOwnedCinematicFocusBlend(
+                this,
+                activePresentationTarget.position,
+                Mathf.Clamp(targetFocusDuration, 0.5f, 0.7f),
+                null,
+                out _))
         {
-            activeUseGuidanceCompleted = true;
-            ScheduleDialogueGuideHandoff(completedGuidance, false, true);
+            FinishTargetPresentationWithoutCheckpoint();
+            yield break;
         }
+
+        while (tutorialCamera.IsCinematicFocusBlendActive)
+        {
+            if (!CanContinueTargetPresentation())
+            {
+                InterruptTargetPresentationConversation();
+                targetPresentationProgress.TryBeginReturn(false);
+                break;
+            }
+
+            if (!tutorialCamera.IsCinematicFocusOwnedBy(this))
+            {
+                InterruptTargetPresentationConversation();
+                FinishTargetPresentationWithoutCheckpoint();
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        if (targetPresentationProgress.Phase ==
+            TutorialTargetPresentationPhase.Focusing)
+        {
+            if (!CanContinueTargetPresentation() ||
+                !tutorialCamera.IsCinematicFocusOwnedBy(this) ||
+                !targetPresentationProgress.TryBeginDialogue() ||
+                !TryStartOperatorConversation(
+                    activeTargetTriggerStep,
+                    activeTargetGuidanceStep,
+                    activeTargetConversationTitle))
+            {
+                targetPresentationProgress.TryBeginReturn(false);
+            }
+        }
+
+        while (targetPresentationProgress.Phase ==
+               TutorialTargetPresentationPhase.Dialogue)
+        {
+            if (!CanContinueTargetPresentation())
+            {
+                InterruptTargetPresentationConversation();
+                targetPresentationProgress.TryBeginReturn(false);
+                break;
+            }
+
+            if (!tutorialCamera.IsCinematicFocusOwnedBy(this))
+            {
+                InterruptTargetPresentationConversation();
+                FinishTargetPresentationWithoutCheckpoint();
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        if (targetPresentationProgress.Phase !=
+            TutorialTargetPresentationPhase.Returning)
+        {
+            FinishTargetPresentationWithoutCheckpoint();
+            yield break;
+        }
+
+        if (tutorialCamera.IsCinematicFocusOwnedBy(this) && playerRoot != null)
+        {
+            if (tutorialCamera.TryBeginOwnedCinematicFocusBlend(
+                    this,
+                    playerRoot.position,
+                    Mathf.Clamp(targetReturnDuration, 0.4f, 0.6f),
+                    null,
+                    out _))
+            {
+                while (tutorialCamera.IsCinematicFocusBlendActive &&
+                       tutorialCamera.IsCinematicFocusOwnedBy(this))
+                {
+                    if (!IsPresentationTargetValid(
+                            activePresentationTarget,
+                            activePresentationHealth))
+                    {
+                        targetPresentationProgress.CancelCheckpointCompletion();
+                    }
+
+                    yield return null;
+                }
+            }
+        }
+
+        if (!IsPresentationTargetValid(
+                activePresentationTarget,
+                activePresentationHealth))
+        {
+            targetPresentationProgress.CancelCheckpointCompletion();
+        }
+
+        if (!tutorialCamera.IsCinematicFocusOwnedBy(this))
+        {
+            FinishTargetPresentationWithoutCheckpoint();
+            yield break;
+        }
+
+        tutorialCamera.ReleaseOwnedCinematicFocus(this, true);
+        SetTargetPresentationInputLocked(false);
+        targetPresentationRoutine = null;
+        TutorialStep completedTriggerStep = activeTargetTriggerStep;
+        TutorialStep completedGuidanceStep = activeTargetGuidanceStep;
+
+        if (!targetPresentationProgress.TryFinishReturn(
+                out _,
+                out bool shouldAdvanceCheckpoint))
+        {
+            ClearActiveTargetPresentation();
+            RefreshObjectiveChecks();
+            yield break;
+        }
+
+        if (!shouldAdvanceCheckpoint ||
+            !operatorGuidanceProgress.TryComplete(
+                completedGuidanceStep,
+                true))
+        {
+            ClearActiveTargetPresentation();
+            RefreshObjectiveChecks();
+            yield break;
+        }
+
+        ClearActiveTargetPresentation();
+        TryAdvanceCheckpoint(completedTriggerStep);
+    }
+
+    private bool CanContinueTargetPresentation()
+    {
+        return isActiveAndEnabled &&
+               !isCompleting &&
+               currentStep == activeTargetTriggerStep &&
+               targetPresentationProgress.Kind !=
+               TutorialTargetPresentationKind.None &&
+               IsPresentationTargetValid(
+                   activePresentationTarget,
+                   activePresentationHealth);
+    }
+
+    private static bool IsPresentationTargetValid(
+        Transform target,
+        HarvestObjectHealth targetHealth)
+    {
+        return target != null &&
+               target.gameObject.activeInHierarchy &&
+               targetHealth != null &&
+               !targetHealth.IsDead;
+    }
+
+    private bool IsPresentationTargetInsideSafeViewport()
+    {
+        Camera gameplayCamera = tutorialCamera != null
+            ? tutorialCamera.GameplayCamera
+            : Camera.main;
+        if (gameplayCamera == null || activePresentationTarget == null)
+        {
+            return false;
+        }
+
+        Bounds targetBounds = new Bounds(activePresentationTarget.position, Vector3.zero);
+        if (activePresentationCollider != null && activePresentationCollider.enabled)
+        {
+            targetBounds = activePresentationCollider.bounds;
+        }
+        else if (activePresentationRenderer != null && activePresentationRenderer.enabled)
+        {
+            targetBounds = activePresentationRenderer.bounds;
+        }
+
+        Vector2 safeMin = new Vector2(
+            Mathf.Clamp(targetSafeViewportMin.x, 0f, 0.49f),
+            Mathf.Clamp(targetSafeViewportMin.y, 0f, 0.49f));
+        Vector2 safeMax = new Vector2(
+            Mathf.Clamp(targetSafeViewportMax.x, 0.51f, 1f),
+            Mathf.Clamp(targetSafeViewportMax.y, 0.51f, 1f));
+
+        return IsWorldPointInsideSafeViewport(
+                   gameplayCamera,
+                   new Vector3(targetBounds.min.x, targetBounds.min.y, targetBounds.center.z),
+                   safeMin,
+                   safeMax) &&
+               IsWorldPointInsideSafeViewport(
+                   gameplayCamera,
+                   new Vector3(targetBounds.min.x, targetBounds.max.y, targetBounds.center.z),
+                   safeMin,
+                   safeMax) &&
+               IsWorldPointInsideSafeViewport(
+                   gameplayCamera,
+                   new Vector3(targetBounds.max.x, targetBounds.min.y, targetBounds.center.z),
+                   safeMin,
+                   safeMax) &&
+               IsWorldPointInsideSafeViewport(
+                   gameplayCamera,
+                   new Vector3(targetBounds.max.x, targetBounds.max.y, targetBounds.center.z),
+                   safeMin,
+                   safeMax);
+    }
+
+    private static bool IsWorldPointInsideSafeViewport(
+        Camera gameplayCamera,
+        Vector3 worldPosition,
+        Vector2 safeMin,
+        Vector2 safeMax)
+    {
+        Vector3 viewport = gameplayCamera.WorldToViewportPoint(worldPosition);
+        return viewport.z > 0f &&
+               viewport.x >= safeMin.x && viewport.x <= safeMax.x &&
+               viewport.y >= safeMin.y && viewport.y <= safeMax.y;
+    }
+
+    private void InterruptTargetPresentationConversation()
+    {
+        if (!openingConversationStarted ||
+            activeOperatorGuidanceStep != activeTargetGuidanceStep)
+        {
+            return;
+        }
+
+        if (rescueDialogueController != null)
+        {
+            rescueDialogueController.conversationEnded -=
+                HandleOpeningConversationEnded;
+        }
+
+        rescueDialogueController = null;
+        openingConversationStarted = false;
+        openingTransmissionProgress.FinishTransmission();
+        activeOperatorGuidanceStep = TutorialStep.Complete;
+        activeOperatorConversationTitle = string.Empty;
+
+        if (DialogueManager.hasInstance && DialogueManager.isConversationActive)
+        {
+            DialogueManager.StopConversation();
+        }
+    }
+
+    private void SetTargetPresentationInputLocked(bool locked)
+    {
+        if (locked == ownsTargetPresentationInput)
+        {
+            return;
+        }
+
+        ownsTargetPresentationInput = locked;
+        if (locked)
+        {
+            expeditionMenuController?.Close();
+        }
+
+        expeditionMenuController?.SetExternalOpenLocked(this, locked);
+        playerController?.SetExternalControlLocked(this, locked);
+        weaponController?.SetExternalInputLocked(this, locked);
+        radarScanner?.SetExternalInputLocked(this, locked);
+        playerInteractor?.SetExternalInputLocked(this, locked);
+        reinforcementController?.SetExternalInputLocked(this, locked);
+    }
+
+    private void FinishTargetPresentationWithoutCheckpoint()
+    {
+        tutorialCamera?.ReleaseOwnedCinematicFocus(this, true);
+        SetTargetPresentationInputLocked(false);
+        targetPresentationProgress.Reset();
+        targetPresentationRoutine = null;
+        ClearActiveTargetPresentation();
+        RefreshObjectiveChecks();
+    }
+
+    private void StopTargetPresentation(
+        bool resetCameraImmediately,
+        bool interruptConversation)
+    {
+        if (targetPresentationRoutine != null)
+        {
+            StopCoroutine(targetPresentationRoutine);
+            targetPresentationRoutine = null;
+        }
+
+        if (interruptConversation)
+        {
+            InterruptTargetPresentationConversation();
+        }
+
+        tutorialCamera?.ReleaseOwnedCinematicFocus(
+            this,
+            resetCameraImmediately);
+        SetTargetPresentationInputLocked(false);
+        targetPresentationProgress.Reset();
+        ClearActiveTargetPresentation();
+    }
+
+    private void ClearActiveTargetPresentation()
+    {
+        activeTargetTriggerStep = TutorialStep.Complete;
+        activeTargetGuidanceStep = TutorialStep.Complete;
+        activePresentationTarget = null;
+        activePresentationHealth = null;
+        activePresentationCollider = null;
+        activePresentationRenderer = null;
+        activeTargetConversationTitle = string.Empty;
     }
 
     private void ScheduleDialogueGuideHandoff(
@@ -1382,6 +2617,7 @@ public sealed class TutorialFlowController : MonoBehaviour
                 }
 
                 ApplyCurrentStepPresentation();
+                RefreshOperatorGuidance();
                 if (spawnCombat)
                 {
                     SpawnGuaranteedCombatGroup();
@@ -1580,19 +2816,13 @@ public sealed class TutorialFlowController : MonoBehaviour
             yield break;
         }
 
-        if (cargoGuidanceCompleted)
-        {
-            TryAdvanceCheckpoint(TutorialStep.Cargo);
-            yield break;
-        }
-
-        TryStartOperatorConversation(TutorialStep.Cargo, 4);
+        TryAdvanceCheckpoint(TutorialStep.Cargo);
     }
 
     private void RefreshObjectiveChecks()
     {
-        bool needsCheck = currentStep == TutorialStep.TravelNormalSalvage ||
-                          currentStep == TutorialStep.DestroyNormalSalvage ||
+        bool needsCheck = currentStep == TutorialStep.RoutePing ||
+                          currentStep == TutorialStep.TravelNormalSalvage ||
                           currentStep == TutorialStep.TravelHighValue ||
                           currentStep == TutorialStep.FindSignalDevice ||
                           currentStep == TutorialStep.TravelSearchArea ||
@@ -1624,7 +2854,9 @@ public sealed class TutorialFlowController : MonoBehaviour
                 continue;
             }
 
-            if (currentStep == TutorialStep.TravelNormalSalvage && harvestTarget != null)
+            if ((currentStep == TutorialStep.RoutePing ||
+                 currentStep == TutorialStep.TravelNormalSalvage) &&
+                harvestTarget != null)
             {
                 float distance = Vector2.Distance(playerRoot.position, harvestTarget.transform.position);
 
@@ -1632,22 +2864,36 @@ public sealed class TutorialFlowController : MonoBehaviour
                     distance <= Mathf.Max(1.5f, highValueDiscoveryDistance))
                 {
                     objectiveCheckRoutine = null;
-                    TryAdvanceCheckpoint(TutorialStep.TravelNormalSalvage);
+                    TryAdvanceSupplyProgression(
+                        TutorialSupplyProgressSource.TargetApproached);
                     yield break;
                 }
             }
-            else if (currentStep == TutorialStep.DestroyNormalSalvage &&
-                     !harvestVisibilityGuidanceCompleted &&
-                     harvestTarget != null &&
-                     IsInsideCameraView(harvestTarget.transform.position, 0f))
-            {
-                objectiveCheckRoutine = null;
-                RefreshOperatorGuidance();
-                yield break;
-            }
             else if (currentStep == TutorialStep.TravelHighValue && highValueSalvageInstance != null)
             {
+                if (highValueAutoRegistered)
+                {
+                    objectiveCheckRoutine = null;
+                    if (targetPresentationProgress.Phase ==
+                        TutorialTargetPresentationPhase.Idle)
+                    {
+                        RequestTargetPresentation(
+                            TutorialTargetPresentationKind.HighValueWreck);
+                    }
+
+                    yield break;
+                }
+
                 float distance = Vector2.Distance(playerRoot.position, highValueSalvageInstance.transform.position);
+
+                if (!highValueAutoRegistered &&
+                    highValueSalvageRadarTarget != null &&
+                    highValueSalvageRadarTarget.IsMapDiscovered)
+                {
+                    objectiveCheckRoutine = null;
+                    RegisterHighValueWreckDiscovery();
+                    yield break;
+                }
 
                 if (!highValueAutoRegistered &&
                     radarScanner != null &&
@@ -1655,15 +2901,18 @@ public sealed class TutorialFlowController : MonoBehaviour
                         highValueSalvageRadarTarget,
                         Mathf.Max(highValueDiscoveryDistance, proximityAutoRegistrationDistance)))
                 {
-                    highValueAutoRegistered = true;
+                    objectiveCheckRoutine = null;
+                    RegisterHighValueWreckDiscovery();
+                    yield break;
                 }
 
                 if (distance <= Mathf.Max(0.5f, highValueDiscoveryDistance))
                 {
                     objectiveCheckRoutine = null;
-                    TryAdvanceCheckpoint(TutorialStep.TravelHighValue);
+                    RegisterHighValueWreckDiscovery();
                     yield break;
                 }
+
             }
             else if (currentStep == TutorialStep.FindSignalDevice && radarScanTarget != null)
             {
@@ -1699,8 +2948,6 @@ public sealed class TutorialFlowController : MonoBehaviour
                     if (TryAdvanceCheckpoint(TutorialStep.TravelSearchArea))
                     {
                         ResolveUnknownSearchArea();
-                        RevealPurpleCoreOnProductionNavigation();
-                        TryAdvanceCheckpoint(TutorialStep.RevealPurpleCore);
                     }
                     yield break;
                 }
@@ -1817,14 +3064,105 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void RefreshPurpleCoreReveal()
     {
-        if (currentStep != TutorialStep.RevealPurpleCore || alienSignalRadarTarget == null)
+        if (currentStep != TutorialStep.RevealPurpleCore ||
+            alienSignalVisualRoot == null ||
+            !corePresentationProgress.TryBeginReveal())
         {
             return;
         }
 
-        alienSignalRadarTarget.SetVisible(false);
-        alienSignalRadarTarget.SetShowOnMap(false);
-        alienSignalRadarTarget.SetMapDiscovered(false);
+        StopAlienSignalIdleMotion();
+        alienSignalTween?.Kill();
+        alienSignalTween = null;
+        SetAlienSignalCollidersEnabled(false);
+        alienSignalTargetComponent?.SetInteractionEnabled(false);
+        alienSignalVisualRoot.gameObject.SetActive(true);
+        alienSignalVisualRoot.localPosition = alienSignalVisualRestLocalPosition;
+        alienSignalVisualRoot.localScale =
+            alienSignalVisualRestScale * Mathf.Clamp(
+                purpleCoreRevealStartScale,
+                0.65f,
+                0.75f);
+        SetAlienSignalVisualAlpha(0f);
+
+        if (alienSignalRadarTarget != null)
+        {
+            alienSignalRadarTarget.SetVisible(false);
+            alienSignalRadarTarget.SetShowOnMap(false);
+            alienSignalRadarTarget.SetMapDiscovered(false);
+        }
+
+        if (alienSignal != null)
+        {
+            AudioManager.PlayAt(
+                SoundEventIds.CoreActivate,
+                alienSignal.transform.position,
+                0.72f);
+
+            PlayStationaryTutorialPurpleEffect(
+                alienSignalVisualRoot,
+                ResolveRendererWorldCenter(
+                    alienSignalCoreRenderer,
+                    alienSignalVisualRoot.position),
+                1.45f,
+                Mathf.Clamp(purpleCoreRevealDuration, 0.45f, 0.65f));
+        }
+
+        float duration = Mathf.Clamp(purpleCoreRevealDuration, 0.45f, 0.65f);
+        Sequence revealTween = DOTween.Sequence()
+            .SetUpdate(true)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        alienSignalRevealTween = revealTween;
+        alienSignalRevealTween.Append(
+            alienSignalVisualRoot.DOScale(alienSignalVisualRestScale, duration)
+                .SetEase(Ease.OutBack));
+
+        for (int i = 0; i < alienSignalVisualRenderers.Length; i++)
+        {
+            SpriteRenderer renderer = alienSignalVisualRenderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            alienSignalRevealTween.Join(
+                renderer.DOFade(alienSignalVisualRestColors[i].a, duration)
+                    .SetEase(Ease.OutQuad));
+        }
+
+        alienSignalRevealTween.OnComplete(CompletePurpleCoreReveal);
+        alienSignalRevealTween.OnKill(() =>
+        {
+            if (!ReferenceEquals(alienSignalRevealTween, revealTween))
+            {
+                return;
+            }
+
+            alienSignalRevealTween = null;
+            ResetPurpleCorePresentation(true);
+        });
+    }
+
+    private void CompletePurpleCoreReveal()
+    {
+        alienSignalRevealTween = null;
+        if (!isActiveAndEnabled ||
+            currentStep != TutorialStep.RevealPurpleCore ||
+            alienSignal == null ||
+            !alienSignal.activeInHierarchy ||
+            alienSignalVisualRoot == null ||
+            !corePresentationProgress.TryCompleteReveal())
+        {
+            ResetPurpleCorePresentation(true);
+            return;
+        }
+
+        RestoreAlienSignalVisualState();
+        SetAlienSignalCollidersEnabled(true);
+        StartAlienSignalIdleMotion();
+        ClearUnknownSignalObjectiveMarker();
+        RevealPurpleCoreOnProductionNavigation();
+        TryAdvanceCheckpoint(TutorialStep.RevealPurpleCore);
     }
 
     private void RevealPurpleCoreOnProductionNavigation()
@@ -1858,12 +3196,11 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (!unknownMissionPresented)
         {
             unknownMissionPresented = true;
+            ClearRelayMapGuidanceForUnknownTracking();
             AudioManager.Play(SoundEventIds.MissionReceived);
-            expeditionMapPanel?.SetExternalSearchRegion(
-                ResolveUnknownSearchAreaPosition(),
-                Mathf.Max(1f, unknownSearchAreaRadius)
-            );
         }
+
+        EnsureUnknownSignalObjectiveMarker();
 
         unknownMissionRoutine ??= StartCoroutine(UnknownMissionRoutine());
     }
@@ -1891,9 +3228,252 @@ public sealed class TutorialFlowController : MonoBehaviour
         expeditionMapPanel?.ClearExternalSearchRegion();
     }
 
+    private void EnsureUnknownSignalObjectiveMarker()
+    {
+        if (unknownSignalObjectiveTarget != null)
+        {
+            unknownSignalObjectiveTarget.transform.position = ResolveUnknownSignalMarkerPosition();
+            unknownSignalObjectiveTarget.SetTemporaryReveal(this, 3600f);
+            return;
+        }
+
+        GameObject markerObject = new GameObject("TutorialUnknownSignalObjective");
+        markerObject.transform.SetParent(transform, true);
+        markerObject.transform.position = ResolveUnknownSignalMarkerPosition();
+        unknownSignalObjectiveTarget = markerObject.AddComponent<RadarTarget>();
+        unknownSignalObjectiveTarget.SetMarkerType(RadarMarkerType.Unknown);
+        unknownSignalObjectiveTarget.SetMarkerVisual(
+            null,
+            new Color(0.82f, 0.72f, 1f, 1f),
+            1.2f
+        );
+        unknownSignalObjectiveTarget.SetVisible(true);
+        unknownSignalObjectiveTarget.SetShowOnMap(false);
+        unknownSignalObjectiveTarget.SetMapDiscovered(false);
+        unknownSignalObjectiveTarget.SetTemporaryReveal(this, 3600f);
+    }
+
+    private Vector2 ResolveUnknownSignalMarkerPosition()
+    {
+        return alienSignal != null
+            ? alienSignal.transform.position
+            : ResolveUnknownSearchAreaPosition();
+    }
+
+    private void ClearUnknownSignalObjectiveMarker()
+    {
+        if (unknownSignalObjectiveTarget == null)
+        {
+            return;
+        }
+
+        unknownSignalObjectiveTarget.ClearTemporaryReveal(this);
+        GameObject markerObject = unknownSignalObjectiveTarget.gameObject;
+        unknownSignalObjectiveTarget = null;
+        markerObject.SetActive(false);
+        Destroy(markerObject);
+    }
+
     private void ClearPurpleCoreRadarReveal()
     {
         alienSignalRadarTarget?.ClearTemporaryReveal(this);
+    }
+
+    public bool TryRequestPurpleCoreAcquisition(
+        TutorialPurpleCoreActivationSource activationSource)
+    {
+        if (currentStep != TutorialStep.InteractPurpleCore ||
+            corePresentationProgress.Phase != TutorialCorePresentationPhase.Ready ||
+            !coreAcquisitionLatch.TryBegin())
+        {
+            return false;
+        }
+
+        if (!ValidatePixelCurseDefinition(true))
+        {
+            RestorePurpleCoreAcquisitionRequest();
+            return false;
+        }
+
+        alienSignalTargetComponent?.SetInteractionEnabled(false);
+        alienSignalDamageReceiver?.SetReceivingEnabled(false);
+        if (TryStartUnknownAccessKeyConversation())
+        {
+            return true;
+        }
+
+        RestorePurpleCoreAcquisitionRequest();
+        return false;
+    }
+
+    public void HandlePurpleCorePlayerDamageFeedback(Vector2 hitPoint)
+    {
+        if (currentStep != TutorialStep.InteractPurpleCore ||
+            coreAcquisitionLatch.IsActive ||
+            alienSignalCoreRenderer == null)
+        {
+            return;
+        }
+
+        PlayStationaryTutorialPurpleEffect(
+            alienSignalVisualRoot,
+            hitPoint,
+            0.65f,
+            Mathf.Clamp(purpleCoreHitPunchDuration, 0.08f, 0.18f));
+        purpleCoreHitTween?.Kill();
+        Transform hitVisual = alienSignalCoreRenderer.transform;
+        hitVisual.localScale = alienSignalCoreOriginalLocalScale;
+        purpleCoreHitTween = DOTween.Sequence()
+            .SetUpdate(true)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        purpleCoreHitTween.Append(
+            hitVisual.DOPunchScale(
+                alienSignalCoreOriginalLocalScale * 0.12f,
+                Mathf.Clamp(purpleCoreHitPunchDuration, 0.08f, 0.18f),
+                2,
+                0.25f));
+        purpleCoreHitTween.OnComplete(() => purpleCoreHitTween = null);
+    }
+
+    private bool TryStartUnknownAccessKeyConversation()
+    {
+        if (awaitingUnknownAccessKeyConversationEnd)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(unknownAccessKeyConversation) ||
+            !DialogueManager.hasInstance ||
+            DialogueManager.instance == null ||
+            DialogueManager.MasterDatabase == null ||
+            DialogueManager.MasterDatabase.GetConversation(
+                unknownAccessKeyConversation) == null)
+        {
+            Debug.LogError(
+                $"Tutorial conversation '{unknownAccessKeyConversation}' is unavailable. " +
+                "The Pixel Curse checkpoint remains blocked.",
+                this
+            );
+            return false;
+        }
+
+        unknownAccessKeyDialogueController = DialogueManager.instance;
+        unknownAccessKeyDialogueController.conversationEnded -=
+            HandleUnknownAccessKeyConversationEnded;
+        unknownAccessKeyDialogueController.conversationEnded +=
+            HandleUnknownAccessKeyConversationEnded;
+        awaitingUnknownAccessKeyConversationEnd = true;
+
+        FindFirstObjectByType<GameplayPauseMenuController>(
+            FindObjectsInactive.Include)?.Close();
+        DialogueManager.StartConversation(
+            unknownAccessKeyConversation,
+            playerRoot,
+            transform);
+
+        if (!DialogueManager.isConversationActive ||
+            !string.Equals(
+                DialogueManager.lastConversationStarted,
+                unknownAccessKeyConversation,
+                StringComparison.Ordinal))
+        {
+            StopWaitingForUnknownAccessKeyConversation(false);
+            Debug.LogError(
+                $"Tutorial conversation '{unknownAccessKeyConversation}' failed to start.",
+                this
+            );
+            return false;
+        }
+
+        promptUI?.Hide();
+        return true;
+    }
+
+    private void HandleUnknownAccessKeyConversationEnded(Transform actor)
+    {
+        if (!awaitingUnknownAccessKeyConversationEnd ||
+            currentStep != TutorialStep.InteractPurpleCore ||
+            !string.Equals(
+                DialogueManager.lastConversationEnded,
+                unknownAccessKeyConversation,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        bool completedNaturally = WasConversationCompletedNaturally(
+            unknownAccessKeyConversation);
+        StopWaitingForUnknownAccessKeyConversation(false);
+
+        if (!completedNaturally)
+        {
+            RestorePurpleCoreAcquisitionRequest();
+            return;
+        }
+
+        TryAdvanceCheckpoint(TutorialStep.InteractPurpleCore);
+    }
+
+    private void StopWaitingForUnknownAccessKeyConversation(
+        bool restoreAcquisitionRequest = false)
+    {
+        bool conversationOwned = restoreAcquisitionRequest &&
+                                 unknownAccessKeyDialogueController != null &&
+                                 DialogueManager.hasInstance &&
+                                 DialogueManager.isConversationActive &&
+                                 string.Equals(
+                                     DialogueManager.lastConversationStarted,
+                                     unknownAccessKeyConversation,
+                                     StringComparison.Ordinal);
+        if (unknownAccessKeyDialogueController != null)
+        {
+            unknownAccessKeyDialogueController.conversationEnded -=
+                HandleUnknownAccessKeyConversationEnded;
+        }
+
+        unknownAccessKeyDialogueController = null;
+        awaitingUnknownAccessKeyConversationEnd = false;
+        if (restoreAcquisitionRequest)
+        {
+            RestorePurpleCoreAcquisitionRequest();
+        }
+
+        if (conversationOwned)
+        {
+            DialogueManager.StopConversation();
+        }
+    }
+
+    private void RestorePurpleCoreAcquisitionRequest()
+    {
+        coreAcquisitionLatch.Cancel();
+        if (currentStep != TutorialStep.InteractPurpleCore ||
+            corePresentationProgress.Phase != TutorialCorePresentationPhase.Ready)
+        {
+            return;
+        }
+
+        if (alienSignalTargetComponent != null)
+        {
+            alienSignalTargetComponent.ResetTarget();
+            alienSignalTargetComponent.SetInteractionEnabled(true);
+        }
+
+        alienSignalDamageReceiver?.ResetProgress();
+        alienSignalDamageReceiver?.SetReceivingEnabled(true);
+    }
+
+    private static bool WasConversationCompletedNaturally(string conversationTitle)
+    {
+        if (!DialogueManager.hasInstance || DialogueManager.instance == null)
+        {
+            return false;
+        }
+
+        DialoguePixelCrushersBridge bridge =
+            DialogueManager.instance.GetComponent<DialoguePixelCrushersBridge>();
+        return bridge != null &&
+               bridge.WasConversationCompletedNaturally(conversationTitle);
     }
 
     private void RefreshCurseTransformation()
@@ -1957,36 +3537,137 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private IEnumerator CurseTransformationRoutine()
     {
-        if (!ValidatePixelCurseDefinition(true))
+        if (!ValidatePixelCurseDefinition(true) ||
+            playerRoot == null ||
+            alienSignal == null ||
+            !corePresentationProgress.TryBeginTransfer())
         {
+            Debug.LogError(
+                "Tutorial Curse transfer cannot start without the ready Purple Core and Player target.",
+                this);
             curseTransformationRoutine = null;
             yield break;
         }
 
+        SetTargetPresentationInputLocked(true);
+        curseLetterbox = BossCinematicLetterboxUI.GetOrCreate();
+        if (curseLetterbox == null)
+        {
+            AbortCurseTransformationFromRoutine();
+            yield break;
+        }
+
+        ownsCurseLetterbox = true;
+        yield return curseLetterbox.ShowRoutine(
+            Mathf.Clamp(curseLetterboxHeightRatio, 0.05f, 0.12f),
+            Mathf.Clamp(curseLetterboxDuration, 0.15f, 0.2f));
+
+        if (!CanContinueCurseTransformation() ||
+            !TryAcquireCurseCameraPresentation())
+        {
+            AbortCurseTransformationFromRoutine();
+            yield break;
+        }
+
+        while (tutorialCamera.IsCinematicFocusBlendActive)
+        {
+            if (!CanContinueCurseTransformation() ||
+                !tutorialCamera.IsCinematicFocusOwnedBy(this))
+            {
+                AbortCurseTransformationFromRoutine();
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        if (!CanContinueCurseTransformation() ||
+            !tutorialCamera.IsCinematicFocusOwnedBy(this))
+        {
+            AbortCurseTransformationFromRoutine();
+            yield break;
+        }
+
+        PlayStationaryTutorialPurpleEffect(
+            alienSignalVisualRoot,
+            ResolveRendererWorldCenter(
+                alienSignalCoreRenderer,
+                alienSignalVisualRoot.position),
+            1.45f,
+            Mathf.Clamp(curseImpactPauseDuration, 0.08f, 0.15f) + 0.08f);
+
+        yield return new WaitForSecondsRealtime(
+            Mathf.Clamp(curseImpactPauseDuration, 0.08f, 0.15f));
+
         transformationPauseManager = GameplayPauseManager.Instance;
         transformationPauseManager?.PushPause(this, "Tutorial Pixel Curse transformation");
-        PlayAlienSignalTransformation();
 
-        float peakDelay = Mathf.Max(0.1f, corruptionPeakDelay);
-        float darkenLead = Mathf.Min(0.2f, peakDelay * 0.35f);
-        if (darkenLead > 0f)
+        Sequence infiltration = BeginAlienSignalInfiltration();
+        if (infiltration == null)
         {
-            yield return new WaitForSecondsRealtime(darkenLead);
+            AbortCurseTransformationFromRoutine();
+            yield break;
+        }
+
+        while (infiltration.IsActive() && !infiltration.IsComplete())
+        {
+            if (!CanContinueCurseTransformation())
+            {
+                AbortCurseTransformationFromRoutine();
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        if (!CanContinueCurseTransformation() ||
+            !corePresentationProgress.TryBeginImpact())
+        {
+            AbortCurseTransformationFromRoutine();
+            yield break;
+        }
+
+        float impactDuration = Mathf.Clamp(curseImpactPauseDuration, 0.08f, 0.15f);
+        Tween impactTween = PlayPlayerCurseImpact(impactDuration);
+        yield return new WaitForSecondsRealtime(impactDuration);
+
+        while (impactTween != null &&
+               impactTween.IsActive() &&
+               !impactTween.IsComplete())
+        {
+            if (!CanContinueCurseTransformation())
+            {
+                AbortCurseTransformationFromRoutine();
+                yield break;
+            }
+
+            yield return null;
         }
 
         ScreenFader screenFader = ScreenFader.Instance;
-        float darkenDuration = Mathf.Max(0.01f, corruptionDarkenDuration);
-        if (screenFader != null)
+        if (screenFader == null)
         {
-            ownsTransformationScreenFade = true;
-            yield return screenFader.FadeIn(this, darkenDuration);
+            Debug.LogError(
+                "Tutorial Pixel Curse cinematic requires the persistent ScreenFader.",
+                this);
+            AbortCurseTransformationFromRoutine();
+            yield break;
         }
 
-        float remainingPeakDelay = peakDelay - darkenLead - (screenFader != null ? darkenDuration : 0f);
-        if (remainingPeakDelay > 0f)
+        ownsTransformationScreenFade = true;
+        yield return screenFader.FadeIn(
+            this,
+            Mathf.Clamp(curseFadeOutDuration, 0.25f, 0.4f));
+
+        if (!CanContinueCurseTransformation() ||
+            !corePresentationProgress.TryApplyCurse())
         {
-            yield return new WaitForSecondsRealtime(remainingPeakDelay);
+            AbortCurseTransformationFromRoutine();
+            yield break;
         }
+
+        SetAlienSignalVisualAlpha(0f);
+        SetAlienSignalCollidersEnabled(false);
 
         bool acquired = RunTraitAcquisitionService.TryAcquirePersistentStoryTrait(
             pixelCurseDefinition,
@@ -1996,36 +3677,41 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (!acquired && !HasPersistentPixelCurse())
         {
             Debug.LogError("Pixel Curse acquisition failed; Tutorial remains at CurseTransformation.", this);
-            ClearTransformationScreenFade();
-            ReleaseTransformationPause();
-            RestoreAlienSignalVisualState();
-            curseTransformationRoutine = null;
+            corePresentationProgress.RestoreReadyAfterFailedCurseApplication();
+            AbortCurseTransformationFromRoutine();
             yield break;
         }
 
-        playerVisualStateController?.RefreshVisualState();
-        playerVisualStateController?.PlayCurseAcquiredGlitch();
+        coreAcquisitionLatch.TryComplete();
+        alienSignalDamageReceiver?.SetReceivingEnabled(false);
+        RefreshPlayerVisualState(true);
         statusEffectPresenter?.SetExternalVisible(true);
         statusEffectPresenter?.RefreshStatuses();
+        ReleaseCurseCameraPresentation(true);
 
-        if (screenFader != null && ownsTransformationScreenFade)
+        if (ownsTransformationScreenFade)
         {
-            yield return screenFader.FadeOut(this, Mathf.Max(0.01f, corruptionRecoveryDuration));
+            yield return screenFader.FadeOut(
+                this,
+                Mathf.Clamp(curseFadeInDuration, 0.3f, 0.45f));
             ownsTransformationScreenFade = false;
         }
 
-        expeditionHUD?.ShowObjectiveBriefing(
-            "시스템 오류",
-            curseAcquiredFeedback,
-            alienSignalPeakColor
-        );
+        if (ownsCurseLetterbox && curseLetterbox != null)
+        {
+            yield return curseLetterbox.HideRoutine(
+                Mathf.Clamp(curseLetterboxDuration, 0.15f, 0.2f));
+            ownsCurseLetterbox = false;
+        }
+
+        ShowLocalizedCurseAcquisitionBriefing();
 
         yield return new WaitForSecondsRealtime(Mathf.Max(0.1f, acquisitionFeedbackDuration));
 
         curseTransformationRoutine = null;
-        alienSignalTween?.Kill();
-        alienSignalTween = null;
-        RestoreAlienSignalVisualState();
+        StopCurseInfiltration(false);
+        StopTutorialPurpleEffect();
+        SetTargetPresentationInputLocked(false);
         ReleaseTransformationPause();
         ClearPurpleCoreRadarReveal();
         SetStep(TutorialStep.SettlementCommunication);
@@ -2036,6 +3722,28 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (alienSignalVisualRoot != null)
         {
             alienSignalVisualRestScale = alienSignalVisualRoot.localScale;
+            alienSignalVisualRestLocalPosition = alienSignalVisualRoot.localPosition;
+            alienSignalVisualRenderers =
+                alienSignalVisualRoot.GetComponentsInChildren<SpriteRenderer>(true);
+            alienSignalVisualRestColors = new Color[alienSignalVisualRenderers.Length];
+
+            for (int i = 0; i < alienSignalVisualRenderers.Length; i++)
+            {
+                alienSignalVisualRestColors[i] = alienSignalVisualRenderers[i] != null
+                    ? alienSignalVisualRenderers[i].color
+                    : Color.white;
+            }
+        }
+
+        alienSignalColliders = alienSignal != null
+            ? alienSignal.GetComponentsInChildren<Collider2D>(true)
+            : Array.Empty<Collider2D>();
+        alienSignalColliderRestStates = new bool[alienSignalColliders.Length];
+
+        for (int i = 0; i < alienSignalColliders.Length; i++)
+        {
+            alienSignalColliderRestStates[i] =
+                alienSignalColliders[i] != null && alienSignalColliders[i].enabled;
         }
 
         if (alienSignalPulseRenderer != null)
@@ -2047,52 +3755,281 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (alienSignalCoreRenderer != null)
         {
             alienSignalCoreRestColor = alienSignalCoreRenderer.color;
+            alienSignalCoreTravelTransform = alienSignalCoreRenderer.transform;
+            alienSignalCoreOriginalParent = alienSignalCoreTravelTransform.parent;
+            alienSignalCoreOriginalLocalPosition =
+                alienSignalCoreTravelTransform.localPosition;
+            alienSignalCoreOriginalLocalRotation =
+                alienSignalCoreTravelTransform.localRotation;
+            alienSignalCoreOriginalLocalScale =
+                alienSignalCoreTravelTransform.localScale;
+            alienSignalCoreOriginalActive =
+                alienSignalCoreTravelTransform.gameObject.activeSelf;
+            alienSignalCoreTravelStateCached = true;
         }
     }
 
-    private void PlayAlienSignalTransformation()
+    private bool CanContinueCurseTransformation()
     {
+        return isActiveAndEnabled &&
+               currentStep == TutorialStep.CurseTransformation &&
+               playerRoot != null &&
+               playerRoot.gameObject.activeInHierarchy &&
+               playerCurseImpactVisual != null &&
+               playerCurseImpactVisual.gameObject.activeInHierarchy &&
+               alienSignal != null &&
+               alienSignal.activeInHierarchy &&
+               alienSignalVisualRoot != null &&
+               alienSignalVisualRoot.gameObject.activeInHierarchy;
+    }
+
+    private Sequence BeginAlienSignalInfiltration()
+    {
+        purpleCoreHitTween?.Kill();
+        purpleCoreHitTween = null;
+        StopAlienSignalIdleMotion();
+        StopCurseInfiltration(true);
         alienSignalTween?.Kill();
+        alienSignalTween = null;
         RestoreAlienSignalVisualState();
 
-        if (alienSignal != null)
+        if (alienSignalVisualRoot == null ||
+            alienSignalCoreRenderer == null ||
+            alienSignalCoreTravelTransform == null ||
+            playerCurseImpactVisual == null)
         {
-            AudioManager.PlayAt(SoundEventIds.CoreActivate, alienSignal.transform.position, 0.9f);
+            Debug.LogError(
+                "Tutorial Purple Core infiltration requires Core and Player visual roots.",
+                this);
+            return null;
         }
 
-        if (corruptionShakeAmplitude > 0f && corruptionShakeDuration > 0f)
+        AudioManager.PlayAt(SoundEventIds.CoreActivate, alienSignal.transform.position, 0.9f);
+        SetAlienSignalCollidersEnabled(false);
+        alienSignalVisualRoot.localPosition = alienSignalVisualRestLocalPosition;
+        alienSignalVisualRoot.localScale = alienSignalVisualRestScale;
+
+        float travelDuration = Mathf.Clamp(curseTransferDuration, 0.45f, 0.7f);
+        float absorptionDuration = Mathf.Clamp(
+            curseCoreAbsorptionDuration,
+            0.12f,
+            0.2f);
+        float corruptionDuration = Mathf.Clamp(
+            curseShipCorruptionDuration,
+            0.25f,
+            0.4f);
+        float impactScale = Mathf.Clamp(curseTransferImpactScale, 1.5f, 2f);
+        Vector3 playerTarget = playerCurseImpactVisual.position;
+
+        if (!TryAcquireTutorialPurpleEffect(playerCurseImpactVisual, playerTarget))
         {
-            GungeonStyleCamera2D.RequestShake(corruptionShakeAmplitude, corruptionShakeDuration);
+            return null;
         }
 
-        float duration = Mathf.Max(0.1f, corruptionPeakDelay);
-        alienSignalTween = DOTween.Sequence()
+        Transform corruptionTransform = activeTutorialPurpleEffect.transform;
+        SpriteRenderer corruptionRenderer = activeTutorialPurpleEffectRenderer;
+        Color corruptionColor = corruptionRenderer.color;
+        corruptionColor.r = Mathf.Max(0.45f, corruptionColor.r);
+        corruptionColor.g = Mathf.Min(0.3f, corruptionColor.g);
+        corruptionColor.b = Mathf.Max(0.8f, corruptionColor.b);
+        corruptionColor.a = 0f;
+        corruptionRenderer.color = corruptionColor;
+        corruptionTransform.position = playerTarget;
+        corruptionTransform.localScale = Vector3.one * 0.25f;
+
+        Transform coreTravelTransform = alienSignalCoreTravelTransform;
+        coreTravelTransform.SetParent(null, true);
+        coreTravelTransform.gameObject.SetActive(true);
+        Color coreTravelColor = alienSignalCoreRestColor;
+        coreTravelColor.a = Mathf.Max(0.01f, coreTravelColor.a);
+        alienSignalCoreRenderer.color = coreTravelColor;
+
+        curseInfiltrationTween = DOTween.Sequence()
             .SetUpdate(true)
             .SetLink(gameObject, LinkBehaviour.KillOnDisable);
-
-        if (alienSignalVisualRoot != null)
+        curseInfiltrationTween.Append(
+            coreTravelTransform.DOMove(playerTarget, travelDuration)
+                .SetEase(Ease.InOutQuad));
+        curseInfiltrationTween.Join(
+            coreTravelTransform.DOScale(
+                    alienSignalCoreOriginalLocalScale * 1.08f,
+                    travelDuration)
+                .SetEase(Ease.OutQuad));
+        curseInfiltrationTween.Append(
+            coreTravelTransform.DOScale(
+                    alienSignalCoreOriginalLocalScale * 0.72f,
+                    absorptionDuration)
+                .SetEase(Ease.InQuad));
+        curseInfiltrationTween.Join(
+            alienSignalCoreRenderer.DOFade(0f, absorptionDuration)
+                .SetEase(Ease.InQuad));
+        curseInfiltrationTween.AppendCallback(() =>
         {
-            alienSignalTween.Join(
-                alienSignalVisualRoot.DOScale(alienSignalVisualRestScale * 1.2f, duration)
-                    .SetEase(Ease.InOutSine)
-            );
+            Color visibleCorruption = corruptionRenderer.color;
+            visibleCorruption.a = Mathf.Max(
+                0.65f,
+                activeTutorialPurpleEffectRestColor.a);
+            corruptionRenderer.color = visibleCorruption;
+        });
+        curseInfiltrationTween.Append(
+            corruptionTransform.DOScale(
+                    activeTutorialPurpleEffectRestScale * impactScale,
+                    corruptionDuration)
+                .SetEase(Ease.OutQuad));
+        curseInfiltrationTween.Join(
+            corruptionRenderer.DOFade(0f, corruptionDuration)
+                .SetEase(Ease.InQuad));
+        curseInfiltrationTween.OnComplete(() =>
+        {
+            RestoreAlienSignalCoreTravelTransform(false);
+            curseInfiltrationTween = null;
+            StopTutorialPurpleEffect();
+        });
+
+        return curseInfiltrationTween;
+    }
+
+    private Tween PlayPlayerCurseImpact(float duration)
+    {
+        if (corruptionShakeAmplitude > 0f && corruptionShakeDuration > 0f)
+        {
+            GungeonStyleCamera2D.RequestShake(
+                corruptionShakeAmplitude,
+                corruptionShakeDuration);
         }
 
-        if (alienSignalCoreRenderer != null)
+        if (playerCurseImpactVisual == null)
         {
-            alienSignalTween.Join(alienSignalCoreRenderer.DOColor(alienSignalPeakColor, duration));
+            return null;
         }
 
-        if (alienSignalPulseRenderer != null)
+        playerCurseImpactTween?.Kill();
+        playerCurseImpactVisual.localScale = playerCurseImpactRestScale;
+        playerCurseImpactTween = playerCurseImpactVisual
+            .DOPunchScale(
+                playerCurseImpactRestScale * 0.18f,
+                Mathf.Max(0.08f, duration),
+                4,
+                0.25f)
+            .SetUpdate(true)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        return playerCurseImpactTween;
+    }
+
+    private void StopCurseInfiltration(bool restoreCoreVisual)
+    {
+        curseInfiltrationTween?.Kill();
+        curseInfiltrationTween = null;
+        StopTutorialPurpleEffect();
+        playerCurseImpactTween?.Kill();
+        playerCurseImpactTween = null;
+
+        if (playerCurseImpactVisual != null)
         {
-            Color transparentPeak = alienSignalPeakColor;
-            transparentPeak.a = 0f;
-            alienSignalTween.Join(
-                alienSignalPulseRenderer.transform.DOScale(alienSignalPulseRestScale * 3.2f, duration)
-                    .SetEase(Ease.OutQuad)
-            );
-            alienSignalTween.Join(alienSignalPulseRenderer.DOColor(transparentPeak, duration));
+            playerCurseImpactVisual.localScale = playerCurseImpactRestScale;
         }
+
+        if (restoreCoreVisual)
+        {
+            RestoreAlienSignalVisualState();
+            SetAlienSignalCollidersEnabled(true);
+        }
+        else
+        {
+            RestoreAlienSignalCoreTravelTransform(false);
+        }
+    }
+
+    private bool TryAcquireCurseCameraPresentation()
+    {
+        CacheRuntimeReferences();
+        if (tutorialCamera == null ||
+            alienSignalVisualRoot == null ||
+            !tutorialCamera.AcquireGameplayFramingProfile(
+                this,
+                Vector2.zero,
+                1f,
+                Mathf.Clamp(curseCameraZoomMultiplier, 0.55f, 0.9f),
+                false))
+        {
+            return false;
+        }
+
+        ownsCurseCameraPresentation = true;
+        if (tutorialCamera.TryBeginOwnedCinematicFocusBlend(
+                this,
+                ResolveRendererWorldCenter(
+                    alienSignalCoreRenderer,
+                    alienSignalVisualRoot.position),
+                Mathf.Clamp(curseCameraFocusDuration, 0.45f, 0.7f),
+                null,
+                out _))
+        {
+            return true;
+        }
+
+        ReleaseCurseCameraPresentation(true);
+        return false;
+    }
+
+    private void ReleaseCurseCameraPresentation(bool immediate)
+    {
+        if (!ownsCurseCameraPresentation)
+        {
+            return;
+        }
+
+        ownsCurseCameraPresentation = false;
+        if (tutorialCamera == null)
+        {
+            return;
+        }
+
+        tutorialCamera.ReleaseGameplayFramingProfile(this, immediate);
+        tutorialCamera.ReleaseOwnedCinematicFocus(this, immediate);
+    }
+
+    private void ClearCurseLetterbox()
+    {
+        if (!ownsCurseLetterbox)
+        {
+            return;
+        }
+
+        ownsCurseLetterbox = false;
+        curseLetterbox?.HideImmediate();
+    }
+
+    private void AbortCurseTransformationFromRoutine()
+    {
+        curseTransformationRoutine = null;
+        StopCurseInfiltration(true);
+        corePresentationProgress.RestoreReadyAfterInterruptedTransfer();
+        ClearTransformationScreenFade();
+        ReleaseCurseCameraPresentation(true);
+        ClearCurseLetterbox();
+        SetTargetPresentationInputLocked(false);
+        ReleaseTransformationPause();
+        coreAcquisitionLatch.Cancel();
+        RefreshPlayerVisualState(false);
+    }
+
+    private void ShowLocalizedCurseAcquisitionBriefing()
+    {
+        if (expeditionHUD == null || !VoidScrapperLocalizationService.HasInstance)
+        {
+            Debug.LogWarning(
+                "Tutorial Curse briefing requires the persistent localization service.",
+                this);
+            return;
+        }
+
+        expeditionHUD.ShowObjectiveBriefing(
+            VoidScrapperLocalizationService.Instance.GetText(
+                Phase2CStoryDialogueIds.TutorialCurseErrorTitleTextKey),
+            VoidScrapperLocalizationService.Instance.GetText(
+                Phase2CStoryDialogueIds.TutorialCurseErrorBodyTextKey),
+            alienSignalPeakColor);
     }
 
     private void PlayAlienSignalApproachPulse()
@@ -2148,18 +4085,81 @@ public sealed class TutorialFlowController : MonoBehaviour
             curseTransformationRoutine = null;
         }
 
+        bool restoreCoreVisual = corePresentationProgress.Phase !=
+            TutorialCorePresentationPhase.CurseApplied;
+        StopCurseInfiltration(restoreCoreVisual);
+        corePresentationProgress.RestoreReadyAfterInterruptedTransfer();
         alienSignalTween?.Kill();
         alienSignalTween = null;
-        RestoreAlienSignalVisualState();
         ClearTransformationScreenFade();
+        ReleaseCurseCameraPresentation(true);
+        ClearCurseLetterbox();
+        SetTargetPresentationInputLocked(false);
         ReleaseTransformationPause();
+        if (corePresentationProgress.Phase != TutorialCorePresentationPhase.CurseApplied)
+        {
+            coreAcquisitionLatch.Cancel();
+        }
+        RefreshPlayerVisualState(false);
+    }
+
+    private void RefreshPlayerVisualState(bool playCurseGlitch)
+    {
+        if (playerVisualStateController == null)
+        {
+            playerVisualStateController = null;
+            return;
+        }
+
+        playerVisualStateController.RefreshVisualState();
+        if (playCurseGlitch)
+        {
+            playerVisualStateController.PlayCurseAcquiredGlitch();
+        }
+    }
+
+    private void RestoreAlienSignalCoreTravelTransform(bool restoreVisual)
+    {
+        if (!alienSignalCoreTravelStateCached ||
+            alienSignalCoreTravelTransform == null)
+        {
+            return;
+        }
+
+        alienSignalCoreTravelTransform.SetParent(
+            alienSignalCoreOriginalParent,
+            false);
+        alienSignalCoreTravelTransform.localPosition =
+            alienSignalCoreOriginalLocalPosition;
+        alienSignalCoreTravelTransform.localRotation =
+            alienSignalCoreOriginalLocalRotation;
+        alienSignalCoreTravelTransform.localScale =
+            alienSignalCoreOriginalLocalScale;
+        alienSignalCoreTravelTransform.gameObject.SetActive(
+            alienSignalCoreOriginalActive);
+
+        if (restoreVisual && alienSignalCoreRenderer != null)
+        {
+            alienSignalCoreRenderer.color = alienSignalCoreRestColor;
+        }
     }
 
     private void RestoreAlienSignalVisualState()
     {
+        RestoreAlienSignalCoreTravelTransform(true);
         if (alienSignalVisualRoot != null)
         {
+            alienSignalVisualRoot.localPosition = alienSignalVisualRestLocalPosition;
             alienSignalVisualRoot.localScale = alienSignalVisualRestScale;
+        }
+
+        for (int i = 0; i < alienSignalVisualRenderers.Length; i++)
+        {
+            if (alienSignalVisualRenderers[i] != null)
+            {
+                alienSignalVisualRenderers[i].color =
+                    alienSignalVisualRestColors[i];
+            }
         }
 
         if (alienSignalCoreRenderer != null)
@@ -2171,6 +4171,92 @@ public sealed class TutorialFlowController : MonoBehaviour
         {
             alienSignalPulseRenderer.transform.localScale = alienSignalPulseRestScale;
             alienSignalPulseRenderer.color = alienSignalPulseRestColor;
+        }
+    }
+
+    private void SetAlienSignalVisualAlpha(float alpha)
+    {
+        float clampedAlpha = Mathf.Clamp01(alpha);
+
+        for (int i = 0; i < alienSignalVisualRenderers.Length; i++)
+        {
+            SpriteRenderer renderer = alienSignalVisualRenderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            Color color = alienSignalVisualRestColors[i];
+            color.a *= clampedAlpha;
+            renderer.color = color;
+        }
+    }
+
+    private void SetAlienSignalCollidersEnabled(bool restoreAuthoredState)
+    {
+        for (int i = 0; i < alienSignalColliders.Length; i++)
+        {
+            if (alienSignalColliders[i] != null)
+            {
+                alienSignalColliders[i].enabled = restoreAuthoredState &&
+                    alienSignalColliderRestStates[i];
+            }
+        }
+    }
+
+    private void StartAlienSignalIdleMotion()
+    {
+        StopAlienSignalIdleMotion();
+        if (alienSignalVisualRoot == null || !alienSignalVisualRoot.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        float distance = Mathf.Clamp(purpleCoreIdleFloatDistance, 0.08f, 0.15f);
+        float duration = Mathf.Clamp(purpleCoreIdleFloatDuration, 1.5f, 2f);
+        alienSignalVisualRoot.localPosition = alienSignalVisualRestLocalPosition;
+        alienSignalIdleTween = alienSignalVisualRoot
+            .DOLocalMoveY(alienSignalVisualRestLocalPosition.y + distance, duration)
+            .SetEase(Ease.InOutSine)
+            .SetLoops(-1, LoopType.Yoyo)
+            .SetUpdate(true)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+    }
+
+    private void StopAlienSignalIdleMotion()
+    {
+        alienSignalIdleTween?.Kill();
+        alienSignalIdleTween = null;
+
+        if (alienSignalVisualRoot != null)
+        {
+            alienSignalVisualRoot.localPosition = alienSignalVisualRestLocalPosition;
+        }
+    }
+
+    private void ResetPurpleCorePresentation(bool resetProgress)
+    {
+        purpleCoreHitTween?.Kill();
+        purpleCoreHitTween = null;
+        alienSignalRevealTween?.Kill();
+        alienSignalRevealTween = null;
+        StopAlienSignalIdleMotion();
+        bool restoreReadyState = !HasPersistentPixelCurse() &&
+                                 corePresentationProgress.Phase !=
+                                 TutorialCorePresentationPhase.CurseApplied;
+
+        if (restoreReadyState)
+        {
+            RestoreAlienSignalVisualState();
+        }
+
+        SetAlienSignalCollidersEnabled(restoreReadyState);
+
+        if (resetProgress)
+        {
+            corePresentationProgress.Reset();
+            coreAcquisitionLatch.Reset();
+            alienSignalDamageReceiver?.ResetProgress();
         }
     }
 
@@ -2225,14 +4311,12 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (trigger == null || string.IsNullOrWhiteSpace(trigger.conversation))
         {
             Debug.LogError("Tutorial Settlement communication trigger is missing.", this);
-            TryAdvanceCheckpoint(TutorialStep.SettlementCommunication);
             return;
         }
 
         if (!DialogueManager.hasInstance || DialogueManager.instance == null)
         {
             Debug.LogError("Persistent Boot-owned Dialogue Manager is unavailable.", this);
-            TryAdvanceCheckpoint(TutorialStep.SettlementCommunication);
             return;
         }
 
@@ -2244,7 +4328,6 @@ public sealed class TutorialFlowController : MonoBehaviour
                 $"Tutorial conversation '{trigger.conversation}' is missing from the active Dialogue Database.",
                 this
             );
-            TryAdvanceCheckpoint(TutorialStep.SettlementCommunication);
             return;
         }
 
@@ -2261,7 +4344,6 @@ public sealed class TutorialFlowController : MonoBehaviour
         {
             StopWaitingForRescueConversation();
             Debug.LogError($"Tutorial conversation '{trigger.conversation}' failed to start.", this);
-            TryAdvanceCheckpoint(TutorialStep.SettlementCommunication);
             return;
         }
 
@@ -2286,8 +4368,18 @@ public sealed class TutorialFlowController : MonoBehaviour
             return;
         }
 
+        bool completedNaturally = WasConversationCompletedNaturally(
+            expectedConversation);
         StopWaitingForRescueConversation();
-        TryAdvanceCheckpoint(TutorialStep.SettlementCommunication);
+
+        if (completedNaturally)
+        {
+            TryAdvanceCheckpoint(TutorialStep.SettlementCommunication);
+        }
+        else
+        {
+            RefreshRescueSequence();
+        }
     }
 
     private void StopRescueSequence()
@@ -2490,7 +4582,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         isCompleting = true;
         ClearTutorialHealthFloor();
         progress.TryMarkTutorialCompleted();
-        progress.AddUnlockFlag(FirstSettlementPendingFlag);
+        progress.AddUnlockFlag(StoryProgressionIds.FirstSettlementPendingFlag);
         saveManager.Save(progress);
 
         TutorialStep previousStep = currentStep;
@@ -2541,6 +4633,12 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void StopStepOwnedRoutine(TutorialStep previousStep)
     {
+        if (previousStep == TutorialStep.InteractSignalDevice &&
+            relayNarrativeProgress.Phase != TutorialRelayNarrativePhase.Completed)
+        {
+            StopRelayNarrative(true);
+        }
+
         if ((previousStep == TutorialStep.Move || previousStep == TutorialStep.Dash) &&
             controlPacingRoutine != null)
         {
@@ -2554,7 +4652,8 @@ public sealed class TutorialFlowController : MonoBehaviour
             cargoFeedbackRoutine = null;
         }
 
-        if ((previousStep == TutorialStep.TravelNormalSalvage ||
+        if ((previousStep == TutorialStep.RoutePing ||
+             previousStep == TutorialStep.TravelNormalSalvage ||
              previousStep == TutorialStep.DestroyNormalSalvage ||
              previousStep == TutorialStep.TravelHighValue ||
              previousStep == TutorialStep.FindSignalDevice ||
@@ -2564,6 +4663,12 @@ public sealed class TutorialFlowController : MonoBehaviour
         {
             StopCoroutine(objectiveCheckRoutine);
             objectiveCheckRoutine = null;
+        }
+
+        if (previousStep == activeTargetTriggerStep &&
+            targetPresentationRoutine != null)
+        {
+            StopTargetPresentation(true, true);
         }
 
         if (previousStep == TutorialStep.UnknownMission && unknownMissionRoutine != null)
@@ -2576,6 +4681,7 @@ public sealed class TutorialFlowController : MonoBehaviour
     private void StopAllStepRoutines()
     {
         KillDialogueGuideHandoff();
+        StopTargetPresentation(true, true);
 
         if (controlPacingRoutine != null)
         {
@@ -2610,6 +4716,27 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (rescueDialogueController != null)
         {
             rescueDialogueController.conversationEnded -= HandleOpeningConversationEnded;
+            rescueDialogueController.conversationEnded -= HandleRescueConversationEnded;
+        }
+
+        bool stopOwnedOperatorConversation =
+            openingConversationStarted &&
+            !string.IsNullOrWhiteSpace(activeOperatorConversationTitle) &&
+            DialogueManager.hasInstance &&
+            DialogueManager.isConversationActive &&
+            string.Equals(
+                DialogueManager.lastConversationStarted,
+                activeOperatorConversationTitle,
+                StringComparison.Ordinal);
+
+        rescueDialogueController = null;
+        openingConversationStarted = false;
+        openingTransmissionProgress.FinishTransmission();
+        activeOperatorGuidanceStep = TutorialStep.Complete;
+        activeOperatorConversationTitle = string.Empty;
+        if (stopOwnedOperatorConversation)
+        {
+            DialogueManager.StopConversation();
         }
     }
 
@@ -2676,6 +4803,68 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private string ResolveObjectiveDetail(StepPresentation presentation)
     {
+        if (currentStep == TutorialStep.RadarDiscoverSalvage &&
+            radarScanner != null &&
+            VoidScrapperLocalizationService.HasInstance)
+        {
+            localizationArguments.Clear();
+            localizationArguments["radar"] = radarScanner.RadarBindingDisplay;
+            localizationArguments["scan"] = radarScanner.QuickScanBindingDisplay;
+            return VoidScrapperLocalizationService.Instance.FormatText(
+                Phase2CStoryDialogueIds.TutorialRadarObjectiveTextKey,
+                localizationArguments);
+        }
+
+        if (currentStep == TutorialStep.FindSignalDevice &&
+            radarScanner != null &&
+            VoidScrapperLocalizationService.HasInstance)
+        {
+            localizationArguments.Clear();
+            localizationArguments["radar"] = radarScanner.RadarBindingDisplay;
+            localizationArguments["scan"] = radarScanner.QuickScanBindingDisplay;
+            string textKey =
+                Phase2CStoryDialogueIds.ResolveUnknownSignalRadarObjectiveTextKey(
+                    radarScanner.IsRadarActive
+                );
+            return VoidScrapperLocalizationService.Instance.FormatText(
+                textKey,
+                localizationArguments
+            );
+        }
+
+        if (currentStep == TutorialStep.RoutePing &&
+            VoidScrapperLocalizationService.HasInstance)
+        {
+            return VoidScrapperLocalizationService.Instance.GetText(
+                Phase2CStoryDialogueIds.TutorialRouteOptionalTextKey);
+        }
+
+        if (currentStep == TutorialStep.UnknownMission ||
+            currentStep == TutorialStep.TravelSearchArea ||
+            currentStep == TutorialStep.RevealPurpleCore)
+        {
+            return ResolveLocalizedTutorialText(
+                Phase2CStoryDialogueIds.TutorialUnknownSignalObjectiveTextKey);
+        }
+
+        if (currentStep == TutorialStep.TravelPurpleCore)
+        {
+            return ResolveLocalizedTutorialText(
+                Phase2CStoryDialogueIds.TutorialPurpleCoreTravelTextKey);
+        }
+
+        if (currentStep == TutorialStep.InteractPurpleCore)
+        {
+            return ResolveLocalizedTutorialText(
+                Phase2CStoryDialogueIds.TutorialPurpleCoreInteractTextKey);
+        }
+
+        if (currentStep == TutorialStep.CurseTransformation)
+        {
+            return ResolveLocalizedTutorialText(
+                Phase2CStoryDialogueIds.TutorialCurseErrorBodyTextKey);
+        }
+
         if (currentStep == TutorialStep.DestroyNormalSalvage)
         {
             return "공격하여 자원을 회수하세요!";
@@ -2744,14 +4933,20 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private bool ShouldDeferBriefingForOperatorDialogue(TutorialStep step)
     {
-        return step == TutorialStep.AimAndFire && !weaponGuidanceCompleted ||
-               step == TutorialStep.RadarDiscoverSalvage && !radarGuidanceCompleted ||
-               step == TutorialStep.DestroyNormalSalvage && !harvestVisibilityGuidanceCompleted ||
-               step == TutorialStep.EquipDefensiveActive && !activePickupGuidanceCompleted ||
-               step == TutorialStep.Combat && !activeUseGuidanceCompleted;
+        if (step == TutorialStep.Move &&
+            !openingTransmissionProgress.HasConfirmedMovement)
+        {
+            return false;
+        }
+
+        return Phase2CStoryDialogueIds.TryGetTutorialGuidanceConversation(
+                   step,
+                   highValueAutoRegistered,
+                   out _) &&
+               !operatorGuidanceProgress.IsComplete(step);
     }
 
-    private static string ResolveObjectiveTitle(TutorialStep step)
+    private string ResolveObjectiveTitle(TutorialStep step)
     {
         return step switch
         {
@@ -2772,13 +4967,27 @@ public sealed class TutorialFlowController : MonoBehaviour
             TutorialStep.Combat => "위협 제거",
             TutorialStep.FindSignalDevice => "미확인 신호 탐색",
             TutorialStep.InteractSignalDevice => "신호 장치 조사",
-            TutorialStep.UnknownMission => "???",
+            TutorialStep.UnknownMission => ResolveLocalizedTutorialText(
+                Phase2CStoryDialogueIds.TutorialUnknownSignalTitleTextKey),
             TutorialStep.TravelSearchArea => "미확인 지역 조사",
             TutorialStep.TravelPurpleCore => "미확인 코어 조사",
             TutorialStep.AcquireEmergencyReturn => "긴급복귀 장비 획득",
             TutorialStep.EmergencyReturn => "정착지로 복귀",
             _ => "튜토리얼"
         };
+    }
+
+    private string ResolveLocalizedTutorialText(string textKey)
+    {
+        if (!VoidScrapperLocalizationService.HasInstance)
+        {
+            Debug.LogWarning(
+                $"Tutorial localization service is unavailable for '{textKey}'.",
+                this);
+            return string.Empty;
+        }
+
+        return VoidScrapperLocalizationService.Instance.GetText(textKey);
     }
 
     private StepPresentation FindPresentation(TutorialStep step)

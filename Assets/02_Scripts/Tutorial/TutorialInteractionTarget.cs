@@ -39,6 +39,14 @@ public sealed class TutorialInteractionTarget : MonoBehaviour, IInteractable
         interactionEnabled = enabled && !IsActivated;
     }
 
+    public void SetInteractionText(string text)
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            interactionText = text;
+        }
+    }
+
     public void ResetTarget()
     {
         IsActivated = false;
@@ -57,5 +65,75 @@ public sealed class TutorialInteractionTarget : MonoBehaviour, IInteractable
         {
             activatedVisual.SetActive(IsActivated);
         }
+    }
+}
+
+[DisallowMultipleComponent]
+public sealed class TutorialPurpleCoreDamageReceiver : MonoBehaviour, IProjectileDamageReceiver
+{
+    private readonly TutorialPurpleCoreDamageProgress progress =
+        new TutorialPurpleCoreDamageProgress();
+
+    private TutorialFlowController tutorialController;
+    private float forcedInteractionThreshold = 15f;
+    private float contributionWindowSeconds = 0.12f;
+    private float contributionCap = 4f;
+    private bool receivingEnabled;
+
+    public float AccumulatedDamage => progress.AccumulatedDamage;
+    public bool ReceivingEnabled => receivingEnabled;
+
+    public void Configure(
+        TutorialFlowController controller,
+        float threshold,
+        float duplicateWindowSeconds,
+        float perWindowContributionCap)
+    {
+        tutorialController = controller;
+        forcedInteractionThreshold = Mathf.Max(0.01f, threshold);
+        contributionWindowSeconds = Mathf.Max(0f, duplicateWindowSeconds);
+        contributionCap = Mathf.Max(0.01f, perWindowContributionCap);
+    }
+
+    public void SetReceivingEnabled(bool enabled)
+    {
+        receivingEnabled = enabled;
+    }
+
+    public void ResetProgress()
+    {
+        receivingEnabled = false;
+        progress.Reset();
+    }
+
+    public bool TryReceiveProjectileDamage(in ProjectileDamageContext context)
+    {
+        if (!receivingEnabled ||
+            tutorialController == null ||
+            context.Owner != ProjectileOwner.Player ||
+            context.SourceRoot == null ||
+            (context.SourceRoot.GetComponentInParent<PlayerController2D>() == null &&
+             context.SourceRoot.GetComponentInParent<IPlayerOwnedAlly>() == null) ||
+            !progress.TryAddPlayerDamage(
+                context.Owner,
+                context.Damage,
+                Time.unscaledTime,
+                contributionWindowSeconds,
+                contributionCap,
+                forcedInteractionThreshold,
+                out _))
+        {
+            return false;
+        }
+
+        tutorialController.HandlePurpleCorePlayerDamageFeedback(context.HitPoint);
+        if (progress.ThresholdReached)
+        {
+            receivingEnabled = false;
+            tutorialController.TryRequestPurpleCoreAcquisition(
+                TutorialPurpleCoreActivationSource.PlayerDamage);
+        }
+
+        return true;
     }
 }
