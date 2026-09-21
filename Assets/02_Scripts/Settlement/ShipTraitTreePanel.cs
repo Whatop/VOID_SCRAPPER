@@ -4,6 +4,8 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.Events;
 
 
 public enum ShipTraitUnlockConditionKind
@@ -189,7 +191,7 @@ public class ShipTraitDetailViewData
     }
 }
 
-public class ShipTraitTreePanel : MonoBehaviour
+public partial class ShipTraitTreePanel : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private SettlementController settlementController;
@@ -252,18 +254,14 @@ public class ShipTraitTreePanel : MonoBehaviour
     [SerializeField] private bool allowLockedNodeSelection = true;
 
     [Header("Generated Nodes In ScrollView")]
-    [Tooltip("켜두면 Branch Nodes 목록을 기준으로 ScrollView Content 아래에 ShipTraitNodeButton 프리팹을 자동 생성합니다.")]
-    [SerializeField] private bool autoGenerateNodeButtons = true;
+    // Preserve the old prefab reference for serialized compatibility, never construct from it.
     [SerializeField] private ShipTraitNodeButton nodeButtonPrefab;
-    [Tooltip("브랜치별 Content Root가 비어 있을 때 사용할 기본 ScrollView Content입니다.")]
+    [Tooltip("Legacy serialized root; authored branch content references are required at runtime.")]
     [SerializeField] private Transform defaultNodeContentRoot;
     [SerializeField] private Transform sharedNodeContentRoot;
     [SerializeField] private Transform machineGunNodeContentRoot;
     [SerializeField] private Transform sniperNodeContentRoot;
     [SerializeField] private Transform shotgunNodeContentRoot;
-    [Tooltip("Content Root를 안 넣었을 때 기존 Branch Panel Object를 생성 위치로 사용합니다.")]
-    [SerializeField] private bool useBranchPanelObjectAsRootFallback = true;
-    [SerializeField] private bool rebuildGeneratedNodesOnEnable = true;
 
     [Header("Ship Catalog")]
     [SerializeField] private List<ShipDefinition> shipDefinitions = new List<ShipDefinition>();
@@ -306,6 +304,7 @@ public class ShipTraitTreePanel : MonoBehaviour
     [Header("Unlock Button")]
     [SerializeField] private Button unlockButton;
     [SerializeField] private TextMeshProUGUI unlockButtonLabelText;
+    [SerializeField] private SettlementUIController navigationPresentationOwner;
 
     [Header("Activation Toggle Button")]
     [Tooltip("해금된 특성을 탐사 시작 기본 적용에서 제외/재적용하는 버튼입니다.")]
@@ -323,6 +322,238 @@ public class ShipTraitTreePanel : MonoBehaviour
     public ShipTraitBranchKind SelectedBranch => selectedBranch;
     public string SelectedNodeId => selectedNodeId;
     public bool HasSelection => hasSelection;
+
+    [Header("Authored Additional Traits Presentation")]
+    [SerializeField] private RectTransform authoredDetailRoot;
+    [SerializeField] private RectTransform authoredCostRoot;
+    [SerializeField] private RectTransform authoredCatalogRoot;
+    [SerializeField] private Image authoredDetailBackground;
+    [SerializeField] private Image authoredCatalogBackground;
+    [SerializeField] private ShipTraitNodeButton authoredNodeTemplate;
+    [SerializeField] private Button sidebarButton;
+    private SettlementController subscribedController;
+    private PermanentProgress subscribedProgress;
+    private Button subscribedUnlockButton, subscribedActivationButton;
+    private bool authoredDiagnosticReported;
+    private readonly List<Selectable> visibleTraitControls = new List<Selectable>();
+    private readonly Dictionary<CanvasGroup, float> branchAlphaBaselines = new Dictionary<CanvasGroup, float>();
+
+    public bool UsesAuthoredPresentation => true;
+    public bool CanUseTraitInput => !UsesAuthoredPresentation || (isActiveAndEnabled &&
+        navigationPresentationOwner != null && navigationPresentationOwner.CanUseSettlementNavigation());
+
+    private void SubscribePresentation()
+    {
+        UnsubscribePresentation();
+        subscribedController = settlementController;
+        subscribedProgress = PermanentProgress.Instance;
+        // Controller already forwards permanent changes. Subscribe directly only without that publisher.
+        if (subscribedController != null) subscribedController.Changed += HandleExternalChanged;
+        else if (subscribedProgress != null) subscribedProgress.Changed += HandleExternalChanged;
+    }
+
+    private void UnsubscribePresentation()
+    {
+        if (subscribedController != null) subscribedController.Changed -= HandleExternalChanged;
+        else if (subscribedProgress != null) subscribedProgress.Changed -= HandleExternalChanged;
+        subscribedController = null;
+        subscribedProgress = null;
+    }
+
+    private void BindActionListeners()
+    {
+        UnbindActionListeners();
+        if (unlockButton != null)
+        {
+            ConfigureActionButtonSound(unlockButton);
+            if (!HasPersistentAction(unlockButton, nameof(HandleUnlockButtonClick), true))
+            {
+                subscribedUnlockButton = unlockButton;
+                subscribedUnlockButton.onClick.AddListener(HandleUnlockButtonClick);
+            }
+        }
+        if (traitActivationToggleButton != null)
+        {
+            ConfigureActionButtonSound(traitActivationToggleButton);
+            if (!HasPersistentAction(traitActivationToggleButton, nameof(HandleActivationToggleButtonClick), false))
+            {
+                subscribedActivationButton = traitActivationToggleButton;
+                subscribedActivationButton.onClick.AddListener(HandleActivationToggleButtonClick);
+            }
+        }
+    }
+
+    private bool HasPersistentAction(Button button, string method, bool purchase)
+    {
+        for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+        {
+            if (button.onClick.GetPersistentListenerState(i) == UnityEventCallState.Off) continue;
+            UnityEngine.Object target = button.onClick.GetPersistentTarget(i);
+            string name = button.onClick.GetPersistentMethodName(i);
+            if ((target == this && name == method) || (purchase && target == navigationPresentationOwner && name == "ExecuteTraitAction")) return true;
+        }
+        return false;
+    }
+
+    private void UnbindActionListeners()
+    {
+        if (subscribedUnlockButton != null) subscribedUnlockButton.onClick.RemoveListener(HandleUnlockButtonClick);
+        if (subscribedActivationButton != null) subscribedActivationButton.onClick.RemoveListener(HandleActivationToggleButtonClick);
+        subscribedUnlockButton = null;
+        subscribedActivationButton = null;
+    }
+
+    private bool AuthoredPresentationReady()
+    {
+        var errors = new List<string>();
+        CollectAdditionalTraitsBindingErrors(errors);
+        if (errors.Count == 0) return true;
+        if (!authoredDiagnosticReported)
+        {
+            authoredDiagnosticReported = true;
+            Debug.LogWarning("Additional Traits presentation unavailable. Restore the listed authored Inspector bindings. No replacement entries or actions will run.\n" + string.Join("\n", errors), this);
+        }
+        return false;
+    }
+
+    public void CollectAdditionalTraitsBindingErrors(List<string> errors)
+    {
+        if (equipmentDevelopmentMode) { ValidateEquipmentPresentation(errors); return; }
+        var roles = new HashSet<Component>();
+        void Role(string field, Component value, Transform container, bool self = false)
+        {
+            string reason = value == null ? "Missing binding" : value.gameObject.scene != gameObject.scene ? "Cross-scene ownership" :
+                container == null || (!self && value.transform == container) || !value.transform.IsChildOf(container) ? "Wrong ancestry" :
+                !roles.Add(value) ? "Duplicate role" : value is TMP_Text text && text.font == null ? "Missing font" : null;
+            if (reason != null) errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("ShipTraitTreePanel." + field, value, container, gameObject.scene, reason));
+        }
+        Role(nameof(authoredDetailRoot), authoredDetailRoot, transform);
+        Role(nameof(authoredCostRoot), authoredCostRoot, authoredDetailRoot);
+        Role(nameof(authoredCatalogRoot), authoredCatalogRoot, transform);
+        Role(nameof(authoredDetailBackground), authoredDetailBackground, authoredDetailRoot, true);
+        Role(nameof(authoredCatalogBackground), authoredCatalogBackground, authoredCatalogRoot, true);
+        Role(nameof(authoredNodeTemplate), authoredNodeTemplate, transform);
+        Role(nameof(selectedIconImage), selectedIconImage, authoredDetailRoot);
+        Role(nameof(detailLockImage), detailLockImage, authoredDetailRoot);
+        Role(nameof(titleText), titleText, authoredDetailRoot);
+        Role(nameof(descriptionText), descriptionText, authoredDetailRoot);
+        Role(nameof(branchText), branchText, authoredDetailRoot);
+        Role(nameof(levelText), levelText, authoredDetailRoot);
+        Role(nameof(costText), costText, authoredCostRoot);
+        Role(nameof(statusText), statusText, transform);
+        Role(nameof(messageText), messageText, transform);
+        Role(nameof(scrapCostIconImage), scrapCostIconImage, authoredCostRoot);
+        Role(nameof(coreShardCostIconImage), coreShardCostIconImage, authoredCostRoot);
+        if (scrapCostIconRoot != null) Role(nameof(scrapCostIconRoot), scrapCostIconRoot.transform, authoredCostRoot);
+        if (coreShardCostIconRoot != null) Role(nameof(coreShardCostIconRoot), coreShardCostIconRoot.transform, authoredCostRoot);
+        foreach (Image image in new[] { scrapCostIconImage, coreShardCostIconImage })
+            if (image != null && image.sprite == null) errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("ShipTraitTreePanel.costIcon.sprite", image, authoredCostRoot, gameObject.scene, "Missing currency icon"));
+        Role(nameof(unlockButton), unlockButton, transform);
+        Role(nameof(traitActivationToggleButton), traitActivationToggleButton, transform);
+        Role(nameof(unlockButtonLabelText), unlockButtonLabelText, unlockButton != null ? unlockButton.transform : null);
+        Role(nameof(traitActivationToggleButtonLabelText), traitActivationToggleButtonLabelText, traitActivationToggleButton != null ? traitActivationToggleButton.transform : null);
+        Role(nameof(sidebarButton), sidebarButton, transform.parent);
+        if (settlementController == null || settlementController.gameObject.scene != gameObject.scene) errors.Add("ShipTraitTreePanel.settlementController must belong to Settlement.");
+        if (navigationPresentationOwner == null || navigationPresentationOwner.gameObject.scene != gameObject.scene) errors.Add("ShipTraitTreePanel.navigationPresentationOwner must belong to Settlement.");
+        ShipTraitBranchTabButton[] tabs = { sharedTabButton, machineGunTabButton, sniperTabButton, shotgunTabButton };
+        string[] prefixes = { "shared", "machineGun", "sniper", "shotgun" };
+        for (int i = 0; i < tabs.Length; i++)
+        {
+            var kind = (ShipTraitBranchKind)i;
+            GameObject panel = GetBranchPanelObject(kind);
+            Role(prefixes[i] + "PanelObject", panel != null ? panel.transform : null, authoredCatalogRoot);
+            Transform content = GetNodeContentRoot(kind);
+            Role(prefixes[i] + "NodeContentRoot", content, panel != null ? panel.transform : null);
+            Role(prefixes[i] + "TabButton", tabs[i], transform);
+            if (tabs[i] != null)
+            {
+                tabs[i].CollectPresentationErrors(errors);
+                if (tabs[i].BranchKind != kind) errors.Add(prefixes[i] + "TabButton has an incorrect branch mapping.");
+            }
+            ScrollRect scroll = content != null ? content.GetComponentInParent<ScrollRect>(true) : null;
+            if (scroll == null || scroll.content != content || scroll.viewport == null || !content.IsChildOf(scroll.viewport))
+                errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic(prefixes[i] + "NodeContentRoot.ScrollRect", content, panel?.transform, gameObject.scene, "Incomplete scroll/content/viewport bindings"));
+        }
+        if (authoredNodeTemplate != null)
+        {
+            if (authoredNodeTemplate.gameObject.activeSelf) errors.Add("authoredNodeTemplate must stay inactive.");
+            authoredNodeTemplate.CollectPresentationErrors(errors);
+            if (authoredCatalogRoot != null && authoredNodeTemplate.transform.IsChildOf(authoredCatalogRoot)) errors.Add("Place the inactive template outside the catalog/content layout.");
+        }
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var nodes = new HashSet<ShipTraitNodeButton>();
+        if (branchNodes != null)
+            for (int i = 0; i < branchNodes.Count; i++)
+            {
+                ShipTraitBranchNodeEntry entry = branchNodes[i];
+                if (entry == null || string.IsNullOrWhiteSpace(GetEntryNodeId(entry)) || !ids.Add(GetEntryNodeId(entry)))
+                    errors.Add("branchNodes.Array.data[" + i + "]: missing or duplicate stable node ID.");
+                if (entry?.nodeButton == null) continue;
+                if (entry.nodeButton == authoredNodeTemplate || !nodes.Add(entry.nodeButton)) errors.Add("branchNodes.Array.data[" + i + "]: duplicate/template entry mapping.");
+                if (entry.nodeButton != authoredNodeTemplate && (entry.nodeButton.NodeId != GetEntryNodeId(entry) || entry.nodeButton.BranchKind != entry.branchKind))
+                    errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("branchNodes.Array.data[" + i + "].nodeButton", entry.nodeButton, GetNodeContentRoot(entry.branchKind), gameObject.scene, "Conflicting stable ID or category mapping"));
+                Role("branchNodes.Array.data[" + i + "].nodeButton", entry.nodeButton, GetNodeContentRoot(entry.branchKind));
+                entry.nodeButton.CollectPresentationErrors(errors);
+            }
+    }
+
+    private void EnsureAuthoredNodes()
+    {
+        if (branchNodes == null) return;
+        for (int i = generatedNodeButtons.Count - 1; i >= 0; i--)
+        {
+            ShipTraitNodeButton generated = generatedNodeButtons[i];
+            bool retained = false;
+            foreach (ShipTraitBranchNodeEntry entry in branchNodes) retained |= entry != null && entry.nodeButton == generated;
+            if (retained && generated != null) continue;
+            generatedNodeButtons.RemoveAt(i);
+            if (generated == null) continue;
+            generated.gameObject.SetActive(false);
+            if (Application.isPlaying) Destroy(generated.gameObject);
+            else DestroyImmediate(generated.gameObject);
+        }
+        foreach (ShipTraitBranchNodeEntry entry in branchNodes)
+        {
+            if (entry == null || entry.nodeButton != null) continue;
+            ShipTraitNodeButton node = Instantiate(authoredNodeTemplate, new InstantiateParameters { scene = gameObject.scene, parent = GetNodeContentRoot(entry.branchKind) });
+            node.name = "Trait_" + GetEntryNodeId(entry);
+            node.Bind(this, entry.branchKind, GetEntryNodeId(entry), GetDisplayName(entry), GetEntryIcon(entry));
+            generatedNodeButtons.Add(node);
+            entry.nodeButton = node;
+            // The inactive template is cloned and bound before OnEnable can execute.
+            node.gameObject.SetActive(true);
+        }
+    }
+
+    private void RefreshAuthoredNavigation()
+    {
+        visibleTraitControls.Clear();
+        foreach (ShipTraitBranchTabButton tab in new[] { sharedTabButton, machineGunTabButton, shotgunTabButton, sniperTabButton })
+            if (tab != null && Available(tab.GetComponent<Button>())) visibleTraitControls.Add(tab.GetComponent<Button>());
+        foreach (ShipTraitBranchNodeEntry entry in branchNodes)
+            if (entry?.nodeButton != null && Available(entry.nodeButton.GetComponent<Button>())) visibleTraitControls.Add(entry.nodeButton.GetComponent<Button>());
+        if (Available(unlockButton)) visibleTraitControls.Add(unlockButton);
+        if (Available(traitActivationToggleButton)) visibleTraitControls.Add(traitActivationToggleButton);
+        for (int i = 0; i < visibleTraitControls.Count; i++)
+        {
+            Selectable control = visibleTraitControls[i];
+            control.navigation = new Navigation
+            {
+                mode = Navigation.Mode.Explicit,
+                selectOnUp = visibleTraitControls[Mathf.Max(0, i - 1)],
+                selectOnDown = visibleTraitControls[Mathf.Min(visibleTraitControls.Count - 1, i + 1)],
+                selectOnLeft = sidebarButton,
+                selectOnRight = Available(unlockButton) ? unlockButton : sidebarButton
+            };
+        }
+        if (!CanUseTraitInput || EventSystem.current == null) return;
+        GameObject selected = EventSystem.current.currentSelectedGameObject;
+        if (selected == null || !selected.transform.IsChildOf(transform)) return;
+        if (!visibleTraitControls.Contains(selected.GetComponent<Selectable>()))
+            EventSystem.current.SetSelectedGameObject(visibleTraitControls.Count > 0 ? visibleTraitControls[0].gameObject : sidebarButton.gameObject);
+    }
+
+    private static bool Available(Selectable target) => target != null && target.IsActive() && target.IsInteractable();
 
     private void Reset()
     {
@@ -400,33 +631,23 @@ public class ShipTraitTreePanel : MonoBehaviour
     private void OnValidate()
     {
         SyncBranchGates();
-        SyncBranchNodesFromDefinitions();
+        // Definitions are synchronized during runtime refresh, not while authoring presentation bindings.
     }
 
     private void Awake()
     {
+        if (equipmentDevelopmentMode) return;
         if (settlementController == null)
         {
             settlementController = FindFirstObjectByType<SettlementController>();
         }
 
-        ConfigureSettlementPresentation();
         SyncBranchGates();
-        EnsureGeneratedNodeButtons(false);
+        if (AuthoredPresentationReady()) EnsureAuthoredNodes();
         BindNodes();
         BindBranchTabs();
 
-        if (unlockButton != null)
-        {
-            ConfigureActionButtonSound(unlockButton);
-            unlockButton.onClick.AddListener(HandleUnlockButtonClick);
-        }
-
-        if (traitActivationToggleButton != null)
-        {
-            ConfigureActionButtonSound(traitActivationToggleButton);
-            traitActivationToggleButton.onClick.AddListener(HandleActivationToggleButtonClick);
-        }
+        BindActionListeners();
     }
 
     private void OnEnable()
@@ -436,17 +657,16 @@ public class ShipTraitTreePanel : MonoBehaviour
             settlementController = FindFirstObjectByType<SettlementController>();
         }
 
-        if (settlementController != null)
+        SubscribePresentation();
+        if (equipmentDevelopmentMode)
         {
-            settlementController.Changed += HandleExternalChanged;
+            BindEquipmentPresentation();
+            RefreshEquipmentPresentation();
+            return;
         }
+        BindActionListeners();
 
-        if (PermanentProgress.Instance != null)
-        {
-            PermanentProgress.Instance.Changed += HandleExternalChanged;
-        }
-
-        EnsureGeneratedNodeButtons(rebuildGeneratedNodesOnEnable);
+        if (AuthoredPresentationReady()) EnsureAuthoredNodes();
         RefreshPanel();
     }
 
@@ -457,28 +677,16 @@ public class ShipTraitTreePanel : MonoBehaviour
 
     private void OnDisable()
     {
-        if (settlementController != null)
-        {
-            settlementController.Changed -= HandleExternalChanged;
-        }
-
-        if (PermanentProgress.Instance != null)
-        {
-            PermanentProgress.Instance.Changed -= HandleExternalChanged;
-        }
+        UnsubscribePresentation();
+        UnbindEquipmentPresentation();
+        UnbindActionListeners();
     }
 
     private void OnDestroy()
     {
-        if (unlockButton != null)
-        {
-            unlockButton.onClick.RemoveListener(HandleUnlockButtonClick);
-        }
-
-        if (traitActivationToggleButton != null)
-        {
-            traitActivationToggleButton.onClick.RemoveListener(HandleActivationToggleButtonClick);
-        }
+        UnsubscribePresentation();
+        UnbindEquipmentPresentation();
+        UnbindActionListeners();
     }
 
     public void SetTargetShipId(string shipId)
@@ -540,9 +748,21 @@ public class ShipTraitTreePanel : MonoBehaviour
 
     public void RefreshPanel()
     {
+        if (equipmentDevelopmentMode) { RefreshEquipmentPresentation(); return; }
+        if (UsesAuthoredPresentation && !AuthoredPresentationReady())
+        {
+            foreach (Button action in new[] { unlockButton, traitActivationToggleButton })
+                if (action != null && action.gameObject.scene == gameObject.scene && action.transform.IsChildOf(transform)) action.interactable = false;
+            if (CanUseTraitInput && EventSystem.current != null && Available(sidebarButton) && sidebarButton.gameObject.scene == gameObject.scene)
+            {
+                GameObject focus = EventSystem.current.currentSelectedGameObject;
+                if (focus != null && focus.transform.IsChildOf(transform)) EventSystem.current.SetSelectedGameObject(sidebarButton.gameObject);
+            }
+            return;
+        }
         SyncBranchGates();
         SyncBranchNodesFromDefinitions();
-        EnsureGeneratedNodeButtons(false);
+        EnsureAuthoredNodes();
         BindNodes();
         BindBranchTabs();
 
@@ -552,10 +772,12 @@ public class ShipTraitTreePanel : MonoBehaviour
         EnsureValidSelection(unlockedShipCount);
         RefreshNodeStates(unlockedShipCount);
         RefreshDetail(unlockedShipCount);
+        if (UsesAuthoredPresentation) RefreshAuthoredNavigation();
     }
 
     public bool CanUnlockSelectedTrait()
     {
+        if (equipmentDevelopmentMode) return false;
         ShipTraitBranchNodeEntry entry = FindEntry(selectedBranch, selectedNodeId);
 
         if (entry == null)
@@ -568,6 +790,8 @@ public class ShipTraitTreePanel : MonoBehaviour
 
     public bool TryUnlockSelectedTrait()
     {
+        if (equipmentDevelopmentMode) return false;
+        if (UsesAuthoredPresentation && (!AuthoredPresentationReady() || !CanUseTraitInput)) return false;
         ShipTraitBranchNodeEntry entry = FindEntry(selectedBranch, selectedNodeId);
 
         if (entry == null)
@@ -629,6 +853,8 @@ public class ShipTraitTreePanel : MonoBehaviour
 
     public bool TryToggleSelectedTraitActive()
     {
+        if (equipmentDevelopmentMode) return false;
+        if (UsesAuthoredPresentation && (!AuthoredPresentationReady() || !CanUseTraitInput)) return false;
         ShipTraitBranchNodeEntry entry = FindEntry(selectedBranch, selectedNodeId);
 
         if (entry == null)
@@ -705,130 +931,7 @@ public class ShipTraitTreePanel : MonoBehaviour
         }
     }
 
-    private void EnsureGeneratedNodeButtons(bool forceRebuild)
-    {
-        if (!autoGenerateNodeButtons || nodeButtonPrefab == null)
-        {
-            return;
-        }
 
-        if (forceRebuild || HasMissingGeneratedNodeButtons())
-        {
-            RebuildGeneratedNodeButtons();
-        }
-    }
-
-    private bool HasMissingGeneratedNodeButtons()
-    {
-        if (branchNodes == null || branchNodes.Count == 0)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < branchNodes.Count; i++)
-        {
-            ShipTraitBranchNodeEntry entry = branchNodes[i];
-            if (entry == null)
-            {
-                continue;
-            }
-
-            if (entry.nodeButton == null)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private void RebuildGeneratedNodeButtons()
-    {
-        DestroyGeneratedNodeButtons();
-
-        if (branchNodes == null || nodeButtonPrefab == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < branchNodes.Count; i++)
-        {
-            ShipTraitBranchNodeEntry entry = branchNodes[i];
-            if (entry == null)
-            {
-                continue;
-            }
-
-            Transform contentRoot = GetNodeContentRoot(entry.branchKind);
-            if (contentRoot == null)
-            {
-                continue;
-            }
-
-            if (entry.nodeButton != null && !generatedNodeButtons.Contains(entry.nodeButton))
-            {
-                entry.nodeButton.gameObject.SetActive(false);
-            }
-
-            ShipTraitNodeButton nodeButton = Instantiate(nodeButtonPrefab, contentRoot);
-            string nodeId = GetEntryNodeId(entry);
-            nodeButton.gameObject.name = string.IsNullOrWhiteSpace(nodeId)
-                ? $"ShipTraitNode_{i:00}"
-                : $"ShipTraitNode_{i:00}_{nodeId}";
-            nodeButton.gameObject.SetActive(true);
-
-            generatedNodeButtons.Add(nodeButton);
-            entry.nodeButton = nodeButton;
-        }
-    }
-
-    private void DestroyGeneratedNodeButtons()
-    {
-        if (generatedNodeButtons.Count == 0)
-        {
-            return;
-        }
-
-        if (branchNodes != null)
-        {
-            for (int i = 0; i < branchNodes.Count; i++)
-            {
-                ShipTraitBranchNodeEntry entry = branchNodes[i];
-                if (entry == null || entry.nodeButton == null)
-                {
-                    continue;
-                }
-
-                if (generatedNodeButtons.Contains(entry.nodeButton))
-                {
-                    entry.nodeButton = null;
-                }
-            }
-        }
-
-        for (int i = 0; i < generatedNodeButtons.Count; i++)
-        {
-            ShipTraitNodeButton nodeButton = generatedNodeButtons[i];
-            if (nodeButton == null)
-            {
-                continue;
-            }
-
-            GameObject nodeObject = nodeButton.gameObject;
-            nodeObject.SetActive(false);
-
-            if (Application.isPlaying)
-            {
-                Destroy(nodeObject);
-            }
-            else
-            {
-                DestroyImmediate(nodeObject);
-            }
-        }
-
-        generatedNodeButtons.Clear();
-    }
 
     private Transform GetNodeContentRoot(ShipTraitBranchKind branchKind)
     {
@@ -841,23 +944,7 @@ public class ShipTraitTreePanel : MonoBehaviour
             _ => null
         };
 
-        if (branchRoot != null)
-        {
-            return branchRoot;
-        }
-
-        if (defaultNodeContentRoot != null)
-        {
-            return defaultNodeContentRoot;
-        }
-
-        if (!useBranchPanelObjectAsRootFallback)
-        {
-            return null;
-        }
-
-        GameObject branchPanelObject = GetBranchPanelObject(branchKind);
-        return branchPanelObject != null ? branchPanelObject.transform : null;
+        return branchRoot;
     }
 
     private void SyncBranchNodeFromDefinition(ShipTraitBranchNodeEntry entry)
@@ -1161,7 +1248,9 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         if (gate.panelCanvasGroup != null)
         {
-            gate.panelCanvasGroup.alpha = available ? 1f : gate.lockedAlpha;
+            if (!branchAlphaBaselines.ContainsKey(gate.panelCanvasGroup)) branchAlphaBaselines.Add(gate.panelCanvasGroup, gate.panelCanvasGroup.alpha);
+            float baseline = UsesAuthoredPresentation ? branchAlphaBaselines[gate.panelCanvasGroup] : 1f;
+            gate.panelCanvasGroup.alpha = baseline * (available ? 1f : gate.lockedAlpha);
 
             if (gate.disableInteractionWhenLocked)
             {
@@ -1224,7 +1313,7 @@ public class ShipTraitTreePanel : MonoBehaviour
 
             ShipTraitBranchNodeEntry selectedTabEntry = FindEntry(selectedBranch, selectedNodeId);
 
-            if (!hasSelection || selectedTabEntry == null)
+            if (!hasSelection || selectedTabEntry == null || (selectedTabEntry.hideWhenLocked && !IsNodeSelectable(selectedTabEntry, unlockedShipCount)))
             {
                 ShipTraitBranchNodeEntry firstInTab = FindFirstSelectableEntry(selectedBranch, unlockedShipCount);
 
@@ -2531,58 +2620,6 @@ public class ShipTraitTreePanel : MonoBehaviour
         };
     }
 
-    private void ConfigureSettlementPresentation()
-    {
-        ConfigureText(titleText, 10f, 8f, 11f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-        ConfigureText(descriptionText, 6.5f, 5.5f, 7f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
-        ConfigureText(branchText, 6.5f, 5.5f, 7f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-        ConfigureText(levelText, 7f, 6f, 7.5f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-        ConfigureText(statusText, 6.5f, 5.5f, 7f, TextWrappingModes.NoWrap, TextOverflowModes.Truncate);
-        ConfigureText(costText, 6.5f, 5.5f, 7f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
-        ConfigureText(messageText, 6f, 5f, 6.5f, TextWrappingModes.NoWrap, TextOverflowModes.Truncate);
-        ConfigureText(unlockButtonLabelText, 7f, 5.5f, 7.5f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-        ConfigureText(traitActivationToggleButtonLabelText, 7f, 5.5f, 7.5f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-
-        if (costText != null)
-        {
-            costText.alignment = TextAlignmentOptions.MidlineLeft;
-        }
-
-        ConfigureBranchTabText(sharedTabButton);
-        ConfigureBranchTabText(machineGunTabButton);
-        ConfigureBranchTabText(sniperTabButton);
-        ConfigureBranchTabText(shotgunTabButton);
-    }
-
-    private static void ConfigureBranchTabText(ShipTraitBranchTabButton tabButton)
-    {
-        TextMeshProUGUI label = tabButton != null
-            ? tabButton.GetComponentInChildren<TextMeshProUGUI>(true)
-            : null;
-        ConfigureText(label, 7f, 5.5f, 7.5f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-    }
-
-    private static void ConfigureText(
-        TextMeshProUGUI text,
-        float size,
-        float minimum,
-        float maximum,
-        TextWrappingModes wrapping,
-        TextOverflowModes overflow)
-    {
-        if (text == null)
-        {
-            return;
-        }
-
-        text.fontSize = size;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = minimum;
-        text.fontSizeMax = maximum;
-        text.textWrappingMode = wrapping;
-        text.overflowMode = overflow;
-        text.raycastTarget = false;
-    }
 
     private string GetDefaultDescription(ShipTraitBranchKind branchKind)
     {
@@ -2613,7 +2650,6 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         selectedIconImage.sprite = icon;
         selectedIconImage.enabled = icon != null;
-        selectedIconImage.preserveAspect = true;
     }
 
     private void ClearDetailTexts(string bodyMessage)
@@ -2643,7 +2679,6 @@ public class ShipTraitTreePanel : MonoBehaviour
             }
         }
 
-        LayoutCostIcons(showScrap, showCore);
         SetCostIconActive(scrapCostIconRoot, scrapCostIconImage, scrapCostIconSprite, showScrap);
         SetCostIconActive(coreShardCostIconRoot, coreShardCostIconImage, coreShardCostIconSprite, showCore);
     }
@@ -2666,31 +2701,11 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         if (image != null)
         {
-            if (sprite != null)
-            {
-                image.sprite = sprite;
-            }
 
             image.enabled = (active || !hideCostIconsWhenFree) && image.sprite != null;
-            image.preserveAspect = true;
-            image.raycastTarget = false;
         }
     }
 
-    private void LayoutCostIcons(bool showScrap, bool showCore)
-    {
-        bool showBoth = showScrap && showCore;
-        SetCostIconVerticalPosition(scrapCostIconRoot, showBoth ? 5f : 0f);
-        SetCostIconVerticalPosition(coreShardCostIconRoot, showBoth ? -5f : 0f);
-    }
-
-    private static void SetCostIconVerticalPosition(GameObject root, float y)
-    {
-        if (root != null && root.transform is RectTransform rect)
-        {
-            rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, y);
-        }
-    }
 
     private void SetDetailLockVisual(bool locked)
     {
@@ -2713,7 +2728,6 @@ public class ShipTraitTreePanel : MonoBehaviour
 
         detailLockImage.enabled = shouldShow && hasSprite;
         detailLockImage.gameObject.SetActive(shouldShow && hasSprite);
-        detailLockImage.preserveAspect = true;
     }
 
     private void SetUnlockButton(bool interactable, string label)

@@ -221,7 +221,7 @@ public static class RunRewardChoiceGenerator
                 if (trait == null ||
                     !trait.CanAppearAsLevelUpTrait ||
                     !trait.IsAvailableFor(selectedWeaponTree) ||
-                    !RunTraitAcquisitionService.MeetsOfferPrerequisites(trait) ||
+                    !RunTraitAcquisitionService.IsOrdinaryCandidate(trait, selectedWeaponTree) ||
                     (store != null && !store.CanUpgrade(trait)))
                 {
                     continue;
@@ -279,7 +279,7 @@ public static class RunRewardChoiceGenerator
 
             if (trait == null ||
                 !trait.CanAppearAsLevelUpTrait ||
-                !RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
+                !RunTraitAcquisitionService.IsOrdinaryCandidate(trait))
             {
                 continue;
             }
@@ -419,7 +419,7 @@ public static class RunRewardChoiceGenerator
             if (trait == null ||
                 !trait.CanAppearAsLevelUpTrait ||
                 !trait.IsAvailableFor(selectedTree) ||
-                !RunTraitAcquisitionService.MeetsOfferPrerequisites(trait) ||
+                !RunTraitAcquisitionService.IsOrdinaryCandidate(trait, selectedTree) ||
                 (store != null && !store.CanUpgrade(trait)))
             {
                 result.RemoveAt(i);

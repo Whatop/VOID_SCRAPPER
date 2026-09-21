@@ -38,9 +38,6 @@ public sealed class BossDeathPresentation : MonoBehaviour
     private GungeonStyleCamera2D gameplayCamera;
     private PlayerController2D lockedPlayerController;
     private PlayerWeaponController lockedWeaponController;
-    private bool playerControlWasEnabled;
-    private bool playerMovementWasLocked;
-    private bool weaponInputWasLocked;
     private bool presentationLocksHeld;
     private bool playing;
     private bool completed;
@@ -79,8 +76,14 @@ public sealed class BossDeathPresentation : MonoBehaviour
 
     private void OnDisable()
     {
+        CancelPresentation();
+    }
+
+    public void CancelPresentation()
+    {
         ReleasePresentationLocks(true);
         playing = false;
+        completed = true;
     }
 
     public void SetBodyRenderer(SpriteRenderer renderer)
@@ -342,25 +345,27 @@ public sealed class BossDeathPresentation : MonoBehaviour
 
         if (gameplayCamera != null)
         {
-            gameplayCamera.SetCinematicInputOffsetLocked(true);
-            gameplayCamera.SetCinematicFocus(focusPosition, true);
+            gameplayCamera.SetCinematicInputOffsetLocked(this, true);
+            gameplayCamera.TryBeginOwnedCinematicFocusBlend(this, focusPosition, 0f, null, out _);
         }
 
-        lockedPlayerController = FindFirstObjectByType<PlayerController2D>(FindObjectsInactive.Include);
+        LockPlayerInput(FindFirstObjectByType<PlayerController2D>());
+    }
+
+    private void LockPlayerInput(PlayerController2D player)
+    {
+        lockedPlayerController = player;
 
         if (lockedPlayerController != null)
         {
-            playerControlWasEnabled = lockedPlayerController.ControlEnabled;
-            playerMovementWasLocked = lockedPlayerController.MovementLocked;
-            lockedPlayerController.SetControlEnabled(false);
-            lockedPlayerController.SetMovementLocked(true);
+            lockedPlayerController.GetComponent<PlayerDash>()?.CancelActiveDash();
+            lockedPlayerController.SetExternalControlLocked(this, true);
             lockedWeaponController = lockedPlayerController.GetComponent<PlayerWeaponController>();
         }
 
         if (lockedWeaponController != null)
         {
-            weaponInputWasLocked = lockedWeaponController.ExternalInputLocked;
-            lockedWeaponController.SetExternalInputLocked(true);
+            lockedWeaponController.SetExternalInputLocked(this, true);
         }
     }
 
@@ -373,19 +378,18 @@ public sealed class BossDeathPresentation : MonoBehaviour
 
         if (gameplayCamera != null)
         {
-            gameplayCamera.ClearCinematicFocus(resetCamera);
-            gameplayCamera.SetCinematicInputOffsetLocked(false);
+            gameplayCamera.ReleaseOwnedCinematicFocus(this, resetCamera);
+            gameplayCamera.SetCinematicInputOffsetLocked(this, false);
         }
 
         if (lockedPlayerController != null)
         {
-            lockedPlayerController.SetControlEnabled(playerControlWasEnabled);
-            lockedPlayerController.SetMovementLocked(playerMovementWasLocked);
+            lockedPlayerController.SetExternalControlLocked(this, false);
         }
 
         if (lockedWeaponController != null)
         {
-            lockedWeaponController.SetExternalInputLocked(weaponInputWasLocked);
+            lockedWeaponController.SetExternalInputLocked(this, false);
         }
 
         lockedPlayerController = null;

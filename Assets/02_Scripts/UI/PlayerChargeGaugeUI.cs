@@ -27,10 +27,11 @@ public class PlayerChargeGaugeUI : MonoBehaviour
     private PlayerWeaponBase activeChargingWeapon;
     private MachineGunWeapon activeMachineGun;
     private Tween readyHideTween;
-    private Vector3 baseScale;
     private bool machineGunCoolingVisible;
     private bool externalPresentationActive;
     private bool subscribed;
+    private PlayerWeaponController subscribedWeaponController;
+    private PlayerWeaponBase[] subscribedWeaponSources;
 
     public void ConfigureRuntime(
         Transform target,
@@ -51,7 +52,6 @@ public class PlayerChargeGaugeUI : MonoBehaviour
         weaponSources = playerTarget != null
             ? playerTarget.GetComponentsInChildren<PlayerWeaponBase>(true)
             : System.Array.Empty<PlayerWeaponBase>();
-        baseScale = transform.localScale;
 
         if (follower != null)
         {
@@ -82,7 +82,6 @@ public class PlayerChargeGaugeUI : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
-        baseScale = transform.localScale;
         ResolvePlayerTarget();
         ResolveWeaponSources();
         ResolveWeaponController();
@@ -122,8 +121,6 @@ public class PlayerChargeGaugeUI : MonoBehaviour
     {
         readyHideTween?.Kill();
         readyHideTween = null;
-        transform.DOKill();
-        transform.localScale = baseScale;
         UnsubscribeWeaponController();
         BindMachineGun(null);
         UnsubscribeWeapons();
@@ -170,6 +167,11 @@ public class PlayerChargeGaugeUI : MonoBehaviour
         }
 
         HideVisual();
+    }
+
+    private void OnDestroy()
+    {
+        OnDisable();
     }
 
     private void HideVisual()
@@ -253,13 +255,19 @@ public class PlayerChargeGaugeUI : MonoBehaviour
             return;
         }
 
-        foreach (PlayerWeaponBase weapon in weaponSources)
+        subscribedWeaponSources = (PlayerWeaponBase[])weaponSources.Clone();
+        foreach (PlayerWeaponBase weapon in subscribedWeaponSources)
         {
             if (weapon == null)
             {
                 continue;
             }
 
+            // Serialized arrays may repeat a source; own exactly one handler.
+            weapon.ChargeStarted -= HandleChargeStarted;
+            weapon.ChargeChanged -= HandleChargeChanged;
+            weapon.ChargeReleased -= HandleChargeReleased;
+            weapon.ChargeCanceled -= HandleChargeCanceled;
             weapon.ChargeStarted += HandleChargeStarted;
             weapon.ChargeChanged += HandleChargeChanged;
             weapon.ChargeReleased += HandleChargeReleased;
@@ -280,28 +288,31 @@ public class PlayerChargeGaugeUI : MonoBehaviour
     private void SubscribeWeaponController()
     {
         ResolveWeaponController();
-
-        if (weaponController != null)
+        if (subscribedWeaponController == weaponController)
         {
-            weaponController.WeaponEquipped -= HandleWeaponEquipped;
-            weaponController.WeaponEquipped += HandleWeaponEquipped;
+            return;
+        }
+        UnsubscribeWeaponController();
+        subscribedWeaponController = weaponController;
+        if (subscribedWeaponController != null)
+        {
+            subscribedWeaponController.WeaponEquipped += HandleWeaponEquipped;
         }
     }
 
     private void UnsubscribeWeaponController()
     {
-        if (weaponController != null)
+        if (subscribedWeaponController != null)
         {
-            weaponController.WeaponEquipped -= HandleWeaponEquipped;
+            subscribedWeaponController.WeaponEquipped -= HandleWeaponEquipped;
         }
+        subscribedWeaponController = null;
     }
 
     private void HandleWeaponEquipped(WeaponTreeType weaponTree, PlayerWeaponBase weapon)
     {
         readyHideTween?.Kill();
         readyHideTween = null;
-        transform.DOKill();
-        transform.localScale = baseScale;
         machineGunCoolingVisible = false;
         BindMachineGun(weaponTree == WeaponTreeType.MachineGun ? weapon as MachineGunWeapon : null);
 
@@ -355,8 +366,6 @@ public class PlayerChargeGaugeUI : MonoBehaviour
             machineGunCoolingVisible = true;
             readyHideTween?.Kill();
             readyHideTween = null;
-            transform.DOKill();
-            transform.localScale = baseScale;
 
             float recoveryHeat = activeMachineGun.OverheatRecoveryHeat;
             float recoveryRange = Mathf.Max(0.001f, max - recoveryHeat);
@@ -384,9 +393,6 @@ public class PlayerChargeGaugeUI : MonoBehaviour
         }
 
         ShowRatioInternal(1f, machineGunReadyColor, string.Format(chargingTextFormat, 100f));
-        transform.DOKill();
-        transform.localScale = baseScale;
-        transform.DOPunchScale(Vector3.one * 0.12f, 0.18f, 3, 0.4f).SetUpdate(false);
         readyHideTween = DOVirtual.DelayedCall(
             Mathf.Max(0f, readyPulseHoldSeconds),
             () =>
@@ -408,13 +414,13 @@ public class PlayerChargeGaugeUI : MonoBehaviour
             return;
         }
 
-        if (weaponSources == null)
+        if (subscribedWeaponSources == null)
         {
             subscribed = false;
             return;
         }
 
-        foreach (PlayerWeaponBase weapon in weaponSources)
+        foreach (PlayerWeaponBase weapon in subscribedWeaponSources)
         {
             if (weapon == null)
             {
@@ -428,6 +434,7 @@ public class PlayerChargeGaugeUI : MonoBehaviour
         }
 
         subscribed = false;
+        subscribedWeaponSources = null;
     }
 
     private void HandleChargeStarted(PlayerWeaponBase weapon)

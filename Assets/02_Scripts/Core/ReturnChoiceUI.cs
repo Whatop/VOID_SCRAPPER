@@ -32,8 +32,9 @@ public abstract class ExpeditionTravelConfirmationUI : MonoBehaviour
     [Header("Modal Layer")]
     [SerializeField] private int modalSortingOrder = 10000;
 
-    private Image modalDimmer;
-    private Canvas modalCanvas;
+    [SerializeField] private Image modalDimmer;
+    [SerializeField] private Canvas modalCanvas;
+    private bool missingPresentationReported;
     private PlayerInteractor playerInteractor;
     private bool isOpen;
     private bool isConfirming;
@@ -62,7 +63,6 @@ public abstract class ExpeditionTravelConfirmationUI : MonoBehaviour
             canvasGroup = panelRoot.GetComponent<CanvasGroup>();
         }
 
-        ConfigureSharedPresentation();
         SetVisible(false);
     }
 
@@ -104,6 +104,17 @@ public abstract class ExpeditionTravelConfirmationUI : MonoBehaviour
         string cancelLabel,
         string confirmLabel)
     {
+        if (panelRoot == null || canvasGroup == null || titleText == null || bodyText == null ||
+            yesButton == null || noButton == null || (panelRoot != gameObject && (modalDimmer == null || modalCanvas == null)))
+        {
+            if (!missingPresentationReported)
+            {
+                missingPresentationReported = true;
+                string screen = this is ReturnChoiceUI ? "Return Confirmation" : "Wormhole Confirmation";
+                Debug.LogWarning($"[{GetType().Name}] Missing panelRoot/canvasGroup/titleText/bodyText/yesButton/noButton/modalDimmer/modalCanvas at '{ConfirmationPath(transform)}', scene '{gameObject.scene.path}'. Restore the listed authored Inspector bindings. Confirmation was skipped before acquiring input or pause.", this);
+            }
+            return;
+        }
         if (activeModal != null && activeModal != this)
         {
             activeModal.Close();
@@ -264,116 +275,8 @@ public abstract class ExpeditionTravelConfirmationUI : MonoBehaviour
         }
     }
 
-    private void ConfigureSharedPresentation()
-    {
-        RectTransform rootRect = transform as RectTransform;
 
-        if (rootRect != null && panelRoot != gameObject)
-        {
-            rootRect.anchorMin = Vector2.zero;
-            rootRect.anchorMax = Vector2.one;
-            rootRect.pivot = new Vector2(0.5f, 0.5f);
-            rootRect.anchoredPosition = Vector2.zero;
-            rootRect.sizeDelta = Vector2.zero;
-
-            modalDimmer = GetComponent<Image>();
-
-            if (modalDimmer == null)
-            {
-                modalDimmer = gameObject.AddComponent<Image>();
-            }
-
-            modalDimmer.color = new Color(0f, 0f, 0f, 0.68f);
-            modalDimmer.raycastTarget = true;
-
-            modalCanvas = GetComponent<Canvas>();
-
-            if (modalCanvas == null)
-            {
-                modalCanvas = gameObject.AddComponent<Canvas>();
-            }
-
-            modalCanvas.overrideSorting = true;
-            modalCanvas.sortingOrder = modalSortingOrder;
-
-            if (GetComponent<GraphicRaycaster>() == null)
-            {
-                gameObject.AddComponent<GraphicRaycaster>();
-            }
-        }
-
-        RectTransform panelRect = panelRoot != null
-            ? panelRoot.transform as RectTransform
-            : null;
-
-        if (panelRect != null && panelRoot != gameObject)
-        {
-            panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = Vector2.zero;
-            panelRect.sizeDelta = new Vector2(250f, 112f);
-        }
-
-        ConfigureText(titleText, new Vector2(0f, 34f), new Vector2(220f, 20f), 12f, true);
-        ConfigureText(bodyText, new Vector2(0f, 7f), new Vector2(220f, 34f), 9f, false);
-        ConfigureButton(noButton, new Vector2(-50f, -37f));
-        ConfigureButton(yesButton, new Vector2(50f, -37f));
-    }
-
-    private static void ConfigureText(
-        TextMeshProUGUI text,
-        Vector2 position,
-        Vector2 size,
-        float fontSize,
-        bool isTitle)
-    {
-        if (text == null)
-        {
-            return;
-        }
-
-        RectTransform rect = text.rectTransform;
-        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = position;
-        rect.sizeDelta = size;
-        text.fontSize = fontSize;
-        text.alignment = TextAlignmentOptions.Center;
-        text.textWrappingMode = isTitle ? TextWrappingModes.NoWrap : TextWrappingModes.Normal;
-        text.overflowMode = TextOverflowModes.Overflow;
-        text.color = isTitle
-            ? new Color(0.35f, 0.94f, 1f, 1f)
-            : new Color(0.9f, 0.95f, 1f, 1f);
-        text.raycastTarget = false;
-    }
-
-    private static void ConfigureButton(Button button, Vector2 position)
-    {
-        if (button == null)
-        {
-            return;
-        }
-
-        RectTransform rect = button.transform as RectTransform;
-
-        if (rect != null)
-        {
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = new Vector2(88f, 24f);
-        }
-
-        TextMeshProUGUI label = button.GetComponentInChildren<TextMeshProUGUI>(true);
-
-        if (label != null)
-        {
-            label.fontSize = 9f;
-            label.alignment = TextAlignmentOptions.Center;
-            label.textWrappingMode = TextWrappingModes.NoWrap;
-            label.overflowMode = TextOverflowModes.Overflow;
-        }
-    }
+    private static string ConfirmationPath(Transform target) => target.parent != null ? ConfirmationPath(target.parent) + "/" + target.name : target.name;
 
     private void SetVisible(bool visible)
     {

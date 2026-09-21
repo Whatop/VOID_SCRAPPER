@@ -46,6 +46,7 @@ public class RunContext
     [SerializeField] private int matterReconstructorArmorStacks;
 
     [NonSerialized] private bool hasPlayerVitalCarryover;
+    [NonSerialized] private bool firstStoryClearThisRegion;
     [NonSerialized] private float carriedPlayerHp;
     [NonSerialized] private float carriedPlayerArmor;
 
@@ -61,6 +62,7 @@ public class RunContext
 
     public int CurrentLevel => currentLevel;
     public bool BossDefeated => bossDefeated;
+    public bool FirstStoryClearThisRegion => firstStoryClearThisRegion;
     public CampaignBossId CurrentBossId => currentBossId == CampaignBossId.None
         ? CampaignProgressionCatalog.GetBossId(expeditionDepth)
         : currentBossId;
@@ -69,6 +71,8 @@ public class RunContext
         Mathf.Max(0, guaranteedBossCoreShardsThisRun);
     public bool ShopHostileThisRun => shopHostileThisRun;
     public IReadOnlyList<string> SelectedTraitIds => selectedTraitIds;
+    [SerializeField] private List<string> preparedEquipmentIds = new List<string>();
+    public bool HasPreparedEquipment(string id) => !string.IsNullOrWhiteSpace(id) && preparedEquipmentIds.Contains(id);
 
     public IReadOnlyList<string> CompletedObjectiveIds => completedObjectiveIds;
     public int ObjectiveSignalCount => Mathf.Max(0, objectiveSignalCount);
@@ -135,6 +139,14 @@ public class RunContext
         string shipId,
         SeaRegionType selectedSeaRegionType)
     {
+        preparedEquipmentIds.Clear();
+        PermanentProgress preparation = PermanentProgress.Instance;
+        if (preparation != null)
+            foreach (string id in preparation.EquipmentLoadoutTraitIds)
+            {
+                TraitDefinition trait = preparation.EquipmentCatalog != null ? preparation.EquipmentCatalog.FindById(id) : null;
+                if (trait != null && trait.IsAvailableFor(weaponTreeType)) preparedEquipmentIds.Add(id);
+            }
         isActive = true;
         selectedWeaponTree = weaponTreeType;
         selectedShipId = string.IsNullOrWhiteSpace(shipId) ? "basic_ship" : shipId;
@@ -144,6 +156,7 @@ public class RunContext
 
         currentLevel = 1;
         bossDefeated = false;
+        firstStoryClearThisRegion = false;
         shopHostileThisRun = false;
 
         bossesDefeatedThisRun.Clear();
@@ -170,6 +183,7 @@ public class RunContext
 
     public void PrepareNextRegion(ExpeditionDepth depth, SeaRegionType selectedSeaRegionType)
     {
+        firstStoryClearThisRegion = false;
         expeditionDepth = depth;
         currentBossId = CampaignProgressionCatalog.GetBossId(depth);
         seaRegionType = selectedSeaRegionType;
@@ -179,6 +193,7 @@ public class RunContext
 
     public void SetDepth(ExpeditionDepth depth)
     {
+        firstStoryClearThisRegion = false;
         expeditionDepth = depth;
         currentBossId = CampaignProgressionCatalog.GetBossId(depth);
         bossDefeated = false;
@@ -225,8 +240,9 @@ public class RunContext
         MarkBossDefeated(CurrentBossId);
     }
 
-    public void MarkBossDefeated(CampaignBossId bossId)
+    public void MarkBossDefeated(CampaignBossId bossId, bool firstStoryClear = false)
     {
+        firstStoryClearThisRegion |= firstStoryClear;
         bossDefeated = true;
 
         if (bossId == CampaignBossId.None)

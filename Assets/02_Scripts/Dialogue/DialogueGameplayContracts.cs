@@ -17,7 +17,21 @@ public enum DialogueGameplayActionId
 {
     None = 0,
     RescueContactAccept = 1,
-    MainDamagedAccessKeyStart = 2
+    MainDamagedAccessKeyStart = 2,
+    FinalBossTreatmentAccept = 3,
+    FinalBossTreatmentReject = 4
+}
+
+public interface IFinalBossTreatmentAuthority
+{
+    bool TryRequestTreatmentChoice(bool accept);
+}
+
+public static class NullDispatcherDialogueIds
+{
+    public const string Conversation = "FINAL_NullDispatcherTreatmentOffer";
+    public const string Actor = "NullDispatcher";
+    public const string SpeakerKey = "speaker.null_dispatcher.name";
 }
 
 public interface IRescueContactDialogueServiceAuthority

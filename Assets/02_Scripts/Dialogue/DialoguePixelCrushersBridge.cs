@@ -55,6 +55,26 @@ public sealed class DialoguePixelCrushersBridge : MonoBehaviour
         UnregisterLuaFunctions();
     }
 
+    private IFinalBossTreatmentAuthority finalBossAuthority;
+
+    public bool RegisterFinalBossAuthority(IFinalBossTreatmentAuthority authority)
+    {
+        if (authority == null || (finalBossAuthority != null && !ReferenceEquals(finalBossAuthority, authority)))
+        {
+            return false;
+        }
+        finalBossAuthority = authority;
+        return true;
+    }
+
+    public void UnregisterFinalBossAuthority(IFinalBossTreatmentAuthority authority)
+    {
+        if (ReferenceEquals(finalBossAuthority, authority))
+        {
+            finalBossAuthority = null;
+        }
+    }
+
     public bool EvaluateCondition(string conditionId)
     {
         return conditionRegistry.TryEvaluate(
@@ -73,13 +93,14 @@ public sealed class DialoguePixelCrushersBridge : MonoBehaviour
                 actionId,
                 ResolveCurrentRescueContactAuthority(),
                 ResolveMainQuestStartAuthority(),
-                ResolveCurrentInteractor());
+                ResolveCurrentInteractor(), finalBossAuthority);
         }
 
         string conversationTitle = dialogueController != null
             ? dialogueController.lastConversationStarted
             : string.Empty;
-        if (!IsActionAllowedForConversation(typedActionId, conversationTitle))
+        if (typedActionId == DialogueGameplayActionId.MainDamagedAccessKeyStart ||
+            !IsActionAllowedForConversation(typedActionId, conversationTitle))
         {
             Debug.LogWarning(
                 $"[{nameof(DialoguePixelCrushersBridge)}] Action '{actionId}' was rejected " +
@@ -92,7 +113,7 @@ public sealed class DialoguePixelCrushersBridge : MonoBehaviour
             typedActionId,
             ResolveCurrentRescueContactAuthority(),
             ResolveMainQuestStartAuthority(),
-            ResolveCurrentInteractor());
+            ResolveCurrentInteractor(), finalBossAuthority);
     }
 
     public bool TryEvaluateCondition(
@@ -111,12 +132,9 @@ public sealed class DialoguePixelCrushersBridge : MonoBehaviour
         string completedConversationTitle)
     {
         if (dialogueController == null ||
-            DialogueManager.isConversationActive ||
-            !string.Equals(
-                dialogueController.lastConversationEnded,
-                completedConversationTitle,
-                StringComparison.Ordinal) ||
-            !IsActionAllowedForConversation(actionId, completedConversationTitle))
+            !IsCompletionActionEligible(actionId, completedConversationTitle,
+                dialogueController.lastConversationEnded, DialogueManager.isConversationActive,
+                WasConversationCompletedNaturally(completedConversationTitle)))
         {
             Debug.LogWarning(
                 $"[{nameof(DialoguePixelCrushersBridge)}] Completion action '{actionId}' " +
@@ -135,9 +153,18 @@ public sealed class DialoguePixelCrushersBridge : MonoBehaviour
         return dispatched;
     }
 
+    public static bool IsCompletionActionEligible(DialogueGameplayActionId actionId,
+        string conversationTitle, string lastEndedTitle, bool conversationActive, bool completedNaturally)
+    {
+        return !conversationActive && completedNaturally &&
+               string.Equals(lastEndedTitle, conversationTitle, StringComparison.Ordinal) &&
+               IsActionAllowedForConversation(actionId, conversationTitle);
+    }
+
     public bool MarkConversationComplete(string conversationTitle)
     {
         if (dialogueController == null ||
+            !actionDispatcher.HasActiveConversation ||
             string.IsNullOrWhiteSpace(conversationTitle) ||
             !string.Equals(
                 dialogueController.lastConversationStarted,
@@ -214,6 +241,8 @@ public sealed class DialoguePixelCrushersBridge : MonoBehaviour
     {
         return actionId switch
         {
+            DialogueGameplayActionId.FinalBossTreatmentAccept or DialogueGameplayActionId.FinalBossTreatmentReject =>
+                string.Equals(conversationTitle, NullDispatcherDialogueIds.Conversation, StringComparison.Ordinal),
             DialogueGameplayActionId.RescueContactAccept =>
                 string.Equals(
                     conversationTitle,

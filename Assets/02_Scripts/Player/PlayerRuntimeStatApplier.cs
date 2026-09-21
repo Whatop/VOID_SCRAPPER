@@ -383,7 +383,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
                 trait.IsPersistentStoryTrait && progress.HasPersistentStoryTrait(trait);
             int level = ownsPersistentStoryTrait
                 ? 1
-                : Mathf.Clamp(progress.GetTraitLevel(trait.TraitId), 0, trait.MaxLevel);
+                : 0;
 
             if (level <= 0)
             {

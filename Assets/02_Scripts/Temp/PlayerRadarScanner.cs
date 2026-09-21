@@ -440,6 +440,7 @@ public class PlayerRadarScanner : MonoBehaviour
         ScanCompleted?.Invoke(transform.position, effectiveRadius, scannedTargets);
         lastScanTime = Time.time;
         radarHUD?.SetSuccessfulScanPresentation(true);
+        radarPanelAnimator?.PlayScanPulse();
 
         if (scannedTargets.Count == 0)
         {

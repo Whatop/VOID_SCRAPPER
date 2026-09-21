@@ -41,22 +41,11 @@ public class FinalBossSettlementSupportPhase : MonoBehaviour
         supportController.ConfigureFinalBoss(finalBossHealth);
     }
 
+    // Final support is explicitly orchestrated by a later encounter phase.
+    // The historical serialized threshold is retained for asset compatibility only.
     private void OnEnable()
     {
         triggered = false;
-
-        if (finalBossHealth != null)
-        {
-            finalBossHealth.HealthChanged += HandleHealthChanged;
-        }
-    }
-
-    private void OnDisable()
-    {
-        if (finalBossHealth != null)
-        {
-            finalBossHealth.HealthChanged -= HandleHealthChanged;
-        }
     }
 
     public void TriggerSupportNow()
@@ -75,16 +64,4 @@ public class FinalBossSettlementSupportPhase : MonoBehaviour
         }
     }
 
-    private void HandleHealthChanged(EnemyHealth health, float currentHp, float maxHp)
-    {
-        if (health == null || maxHp <= 0f || (triggerOnce && triggered))
-        {
-            return;
-        }
-
-        if (currentHp / maxHp <= Mathf.Clamp01(triggerHpRatio))
-        {
-            TriggerSupportNow();
-        }
-    }
 }

@@ -41,7 +41,7 @@ public class SectorTechnologyLevelState
     }
 }
 
-public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAuthority
+public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAuthority
 {
     private const string PersistentStoryTraitUnlockPrefix = "story_trait:";
     private const string TutorialCompletedUnlockFlag = "tutorial_completed";
@@ -267,8 +267,15 @@ public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAu
         settlementDefenseCleared = saveData.settlementDefenseCleared;
         finalBossDefeated = saveData.finalBossDefeated;
 
+        equipmentLoadoutTraitIds = saveData.equipmentLoadoutTraitIds != null
+            ? new List<string>(saveData.equipmentLoadoutTraitIds) : new List<string>();
         RestoreCampaignProgressFromLegacyFlags();
+        // Existing assembled saves already completed the old combined analysis/restoration handoff.
+        if (HasAllRouteCoreParts && routeCoreState >= RouteCoreState.Assembled)
+            AddUniqueString(unlockFlags, FinalComponentAnalyzedFlag);
         RefreshCampaignDerivedState();
+        ValidateEquipmentShipSelection();
+        RefreshEquipmentResearch();
         PruneDisabledPermanentTraitIds();
         EnsureDefaultBuildings();
         Changed?.Invoke();
@@ -333,6 +340,7 @@ public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAu
             }
         }
 
+        saveData.equipmentLoadoutTraitIds.AddRange(equipmentLoadoutTraitIds);
         saveData.unlockFlags.AddRange(unlockFlags);
         saveData.defeatedCampaignBosses.AddRange(defeatedCampaignBosses);
         saveData.acquiredBossStoryParts.AddRange(acquiredBossStoryParts);
@@ -360,6 +368,7 @@ public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAu
         lastSelectedWeaponTree = WeaponTreeType.MachineGun;
         selectedShipId = "basic_ship";
 
+        equipmentLoadoutTraitIds.Clear();
         buildingLevels.Clear();
         traitLevels.Clear();
         sectorTechnologyLevels.Clear();
@@ -385,6 +394,7 @@ public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAu
         }
 
         lastSelectedWeaponTree = weaponTreeType;
+        ValidateEquipmentLoadout();
         Changed?.Invoke();
     }
 
@@ -401,6 +411,7 @@ public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAu
         }
 
         selectedShipId = shipId;
+        ValidateEquipmentShipSelection();
         Changed?.Invoke();
     }
 
@@ -792,6 +803,46 @@ public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAu
         return changed;
     }
 
+    public bool HasPendingCampaignRouteAnalysis => TryGetAnalyzedRoute(out _);
+
+    // Called only by Settlement's natural dialogue completion transaction.
+    // The existing saved depth is authorization, not a projection of boss defeats.
+    public bool TryAuthorizeAnalyzedRegion()
+    {
+        if (!TryGetAnalyzedRoute(out ExpeditionDepth depth))
+        {
+            return false;
+        }
+
+        highestUnlockedDepth = depth;
+        RefreshEquipmentResearch();
+        Changed?.Invoke();
+        return true;
+    }
+
+    private bool TryGetAnalyzedRoute(out ExpeditionDepth depth)
+    {
+        depth = highestUnlockedDepth;
+        if (!HasDefeatedCampaignBoss(CampaignBossId.SectorAdministrator) ||
+            !HasBossStoryPart(BossStoryPart.SectorStabilizer))
+        {
+            return false;
+        }
+
+        if (DamagedAccessKeyQuestState == MainDamagedAccessKeyQuestState.Active1)
+        {
+            depth = ExpeditionDepth.DeepZone1;
+        }
+        else if (DamagedAccessKeyQuestState == MainDamagedAccessKeyQuestState.Active2 &&
+                 HasDefeatedCampaignBoss(CampaignBossId.SalvageDevourer) &&
+                 HasBossStoryPart(BossStoryPart.MatterCompressor))
+        {
+            depth = ExpeditionDepth.DeepZone2;
+        }
+
+        return depth > highestUnlockedDepth;
+    }
+
     public bool TryRestoreDamagedAccessKey()
     {
         RefreshCampaignDerivedState();
@@ -804,6 +855,7 @@ public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAu
 
         routeCoreState = RouteCoreState.Assembled;
         AddUniqueString(unlockFlags, "campaign_route_core_assembled");
+        RefreshEquipmentResearch();
         Changed?.Invoke();
         return true;
     }
@@ -1020,22 +1072,9 @@ public class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQuestReadAu
 
     private void RefreshCampaignDerivedState()
     {
-        if (HasDefeatedCampaignBoss(CampaignBossId.PhaseGatekeeper))
-        {
-            highestUnlockedDepth = ExpeditionDepth.DeepZone2;
-        }
-        else if (HasDefeatedCampaignBoss(CampaignBossId.SalvageDevourer))
-        {
-            highestUnlockedDepth = ExpeditionDepth.DeepZone2;
-        }
-        else if (HasDefeatedCampaignBoss(CampaignBossId.SectorAdministrator))
-        {
-            highestUnlockedDepth = ExpeditionDepth.DeepZone1;
-        }
-        else
-        {
-            highestUnlockedDepth = ExpeditionDepth.Normal;
-        }
+        // Preserve existing saves' authorized routes. Defeat/load alone cannot
+        // authorize a route, and FinalNetwork still has its independent core gate.
+        highestUnlockedDepth = ClampCampaignDepth(highestUnlockedDepth);
 
         if (HasAllRouteCoreParts && routeCoreState == RouteCoreState.MissingParts)
         {

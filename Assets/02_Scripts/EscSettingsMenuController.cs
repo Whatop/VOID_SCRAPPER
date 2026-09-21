@@ -3,10 +3,10 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
+[DefaultExecutionOrder(-100)] // Resolve modal Cancel before EventSystem dropdown/submit dispatch.
 public class EscSettingsMenuController : MonoBehaviour
 {
     [Header("Input Actions Optional")]
@@ -38,21 +38,30 @@ public class EscSettingsMenuController : MonoBehaviour
 
     private InputAction cancelAction;
     private bool isOpen;
-    private SharedOptionsMenuUI sharedOptionsMenu;
+    [SerializeField] private SharedOptionsMenuUI sharedOptionsMenu;
+    [SerializeField] private GameObject sharedOptionsModal;
+    private bool sharedOptionsDiagnosticReported;
+    private bool sharedOptionsInitialized;
+    private SharedOptionsMenuUI subscribedOptionsMenu;
+    private Button subscribedCloseButton;
+    private Button subscribedOpenButton;
 
     private bool previousCursorVisible;
     private CursorLockMode previousCursorLockMode;
     private bool storedCursorState;
+    private int lastTransitionFrame = -1;
+    private int lastCancelFrame = -1;
 
     public bool IsOpen => isOpen;
 
     public event Action<bool> OpenStateChanged;
+    public event Action Opening;
 
     private void Awake()
     {
         if (useSharedOptionsPresentation)
         {
-            BuildSharedOptionsMenu();
+            if (!InitializeSharedOptions()) return;
         }
 
         if (menuRoot == null)
@@ -101,11 +110,14 @@ public class EscSettingsMenuController : MonoBehaviour
 
     public void Open()
     {
-        if (isOpen)
+        if (useSharedOptionsPresentation && !InitializeSharedOptions()) return;
+        if (isOpen || GameplayPauseManager.IsPaused || SettlementExpeditionLaunchGuard.IsDialogueActive)
         {
             return;
         }
 
+        Opening?.Invoke();
+        lastTransitionFrame = Time.frameCount;
         isOpen = true;
 
         AudioManager.Play(SoundEventIds.UiPause);
@@ -155,6 +167,7 @@ public class EscSettingsMenuController : MonoBehaviour
         }
 
         isOpen = false;
+        lastTransitionFrame = Time.frameCount;
 
         if (sharedOptionsMenu != null)
         {
@@ -200,6 +213,11 @@ public class EscSettingsMenuController : MonoBehaviour
 
     private void HandleEscape()
     {
+        if (lastTransitionFrame == Time.frameCount || lastCancelFrame == Time.frameCount) return;
+        lastCancelFrame = Time.frameCount;
+        if (SettlementExpeditionLaunchGuard.IsDialogueActive) return;
+        // Let rebinding and dropdowns consume Cancel; do not also close their containing modal.
+        if (sharedOptionsMenu != null && sharedOptionsMenu.TryHandleNestedCancel()) return;
         GameplayPauseManager pauseManager = GameplayPauseManager.Instance;
 
         if (pauseManager != null && pauseManager.TryHandleCancel())
@@ -257,6 +275,10 @@ public class EscSettingsMenuController : MonoBehaviour
 
     private void BindButtons()
     {
+        UnbindButtons();
+        subscribedOptionsMenu = sharedOptionsMenu;
+        subscribedCloseButton = sharedOptionsMenu == null ? closeButton : null;
+        subscribedOpenButton = openButton;
         if (sharedOptionsMenu != null)
         {
             sharedOptionsMenu.BackRequested += Close;
@@ -266,31 +288,43 @@ public class EscSettingsMenuController : MonoBehaviour
         else if (closeButton != null)
         {
             ConfigureCloseButtonSound(closeButton);
-            closeButton.onClick.AddListener(Close);
+            BindOwnedClick(closeButton, Close);
         }
 
         if (openButton != null)
         {
-            openButton.onClick.AddListener(Open);
+            BindOwnedClick(openButton, Open);
         }
     }
 
     private void UnbindButtons()
     {
-        if (sharedOptionsMenu != null)
+        if (subscribedOptionsMenu != null)
         {
-            sharedOptionsMenu.BackRequested -= Close;
-            sharedOptionsMenu.ReturnToMainMenuRequested -= ReturnToMainMenu;
+            subscribedOptionsMenu.BackRequested -= Close;
+            subscribedOptionsMenu.ReturnToMainMenuRequested -= ReturnToMainMenu;
         }
-        else if (closeButton != null)
+        if (subscribedCloseButton != null)
         {
-            closeButton.onClick.RemoveListener(Close);
+            subscribedCloseButton.onClick.RemoveListener(Close);
         }
 
-        if (openButton != null)
+        if (subscribedOpenButton != null)
         {
-            openButton.onClick.RemoveListener(Open);
+            subscribedOpenButton.onClick.RemoveListener(Open);
         }
+        subscribedOptionsMenu = null;
+        subscribedCloseButton = null;
+        subscribedOpenButton = null;
+    }
+
+    private void BindOwnedClick(Button button, UnityEngine.Events.UnityAction action)
+    {
+        for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+            if (button.onClick.GetPersistentTarget(i) == this &&
+                button.onClick.GetPersistentMethodName(i) == action.Method.Name &&
+                button.onClick.GetPersistentListenerState(i) != UnityEngine.Events.UnityEventCallState.Off) return;
+        button.onClick.AddListener(action);
     }
 
     private void ReturnToMainMenu()
@@ -317,7 +351,8 @@ public class EscSettingsMenuController : MonoBehaviour
             return;
         }
 
-        SceneFlowManager flow = SceneFlowManager.Instance ?? FindFirstObjectByType<SceneFlowManager>();
+        SceneFlowManager flow = SceneFlowManager.Instance;
+        if (flow == null) flow = FindFirstObjectByType<SceneFlowManager>();
         if (flow == null)
         {
             Debug.LogError("SceneFlowManager가 없어 메인 화면으로 이동할 수 없습니다.", this);
@@ -339,8 +374,7 @@ public class EscSettingsMenuController : MonoBehaviour
 
         SaveManager.Instance.Save(PermanentProgress.Instance);
         Close();
-        GameStateManager.Instance?.ChangeState(GameState.Boot);
-        SceneManager.LoadSceneAsync(flow.BootSceneName);
+        flow.LoadBoot();
     }
 
     private void ConfigureCloseButtonSound(Button targetButton)
@@ -410,70 +444,56 @@ public class EscSettingsMenuController : MonoBehaviour
         }
     }
 
-    private void BuildSharedOptionsMenu()
+    public void CollectSharedOptionsBindingErrors(System.Collections.Generic.List<string> errors)
     {
-        GameObject legacyMenuRoot = menuRoot;
-
-        if (legacyMenuRoot != null)
+        if (!useSharedOptionsPresentation) return;
+        void Issue(string field, Component value, Transform expected, string reason)
         {
-            legacyMenuRoot.SetActive(false);
+            errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic(
+                "EscSettingsMenuController." + field, value, expected, gameObject.scene, reason));
         }
+        if (sharedOptionsModal == null || sharedOptionsModal.scene != gameObject.scene ||
+            sharedOptionsModal.transform == transform || !sharedOptionsModal.transform.IsChildOf(transform))
+            Issue(nameof(sharedOptionsModal), sharedOptionsModal != null ? sharedOptionsModal.transform : null, transform, "Missing binding, scene ownership or ancestry");
+        Transform modal = sharedOptionsModal != null ? sharedOptionsModal.transform : transform;
+        if (sharedOptionsMenu == null || sharedOptionsMenu.gameObject.scene != gameObject.scene ||
+            sharedOptionsMenu.transform == modal || !sharedOptionsMenu.transform.IsChildOf(modal))
+            Issue(nameof(sharedOptionsMenu), sharedOptionsMenu, modal, "Missing binding, scene ownership or ancestry");
+        else sharedOptionsMenu.CollectAuthoredBindingErrors(errors);
+    }
 
-        if (settingsPanel != null)
+    private bool SharedOptionsReady()
+    {
+        if (!useSharedOptionsPresentation) return true;
+        var errors = new System.Collections.Generic.List<string>();
+        CollectSharedOptionsBindingErrors(errors);
+        if (errors.Count == 0) return true;
+        if (!sharedOptionsDiagnosticReported)
         {
-            settingsPanel.enabled = false;
+            sharedOptionsDiagnosticReported = true;
+            Debug.LogWarning(string.Join("\n", errors) +
+                "\nRestore the listed authored Inspector bindings. Settings was skipped before acquiring pause/input.", this);
         }
+        return false;
+    }
 
-        GameObject modalRoot = new GameObject(
-            "SettlementSharedOptionsModal",
-            typeof(RectTransform),
-            typeof(Image)
-        );
-        modalRoot.SetActive(false);
-        modalRoot.transform.SetParent(transform, false);
-        modalRoot.layer = gameObject.layer;
-
-        RectTransform modalRect = modalRoot.GetComponent<RectTransform>();
-        modalRect.anchorMin = Vector2.zero;
-        modalRect.anchorMax = Vector2.one;
-        modalRect.pivot = new Vector2(0.5f, 0.5f);
-        modalRect.anchoredPosition = Vector2.zero;
-        modalRect.sizeDelta = Vector2.zero;
-
-        Image modalBackdrop = modalRoot.GetComponent<Image>();
-        modalBackdrop.color = new Color(0.005f, 0.012f, 0.02f, 0.74f);
-        modalBackdrop.raycastTarget = true;
-
-        GameObject sharedRoot = new GameObject(
-            "SettlementSharedOptions",
-            typeof(RectTransform)
-        );
-        sharedRoot.SetActive(false);
-        sharedRoot.transform.SetParent(modalRoot.transform, false);
-        sharedRoot.layer = gameObject.layer;
-
-        sharedOptionsMenu = sharedRoot.AddComponent<SharedOptionsMenuUI>();
-        sharedOptionsMenu.Configure(
-            inputActions,
-            masterAudioMixer,
-            uiFont,
-            true,
-            true,
-            showReturnToMainMenuAction
-        );
-
-        // SettlementSettingsPanel closes its root from Awake. Because this UI is
-        // built inactive, defering that Awake until the first Open would close
-        // only the options content and leave the modal backdrop visible.
-        // Prime the generated hierarchy now so the first real Open is stable.
-        modalRoot.SetActive(true);
-        sharedRoot.SetActive(true);
-        sharedOptionsMenu.Close();
-        modalRoot.SetActive(false);
-
-        menuRoot = modalRoot;
-        settingsRoot = sharedRoot;
+    private bool InitializeSharedOptions()
+    {
+        if (!SharedOptionsReady()) return false;
+        if (sharedOptionsInitialized) return true;
+        if (menuRoot != null && menuRoot != sharedOptionsModal) menuRoot.SetActive(false);
+        if (settingsPanel != null && settingsPanel != sharedOptionsMenu.SettingsPanel) settingsPanel.enabled = false;
+        menuRoot = sharedOptionsModal;
+        settingsRoot = sharedOptionsMenu.gameObject;
         settingsPanel = null;
         closeButton = sharedOptionsMenu.BackButton;
+        // Run the existing settings Awake/Close sequence once, at runtime, before the
+        // first user Open. No construction or authoring helper is involved.
+        sharedOptionsModal.SetActive(true);
+        sharedOptionsMenu.gameObject.SetActive(true);
+        sharedOptionsMenu.Close();
+        sharedOptionsModal.SetActive(false);
+        sharedOptionsInitialized = true;
+        return true;
     }
 }

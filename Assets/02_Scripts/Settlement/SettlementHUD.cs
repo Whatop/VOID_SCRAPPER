@@ -1,5 +1,6 @@
 ﻿using System;
 using DG.Tweening;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -53,14 +54,31 @@ public class BuildingPreviewSpriteSet
 
 public class SettlementHUD : MonoBehaviour
 {
+    [Serializable]
+    public sealed class ResourceCell
+    {
+        public RectTransform root;
+        public Image background;
+        public Image icon;
+        public TextMeshProUGUI value;
+    }
+
     [Header("References")]
     [SerializeField] private SettlementController settlementController;
+    [SerializeField] private SettlementUIController navigationPresentationOwner;
 
     [Header("Resources")]
     [SerializeField] private TextMeshProUGUI currencyText;
     [SerializeField] private Image scrapCurrencyIcon;
     [SerializeField] private Image coreCurrencyIcon;
     [SerializeField] private Color alloyCurrencyColor = new Color(0.72f, 0.92f, 1f, 1f);
+
+    [Header("Authored Persistent Resource Strip")]
+    [SerializeField] private RectTransform resourceContainer;
+    [SerializeField] private RectTransform resourceStripRoot;
+    [SerializeField] private ResourceCell scrapResource = new ResourceCell();
+    [SerializeField] private ResourceCell coreResource = new ResourceCell();
+    [SerializeField] private ResourceCell stabilizedAlloyResource = new ResourceCell();
 
     [Header("Main Panel - Ship")]
     [SerializeField] private Image shipPreviewImage;
@@ -84,6 +102,8 @@ public class SettlementHUD : MonoBehaviour
     [SerializeField] private Image[] shipIndicatorImages;
 
     [Header("Settlement Restoration Panel")]
+    [SerializeField] private RectTransform repairDetailRoot;
+    [SerializeField] private RectTransform repairResultsRoot;
     [SerializeField] private TextMeshProUGUI repairTitleText;
     [SerializeField] private TextMeshProUGUI repairActionButtonLabelText;
 
@@ -111,6 +131,11 @@ public class SettlementHUD : MonoBehaviour
     [Header("Repair Panel - Building Preview")]
     [SerializeField] private Image repairPreviewImage;
 
+    [Header("Route Core Component Summary")]
+    [SerializeField] private RectTransform routeCoreComponentsRoot;
+    [SerializeField] private TextMeshProUGUI routeCoreComponentsHeader;
+    [SerializeField] private TextMeshProUGUI routeCoreComponentsText;
+
     [Tooltip("시설별 복구 이미지. levelSprites[0]은 기능 정지, [1+]는 복구 완료입니다.")]
     [SerializeField] private BuildingPreviewSpriteSet[] buildingPreviewSprites;
 
@@ -133,13 +158,23 @@ public class SettlementHUD : MonoBehaviour
 
     [Header("Messages")]
     [SerializeField] private TextMeshProUGUI messageText;
+    [SerializeField] private TextMeshProUGUI campaignDeckMessageText;
 
-    private readonly TextMeshProUGUI[] resourceValueTexts = new TextMeshProUGUI[3];
-    private RectTransform resourceStripRoot;
-    private Image curseBaseImage;
-    private Image curseAccentImage;
-    private Image curseEdgeImage;
-    private Image curseGhostImage;
+    private bool missingResourceBindingReported;
+    private SettlementController subscribedController;
+    private readonly Dictionary<Image, Vector3> repairIndicatorScales = new Dictionary<Image, Vector3>();
+    private readonly Dictionary<Image, Color> repairIndicatorColors = new Dictionary<Image, Color>();
+    [Header("Authored Hangar Curse Layers")]
+    [SerializeField] private Image curseBaseImage;
+    [SerializeField] private Image curseAccentImage;
+    [SerializeField] private Image curseEdgeImage;
+    [SerializeField] private Image curseGhostImage;
+    private bool previewBaselinesCaptured;
+    private bool hangarDiagnosticReported;
+    private Vector2 ghostPositionBaseline;
+    private Color ghostColorBaseline, edgeColorBaseline, accentBaseline;
+    private readonly Dictionary<Image, Color> shipIndicatorColors = new Dictionary<Image, Color>();
+    private readonly Dictionary<Image, Vector3> shipIndicatorScales = new Dictionary<Image, Vector3>();
     private Sequence cursePreviewSequence;
     private ShipDefinition previewedCurseShip;
 
@@ -150,22 +185,19 @@ public class SettlementHUD : MonoBehaviour
             settlementController = FindFirstObjectByType<SettlementController>();
         }
 
-        InitializePreviewImages();
-        BuildResourceStrip();
-        BuildCursePreviewLayers();
-        ConfigureTextPresentation();
+        HideRepairCostIcons();
     }
 
     private void OnEnable()
     {
-        if (settlementController != null)
-        {
-            settlementController.Changed += Refresh;
-        }
+        SubscribeController();
+        RefreshResourceBalances();
     }
 
     private void Start()
     {
+        // Retry once after scene Awake/OnEnable ordering, without polling or a new service.
+        SubscribeController();
         Refresh();
     }
 
@@ -173,18 +205,43 @@ public class SettlementHUD : MonoBehaviour
     {
         StopCursePreviewTween();
 
-        if (settlementController != null)
-        {
-            settlementController.Changed -= Refresh;
-        }
+        UnsubscribeController();
     }
 
     private void OnDestroy()
     {
-        if (settlementController != null)
+        UnsubscribeController();
+    }
+
+    private void SubscribeController()
+    {
+        if (subscribedController == settlementController)
         {
-            settlementController.Changed -= Refresh;
+            return;
         }
+        UnsubscribeController();
+        subscribedController = settlementController;
+        if (subscribedController != null)
+        {
+            subscribedController.Changed += Refresh;
+        }
+    }
+
+    private void UnsubscribeController()
+    {
+        if (subscribedController != null)
+        {
+            subscribedController.Changed -= Refresh;
+        }
+        subscribedController = null;
+    }
+
+    private void RefreshResourceBalances()
+    {
+        PermanentProgress progress = PermanentProgress.Instance;
+        SetCurrency(progress != null ? progress.ScrapParts : 0,
+            progress != null ? progress.CoreShards : 0,
+            progress != null ? progress.StabilizedAlloy : 0);
     }
 
     public void Refresh()
@@ -194,12 +251,7 @@ public class SettlementHUD : MonoBehaviour
             return;
         }
 
-        PermanentProgress progress = PermanentProgress.Instance;
-        int scrap = progress != null ? progress.ScrapParts : 0;
-        int core = progress != null ? progress.CoreShards : 0;
-        int stabilizedAlloy = progress != null ? progress.StabilizedAlloy : 0;
-
-        SetCurrency(scrap, core, stabilizedAlloy);
+        RefreshResourceBalances();
         SetSelectedWeapon(settlementController.GetWeaponDisplayName(settlementController.SelectedWeaponTree));
         SetSelectedShip(GetSelectedShipLabel());
         SetMessage(settlementController.LastMessage);
@@ -217,16 +269,77 @@ public class SettlementHUD : MonoBehaviour
 
     public void SetCurrency(int scrapParts, int coreShards, int stabilizedAlloy)
     {
-        if (resourceStripRoot != null)
+        bool scrapValid = HasValidResourceCell(CurrencyType.ScrapParts);
+        bool coreValid = HasValidResourceCell(CurrencyType.CoreShards);
+        bool alloyValid = HasValidResourceCell(CurrencyType.StabilizedAlloy);
+        if (scrapValid) SetText(scrapResource?.value, $"스크랩 {scrapParts}");
+        if (coreValid) SetText(coreResource?.value, $"코어 {coreShards}");
+        if (alloyValid) SetText(stabilizedAlloyResource?.value, $"합금 {stabilizedAlloy}");
+        if ((!scrapValid || !coreValid || !alloyValid) && !missingResourceBindingReported)
         {
-            SetText(resourceValueTexts[0], $"스크랩 {scrapParts}");
-            SetText(resourceValueTexts[1], $"코어 {coreShards}");
-            SetText(resourceValueTexts[2], $"합금 {stabilizedAlloy}");
-            return;
+            missingResourceBindingReported = true;
+            Debug.LogWarning("[SettlementHUD] Missing, duplicate, or invalid persistent-resource bindings: " +
+                (scrapValid ? "" : DescribeResourceBinding(CurrencyType.ScrapParts)) +
+                (coreValid ? "" : DescribeResourceBinding(CurrencyType.CoreShards)) +
+                (alloyValid ? "" : DescribeResourceBinding(CurrencyType.StabilizedAlloy)) +
+                ". Restore the listed authored Inspector bindings. " +
+                "Only the affected resource cells were skipped; no replacement strip was created.", this);
         }
-
-        SetText(currencyText, $"스크랩 {scrapParts}   코어 {coreShards}   합금 {stabilizedAlloy}");
     }
+
+    public ResourceCell GetResourceCell(CurrencyType resource)
+    {
+        return resource switch
+        {
+            CurrencyType.ScrapParts => scrapResource,
+            CurrencyType.CoreShards => coreResource,
+            CurrencyType.StabilizedAlloy => stabilizedAlloyResource,
+            _ => null
+        };
+    }
+
+    private string DescribeResourceBinding(CurrencyType resource)
+    {
+        ResourceCell cell = GetResourceCell(resource);
+        string field = resource == CurrencyType.ScrapParts ? nameof(scrapResource) :
+            resource == CurrencyType.CoreShards ? nameof(coreResource) : nameof(stabilizedAlloyResource);
+        Canvas canvas = GetComponentInParent<Canvas>(true);
+        string Issue(string property, Component actual, Transform expected, string reason) =>
+            SettlementSectorTechnologyPanelUI.BindingDiagnostic(nameof(SettlementHUD) + "." + property +
+                " on " + SettlementSectorTechnologyPanelUI.BindingLocation(transform), actual, expected, gameObject.scene, reason) + " ";
+        if (resourceContainer == null || canvas == null || resourceContainer.parent != canvas.transform || resourceContainer.gameObject.scene != gameObject.scene)
+            return Issue(nameof(resourceContainer), resourceContainer, canvas != null ? canvas.transform : transform, "Missing or invalid resource container");
+        if (resourceStripRoot == null || resourceStripRoot.parent != resourceContainer)
+            return Issue(nameof(resourceStripRoot), resourceStripRoot, resourceContainer, "Missing or invalid strip root");
+        if (cell == null || cell.root == null || cell.root.parent != resourceStripRoot)
+            return Issue(field + ".root", cell?.root, resourceStripRoot, "Missing or invalid cell root");
+        if (cell.background == null || cell.background.transform != cell.root)
+            return Issue(field + ".background", cell.background, cell.root, "Missing or invalid cell background");
+        if (cell.icon == null || cell.icon.transform.parent != cell.root || cell.icon.sprite == null)
+            return Issue(field + ".icon", cell.icon, cell.root, "Missing or invalid icon binding/sprite");
+        if (cell.value == null || cell.value.transform.parent != cell.root || cell.value.font == null)
+            return Issue(field + ".value", cell.value, cell.root, "Missing or invalid amount binding/font");
+        return Issue(field + ".root", cell.root, resourceStripRoot, "Duplicate resource cell mapping");
+    }
+
+    public bool HasValidResourceCell(CurrencyType resource)
+    {
+        ResourceCell cell = GetResourceCell(resource);
+        Canvas canvas = GetComponentInParent<Canvas>(true);
+        if (canvas == null || resourceContainer == null || resourceStripRoot == null ||
+            resourceContainer.gameObject.scene != gameObject.scene || resourceContainer.parent != canvas.transform ||
+            resourceStripRoot.parent != resourceContainer || cell == null || cell.root == null ||
+            cell.root.parent != resourceStripRoot || cell.background == null || cell.background.transform != cell.root ||
+            cell.icon == null || cell.icon.transform.parent != cell.root || cell.icon.sprite == null ||
+            cell.value == null || cell.value.transform.parent != cell.root || cell.value.font == null)
+        {
+            return false;
+        }
+        return (resource == CurrencyType.ScrapParts || scrapResource?.root != cell.root) &&
+               (resource == CurrencyType.CoreShards || coreResource?.root != cell.root) &&
+               (resource == CurrencyType.StabilizedAlloy || stabilizedAlloyResource?.root != cell.root);
+    }
+
 
     public void SetSelectedWeapon(string weaponName)
     {
@@ -266,6 +379,11 @@ public class SettlementHUD : MonoBehaviour
         SetText(shipActionButtonLabelText, actionLabel);
     }
 
+    public void SetShipResearchAccent(Color color)
+    {
+        if (shipTitleText != null) shipTitleText.color = color;
+    }
+
     public void SetRepairDetail(string title, string body, string actionLabel)
     {
         SetText(repairTitleText, title);
@@ -276,11 +394,12 @@ public class SettlementHUD : MonoBehaviour
         SetText(repairNextEffectText, string.Empty);
         SetText(repairRequiredCurrencyText, string.Empty);
         SetText(repairActionButtonLabelText, actionLabel);
-        SetRepairCostIconVisuals(false, false);
+        HideRepairCostIcons();
     }
 
     public void SetRestorationDetail(SettlementRestorationViewData viewData)
     {
+        SetRouteCorePresentation(false);
         if (viewData == null)
         {
             SetRepairDetail("정착지 복구", "복구 프로젝트 데이터가 없습니다.", "조건 미충족");
@@ -295,14 +414,49 @@ public class SettlementHUD : MonoBehaviour
         SetText(repairNextEffectText, viewData.RequirementText);
         SetText(repairRequiredCurrencyText, $"복구 결과\n{viewData.CompletionResultText}");
         SetText(repairActionButtonLabelText, viewData.ActionLabel);
-        SetRepairCostIconVisuals(false, false);
+        HideRepairCostIcons();
+    }
+
+    public void SetRouteCoreDetail(string title, string status, string description,
+        string componentsHeader, string components)
+    {
+        SetRouteCorePresentation(true);
+        SetRepairDetail(title, description, string.Empty);
+        SetText(repairCurrentEffectText, status);
+        SetText(routeCoreComponentsHeader, componentsHeader);
+        SetText(routeCoreComponentsText, components);
+    }
+
+    private void SetRouteCorePresentation(bool active)
+    {
+        if (repairPreviewImage != null) repairPreviewImage.gameObject.SetActive(!active);
+        if (routeCoreComponentsRoot != null) routeCoreComponentsRoot.gameObject.SetActive(active);
     }
 
     public void SetRepairPreview(BuildingType buildingType, int currentLevel, int selectedIndex, int totalCount)
     {
         Sprite sprite = GetBuildingPreviewSprite(buildingType, currentLevel);
-        SetImageSprite(repairPreviewImage, sprite);
-        RefreshIndicators(repairIndicatorImages, selectedIndex, totalCount);
+        if (repairPreviewImage != null)
+        {
+            repairPreviewImage.sprite = sprite;
+            repairPreviewImage.enabled = sprite != null;
+        }
+        if (repairIndicatorImages == null) return;
+        for (int i = 0; i < repairIndicatorImages.Length; i++)
+        {
+            Image indicator = repairIndicatorImages[i];
+            if (indicator == null) continue;
+            if (!repairIndicatorScales.ContainsKey(indicator))
+            {
+                repairIndicatorScales.Add(indicator, indicator.transform.localScale);
+                repairIndicatorColors.Add(indicator, indicator.color);
+            }
+            indicator.gameObject.SetActive(i < totalCount);
+            indicator.transform.localScale = repairIndicatorScales[indicator] *
+                Mathf.Max(.01f, i == selectedIndex ? indicatorActiveScale : indicatorInactiveScale);
+            indicator.color = repairIndicatorColors[indicator] *
+                (i == selectedIndex ? indicatorActiveColor : indicatorInactiveColor);
+        }
     }
 
     public void SetTraitDetail(string title, string body, string actionLabel)
@@ -319,6 +473,7 @@ public class SettlementHUD : MonoBehaviour
     public void SetMessage(string message)
     {
         SetText(messageText, message);
+        SetText(campaignDeckMessageText, message);
     }
 
     // 구버전 스크립트 호환용. 인스펙터 Legacy UI는 제거해도 됨.
@@ -336,138 +491,66 @@ public class SettlementHUD : MonoBehaviour
     {
     }
 
-    private void InitializePreviewImages()
+
+    public void ValidateHangarPresentation(List<string> errors)
     {
-        if (shipPreviewImage != null)
+        Transform preview = shipPreviewImage != null ? shipPreviewImage.transform : transform;
+        HangarRole(errors, "shipPreviewImage", shipPreviewImage, transform);
+        HangarRole(errors, "shipTitleText", shipTitleText, transform);
+        HangarRole(errors, "shipBodyText", shipBodyText, transform);
+        HangarRole(errors, "shipActionButtonLabelText", shipActionButtonLabelText, transform);
+        HangarRole(errors, "messageText", messageText, transform);
+        HangarRole(errors, "launchButtonLabelText", launchButtonLabelText, transform);
+        if (pixelCurseTrait != null && cursedPreviewSprite == null)
+            errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementHUD.cursedPreviewSprite", null, preview, gameObject.scene, "Missing curse preview content sprite"));
+        var roles = new HashSet<Image>();
+        Image[] layers = { curseGhostImage, curseEdgeImage, curseBaseImage, curseAccentImage };
+        string[] fields = { "curseGhostImage", "curseEdgeImage", "curseBaseImage", "curseAccentImage" };
+        for (int i = 0; i < layers.Length; i++)
         {
-            shipPreviewImage.preserveAspect = true;
+            HangarRole(errors, fields[i], layers[i], preview);
+            if (layers[i] != null && !roles.Add(layers[i]))
+                errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementHUD." + fields[i], layers[i], preview, gameObject.scene, "Duplicate preview layer"));
         }
-
-        if (repairPreviewImage != null)
-        {
-            repairPreviewImage.preserveAspect = true;
-        }
-
-        InitializeRepairCostIconImage(ref repairScrapCostIconImage, repairScrapCostIconRoot, repairScrapCostIconSprite);
-        InitializeRepairCostIconImage(ref repairCoreShardCostIconImage, repairCoreShardCostIconRoot, repairCoreShardCostIconSprite);
     }
 
-    private void BuildResourceStrip()
+    private void HangarRole(List<string> errors, string field, Component value, Transform parent)
     {
-        if (currencyText == null || currencyText.transform.parent == null)
+        if (value == null || value.gameObject.scene != gameObject.scene || value.transform == parent || !value.transform.IsChildOf(parent))
+            errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementHUD." + field, value, parent, gameObject.scene,
+                value == null ? "Missing required binding" : value.gameObject.scene != gameObject.scene ? "Scene ownership" : "Ancestry"));
+        else if (value is TMP_Text text && text.font == null)
+            errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementHUD." + field, value, parent, gameObject.scene, "Missing font"));
+    }
+
+    private bool HangarPresentationReady()
+    {
+        var errors = new List<string>();
+        ValidateHangarPresentation(errors);
+        if (errors.Count == 0) return true;
+        if (!hangarDiagnosticReported)
         {
-            return;
+            hangarDiagnosticReported = true;
+            Debug.LogWarning(string.Join("\n", errors) +
+                "\nRestore the listed authored Inspector bindings. Only Hangar preview is skipped.", this);
         }
-
-        RectTransform parent = currencyText.transform.parent as RectTransform;
-        GameObject stripObject = new GameObject("ResourceStrip", typeof(RectTransform));
-        stripObject.layer = currencyText.gameObject.layer;
-        resourceStripRoot = stripObject.GetComponent<RectTransform>();
-        resourceStripRoot.SetParent(parent, false);
-        resourceStripRoot.anchorMin = Vector2.zero;
-        resourceStripRoot.anchorMax = Vector2.one;
-        resourceStripRoot.offsetMin = new Vector2(6f, 2f);
-        resourceStripRoot.offsetMax = new Vector2(-6f, -2f);
-
-        CreateResourceChip(0, "스크랩", scrapCurrencyIcon, new Color(0.92f, 0.78f, 0.42f, 1f));
-        CreateResourceChip(1, "코어", coreCurrencyIcon, new Color(1f, 0.73f, 0.26f, 1f));
-        CreateResourceChip(2, "합금", scrapCurrencyIcon, alloyCurrencyColor);
-
-        currencyText.gameObject.SetActive(false);
-        SetImageActive(scrapCurrencyIcon, false);
-        SetImageActive(coreCurrencyIcon, false);
+        return false;
     }
 
-    private void CreateResourceChip(int index, string label, Image sourceIcon, Color accentColor)
+    private void CapturePreviewBaselines()
     {
-        GameObject chipObject = new GameObject($"{label}Resource", typeof(RectTransform), typeof(Image));
-        chipObject.layer = resourceStripRoot.gameObject.layer;
-        RectTransform chipRect = chipObject.GetComponent<RectTransform>();
-        chipRect.SetParent(resourceStripRoot, false);
-        chipRect.anchorMin = new Vector2(index / 3f, 0f);
-        chipRect.anchorMax = new Vector2((index + 1f) / 3f, 1f);
-        chipRect.offsetMin = new Vector2(2f, 0f);
-        chipRect.offsetMax = new Vector2(-2f, 0f);
-
-        Image chipBackground = chipObject.GetComponent<Image>();
-        chipBackground.color = new Color(0.035f, 0.075f, 0.1f, 0.88f);
-        chipBackground.raycastTarget = false;
-
-        GameObject iconObject = new GameObject("Icon", typeof(RectTransform), typeof(Image));
-        iconObject.layer = chipObject.layer;
-        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-        iconRect.SetParent(chipRect, false);
-        iconRect.anchorMin = new Vector2(0f, 0.5f);
-        iconRect.anchorMax = new Vector2(0f, 0.5f);
-        iconRect.pivot = new Vector2(0f, 0.5f);
-        iconRect.anchoredPosition = new Vector2(5f, 0f);
-        iconRect.sizeDelta = new Vector2(9f, 9f);
-        Image iconImage = iconObject.GetComponent<Image>();
-        iconImage.sprite = sourceIcon != null ? sourceIcon.sprite : null;
-        iconImage.color = accentColor;
-        iconImage.preserveAspect = true;
-        iconImage.raycastTarget = false;
-
-        TextMeshProUGUI valueText = Instantiate(currencyText, chipRect);
-        valueText.name = "Value";
-        valueText.gameObject.SetActive(true);
-        valueText.text = "0";
-        valueText.enableAutoSizing = true;
-        valueText.fontSizeMin = 5.5f;
-        valueText.fontSizeMax = 7f;
-        valueText.fontSize = 7f;
-        valueText.textWrappingMode = TextWrappingModes.NoWrap;
-        valueText.overflowMode = TextOverflowModes.Overflow;
-        valueText.alignment = TextAlignmentOptions.MidlineLeft;
-        valueText.raycastTarget = false;
-        RectTransform valueRect = valueText.rectTransform;
-        valueRect.anchorMin = Vector2.zero;
-        valueRect.anchorMax = Vector2.one;
-        valueRect.offsetMin = new Vector2(17f, 0f);
-        valueRect.offsetMax = new Vector2(-2f, 0f);
-        resourceValueTexts[index] = valueText;
-    }
-
-    private void BuildCursePreviewLayers()
-    {
-        if (shipPreviewImage == null)
-        {
-            return;
-        }
-
-        curseGhostImage = CreatePreviewLayer("CurseGhost", curseGhostColor, 0);
-        curseEdgeImage = CreatePreviewLayer("CurseEdge", curseEdgeColor, 1);
-        curseBaseImage = CreatePreviewLayer("CurseBase", Color.white, 2);
-        curseAccentImage = CreatePreviewLayer("WeaponAccent", machineGunAccentColor, 3);
-
-        curseGhostImage.rectTransform.anchoredPosition = new Vector2(-3f, 2f);
-        curseEdgeImage.rectTransform.sizeDelta = new Vector2(62f, 62f);
-        curseEdgeImage.rectTransform.localScale = Vector3.one;
-        SetCursePreviewActive(false);
-    }
-
-    private Image CreatePreviewLayer(string layerName, Color color, int siblingIndex)
-    {
-        GameObject layerObject = new GameObject(layerName, typeof(RectTransform), typeof(Image));
-        layerObject.layer = shipPreviewImage.gameObject.layer;
-        RectTransform rect = layerObject.GetComponent<RectTransform>();
-        rect.SetParent(shipPreviewImage.rectTransform, false);
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = Vector2.zero;
-        rect.sizeDelta = new Vector2(54f, 54f);
-        rect.SetSiblingIndex(siblingIndex);
-
-        Image image = layerObject.GetComponent<Image>();
-        image.color = color;
-        image.preserveAspect = true;
-        image.raycastTarget = false;
-        return image;
+        if (previewBaselinesCaptured) return;
+        ghostPositionBaseline = curseGhostImage.rectTransform.anchoredPosition;
+        ghostColorBaseline = curseGhostImage.color;
+        edgeColorBaseline = curseEdgeImage.color;
+        accentBaseline = curseAccentImage.color;
+        previewBaselinesCaptured = true;
     }
 
     private void RefreshShipPreview(Sprite normalSprite)
     {
+        if (!HangarPresentationReady()) return;
+        CapturePreviewBaselines();
         bool isCursed = PermanentProgress.Instance != null &&
                         pixelCurseTrait != null &&
                         PermanentProgress.Instance.HasPersistentStoryTrait(pixelCurseTrait);
@@ -499,7 +582,12 @@ public class SettlementHUD : MonoBehaviour
         WeaponTreeType weaponTree = previewShip != null
             ? previewShip.DefaultWeaponTree
             : WeaponTreeType.MachineGun;
-        curseAccentImage.color = ResolveWeaponAccentColor(weaponTree);
+        Color weaponColor = ResolveWeaponAccentColor(weaponTree);
+        curseAccentImage.color = new Color(
+            accentBaseline.r * weaponColor.r / Mathf.Max(.001f, machineGunAccentColor.r),
+            accentBaseline.g * weaponColor.g / Mathf.Max(.001f, machineGunAccentColor.g),
+            accentBaseline.b * weaponColor.b / Mathf.Max(.001f, machineGunAccentColor.b),
+            accentBaseline.a);
         SetCursePreviewActive(true);
         StartCursePreviewTween();
     }
@@ -534,21 +622,21 @@ public class SettlementHUD : MonoBehaviour
         }
 
         RectTransform ghostRect = curseGhostImage.rectTransform;
-        ghostRect.anchoredPosition = new Vector2(-3f, 2f);
-        curseGhostImage.color = curseGhostColor;
-        curseEdgeImage.color = curseEdgeColor;
+        ghostRect.anchoredPosition = ghostPositionBaseline;
+        curseGhostImage.color = ghostColorBaseline;
+        curseEdgeImage.color = edgeColorBaseline;
 
         Sequence sequence = DOTween.Sequence();
         cursePreviewSequence = sequence;
         sequence
             .SetUpdate(true)
             .AppendInterval(2.1f)
-            .Append(ghostRect.DOAnchorPos(new Vector2(3f, -2f), 0.08f, true).SetEase(Ease.OutQuad))
-            .Join(curseGhostImage.DOFade(0.5f, 0.08f))
-            .Join(curseEdgeImage.DOFade(0.78f, 0.08f))
-            .Append(ghostRect.DOAnchorPos(new Vector2(-3f, 2f), 0.12f, true).SetEase(Ease.OutCubic))
-            .Join(curseGhostImage.DOFade(curseGhostColor.a, 0.12f))
-            .Join(curseEdgeImage.DOFade(curseEdgeColor.a, 0.12f))
+            .Append(ghostRect.DOAnchorPos(ghostPositionBaseline + new Vector2(6f, -4f), 0.08f, true).SetEase(Ease.OutQuad))
+            .Join(curseGhostImage.DOFade(Mathf.Clamp01(ghostColorBaseline.a * (0.5f / 0.28f)), 0.08f))
+            .Join(curseEdgeImage.DOFade(Mathf.Clamp01(edgeColorBaseline.a * (0.78f / 0.52f)), 0.08f))
+            .Append(ghostRect.DOAnchorPos(ghostPositionBaseline, 0.12f, true).SetEase(Ease.OutCubic))
+            .Join(curseGhostImage.DOFade(ghostColorBaseline.a, 0.12f))
+            .Join(curseEdgeImage.DOFade(edgeColorBaseline.a, 0.12f))
             .SetLoops(-1, LoopType.Restart)
             .SetLink(shipPreviewImage.gameObject, LinkBehaviour.KillOnDisable)
             .OnKill(() =>
@@ -565,15 +653,15 @@ public class SettlementHUD : MonoBehaviour
         cursePreviewSequence?.Kill();
         cursePreviewSequence = null;
 
-        if (curseGhostImage != null)
+        if (previewBaselinesCaptured && curseGhostImage != null)
         {
-            curseGhostImage.rectTransform.anchoredPosition = new Vector2(-3f, 2f);
-            curseGhostImage.color = curseGhostColor;
+            curseGhostImage.rectTransform.anchoredPosition = ghostPositionBaseline;
+            curseGhostImage.color = ghostColorBaseline;
         }
 
-        if (curseEdgeImage != null)
+        if (previewBaselinesCaptured && curseEdgeImage != null)
         {
-            curseEdgeImage.color = curseEdgeColor;
+            curseEdgeImage.color = edgeColorBaseline;
         }
     }
 
@@ -595,47 +683,6 @@ public class SettlementHUD : MonoBehaviour
         }
     }
 
-    private void ConfigureTextPresentation()
-    {
-        ConfigureText(shipTitleText, 11f, 9f, 12f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-        ConfigureText(shipBodyText, 7f, 5.5f, 7.5f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
-        ConfigureText(shipActionButtonLabelText, 7.5f, 6f, 8f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-        ConfigureText(repairTitleText, 11f, 9f, 12f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-        ConfigureText(repairDescriptionText, 6.5f, 5.5f, 7f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
-        ConfigureText(repairCurrentStageText, 7.5f, 6f, 8f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-        ConfigureText(repairCurrentEffectText, 7f, 5.5f, 7.5f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
-        ConfigureText(repairNextStageText, 7.5f, 6f, 8f, TextWrappingModes.NoWrap, TextOverflowModes.Overflow);
-        ConfigureText(repairNextEffectText, 7f, 5.5f, 7.5f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
-        ConfigureText(repairRequiredCurrencyText, 7f, 5.5f, 7.5f, TextWrappingModes.Normal, TextOverflowModes.Truncate);
-        ConfigureText(messageText, 6.5f, 5.5f, 7f, TextWrappingModes.NoWrap, TextOverflowModes.Truncate);
-
-        if (repairRequiredCurrencyText != null)
-        {
-            repairRequiredCurrencyText.alignment = TextAlignmentOptions.MidlineLeft;
-        }
-    }
-
-    private static void ConfigureText(
-        TextMeshProUGUI text,
-        float size,
-        float minimum,
-        float maximum,
-        TextWrappingModes wrapping,
-        TextOverflowModes overflow)
-    {
-        if (text == null)
-        {
-            return;
-        }
-
-        text.fontSize = size;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = minimum;
-        text.fontSizeMax = maximum;
-        text.textWrappingMode = wrapping;
-        text.overflowMode = overflow;
-        text.raycastTarget = false;
-    }
 
     private Sprite GetBuildingPreviewSprite(BuildingType buildingType, int currentLevel)
     {
@@ -660,89 +707,75 @@ public class SettlementHUD : MonoBehaviour
         return null;
     }
 
-    private void SetRepairCostIconVisuals(bool showScrap, bool showCore)
+    private void HideRepairCostIcons()
     {
-        LayoutRepairCostIcons(showScrap, showCore);
-
-        SetRepairCostIconActive(
-            repairScrapCostIconRoot,
-            repairScrapCostIconImage,
-            repairScrapCostIconSprite,
-            showScrap
-        );
-
-        SetRepairCostIconActive(
-            repairCoreShardCostIconRoot,
-            repairCoreShardCostIconImage,
-            repairCoreShardCostIconSprite,
-            showCore
-        );
+        // Legacy references stay serialized. Hide only the graphic, never its container or layout.
+        Image scrap = repairScrapCostIconImage != null ? repairScrapCostIconImage :
+            repairScrapCostIconRoot != null ? repairScrapCostIconRoot.GetComponent<Image>() : null;
+        Image core = repairCoreShardCostIconImage != null ? repairCoreShardCostIconImage :
+            repairCoreShardCostIconRoot != null ? repairCoreShardCostIconRoot.GetComponent<Image>() : null;
+        if (scrap != null && scrap.gameObject.scene == gameObject.scene && scrap.transform.IsChildOf(transform)) scrap.enabled = false;
+        if (core != null && core.gameObject.scene == gameObject.scene && core.transform.IsChildOf(transform)) core.enabled = false;
     }
 
-    private void SetRepairCostIconActive(GameObject root, Image image, Sprite sprite, bool active)
+    public void CollectRestorationBindingErrors(GameObject panel, Button action, Button previous, Button next, List<string> errors)
     {
-        if (image == null && root != null)
-        {
-            image = root.GetComponent<Image>();
-        }
-
-        GameObject targetObject = root != null
-            ? root
-            : image != null ? image.gameObject : null;
-
-        bool shouldShow = active;
-
-        if (targetObject != null)
-        {
-            targetObject.SetActive(shouldShow);
-        }
-
-        if (image != null)
-        {
-            if (sprite != null)
+        Transform root = panel != null ? panel.transform : null;
+        var roles = new HashSet<Component>();
+        CheckRestorationRole("repairPanel", root, transform, errors, roles);
+        CheckRestorationRole(nameof(repairDetailRoot), repairDetailRoot, root, errors, roles);
+        CheckRestorationRole(nameof(repairResultsRoot), repairResultsRoot, root, errors, roles);
+        CheckRestorationRole(nameof(repairPreviewImage), repairPreviewImage, root, errors, roles);
+        CheckRestorationRole("repairActionButton", action, root, errors, roles);
+        CheckRestorationRole("repairPreviousButton", previous, repairPreviewImage != null ? repairPreviewImage.transform : root, errors, roles);
+        CheckRestorationRole("repairNextButton", next, repairPreviewImage != null ? repairPreviewImage.transform : root, errors, roles);
+        CheckRestorationRole(nameof(repairActionButtonLabelText), repairActionButtonLabelText, action != null ? action.transform : root, errors, roles);
+        TextMeshProUGUI[] texts = { repairTitleText, repairDescriptionText, repairCurrentStageText, repairCurrentEffectText, repairNextStageText, repairNextEffectText };
+        string[] fields = { nameof(repairTitleText), nameof(repairDescriptionText), nameof(repairCurrentStageText), nameof(repairCurrentEffectText), nameof(repairNextStageText), nameof(repairNextEffectText) };
+        for (int i = 0; i < texts.Length; i++) CheckRestorationRole(fields[i], texts[i], repairDetailRoot, errors, roles);
+        CheckRestorationRole(nameof(repairRequiredCurrencyText), repairRequiredCurrencyText, repairResultsRoot, errors, roles);
+        if (repairScrapCostIconRoot != null) CheckRestorationRole(nameof(repairScrapCostIconRoot), repairScrapCostIconRoot.transform, repairResultsRoot, errors, roles);
+        if (repairCoreShardCostIconRoot != null) CheckRestorationRole(nameof(repairCoreShardCostIconRoot), repairCoreShardCostIconRoot.transform, repairResultsRoot, errors, roles);
+        if (repairScrapCostIconImage != null) CheckRestorationRole(nameof(repairScrapCostIconImage), repairScrapCostIconImage, repairResultsRoot, errors, roles);
+        if (repairCoreShardCostIconImage != null) CheckRestorationRole(nameof(repairCoreShardCostIconImage), repairCoreShardCostIconImage, repairResultsRoot, errors, roles);
+        if (repairIndicatorImages == null || repairIndicatorImages.Length != 4)
+            errors.Add("SettlementHUD.repairIndicatorImages requires exactly four explicit facility mappings.");
+        if (repairIndicatorImages != null)
+            for (int i = 0; i < repairIndicatorImages.Length; i++)
+                CheckRestorationRole($"repairIndicatorImages.Array.data[{i}]", repairIndicatorImages[i],
+                    repairPreviewImage != null ? repairPreviewImage.transform : root, errors, roles);
+        var buildings = new HashSet<BuildingType>();
+        if (buildingPreviewSprites != null)
+            for (int i = 0; i < buildingPreviewSprites.Length; i++)
             {
-                image.sprite = sprite;
+                BuildingPreviewSpriteSet set = buildingPreviewSprites[i];
+                if (set == null || !buildings.Add(set.BuildingType) || set.GetSprite(0) == null || set.GetSprite(1) == null)
+                    errors.Add($"SettlementHUD.buildingPreviewSprites.Array.data[{i}]: missing sprite or duplicate facility mapping.");
             }
-
-            image.enabled = shouldShow && image.sprite != null;
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-        }
+        foreach (BuildingType type in new[] { BuildingType.Hangar, BuildingType.EngineWorkshop, BuildingType.WeaponLab, BuildingType.RecoveryProcessor })
+            if (!buildings.Contains(type)) errors.Add($"SettlementHUD.buildingPreviewSprites: missing {type} mapping.");
     }
 
-    private void LayoutRepairCostIcons(bool showScrap, bool showCore)
+    private void CheckRestorationRole(string field, Component value, Transform parent, List<string> errors, HashSet<Component> roles)
     {
-        bool showBoth = showScrap && showCore;
-        SetCostIconVerticalPosition(repairScrapCostIconRoot, showBoth ? 5f : 0f);
-        SetCostIconVerticalPosition(repairCoreShardCostIconRoot, showBoth ? -5f : 0f);
-    }
-
-    private static void SetCostIconVerticalPosition(GameObject root, float y)
-    {
-        if (root != null && root.transform is RectTransform rect)
-        {
-            rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, y);
-        }
-    }
-
-    private void InitializeRepairCostIconImage(ref Image image, GameObject root, Sprite sprite)
-    {
-        if (image == null && root != null)
-        {
-            image = root.GetComponent<Image>();
-        }
-
-        if (image == null)
-        {
-            return;
-        }
-
-        if (sprite != null)
-        {
-            image.sprite = sprite;
-        }
-
-        image.preserveAspect = true;
+        string property = (field == "repairPanel" || field == "repairActionButton" || field == "repairPreviousButton" || field == "repairNextButton"
+            ? "SettlementUIController." : "SettlementHUD.") + field;
+        bool reusedObject = false;
+        if (value != null)
+            foreach (Component role in roles)
+                if (role.transform == value.transform &&
+                    !((field == nameof(repairScrapCostIconImage) || field == nameof(repairCoreShardCostIconImage)) && role is Transform))
+                    reusedObject = true;
+        string reason = value == null ? "Missing binding" :
+            value.gameObject.scene != gameObject.scene ? "Scene ownership mismatch (cross-scene reference)" :
+            parent == null || value.transform == parent || !value.transform.IsChildOf(parent) ? "Incorrect ancestry" :
+            reusedObject || !roles.Add(value) ? "Duplicate presentation role" : null;
+        if (reason != null)
+            errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic(property, value, parent, gameObject.scene, reason));
+        if (value is TMP_Text text && text.font == null)
+            errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementHUD." + field, value, parent, gameObject.scene, "Missing TMP font"));
+        if (field.StartsWith("repairIndicatorImages", StringComparison.Ordinal) && value is Image image && image.sprite == null)
+            errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementHUD." + field, value, parent, gameObject.scene, "Missing indicator sprite"));
     }
 
     private void SetImageSprite(Image image, Sprite sprite)
@@ -754,7 +787,6 @@ public class SettlementHUD : MonoBehaviour
 
         image.sprite = sprite;
         image.enabled = sprite != null;
-        image.preserveAspect = true;
     }
 
     private void RefreshIndicators(Image[] indicators, int selectedIndex, int totalCount)
@@ -784,17 +816,19 @@ public class SettlementHUD : MonoBehaviour
                 continue;
             }
 
+            if (!shipIndicatorColors.ContainsKey(indicator))
+            {
+                shipIndicatorColors.Add(indicator, indicator.color);
+                shipIndicatorScales.Add(indicator, indicator.transform.localScale);
+            }
             bool active = i == selectedIndex;
-
-            indicator.color = active
-                ? indicatorActiveColor
-                : indicatorInactiveColor;
+            indicator.color = shipIndicatorColors[indicator] * (active ? indicatorActiveColor : indicatorInactiveColor);
 
             float targetScale = active
                 ? indicatorActiveScale
                 : indicatorInactiveScale;
 
-            indicator.transform.localScale = Vector3.one * Mathf.Max(0.01f, targetScale);
+            indicator.transform.localScale = shipIndicatorScales[indicator] * Mathf.Max(0.01f, targetScale);
         }
     }
 

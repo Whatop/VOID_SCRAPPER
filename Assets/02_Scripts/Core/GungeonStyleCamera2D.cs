@@ -88,9 +88,12 @@ public class GungeonStyleCamera2D : MonoBehaviour
     private bool cinematicFocusActive;
     private bool cinematicReturnActive;
     private bool cinematicInputOffsetLocked;
+    private readonly System.Collections.Generic.HashSet<object> cinematicInputOffsetOwners =
+        new System.Collections.Generic.HashSet<object>();
     private object cinematicFocusOwner;
     private Vector3 cinematicFocusWorldPosition;
     private bool cinematicFocusBlendActive;
+    private bool cinematicBlendReturnsToPlayer;
     private Vector3 cinematicFocusBlendStart;
     private Vector3 cinematicFocusBlendTarget;
     private float cinematicFocusBlendDuration;
@@ -110,8 +113,9 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     public bool IsCinematicFocusActive => cinematicFocusActive;
     public bool IsCinematicFocusBlendActive => cinematicFocusBlendActive;
-    public bool IsCinematicInputOffsetLocked => cinematicInputOffsetLocked;
+    public bool IsCinematicInputOffsetLocked => cinematicInputOffsetLocked || cinematicInputOffsetOwners.Count > 0;
     public Camera GameplayCamera => mainCamera;
+    public Transform FollowTarget => player;
     public bool IsScriptedVerticalScrollActive => scriptedVerticalScrollOwner != null;
     public bool HasScriptedVerticalScrollReachedTerminal =>
         IsScriptedVerticalScrollActive && scriptedVerticalScrollReachedTerminal;
@@ -149,6 +153,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
         cinematicFocusOwner = null;
         CancelCinematicFocusBlend(false);
         cinematicInputOffsetLocked = false;
+        cinematicInputOffsetOwners.Clear();
         mouseLookAheadActive = false;
         hasStableMousePosition = false;
         currentAimOffset = Vector2.zero;
@@ -295,7 +300,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
         player = target;
         playerController = player != null ? player.GetComponent<PlayerController2D>() : null;
 
-        if (!IsScriptedVerticalScrollActive)
+        if (!IsScriptedVerticalScrollActive && cinematicFocusOwner == null)
         {
             SnapToPlayer();
         }
@@ -381,14 +386,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
         out Vector3 resolvedTarget)
     {
         resolvedTarget = default;
-        bool hasUnownedCinematic = cinematicFocusOwner == null &&
-                                   (cinematicFocusActive ||
-                                    cinematicFocusBlendActive ||
-                                    cinematicReturnActive);
-        if (owner == null ||
-            scriptedVerticalScrollOwner != null ||
-            hasUnownedCinematic ||
-            cinematicFocusOwner != null && !ReferenceEquals(cinematicFocusOwner, owner))
+        if (!CanAcquireCinematicFocus(owner))
         {
             return false;
         }
@@ -401,9 +399,45 @@ public class GungeonStyleCamera2D : MonoBehaviour
         return true;
     }
 
+    public bool TrySetOwnedCinematicFocus(object owner, Vector3 worldPosition, bool immediate = false)
+    {
+        if (!CanAcquireCinematicFocus(owner))
+        {
+            return false;
+        }
+
+        SetCinematicFocus(worldPosition, immediate);
+        cinematicFocusOwner = owner;
+        return true;
+    }
+
+    private bool CanAcquireCinematicFocus(object owner)
+    {
+        bool hasUnownedCinematic = cinematicFocusOwner == null &&
+                                   (cinematicFocusActive || cinematicFocusBlendActive || cinematicReturnActive);
+        return owner != null && scriptedVerticalScrollOwner == null && !hasUnownedCinematic &&
+               (cinematicFocusOwner == null || ReferenceEquals(cinematicFocusOwner, owner));
+    }
+
     public bool IsCinematicFocusOwnedBy(object owner)
     {
         return owner != null && ReferenceEquals(cinematicFocusOwner, owner);
+    }
+
+    public bool TryBeginOwnedPlayerReturnBlend(object owner, float duration)
+    {
+        if (!IsCinematicFocusOwnedBy(owner) || player == null ||
+            !player.gameObject.activeInHierarchy || !isActiveAndEnabled)
+        {
+            return false;
+        }
+
+        BeginCinematicFocusBlendInternal(
+            player.position + (Vector3)currentGameplayFramingOffset, duration, null);
+        // The existing late camera writer resolves the current player framing,
+        // including a replacement target. Never snapshot a stale return position.
+        cinematicBlendReturnsToPlayer = true;
+        return true;
     }
 
     public bool ReleaseOwnedCinematicFocus(object owner, bool immediate)
@@ -435,6 +469,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
         cinematicFocusActive = true;
         cinematicReturnActive = false;
         cinematicFocusWorldPosition = resolvedTarget;
+        cinematicBlendReturnsToPlayer = false;
         targetAimOffset = Vector2.zero;
         currentAimOffset = Vector2.zero;
         currentCameraCenter = renderedCenter;
@@ -459,6 +494,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
     public void CancelCinematicFocusBlend(bool preserveCurrentFocus = true)
     {
+        cinematicBlendReturnsToPlayer = false;
         if (preserveCurrentFocus && cinematicFocusBlendActive)
         {
             cinematicFocusWorldPosition = currentCameraCenter;
@@ -801,6 +837,24 @@ public class GungeonStyleCamera2D : MonoBehaviour
         }
     }
 
+    public void SetCinematicInputOffsetLocked(object owner, bool locked)
+    {
+        if (owner == null)
+        {
+            return;
+        }
+        if (locked)
+        {
+            cinematicInputOffsetOwners.Add(owner);
+            mouseLookAheadActive = false;
+            targetAimOffset = Vector2.zero;
+        }
+        else
+        {
+            cinematicInputOffsetOwners.Remove(owner);
+        }
+    }
+
     private void ResolveReferences()
     {
         if (mainCamera == null)
@@ -837,7 +891,7 @@ public class GungeonStyleCamera2D : MonoBehaviour
     private void UpdateAimOffset(float deltaTime)
     {
         bool inputLocked = cinematicFocusActive ||
-                           cinematicInputOffsetLocked ||
+                           IsCinematicInputOffsetLocked ||
                            (playerController != null && !playerController.ControlEnabled);
 
         targetAimOffset = inputLocked ? Vector2.zero : CalculateMouseAimOffset();
@@ -1029,6 +1083,12 @@ public class GungeonStyleCamera2D : MonoBehaviour
 
         if (cinematicFocusBlendActive)
         {
+            if (cinematicBlendReturnsToPlayer)
+            {
+                cinematicFocusBlendTarget = ClampToMapBounds(playerCenter);
+                cinematicFocusBlendTarget.z = cameraWorldZ;
+                cinematicFocusWorldPosition = cinematicFocusBlendTarget;
+            }
             cinematicFocusBlendElapsed += unscaledDeltaTime;
             float normalized = cinematicFocusBlendDuration > 0.0001f
                 ? Mathf.Clamp01(cinematicFocusBlendElapsed / cinematicFocusBlendDuration)

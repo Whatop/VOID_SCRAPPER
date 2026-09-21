@@ -86,6 +86,7 @@ public class PlayerController2D : MonoBehaviour
     private Vector2 externalPushVelocity;
     private float externalPushTimer;
     private float externalPushDuration;
+    private readonly Dictionary<object, Vector2> ownedPushVelocities = new Dictionary<object, Vector2>();
 
     private bool movementVelocityOverrideActive;
     private Vector2 movementVelocityOverride;
@@ -138,6 +139,7 @@ public class PlayerController2D : MonoBehaviour
 
         externalPushVelocity = Vector2.zero;
         externalPushTimer = 0f;
+        ownedPushVelocities.Clear();
         movementVelocityOverrideActive = false;
         movementVelocityOverride = Vector2.zero;
         movementInputActive = false;
@@ -258,6 +260,10 @@ public class PlayerController2D : MonoBehaviour
             }
         }
 
+        foreach (Vector2 velocity in ownedPushVelocities.Values)
+        {
+            pushVelocity += velocity;
+        }
         Vector2 resolvedVelocity = inputVelocity + pushVelocity;
         ApplyTemporaryMovementConstraints(ref resolvedVelocity);
         rb.linearVelocity = resolvedVelocity;
@@ -527,6 +533,18 @@ public class PlayerController2D : MonoBehaviour
         externalPushDuration = Mathf.Max(0.02f, finalDuration);
         externalPushTimer = externalPushDuration;
         externalPushVelocity = direction.normalized * (distance / externalPushDuration);
+    }
+
+    // Sustained forces compose with movement/dash and the existing decaying impulse.
+    // The source must clear its own contribution on cancellation or completion.
+    public void SetExternalPushVelocity(object source, Vector2 velocity)
+    {
+        if (source != null && IsFinite(velocity)) ownedPushVelocities[source] = velocity;
+    }
+
+    public void ClearExternalPush(object source)
+    {
+        if (source != null) ownedPushVelocities.Remove(source);
     }
 
     public bool IsRepositionDestinationValid(Vector2 destination)

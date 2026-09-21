@@ -48,6 +48,8 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     [SerializeField] private MonoBehaviour[] componentsToDisableOnDeath;
 
     private float currentHp;
+    private readonly System.Collections.Generic.Dictionary<object, float> damageFloors =
+        new System.Collections.Generic.Dictionary<object, float>();
     private bool isDead;
 
     private Rigidbody2D rb;
@@ -86,6 +88,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         bossPatternController = GetComponent<BossPatternController>();
         phaseGatekeeperBossController = GetComponent<PhaseGatekeeperBossController>();
         isBoss = bossPatternController != null ||
+                 GetComponent<BossDummyController>() != null ||
                  GetComponent<PirateCommanderBossController>() != null ||
                  GetComponent<FrigateTriadBossController>() != null ||
                  phaseGatekeeperBossController != null;
@@ -119,6 +122,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
     private void OnDisable()
     {
+        damageFloors.Clear();
         if (releaseRoutine != null)
         {
             StopCoroutine(releaseRoutine);
@@ -201,6 +205,25 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         TakeDamage((float)damage, transform.position, Vector2.zero);
     }
 
+    // A phase owner may reserve HP without changing another owner's protection.
+    // This clamps damage before HealthChanged/Die, including a single lethal hit.
+    public void SetDamageFloor(object source, float hpRatio)
+    {
+        if (source == null)
+        {
+            return;
+        }
+        damageFloors[source] = Mathf.Clamp01(hpRatio);
+    }
+
+    public void RemoveDamageFloor(object source)
+    {
+        if (source != null)
+        {
+            damageFloors.Remove(source);
+        }
+    }
+
     public void TakeDamage(float damage)
     {
         TakeDamage(damage, transform.position, Vector2.zero);
@@ -230,7 +253,16 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
             return;
         }
 
-        currentHp = Mathf.Max(0f, currentHp - damage);
+        float nextHp = Mathf.Max(0f, currentHp - damage);
+        foreach (float floor in damageFloors.Values)
+        {
+            nextHp = Mathf.Max(nextHp, Mathf.Min(currentHp, maxHp * floor));
+        }
+        if (nextHp >= currentHp)
+        {
+            return;
+        }
+        currentHp = nextHp;
 
         PlayHitFeedback(damage, hitPoint, incomingDirection);
         AudioManager.PlayAt(SoundEventIds.EnemyHit, hitPoint, 0.7f);

@@ -231,15 +231,10 @@ public class CoreBossIntroSequence : MonoBehaviour
         public Rigidbody2D rb;
 
         public PlayerController2D controller;
-        public bool controllerControlWasEnabled;
-        public bool controllerMovementWasLocked;
 
         public PlayerDash dash;
-        public bool dashWasEnabled;
 
         public PlayerWeaponController weaponController;
-        public bool weaponWasEnabled;
-        public bool weaponExternalInputWasLocked;
 
         public PlayerInteractor interactor;
         public bool interactorWasEnabled;
@@ -3036,28 +3031,21 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (playerLockState.controller != null)
         {
-            playerLockState.controllerControlWasEnabled = playerLockState.controller.ControlEnabled;
-            playerLockState.controllerMovementWasLocked = playerLockState.controller.MovementLocked;
-
-            playerLockState.controller.SetControlEnabled(false);
-            playerLockState.controller.SetMovementLocked(true);
+            playerLockState.controller.SetExternalControlLocked(this, true);
         }
 
         playerLockState.dash = interactor.GetComponent<PlayerDash>();
 
         if (playerLockState.dash != null)
         {
-            playerLockState.dashWasEnabled = playerLockState.dash.enabled;
-            playerLockState.dash.enabled = false;
+            playerLockState.dash.CancelActiveDash();
         }
 
         playerLockState.weaponController = interactor.GetComponent<PlayerWeaponController>();
 
         if (playerLockState.weaponController != null)
         {
-            playerLockState.weaponWasEnabled = playerLockState.weaponController.enabled;
-            playerLockState.weaponExternalInputWasLocked = playerLockState.weaponController.ExternalInputLocked;
-            playerLockState.weaponController.SetExternalInputLocked(true);
+            playerLockState.weaponController.SetExternalInputLocked(this, true);
         }
 
         playerLockState.interactor = interactor.GetComponent<PlayerInteractor>();
@@ -3125,19 +3113,12 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (playerLockState.controller != null)
         {
-            playerLockState.controller.SetControlEnabled(playerLockState.controllerControlWasEnabled);
-            playerLockState.controller.SetMovementLocked(playerLockState.controllerMovementWasLocked);
-        }
-
-        if (playerLockState.dash != null)
-        {
-            playerLockState.dash.enabled = playerLockState.dashWasEnabled;
+            playerLockState.controller.SetExternalControlLocked(this, false);
         }
 
         if (playerLockState.weaponController != null)
         {
-            playerLockState.weaponController.enabled = playerLockState.weaponWasEnabled;
-            playerLockState.weaponController.SetExternalInputLocked(playerLockState.weaponExternalInputWasLocked);
+            playerLockState.weaponController.SetExternalInputLocked(this, false);
         }
 
         if (playerLockState.interactor != null)

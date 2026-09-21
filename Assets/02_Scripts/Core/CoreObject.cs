@@ -20,7 +20,7 @@ public class CoreObject : MonoBehaviour, IInteractable
     [SerializeField] private GameObject region2BossPrefab;
     [SerializeField] private GameObject region3BossPrefab;
     [SerializeField] private GameObject finalBossPrefab;
-    [Header("Region 1 Repeat Encounter")]
+    [Header("Shared Raider Repeat Encounter (legacy Region 1 bindings)")]
     [SerializeField] private GameObject region1RepeatBossPrefab;
     [SerializeField] private BossCampaignDefinition region1RepeatBossDefinition;
     [SerializeField] private string region1RepeatSignalSubtitle = "약탈자 지휘 신호 감지";
@@ -474,6 +474,8 @@ public class CoreObject : MonoBehaviour, IInteractable
             );
         }
 
+        spawnedBoss?.GetComponent<NullDispatcherBossController>()?.BeginCombat();
+
         if (alertNearbyEnemiesOnBattleStart)
         {
             AlertNearbyEnemies();
@@ -596,6 +598,7 @@ public class CoreObject : MonoBehaviour, IInteractable
 
         ResolvedBossEncounter encounter = ResolveBossEncounter();
         bossController.ConfigureCampaignDefinition(encounter.CampaignDefinition);
+        bossObject.GetComponent<NullDispatcherBossController>()?.ConfigureEncounter(ResolveCurrentDepth(), interactor);
 
         PirateCommanderBossController raiderCommander =
             bossObject.GetComponent<PirateCommanderBossController>();
@@ -689,7 +692,7 @@ public class CoreObject : MonoBehaviour, IInteractable
             _ => bossPrefab
         };
 
-        bool useRepeatReplacement = depth == ExpeditionDepth.Normal && ShouldUseRegion1RepeatBoss();
+        bool useRepeatReplacement = ShouldUseRegion1RepeatBoss();
         if (useRepeatReplacement &&
             region1RepeatBossPrefab != null &&
             region1RepeatBossDefinition != null)
@@ -699,7 +702,12 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
         else
         {
-            useRepeatReplacement = false;
+            if (useRepeatReplacement)
+            {
+                Debug.LogError("[CoreObject] Cleared-region Raider requires region1RepeatBossPrefab " +
+                    "and region1RepeatBossDefinition on this Core. Story boss fallback is forbidden.", this);
+                prefab = null;
+            }
         }
 
         string displayName = definition != null
@@ -746,16 +754,14 @@ public class CoreObject : MonoBehaviour, IInteractable
     private bool ShouldUseRegion1RepeatBoss()
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        if (forceRegion1RepeatBoss)
+        if (forceRegion1RepeatBoss && ResolveCurrentDepth() == ExpeditionDepth.Normal)
         {
             return true;
         }
 #endif
 
-        return PermanentProgress.Instance != null &&
-               PermanentProgress.Instance.HasDefeatedCampaignBoss(
-                   CampaignBossId.SectorAdministrator
-               );
+        return CampaignProgressionCatalog.ShouldUseRepeatBoss(
+            ResolveCurrentDepth(), PermanentProgress.Instance);
     }
 
     private bool IsLiveSalvageDevourerEncounter(ResolvedBossEncounter encounter)
@@ -790,7 +796,7 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         ExpeditionDepth depth = runManager.CurrentRun.ExpeditionDepth;
-        if (depth == ExpeditionDepth.DeepZone2)
+        if (depth == ExpeditionDepth.DeepZone2 && !ShouldUseRegion1RepeatBoss())
         {
             failureReason = "Region 3 is Coreless. Use bossstart.";
             return false;
@@ -815,7 +821,7 @@ public class CoreObject : MonoBehaviour, IInteractable
             return false;
         }
 
-        if (depth == ExpeditionDepth.DeepZone1)
+        if (IsLiveSalvageDevourerEncounter(encounter))
         {
             ExpeditionMapGenerator mapGenerator =
                 FindFirstObjectByType<ExpeditionMapGenerator>();

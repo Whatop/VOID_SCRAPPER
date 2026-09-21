@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using PixelCrushers.DialogueSystem;
 using TMPro;
 using UnityEngine;
@@ -22,6 +23,12 @@ public sealed class DialogueCinematicPresentationController : MonoBehaviour
     [SerializeField, Min(0f)] private float panelTransitionDuration =
         DialoguePresentationPolicy.PanelTransitionDuration;
     [SerializeField, Min(0.01f)] private float sourcePanelAnimationDuration = 0.5f;
+
+    [Header("Explicit Remote Communication Intro")]
+    [SerializeField, Range(0.15f, 0.4f)] private float incomingCommunicationDuration = 0.24f;
+    private Sequence incomingCommunicationTween;
+    private string incomingConversationId;
+    public bool IsIncomingCommunicationIntroActive => incomingCommunicationTween != null && incomingCommunicationTween.IsActive();
 
     [Header("Reference Layout")]
     [SerializeField, Min(1f)] private float compactPanelHeight = 60f;
@@ -94,6 +101,8 @@ public sealed class DialogueCinematicPresentationController : MonoBehaviour
         public LayoutElement SpeakerPlateLayout;
         public ContentSizeFitter Fitter;
         public HorizontalLayoutGroup Layout;
+        public Vector3 IntroBaselineScale;
+        public bool HasIntroBaseline;
     }
 
     private void Awake()
@@ -258,6 +267,7 @@ public sealed class DialogueCinematicPresentationController : MonoBehaviour
 
     private void EndPresentation(bool immediate)
     {
+        CancelIncomingCommunicationIntro();
         if (!lifecycleState.IsActive &&
             overlayCanvasGroup != null &&
             overlayCanvasGroup.alpha <= 0f &&
@@ -276,6 +286,60 @@ public sealed class DialogueCinematicPresentationController : MonoBehaviour
         if (immediate)
         {
             RestorePreviousSelection();
+        }
+    }
+
+    // Called only by the same accepted, explicitly remote start authorities as the audio cue.
+    // This is deliberately not attached to the global conversationStarted event.
+    public static void BeginIncomingCommunication()
+    {
+        Component ui = DialogueManager.dialogueUI as Component;
+        if (ui != null)
+            ui.GetComponent<DialogueCinematicPresentationController>()?.PlayIncomingCommunicationIntro(
+                DialogueManager.lastConversationStarted);
+    }
+
+    public void PlayIncomingCommunicationIntro(string conversationId)
+    {
+        if (!isActiveAndEnabled || !DialogueManager.isConversationActive ||
+            !string.Equals(conversationId, DialogueManager.lastConversationStarted, StringComparison.Ordinal) ||
+            string.Equals(incomingConversationId, conversationId, StringComparison.Ordinal)) return;
+
+        BeginPresentation(conversationId);
+        incomingConversationId = conversationId;
+        incomingCommunicationTween = DOTween.Sequence().SetUpdate(true)
+            .AppendInterval(incomingCommunicationDuration);
+        foreach (SubtitlePanelAppearance appearance in panelAppearances)
+        {
+            if (appearance.Rect == null) continue;
+            appearance.IntroBaselineScale = appearance.Rect.localScale;
+            appearance.HasIntroBaseline = true;
+            appearance.Rect.localScale = Vector3.Scale(appearance.IntroBaselineScale, new Vector3(0.94f, 0.72f, 1f));
+            incomingCommunicationTween.Join(appearance.Rect.DOScale(appearance.IntroBaselineScale,
+                incomingCommunicationDuration).SetEase(Ease.OutCubic));
+        }
+        incomingCommunicationTween.OnComplete(() =>
+        {
+            incomingCommunicationTween = null;
+            RestoreIncomingPanelScales();
+        });
+    }
+
+    private void CancelIncomingCommunicationIntro()
+    {
+        incomingCommunicationTween?.Kill(false);
+        incomingCommunicationTween = null;
+        incomingConversationId = null;
+        RestoreIncomingPanelScales();
+    }
+
+    private void RestoreIncomingPanelScales()
+    {
+        foreach (SubtitlePanelAppearance appearance in panelAppearances)
+        {
+            if (!appearance.HasIntroBaseline) continue;
+            if (appearance.Rect != null) appearance.Rect.localScale = appearance.IntroBaselineScale;
+            appearance.HasIntroBaseline = false;
         }
     }
 

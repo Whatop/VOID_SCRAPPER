@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-4121064306019802257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c98870d7ebce9a4fa6c4a16e9701755, type: 3}
+  m_Name: Dialogue Channel Hijack
+  m_EditorClassIdentifier: Febucci.TextAnimator.Runtime::Febucci.TextAnimatorForUnity.Effects.RandomPositionEffect
+  tagId: vs_hijack
+  effectSettings:
+    delayBeforePersistant: 0
+    timeToSyncPersistant: 0
+    bakeCurves: 1
+  appearance:
+    stateParams:
+      amplitude: 4.4
+      progressIndexWithTime: 0
+    phaseParams:
+      charOffset: 0.114
+      wordOffset: 0
+      speed: 1.54
+    stateCurve: {fileID: 11400000, guid: 70cc4b53ebdee48f489178d24bbef4d9, type: 2}
+    playback: {fileID: 11400000, guid: 70d5b5db9762743afa895ebe0e9ea4cb, type: 2}
+  persistent:
+    stateParams:
+      amplitude: 0.45
+      progressIndexWithTime: 1
+    phaseParams:
+      charOffset: 0.182
+      wordOffset: 0
+      speed: 1.1
+    stateCurve: {fileID: 11400000, guid: 70cc4b53ebdee48f489178d24bbef4d9, type: 2}
+    playback: {fileID: 11400000, guid: b72fcf7d6bd4e5849914e4e9bc144c09, type: 2}
+  disappearance:
+    stateParams:
+      amplitude: 1.68
+      progressIndexWithTime: 0
+    phaseParams:
+      charOffset: 0
+      wordOffset: 0
+      speed: 1
+    stateCurve: {fileID: 11400000, guid: 70cc4b53ebdee48f489178d24bbef4d9, type: 2}
+    playback: {fileID: 11400000, guid: 70d5b5db9762743afa895ebe0e9ea4cb, type: 2}
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 103e863f5c0347be8a512f431aaf5ec1, type: 3}
+  m_Name: DialogueTextEffects
+  m_EditorClassIdentifier: 
+  data:
+  - {fileID: 8354663258844851179}
+  - {fileID: -4121064306019802257}
+--- !u!114 &8354663258844851179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c98870d7ebce9a4fa6c4a16e9701755, type: 3}
+  m_Name: Dialogue Corrupted Signal
+  m_EditorClassIdentifier: Febucci.TextAnimator.Runtime::Febucci.TextAnimatorForUnity.Effects.RandomPositionEffect
+  tagId: vs_curse
+  effectSettings:
+    delayBeforePersistant: 0
+    timeToSyncPersistant: 0
+    bakeCurves: 1
+  appearance:
+    stateParams:
+      amplitude: 4.4
+      progressIndexWithTime: 0
+    phaseParams:
+      charOffset: 0.114
+      wordOffset: 0
+      speed: 1.54
+    stateCurve: {fileID: 11400000, guid: 70cc4b53ebdee48f489178d24bbef4d9, type: 2}
+    playback: {fileID: 11400000, guid: 70d5b5db9762743afa895ebe0e9ea4cb, type: 2}
+  persistent:
+    stateParams:
+      amplitude: 0.22
+      progressIndexWithTime: 1
+    phaseParams:
+      charOffset: 0.182
+      wordOffset: 0
+      speed: 0.7
+    stateCurve: {fileID: 11400000, guid: 70cc4b53ebdee48f489178d24bbef4d9, type: 2}
+    playback: {fileID: 11400000, guid: b72fcf7d6bd4e5849914e4e9bc144c09, type: 2}
+  disappearance:
+    stateParams:
+      amplitude: 1.68
+      progressIndexWithTime: 0
+    phaseParams:
+      charOffset: 0
+      wordOffset: 0
+      speed: 1
+    stateCurve: {fileID: 11400000, guid: 70cc4b53ebdee48f489178d24bbef4d9, type: 2}
+    playback: {fileID: 11400000, guid: 70d5b5db9762743afa895ebe0e9ea4cb, type: 2}

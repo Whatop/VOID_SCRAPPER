@@ -753,7 +753,7 @@ public static class Phase2CStoryDialogueInstaller
         int operatorActorId,
         IReadOnlyDictionary<string, LocalizationEntry> localized)
     {
-        List<DialogueEntry> entries = new List<DialogueEntry>(13);
+        List<DialogueEntry> entries = new List<DialogueEntry>(20);
         DialogueEntry root = CreateEntry(
             0,
             conversationId,
@@ -765,14 +765,20 @@ public static class Phase2CStoryDialogueInstaller
         entries.Add(root);
 
         DialogueEntry previous = root;
-        for (int i = 1; i <= 6; i++)
+        // Preserve IDs 1-6 and their text keys. New warnings precede the existing
+        // departure line (6); repeat entry IDs 7-11 and terminal 12 also stay stable.
+        int[] firstStoryIds = { 1, 2, 3, 4, 5, 13, 14, 6 };
+        int[] firstStoryLines = { 1, 2, 3, 4, 5, 7, 8, 6 };
+        for (int i = 0; i < firstStoryIds.Length; i++)
         {
             string key = Phase2CStoryDialogueIds.GetNumberedTextKey(
                 Phase2CStoryDialogueIds.FirstSettlementLinePrefix,
-                i);
-            int speakerId = i <= 3 ? settlementActorId : operatorActorId;
+                firstStoryLines[i]);
+            int speakerId = i < 3 || firstStoryLines[i] == 7
+                ? settlementActorId
+                : operatorActorId;
             DialogueEntry line = CreateEntry(
-                i,
+                firstStoryIds[i],
                 conversationId,
                 speakerId,
                 playerActorId,
@@ -794,6 +800,14 @@ public static class Phase2CStoryDialogueInstaller
             Phase2CStoryDialogueIds.MainQuestActive2TextKey,
             Phase2CStoryDialogueIds.MainQuestReadyTextKey,
             Phase2CStoryDialogueIds.MainQuestCompletedTextKey
+        };
+        string[] responseKeys =
+        {
+            Phase2CStoryDialogueIds.MainQuestActive0ResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestActive1ResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestActive2ResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestReadyResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestCompletedResponseTextKey
         };
         DialogueConditionId[] stateConditions =
         {
@@ -817,15 +831,27 @@ public static class Phase2CStoryDialogueInstaller
             DialogueEntry stateLine = CreateEntry(
                 7 + i,
                 conversationId,
-                operatorActorId,
+                i == 3 ? settlementActorId : operatorActorId,
                 playerActorId,
                 false,
                 stateKeys[i],
                 localized[stateKeys[i]]);
             stateLine.conditionsString = BuildCondition(stateConditions[i]);
-            stateLine.outgoingLinks.Add(CreateLink(stateLine, terminal));
+            DialogueEntry response = CreateEntry(
+                15 + i,
+                conversationId,
+                i == 3 ? operatorActorId : settlementActorId,
+                playerActorId,
+                false,
+                responseKeys[i],
+                localized[responseKeys[i]]);
+            // Only the branch entrance checks progression. Neither subtitle can
+            // mutate it, and all branches share the existing completion marker.
+            stateLine.outgoingLinks.Add(CreateLink(stateLine, response));
+            response.outgoingLinks.Add(CreateLink(response, terminal));
             root.outgoingLinks.Add(CreateLink(root, stateLine));
             entries.Add(stateLine);
+            entries.Add(response);
         }
 
         entries.Add(terminal);
@@ -1150,12 +1176,17 @@ public static class Phase2CStoryDialogueInstaller
             1);
         AddNumberedKeys(keys, Phase2CStoryDialogueIds.TutorialUnknownLinePrefix, 2);
         AddNumberedKeys(keys, Phase2CStoryDialogueIds.TutorialRescueLinePrefix, 3);
-        AddNumberedKeys(keys, Phase2CStoryDialogueIds.FirstSettlementLinePrefix, 6);
+        AddNumberedKeys(keys, Phase2CStoryDialogueIds.FirstSettlementLinePrefix, 8);
         keys.Add(Phase2CStoryDialogueIds.MainQuestActive0TextKey);
         keys.Add(Phase2CStoryDialogueIds.MainQuestActive1TextKey);
         keys.Add(Phase2CStoryDialogueIds.MainQuestActive2TextKey);
         keys.Add(Phase2CStoryDialogueIds.MainQuestReadyTextKey);
         keys.Add(Phase2CStoryDialogueIds.MainQuestCompletedTextKey);
+        keys.Add(Phase2CStoryDialogueIds.MainQuestActive0ResponseTextKey);
+        keys.Add(Phase2CStoryDialogueIds.MainQuestActive1ResponseTextKey);
+        keys.Add(Phase2CStoryDialogueIds.MainQuestActive2ResponseTextKey);
+        keys.Add(Phase2CStoryDialogueIds.MainQuestReadyResponseTextKey);
+        keys.Add(Phase2CStoryDialogueIds.MainQuestCompletedResponseTextKey);
         keys.Add(MainDamagedAccessKeyQuestIds.TitleTextKey);
         keys.Add(MainDamagedAccessKeyQuestIds.StartedNotificationTextKey);
         keys.Add(MainDamagedAccessKeyQuestIds.ObjectiveTextKey);

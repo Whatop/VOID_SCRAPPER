@@ -2,6 +2,7 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(Button))]
 public class ShipTraitBranchTabButton : MonoBehaviour
@@ -29,6 +30,7 @@ public class ShipTraitBranchTabButton : MonoBehaviour
     [Tooltip("선택 시 위로 움직일 대상입니다. VisualRoot/ContentRoot/MotionRoot 이름의 자식을 우선 사용합니다. 비우면 이 오브젝트가 움직입니다.")]
     [SerializeField] private RectTransform animatedRoot;
 
+    [Tooltip("Optional alpha feedback on this object or an explicitly assigned child visual wrapper.")]
     [SerializeField] private CanvasGroup canvasGroup;
 
     [Header("State Image Optional")]
@@ -77,6 +79,9 @@ public class ShipTraitBranchTabButton : MonoBehaviour
     private Tween lineColorTween;
     private Tween labelColorTween;
     private Tween alphaTween;
+    private Button subscribedButton;
+    private Color baseLineColor = Color.white, baseTextColor = Color.white;
+    private float baseAlpha = 1f;
 
     public ShipTraitBranchKind BranchKind => branchKind;
     public bool IsAvailable => isAvailable;
@@ -95,15 +100,61 @@ public class ShipTraitBranchTabButton : MonoBehaviour
 
     private void OnDisable()
     {
+        UnbindClick();
         KillTweens(false);
+    }
+
+    private void OnEnable() { if (owner != null) BindClick(); }
+    private void UnbindClick()
+    {
+        if (subscribedButton != null) subscribedButton.onClick.RemoveListener(HandleClick);
+        subscribedButton = null;
+    }
+    private void BindClick()
+    {
+        UnbindClick();
+        if (button == null) return;
+        for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+            if (button.onClick.GetPersistentTarget(i) == this && button.onClick.GetPersistentMethodName(i) == nameof(HandleClick) &&
+                button.onClick.GetPersistentListenerState(i) != UnityEngine.Events.UnityEventCallState.Off) return;
+        subscribedButton = button;
+        button.onClick.AddListener(HandleClick);
+    }
+
+    public void CollectPresentationErrors(List<string> errors)
+    {
+        Component[] values = { button, labelText, lineImage, animatedRoot, canvasGroup };
+        string[] fields = { nameof(button), nameof(labelText), nameof(lineImage), nameof(animatedRoot), nameof(canvasGroup) };
+        for (int i = 0; i < values.Length; i++)
+        {
+            Component value = values[i];
+            if (fields[i] == nameof(canvasGroup) && value == null)
+            {
+                continue;
+            }
+            string reason = value == null ? "Missing binding" : value.gameObject.scene != gameObject.scene ? "Cross-scene ownership" :
+                !value.transform.IsChildOf(transform) ? "Wrong ancestry" : value is TMP_Text text && text.font == null ? "Missing font" : null;
+            if (reason != null) errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("ShipTraitBranchTabButton." + fields[i], value, transform, gameObject.scene, reason));
+        }
+        foreach (Component optional in new Component[] { stateImage, lockRoot != null ? lockRoot.transform : null, selectedRoot != null ? selectedRoot.transform : null })
+            if (optional != null && (optional.gameObject.scene != gameObject.scene || !optional.transform.IsChildOf(transform)))
+                errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("ShipTraitBranchTabButton.stateImage/lockRoot/selectedRoot", optional, transform, gameObject.scene, "Wrong ancestry or cross-scene ownership"));
+        if (button != null)
+        {
+            int callbacks = 0;
+            for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+                if (button.onClick.GetPersistentTarget(i) == this && button.onClick.GetPersistentListenerState(i) != UnityEngine.Events.UnityEventCallState.Off)
+                {
+                    callbacks++;
+                    if (button.onClick.GetPersistentMethodName(i) != nameof(HandleClick)) errors.Add("ShipTraitBranchTabButton.button: incorrect owned action mapping.");
+                }
+            if (callbacks > 1) errors.Add("ShipTraitBranchTabButton.button: duplicate persistent owned actions.");
+        }
     }
 
     private void OnDestroy()
     {
-        if (button != null)
-        {
-            button.onClick.RemoveListener(HandleClick);
-        }
+        UnbindClick();
 
         KillTweens(false);
     }
@@ -119,11 +170,7 @@ public class ShipTraitBranchTabButton : MonoBehaviour
         CacheReferences();
         CaptureBasePosition();
 
-        if (button != null)
-        {
-            button.onClick.RemoveListener(HandleClick);
-            button.onClick.AddListener(HandleClick);
-        }
+        BindClick();
 
         SetLabel(displayLabel);
     }
@@ -186,6 +233,7 @@ public class ShipTraitBranchTabButton : MonoBehaviour
 
     private void CacheReferences()
     {
+        if (owner != null && owner.UsesAuthoredPresentation) return;
         if (button == null)
         {
             button = GetComponent<Button>();
@@ -245,6 +293,9 @@ public class ShipTraitBranchTabButton : MonoBehaviour
         }
 
         baseAnchoredPosition = animatedRoot.anchoredPosition;
+        baseLineColor = lineImage != null ? lineImage.color : Color.white;
+        baseTextColor = labelText != null ? labelText.color : Color.white;
+        baseAlpha = canvasGroup != null ? canvasGroup.alpha : 1f;
         hasCapturedBasePosition = true;
     }
 
@@ -278,6 +329,7 @@ public class ShipTraitBranchTabButton : MonoBehaviour
             targetAlpha = availableAlpha;
         }
 
+        if (owner != null && owner.UsesAuthoredPresentation) targetAlpha *= baseAlpha;
         bool shouldTween = ShouldTween();
 
         if (!shouldTween)
@@ -306,6 +358,11 @@ public class ShipTraitBranchTabButton : MonoBehaviour
 
         Color targetLineColor = GetTargetLineColor(available, selected);
         Color targetTextColor = GetTargetTextColor(available, selected);
+        if (owner != null && owner.UsesAuthoredPresentation)
+        {
+            targetLineColor *= baseLineColor;
+            targetTextColor *= baseTextColor;
+        }
 
         bool shouldTween = ShouldTween();
         hasAppliedMotionState = true;
@@ -423,12 +480,12 @@ public class ShipTraitBranchTabButton : MonoBehaviour
 
         stateImage.enabled = shouldShow && hasSprite;
         stateImage.gameObject.SetActive(shouldShow && hasSprite);
-        stateImage.preserveAspect = true;
+        if (owner == null || !owner.UsesAuthoredPresentation) stateImage.preserveAspect = true;
     }
 
     private void HandleClick()
     {
-        if (owner == null)
+        if (owner == null || !owner.CanUseTraitInput)
         {
             return;
         }

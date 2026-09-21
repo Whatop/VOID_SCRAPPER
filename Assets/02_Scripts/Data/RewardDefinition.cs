@@ -369,7 +369,7 @@ public class RewardDefinition : ScriptableObject
             return;
         }
 
-        if (!RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
+        if (!RunTraitAcquisitionService.IsOrdinaryCandidate(trait))
         {
             return;
         }

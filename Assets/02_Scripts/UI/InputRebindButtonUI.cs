@@ -23,8 +23,10 @@ public class InputRebindButtonUI : MonoBehaviour
     private InputActionRebindingExtensions.RebindingOperation rebindOperation;
     private InputAction activeAction;
     private bool actionWasEnabled;
+    private int lastRebindFinishedFrame = -1;
 
     public bool IsRebinding => rebindOperation != null;
+    public bool BlocksMenuCancel => IsRebinding || lastRebindFinishedFrame == Time.frameCount;
 
     private void Reset()
     {
@@ -185,6 +187,7 @@ public class InputRebindButtonUI : MonoBehaviour
 
     private void FinishRebind(bool save)
     {
+        lastRebindFinishedFrame = Time.frameCount;
         if (save)
         {
             InputBindingPersistence.Save(inputActions);

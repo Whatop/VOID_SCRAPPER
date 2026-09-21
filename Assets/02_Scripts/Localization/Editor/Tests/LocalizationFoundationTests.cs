@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using TMPro;
@@ -151,6 +152,94 @@ public sealed class LocalizationFoundationTests
         Assert.That(success, Is.True);
         Assert.That(result, Is.EqualTo("TEST ITEM: 7"));
         Assert.That(missingArgument, Is.Empty);
+    }
+
+    [Test]
+    public void ProductionCsv_AllKoreanSourcesUseValidNamedPlaceholders()
+    {
+        const string path = "Assets/02_Scripts/Config/Localization/Source/Localization.csv";
+        string csv = File.ReadAllText(path);
+        LocalizationValidationReport report = LocalizationContentValidator.ValidateCsv(path, csv);
+        Assert.That(report.Records.Count, Is.GreaterThan(0));
+        foreach (LocalizationValidationIssue issue in report.Issues)
+        {
+            Assert.That(issue.Severity, Is.Not.EqualTo(LocalizationValidationSeverity.Error), issue.ToString());
+        }
+        var placeholders = new HashSet<string>();
+        foreach (LocalizationCsvRecord record in report.Records)
+        {
+            Assert.That(NamedPlaceholderUtility.TryCollectPlaceholders(record.Korean, placeholders,
+                out string error), Is.True, record.TextKey + ": " + error);
+        }
+        Assert.That(Regex.IsMatch(csv, @"\{\d+[^}]*\}"), Is.False);
+        foreach (string runtimePath in new[]
+        {
+            "Assets/02_Scripts/Campaign/SettlementDefenseEncounterController.cs",
+            "Assets/02_Scripts/Campaign/SettlementDefenseCorruptedCore.cs"
+        })
+        {
+            string source = File.ReadAllText(runtimePath);
+            Assert.That(Regex.IsMatch(source, @"\{\d+[^}]*\}"), Is.False, runtimePath);
+            Assert.That(source, Does.Not.Contain("string.Format("), runtimePath);
+        }
+    }
+
+    [TestCase("defense.core.combat", "phase", "2", "오염 코어 격리 2 / 3")]
+    [TestCase("defense.core.fused", "count", "1", "코어 안정화 1 / 3")]
+    [TestCase("defense.core.reactivate", "partName", "구획 안정기", "구획 안정기 재활성화")]
+    public void CorruptedDefense_NamedArgumentsFormatAndMissingArgumentsPreserveTemplate(
+        string key, string argumentName, string value, string expected)
+    {
+        const string path = "Assets/02_Scripts/Config/Localization/Source/Localization.csv";
+        var report = LocalizationContentValidator.ValidateCsv(path, File.ReadAllText(path));
+        LocalizationCsvRecord record = null;
+        foreach (var candidate in report.Records)
+        {
+            if (candidate.TextKey == key)
+            {
+                record = candidate;
+                break;
+            }
+        }
+        Assert.That(record, Is.Not.Null);
+        var placeholders = new HashSet<string>();
+        foreach (string template in new[] { record.Korean, record.English })
+        {
+            Assert.That(NamedPlaceholderUtility.TryCollectPlaceholders(template, placeholders, out _), Is.True);
+            Assert.That(placeholders, Is.EquivalentTo(new[] { argumentName }));
+        }
+        var service = CreateService(CreateCatalog(new[] { record.ToCatalogEntry() }));
+        Assert.That(service.FormatText(key, new Dictionary<string, string> { { argumentName, value } }),
+            Is.EqualTo(expected));
+        LogAssert.Expect(LogType.Warning, new Regex("requires placeholder argument '" + argumentName + "'"));
+        Assert.That(service.FormatText(key, new Dictionary<string, string>()), Is.EqualTo(record.Korean));
+    }
+
+    [TestCase(BossStoryPart.SectorStabilizer, "구획 안정기 재활성화")]
+    [TestCase(BossStoryPart.PhaseNavigationLens, "위상 항법 렌즈 재활성화")]
+    [TestCase(BossStoryPart.MatterCompressor, "물질 압축로 재활성화")]
+    public void CorruptedDefense_InteractionFallbackFormatsCurrentPart(BossStoryPart part, string expected)
+    {
+        var root = new GameObject("Inactive core text fixture");
+        root.SetActive(false);
+        createdObjects.Add(root);
+        var core = root.AddComponent<SettlementDefenseCorruptedCore>();
+        typeof(SettlementDefenseCorruptedCore).GetProperty(nameof(core.Part)).SetValue(core, part);
+        Assert.That(core.InteractionText, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void NamedPlaceholders_LevelAndValidIdentifierFormsRemainSupported()
+    {
+        const string template = "{level} {partName} {core_2}";
+        var names = new HashSet<string>();
+        Assert.That(NamedPlaceholderUtility.TryCollectPlaceholders(template, names, out _), Is.True);
+        Assert.That(NamedPlaceholderUtility.TryFormat(template, new Dictionary<string, string>
+        {
+            { "level", "3" }, { "partName", "Core" }, { "core_2", "Ready" }
+        }, out string result, out _), Is.True);
+        Assert.That(result, Is.EqualTo("3 Core Ready"));
+        Assert.That(NamedPlaceholderUtility.TryCollectPlaceholders("{0}", names, out _), Is.False);
     }
 
     [Test]

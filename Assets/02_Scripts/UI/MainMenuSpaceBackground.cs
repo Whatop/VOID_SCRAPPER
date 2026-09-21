@@ -61,50 +61,6 @@ public sealed class MainMenuSpaceBackground : MonoBehaviour
         cursedImage != null &&
         cursedImage.gameObject == cursedRect.gameObject;
 
-    public IReadOnlyList<RectTransform> AuthoredStars => authoredStarRects;
-    public IReadOnlyList<RectTransform> AuthoredAsteroids => authoredAsteroidRects;
-    public RectTransform CursePasserRect => cursedRect;
-    public Image CursePasserImage => cursedImage;
-
-    public bool HasAssignedAsteroidSprites
-    {
-        get
-        {
-            if (authoredAsteroidRects == null || authoredAsteroidRects.Length != AsteroidCount)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < authoredAsteroidRects.Length; i++)
-            {
-                Image image = authoredAsteroidRects[i] != null
-                    ? authoredAsteroidRects[i].GetComponent<Image>()
-                    : null;
-                if (image == null || image.sprite == null)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-    }
-
-    public bool HasDuplicateAuthoredReferences =>
-        ContainsDuplicateReference(authoredStarRects) ||
-        ContainsDuplicateReference(authoredAsteroidRects) ||
-        ContainsReference(authoredStarRects, cursedRect) ||
-        ContainsReference(authoredAsteroidRects, cursedRect);
-
-    private bool HasRequiredReferenceShape()
-    {
-        return HasCompleteDirectChildReferences(authoredStarRects, RequiredAuthoredStarCount) &&
-               HasCompleteDirectChildReferences(authoredAsteroidRects, AsteroidCount) &&
-               cursedRect != null &&
-               cursedRect.parent == transform &&
-               cursedImage != null &&
-               cursedImage.gameObject == cursedRect.gameObject;
-    }
 
     private bool HasCompleteDirectChildReferences(RectTransform[] references, int requiredCount)
     {
@@ -133,49 +89,6 @@ public sealed class MainMenuSpaceBackground : MonoBehaviour
         return true;
     }
 
-    private static bool ContainsDuplicateReference(RectTransform[] references)
-    {
-        if (references == null)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < references.Length; i++)
-        {
-            if (references[i] == null)
-            {
-                continue;
-            }
-
-            for (int j = 0; j < i; j++)
-            {
-                if (references[j] == references[i])
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static bool ContainsReference(RectTransform[] references, RectTransform target)
-    {
-        if (references == null || target == null)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < references.Length; i++)
-        {
-            if (references[i] == target)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     public bool InitializeAuthoredVisuals()
     {
@@ -191,7 +104,7 @@ public sealed class MainMenuSpaceBackground : MonoBehaviour
                 missingAuthoredVisualsLogged = true;
                 Debug.LogError(
                     $"[{nameof(MainMenuSpaceBackground)}] '{name}' is missing serialized " +
-                    "background visuals. Run Install Boot Main Menu UI while Boot is open.",
+                    "background visuals. Restore MainMenuSpaceBackground's authored visual references in the Boot Inspector.",
                     this);
             }
 
@@ -231,104 +144,6 @@ public sealed class MainMenuSpaceBackground : MonoBehaviour
         return true;
     }
 
-#if UNITY_EDITOR
-    private RectTransform[] RepairAuthoredSlots(
-        RectTransform[] existingReferences,
-        int requiredCount,
-        string canonicalPrefix)
-    {
-        RectTransform[] repaired = new RectTransform[requiredCount];
-        int preservedCount = existingReferences != null
-            ? Mathf.Min(existingReferences.Length, requiredCount)
-            : 0;
-
-        for (int i = 0; i < preservedCount; i++)
-        {
-            RectTransform current = existingReferences[i];
-            if (current != null && current.parent == transform && !ContainsReference(repaired, current))
-            {
-                repaired[i] = current;
-            }
-        }
-
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            if (!(transform.GetChild(i) is RectTransform child) ||
-                !TryParseCanonicalSlot(child.name, canonicalPrefix, requiredCount, out int slot) ||
-                repaired[slot] != null ||
-                ContainsReference(repaired, child))
-            {
-                continue;
-            }
-
-            repaired[slot] = child;
-        }
-
-        return repaired;
-    }
-
-    private static bool TryParseCanonicalSlot(
-        string objectName,
-        string prefix,
-        int requiredCount,
-        out int slot)
-    {
-        slot = -1;
-        if (string.IsNullOrEmpty(objectName) ||
-            !objectName.StartsWith(prefix, System.StringComparison.Ordinal) ||
-            !int.TryParse(objectName.Substring(prefix.Length), out int parsed) ||
-            parsed < 0 ||
-            parsed >= requiredCount)
-        {
-            return false;
-        }
-
-        slot = parsed;
-        return true;
-    }
-
-    public void RepairAuthoredReferences()
-    {
-        authoredStarRects = RepairAuthoredSlots(
-            authoredStarRects,
-            RequiredAuthoredStarCount,
-            "StaticStar_");
-        authoredAsteroidRects = RepairAuthoredSlots(
-            authoredAsteroidRects,
-            AsteroidCount,
-            "MenuAsteroid_");
-
-        if (cursedRect == null || cursedRect.parent != transform)
-        {
-            cursedRect = null;
-            cursedImage = null;
-        }
-
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            Transform child = transform.GetChild(i);
-            if (cursedRect == null && child.name == "PixelCursePasser" && child is RectTransform foundCurseRect)
-            {
-                cursedRect = foundCurseRect;
-                cursedImage = child.GetComponent<Image>();
-            }
-        }
-
-        authoredVisuals = HasRequiredReferenceShape();
-    }
-
-    public void AuthorVisuals(Sprite[] asteroidSprites, Sprite cursedSprite)
-    {
-        RepairAuthoredReferences();
-        BuildStaticStars();
-        BuildAsteroids(asteroidSprites);
-        BuildCursedPasser(cursedSprite);
-        RepairAuthoredReferences();
-        asteroidDrifters.Clear();
-        configured = false;
-        missingAuthoredVisualsLogged = false;
-    }
-#endif
 
     private void LateUpdate()
     {
@@ -437,124 +252,6 @@ public sealed class MainMenuSpaceBackground : MonoBehaviour
             || drifter.position.y > AsteroidMaxY + SpawnMargin;
     }
 
-#if UNITY_EDITOR
-    private void BuildStaticStars()
-    {
-        if (authoredStarRects == null || authoredStarRects.Length != RequiredAuthoredStarCount)
-        {
-            authoredStarRects = RepairAuthoredSlots(
-                authoredStarRects,
-                RequiredAuthoredStarCount,
-                "StaticStar_");
-        }
-
-        for (int i = 0; i < RequiredAuthoredStarCount; i++)
-        {
-            if (authoredStarRects[i] != null)
-            {
-                continue;
-            }
-
-            string objectName = $"StaticStar_{i:00}";
-            GameObject starObject = CreateImageObject(
-                objectName,
-                transform,
-                null,
-                new Color(0.55f, 0.68f, 0.78f, NextFloat(0.12f, 0.34f))
-            );
-            RectTransform rect = starObject.GetComponent<RectTransform>();
-            float size = i % 9 == 0 ? 2f : 1f;
-            rect.sizeDelta = new Vector2(size, size);
-            rect.anchoredPosition = RoundToLogicalPixel(new Vector2(
-                NextFloat(-HalfWidth + 8f, HalfWidth - 8f),
-                NextFloat(-HalfHeight + 8f, HalfHeight - 8f)
-            ));
-            authoredStarRects[i] = rect;
-        }
-    }
-
-    private void BuildAsteroids(Sprite[] asteroidSprites)
-    {
-        if (asteroidSprites == null || asteroidSprites.Length == 0)
-        {
-            return;
-        }
-
-        asteroidDrifters.Clear();
-        if (authoredAsteroidRects == null || authoredAsteroidRects.Length != AsteroidCount)
-        {
-            authoredAsteroidRects = RepairAuthoredSlots(
-                authoredAsteroidRects,
-                AsteroidCount,
-                "MenuAsteroid_");
-        }
-
-        for (int i = 0; i < authoredAsteroidRects.Length; i++)
-        {
-            RectTransform existingRect = authoredAsteroidRects[i];
-            if (existingRect != null)
-            {
-                float existingRadius = Mathf.Max(1f, existingRect.sizeDelta.x * 0.34f);
-                Drifter existingDrifter = new Drifter
-                {
-                    rect = existingRect,
-                    radius = existingRadius,
-                    mass = Mathf.Max(1f, existingRadius * existingRadius),
-                    position = existingRect.anchoredPosition,
-                    rotation = existingRect.localEulerAngles.z,
-                    angularVelocity = NextFloat(MinAngularSpeed, MaxAngularSpeed)
-                };
-                RandomizeAsteroidVelocity(existingDrifter, Vector2.right);
-                asteroidDrifters.Add(existingDrifter);
-            }
-        }
-
-        for (int i = 0; i < AsteroidCount; i++)
-        {
-            if (authoredAsteroidRects[i] != null)
-            {
-                continue;
-            }
-
-            string objectName = $"MenuAsteroid_{i:00}";
-
-            Sprite sprite = asteroidSprites[random.Next(0, asteroidSprites.Length)];
-            Color tint = new Color(
-                NextFloat(0.33f, 0.62f),
-                NextFloat(0.38f, 0.7f),
-                NextFloat(0.45f, 0.8f),
-                NextFloat(0.32f, 0.58f)
-            );
-            GameObject asteroidObject = CreateImageObject(
-                objectName,
-                transform,
-                sprite,
-                tint
-            );
-            RectTransform rect = asteroidObject.GetComponent<RectTransform>();
-            float size = NextFloat(AsteroidMinScale, AsteroidMaxScale);
-            rect.sizeDelta = new Vector2(size, size);
-            float radius = size * 0.34f;
-
-            Drifter drifter = new Drifter
-            {
-                rect = rect,
-                radius = radius,
-                mass = Mathf.Max(1f, radius * radius),
-                position = Vector2.zero,
-                rotation = NextFloat(0f, 360f),
-                angularVelocity = NextFloat(MinAngularSpeed, MaxAngularSpeed)
-            };
-
-            SpawnFromEdge(drifter);
-
-            rect.anchoredPosition = RoundToLogicalPixel(drifter.position);
-            rect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Round(drifter.rotation));
-            authoredAsteroidRects[i] = rect;
-            asteroidDrifters.Add(drifter);
-        }
-    }
-#endif
 
     private void SpawnFromEdge(Drifter drifter)
     {
@@ -700,67 +397,6 @@ public sealed class MainMenuSpaceBackground : MonoBehaviour
         return velocity;
     }
 
-#if UNITY_EDITOR
-    private void BuildCursedPasser(Sprite cursedSprite)
-    {
-        if (cursedRect != null && cursedRect.parent == transform)
-        {
-            cursedImage = cursedRect.GetComponent<Image>();
-            if (cursedImage == null)
-            {
-                cursedImage = UnityEditor.Undo.AddComponent<Image>(cursedRect.gameObject);
-                cursedImage.sprite = cursedSprite;
-                cursedImage.color = new Color(0.78f, 0.28f, 1f, 0.42f);
-                cursedImage.preserveAspect = cursedSprite != null;
-                cursedImage.raycastTarget = false;
-                cursedImage.maskable = false;
-            }
-
-            return;
-        }
-
-        Transform existing = transform.Find("PixelCursePasser");
-        if (existing is RectTransform existingRect)
-        {
-            cursedRect = existingRect;
-            cursedImage = existing.GetComponent<Image>();
-            if (cursedImage == null)
-            {
-                cursedImage = UnityEditor.Undo.AddComponent<Image>(existing.gameObject);
-                cursedImage.sprite = cursedSprite;
-                cursedImage.color = new Color(0.78f, 0.28f, 1f, 0.42f);
-                cursedImage.preserveAspect = cursedSprite != null;
-                cursedImage.raycastTarget = false;
-                cursedImage.maskable = false;
-            }
-
-            return;
-        }
-
-        GameObject cursedObject = CreateImageObject(
-            "PixelCursePasser",
-            transform,
-            cursedSprite,
-            new Color(0.78f, 0.28f, 1f, 0.42f)
-        );
-        cursedRect = cursedObject.GetComponent<RectTransform>();
-        cursedImage = cursedObject.GetComponent<Image>();
-        cursedRect.sizeDelta = new Vector2(9f, 9f);
-        cursedObject.SetActive(false);
-
-        GameObject ghostObject = CreateImageObject(
-            "GlitchGhost",
-            cursedRect,
-            cursedSprite,
-            new Color(0.2f, 0.9f, 1f, 0.16f)
-        );
-        RectTransform ghostRect = ghostObject.GetComponent<RectTransform>();
-        ghostRect.anchorMin = new Vector2(0.5f, 0.5f);
-        ghostRect.anchorMax = new Vector2(0.5f, 0.5f);
-        ghostRect.sizeDelta = new Vector2(9f, 9f);
-        ghostRect.anchoredPosition = new Vector2(-2f, 1f);
-    }
-#endif
 
     private void UpdateCursedPasser(float deltaTime)
     {
@@ -823,30 +459,4 @@ public sealed class MainMenuSpaceBackground : MonoBehaviour
         return new Vector2(Mathf.Round(position.x), Mathf.Round(position.y));
     }
 
-#if UNITY_EDITOR
-    private static GameObject CreateImageObject(
-        string objectName,
-        Transform parent,
-        Sprite sprite,
-        Color color)
-    {
-        GameObject target = BootMainMenuAuthoringObjectFactory.CreateChild(
-            objectName,
-            parent,
-            typeof(RectTransform),
-            typeof(Image));
-        UnityEditor.Undo.RegisterCreatedObjectUndo(target, $"Create {objectName}");
-        RectTransform rect = target.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        Image image = target.GetComponent<Image>();
-        image.sprite = sprite;
-        image.color = color;
-        image.preserveAspect = sprite != null;
-        image.raycastTarget = false;
-        image.maskable = false;
-        return target;
-    }
-#endif
 }

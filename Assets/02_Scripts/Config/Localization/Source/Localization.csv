@@ -1,4 +1,79 @@
-TextKey,ko,en,ja,zh-Hans,zh-Hant,Context,Notes,MaxLengthHint
+﻿TextKey,ko,en,ja,zh-Hans,zh-Hant,Context,Notes,MaxLengthHint
+ui.settlement.nav.recovery,정착지 복구,Recovery,,,,Settlement recovery hub,Stable primary slot before assembled,16
+ui.settlement.nav.route_core,항로 코어,Route Core,,,,Settlement recovery hub,Stable primary slot at assembled and activated,16
+ui.settlement.route_core.status.assembled,조립 완료 · 활성화 필요,Assembled · Activation needed,,,,Settlement recovery hub,Authoritative assembled state,40
+ui.settlement.route_core.status.activated,코어 활성화 · 정착지 방어 미완료,Core active · Defense pending,,,,Settlement recovery hub,Activated with defense pending,40
+ui.settlement.route_core.status.defense_complete,항로 안정화 · 최종 출격 가능,Route stable · Final route ready,,,,Settlement recovery hub,Defense complete,40
+ui.settlement.route_core.status.campaign_complete,중앙 물류망 작전 완료,Central network operation complete,,,,Settlement recovery hub,Final boss defeated,40
+ui.settlement.route_core.description.assembled,복구가 완료되었습니다. 구역으로 이동해 코어를 직접 활성화하세요.,Recovery complete. Visit the deck and activate the core.,,,,Settlement recovery hub,Navigation never activates the core,72
+ui.settlement.route_core.description.activated,항로 코어에서 정착지 방어를 진행하세요.,Return to the core to defend the Settlement.,,,,Settlement recovery hub,Physical interaction owns defense,72
+ui.settlement.route_core.description.defense_complete,항로 코어와 상호작용해 중앙 물류망으로 출격하세요.,Interact with the core to launch the final expedition.,,,,Settlement recovery hub,Physical interaction owns final launch,72
+ui.settlement.route_core.description.campaign_complete,작전이 완료되었습니다. 항로 코어 구역을 방문할 수 있습니다.,Operation complete. The Route Core deck remains open.,,,,Settlement recovery hub,Preserves existing post-campaign deck access,72
+ui.settlement.route_core.action.enter_deck,항로 코어 구역으로 이동,Enter Route Core Deck,,,,Settlement recovery hub,Existing EnterDeck navigation only,32
+ui.settlement.route_core.action.manage_facilities,시설 관리,Manage Facilities,,,,Settlement recovery hub,Optional restoration remains accessible,24
+ui.settlement.route_core.components.header,회수 부품 · 복구 완료,Recovered components,,,,Settlement recovery hub,Read-only assembled components summary,32
+ui.settlement.route_core.components.restored,복구 완료,Restored,,,,Settlement recovery hub,Assembled implies all three parts restored,16
+ui.settlement.progress.header,현재 목표,NEXT STEP,,,,Settlement progress,Read-only sidebar header,12
+ui.settlement.progress.loading,진행 정보 확인 중,Loading progress,,,,Settlement progress,Progress authority not ready,24
+ui.settlement.progress.objective_first_part,첫 부품 회수,Recover first part,,,,Settlement progress,No story parts,24
+ui.settlement.progress.objective_remaining_parts,남은 부품 회수,Recover remaining parts,,,,Settlement progress,More story parts needed,28
+ui.settlement.progress.objective_analyze,회수 부품 분석,Analyze recovered part,,,,Settlement progress,Settlement story analysis pending,28
+ui.settlement.progress.objective_restore,처리장에서 코어 복원,Restore core at Recovery Processor,,,,Settlement progress,All three parts recovered,40
+ui.settlement.progress.objective_activate,항로 코어 활성화,Activate Route Core,,,,Settlement progress,Core restored,24
+ui.settlement.progress.objective_defend,정착지 방어,Defend Settlement,,,,Settlement progress,Activated core defense pending,24
+ui.settlement.progress.objective_final,최종 원정 출격,Launch final expedition,,,,Settlement progress,Final expedition available,28
+ui.settlement.progress.objective_complete,중앙망 무력화,Network neutralized,,,,Settlement progress,Final boss defeated,24
+ui.settlement.progress.parts,부품 {count}/3,Parts {count}/3,,,,Settlement progress,Named story part count,16
+ui.settlement.progress.core,코어: {state},Core: {state},,,,Settlement progress,Named core state,24
+ui.settlement.progress.core_missing,미완성,incomplete,,,,Settlement progress,Missing parts,16
+ui.settlement.progress.core_ready,복원 대기,ready,,,,Settlement progress,Ready to restore,16
+ui.settlement.progress.core_restored,복원 완료,restored,,,,Settlement progress,Assembled core,16
+ui.settlement.progress.core_active,활성화,active,,,,Settlement progress,Activated core,16
+ui.settlement.progress.defense_pending,방어: 대기,Defense: pending,,,,Settlement progress,Defense not completed,20
+ui.settlement.progress.defense_clear,방어: 완료,Defense: clear,,,,Settlement progress,Defense completed,20
+ui.settlement.progress.final_available,최종 원정 가능,Final route open,,,,Settlement progress,Final launch available,20
+ui.settlement.progress.final_complete,최종 원정 완료,Final complete,,,,Settlement progress,Final campaign completed,20
+final.ending.null.line_01,중앙 제어권 복구 실패.,Central control recovery failed.,,,,Final ending,Dispatcher subtitle 1,48
+final.ending.null.line_02,복제 관리자 권한이 독립 상태로 고정되었다.,Duplicated administrative access is now independent.,,,,Final ending,The purple core copy remains with the player,64
+final.ending.null.line_03,회수 불가. 재배차 불가.,Reclamation impossible. Reassignment impossible.,,,,Final ending,Dispatcher subtitle 3,48
+final.ending.null.line_04,중앙 물류망의 강제 경로 지정을 종료한다.,Terminating forced routing by the central logistics network.,,,,Final ending,Dispatcher subtitle 4,64
+final.ending.operator.line_01,신호가 꺼졌어. 중앙망이 멈췄다.,The signal is gone. The central network has stopped.,,,,Final ending,Operator subtitle 5,48
+final.ending.operator.line_02,...돌아오자.,...Let's go home.,,,,Final ending,Operator subtitle 6,32
+final.ending.network_closed,중앙 물류망 연결 종료,Central network connection closed.,,,,Final ending,Non-modal shutdown confirmation,40
+final.phase.inner_core,정착지: 내부 코어 노출 확인. 끝내십시오.,Settlement: Inner core exposed. Finish it.,,,,Final combat,Non-modal support message,48
+final.phase.shell_break,NULL DISPATCHER · 외피 붕괴,NULL DISPATCHER - Shell rupture,,,,Final combat,Two-second shell transition,40
+final.polarity.black,극성 · BLACK,Polarity - BLACK,,,,Final Phase 2,Persistent polarity indicator,24
+final.polarity.switch_warning,극성 전환 감지,Polarity switch detected,,,,Final Phase 2,Packets cleared before warning,32
+final.polarity.white,극성 · WHITE,Polarity - WHITE,,,,Final Phase 2,Persistent polarity indicator,24
+final.reclaim.resist,회수 절차 개시 · 연결에 저항하십시오.,Reclaim initiated. Resist the connection.,,,,Playable reclaim beam,Movement and dash remain available,64
+final.reclaim.reject,NULL DISPATCHER · 반환 거부 확인,NULL DISPATCHER - Surrender refused.,,,,Reject transition,No damage,64
+final.reclaim.severed,오퍼레이터: 연결을 끊는다. 치료가 아니라 회수야!,Operator: Cutting the link. That is reclamation!,,,,Settlement intervention,Non-modal HUD message,64
+final.reclaim.intervention,정착지 연결 개입 · 원격 지원을 연결합니다.,Settlement intervention. Connecting remote support.,,,,Settlement intervention,Non-modal HUD message,64
+speaker.null_dispatcher.name,중앙 배차자,NULL DISPATCHER,,,,Final boss speaker,Name TextKey,16
+final.treatment.access,접속 권한 확인. 비정상 복제 신호가 예상 범위를 초과했다.,Access verified. The abnormal duplicate signal has exceeded projections.,,,,Final treatment,Encounter only,64
+final.treatment.curse,네가 저주라고 부르는 건 단순한 감염이 아니다.,What you call a curse is not merely an infection.,,,,Final treatment,Encounter only,64
+final.treatment.duplicate,중앙 물류망의 관리자 권한이 손상된 채 불완전하게 복제된 결과다.,It is a damaged and incomplete duplicate of central network administrative access.,,,,Final treatment,Encounter only,64
+final.treatment.attachment,그 권한은 보라색 코어를 통해 네 기체에 붙었다.,That access attached itself to your ship through the purple core.,,,,Final treatment,Encounter only,64
+final.treatment.components,세 개의 복구 부품이 연결되면서 그 신호도 점점 완성됐다.,As the three recovered components connected the signal became more complete.,,,,Final treatment,Encounter only,64
+final.treatment.offer,그 권한을 반환해라. 비정상 접속을 제거하고 네 기체를 복구해 주겠다.,Surrender that access. I can remove the abnormal connection and restore your ship.,,,,Final treatment,Dispatcher claim - intent ambiguous,64
+final.treatment.accept,치료를 받아들인다,Accept treatment,,,,Final player response,Encounter only,20
+final.treatment.reject,거부한다,Reject treatment,,,,Final player response,Encounter only,20
+defense.core.intro,정착지 방어 · 코어 오염 감지,Settlement Defense - Core corruption detected,,,,Defense opening,Presentation only,32
+defense.core.combat,오염 코어 격리 {phase} / 3,Isolate corrupted core {phase} / 3,,,,Defense phase,Presentation only,28
+defense.core.reactivate,{partName} 재활성화,Reactivate {partName},,,,Disabled core interaction,Presentation only,28
+defense.core.fused,코어 안정화 {count} / 3,Cores stabilized {count} / 3,,,,Defense fusion,Presentation only,28
+defense.core.complete,항로 코어 안정화 완료,Route Core stabilized,,,,Defense complete,Presentation only,28
+ui.story_recovery.title,스토리 회수품,,,,,Story Recovery section,Read-only permanent story recovery inventory,16
+ui.story_recovery.acquired,획득,,,,,Acquired story part,Read-only permanent story recovery inventory,8
+ui.story_recovery.unacquired,미획득,,,,,Unacquired story part,Read-only permanent story recovery inventory,8
+ui.story_recovery.sector_stabilizer,구획 안정기,,,,,Sector Stabilizer name,Read-only permanent story recovery inventory,16
+ui.story_recovery.matter_compressor,물질 압축로,,,,,Matter Compressor name,Read-only permanent story recovery inventory,16
+ui.story_recovery.phase_navigation_lens,위상 항법 렌즈,,,,,Phase Navigation Lens name,Read-only permanent story recovery inventory,16
+system.campaign.recovered.sector_stabilizer,구획 안정기 회수 완료 · 영구 보관됨,,,,,Sector Stabilizer recovered,Presentation after authoritative permanent grant and save,64
+system.campaign.recovered.matter_compressor,물질 압축로 회수 완료 · 영구 보관됨,,,,,Matter Compressor recovered,Presentation after authoritative permanent grant and save,64
+system.campaign.recovered.phase_navigation_lens,위상 항법 렌즈 회수 완료 · 영구 보관됨,,,,,Phase Navigation Lens recovered,Presentation after authoritative permanent grant and save,64
+system.campaign.route_authorized.region_2,분석 완료 · 2해역 항로 승인,,,,,Region 2 route authorized,Only after natural Settlement analysis completion and save,64
+system.campaign.route_authorized.region_3,분석 완료 · 3해역 항로 승인,,,,,Region 3 route authorized,Only after natural Settlement analysis completion and save,64
 dialogue.rescue_contact.service.choice.accept,신호를 공유받는다.,,,,,RescueContact service accept choice,Executes the registered RescueContact action when available,24
 dialogue.rescue_contact.service.choice.decline,지금은 필요 없다.,,,,,RescueContact service decline choice,Closes without a gameplay action,24
 dialogue.rescue_contact.service.line_01,구조 신호를 따라온 건가? 살았다는 게 아직 실감이 안 나는군.,,,,,RescueContact service opening line,Approved Korean source,72
@@ -10,21 +85,28 @@ dialogue.story.first_settlement_unknown_core.line_03,문제는 손상됐다는 �
 dialogue.story.first_settlement_unknown_core.line_04,정착지 단말에서 임시 경로 세 개를 복원했어. 각 해역의 관리 장치에 안정화 부품이 남아 있을 가능성이 높아.,,,,,First Settlement quest route line 4,Approved Phase 2C Korean source,120
 dialogue.story.first_settlement_unknown_core.line_05,"구획 안정기, 물질 압축로, 위상 항법 렌즈. 세 부품을 확보하면 접속키를 완성할 수 있어.",,,,,First Settlement quest parts line 5,Approved Phase 2C Korean source,104
 dialogue.story.first_settlement_unknown_core.line_06,탐사 경로를 등록할게. 준비가 끝나면 출발해.,,,,,First Settlement quest start line 6,Approved Phase 2C Korean source,64
+dialogue.story.first_settlement_unknown_core.line_07,부품을 회수할 때마다 기체의 이상 파형도 커질 수 있어. 반응은 계속 추적할게.,,,,,First Settlement part-response warning before departure,Read-only Pixel Curse reaction; Settlement Control,96
+dialogue.story.first_settlement_unknown_core.line_08,세 부품을 모아도 자동 복원되진 않아. 정착지 회수 처리장에서 격리 복원을 진행해.,,,,,First Settlement explicit Recovery Processor instruction before departure,No automatic restoration; Operator,96
 dialogue.story.main_damaged_access_key.active_0,경로는 세 곳 모두 살아 있어. 가까운 신호부터 확인해.,,,,,Damaged access-key repeat dialogue at zero parts,Read-only authoritative quest state,64
 dialogue.story.main_damaged_access_key.active_1,첫 부품은 안정적이야. 두 개 남았어.,,,,,Damaged access-key repeat dialogue at one part,Read-only authoritative quest state,48
-dialogue.story.main_damaged_access_key.active_2,두 신호가 맞물렸어. 마지막 부품만 있으면 조립할 수 있어.,,,,,Damaged access-key repeat dialogue at two parts,Read-only authoritative quest state,72
+dialogue.story.main_damaged_access_key.active_2,물질 압축로까지 회수했어. 두 번째 부품 확인 완료. 이제 마지막 부품만 남았어.,,,,,Damaged access-key repeat dialogue at two parts,Read-only authoritative quest state,88
 dialogue.story.main_damaged_access_key.completed,접속키가 안정화됐어. 이제 중앙 네트워크로 이어진 경로를 추적할 수 있어.,,,,,Damaged access-key repeat dialogue after completion,Read-only RouteCore state,88
-dialogue.story.main_damaged_access_key.ready_to_restore,세 부품 확인 완료. 정착지 복구에서 접속키를 복원할 수 있어.,,,,,Damaged access-key repeat dialogue when all parts are ready,Read-only authoritative quest state,72
+dialogue.story.main_damaged_access_key.ready_to_restore,세 부품 확인 완료. 접속키 반응과 보라색 이상 파형 모두 최고치야.,,,,,Damaged access-key repeat dialogue when all parts are ready,Read-only authoritative quest state; Settlement Control,80
+dialogue.story.main_damaged_access_key.active_0.line_02,새 부품은 아직 없어. 기체의 이상 파형은 계속 감시 중이야.,,,,,Damaged access-key zero-part monitoring response,Read-only Active0 and existing Curse level 1; Settlement Control,72
+dialogue.story.main_damaged_access_key.active_1.line_02,접속키가 첫 부품에 반응했어. 기체의 보라색 이상 파형도 한 단계 강해졌어.,,,,,Damaged access-key one-part response,Read-only Active1 and derived Curse level 2; Settlement Control,88
+dialogue.story.main_damaged_access_key.active_2.line_02,이상 파형도 더 강해졌어. 분석을 마치면 3해역 항로를 승인할게. 마지막 회수에 대비해.,,,,,Damaged access-key two-part response,Read-only Active2; existing natural-completion action authorizes the route; Settlement Control,96
+dialogue.story.main_damaged_access_key.ready_to_restore.line_02,세 부품은 모두 확보했지만 현장 조립은 위험해. 회수 처리장에서 직접 격리 복원을 진행해.,,,,,Damaged access-key explicit restoration direction,Read-only ReadyToRestore and derived Curse level 4; Operator,96
+dialogue.story.main_damaged_access_key.completed.line_02,접속키는 복원됐지만 보라색 이상 파형은 남아 있어. 추적은 계속할게.,,,,,Damaged access-key restored follow-up,Read-only Completed; Pixel Curse remains persistent; Settlement Control,80
 dialogue.tutorial.fake_operator_takeover.line_01,경로를 확인했어. 레이더의 미확인 신호를 따라가.,,,,,Tutorial corrupted Operator takeover,FakeOperator uses the Operator display name while retaining a stable hidden actor identity,64
 dialogue.tutorial.operator_ancient_signal.line_01,고가치 잔해 신호야. 방어 기체가 있을 수 있으니 조심해.,,,,,Tutorial ancient-signal guidance,Shown only after the ancient wreck signal is detected,64
 dialogue.tutorial.operator_opening.line_01,들리면 추진기를 움직여 봐. 여기서는 직접 길을 찾아야 해.,,,,,Tutorial movement guidance,Shown when the movement objective becomes active,64
 dialogue.tutorial.operator_radar.line_01,"[var=VS_RadarToggleBinding]로 레이더를 켠 뒤, [var=VS_RadarScanBinding]로 스캔해.",,,,,Tutorial Radar guidance,Input binding variables are populated immediately before conversation start,72
 dialogue.tutorial.operator_supply_container.line_01,보급 컨테이너를 찾았어. 접근해서 파괴하고 자원을 회수해.,,,,,Tutorial supply-container guidance,Starts after the owner-scoped camera finishes focusing the discovered target,72
-dialogue.tutorial.rescue_after_curse.line_01,…들려?,,,,,Tutorial rescue line 1 after communication recovery,Approved Phase 2C Korean source,16
-dialogue.tutorial.rescue_after_curse.line_02,지금까지 통신이 완전히 끊겨 있었어.,,,,,Tutorial rescue line 2 after communication recovery,Approved Phase 2C Korean source,48
-dialogue.tutorial.rescue_after_curse.line_03,기체 표면에 정체불명의 접속 패턴이 번지고 있어. 회수 신호를 열었어. 당장 돌아와.,,,,,Tutorial rescue line 3 requesting existing return flow,Approved Phase 2C Korean source,96
-dialogue.tutorial.signal_relay_analysis.line_01,신호 장치 분석 완료. 미확인 좌표를 복원하고 있어.,,,,,Tutorial signal-relay analysis line 1,Real Operator confirms authoritative relay analysis,64
-dialogue.tutorial.signal_relay_analysis.line_02,"잠깐, 통신 채널에 비정상 간섭이—",,,,,Tutorial signal-relay analysis line 2,Real Operator transmission cuts off before the fake takeover,56
+dialogue.tutorial.rescue_after_curse.line_01,…이제 들려?,…Can you hear me now?,,,,Tutorial rescue line 1 after communication recovery,Approved Phase 2C Korean source,21
+dialogue.tutorial.rescue_after_curse.line_02,중계기를 건드린 뒤부터 네 채널이 완전히 끊겨 있었어. 네 쪽에선 누가 말한 거야?,I lost your channel after you touched the relay. Who was talking to you?,,,,Tutorial rescue line 2 after communication recovery,Approved Phase 2C Korean source,72
+dialogue.tutorial.rescue_after_curse.line_03,기체 표면에 정체불명의 접속 패턴이 번지고 있어. 회수 신호를 열었어. 당장 돌아와.,An unknown access pattern is spreading across your hull. The recovery signal is open. Return now.,,,,Tutorial rescue line 3 requesting existing return flow,Approved Phase 2C Korean source,97
+dialogue.tutorial.signal_relay_analysis.line_01,중계기 접속 확인. 끊어진 통신망을 우회 연결 중이야.,Relay connection confirmed. Rerouting around the broken network.,,,,Tutorial signal-relay analysis line 1,Real Operator confirms authoritative relay analysis,64
+dialogue.tutorial.signal_relay_analysis.line_02,"잠깐, 다른 신호가 채널을 낚아채고 있어—","Wait, another signal is hijacking the channel—",,,,Tutorial signal-relay analysis line 2,Real Operator transmission cuts off before the fake takeover,56
 dialogue.tutorial.unknown_access_key.line_01,이 신호… 붕괴 전 물류망 규격과 비슷해.,,,,,Tutorial unknown access-key contact line 1,Approved Phase 2C Korean source,56
 dialogue.tutorial.unknown_access_key.line_02,"잠깐, 접속 패턴이 기체 쪽으로—",,,,,Tutorial unknown access-key contact line 2,Approved Phase 2C Korean source,48
 quest.main_damaged_access_key.notification.restored,손상된 접속키 복구 완료.,,,,,Main quest restoration completion notification,Published once by Settlement Recovery authority,40
@@ -32,13 +114,13 @@ quest.main_damaged_access_key.notification.started,메인 퀘스트 시작 — �
 quest.main_damaged_access_key.objective.parts,안정화 부품 회수: {collected}/{total},,,,,Main quest HUD objective,Named arguments come from authoritative progress,48
 quest.main_damaged_access_key.restoration.action,접속키 복구,,,,,Settlement Recovery action label,Uses existing restoration confirmation button,24
 quest.main_damaged_access_key.restoration.completed,접속키 복구 완료,,,,,Settlement Recovery completed state,Read-only authoritative quest state,24
-quest.main_damaged_access_key.restoration.description,세 안정화 부품을 결합해 손상된 접속키를 복원합니다.,,,,,Settlement Recovery description,Explicit player-confirmed quest completion,64
+quest.main_damaged_access_key.restoration.description,세 부품으로 접속키와 항로 코어를 복구합니다. 마지막 필수 복구 단계입니다.,Restore the access key and Route Core with all three parts.,,,,Settlement Recovery description,Final required restoration before physical core activation,64
 quest.main_damaged_access_key.restoration.ready,복구 준비 완료,,,,,Settlement Recovery ready state,Requires all three distinct boss parts,24
 quest.main_damaged_access_key.title,손상된 접속키,,,,,Main quest title,Stable ID MAIN_DAMAGED_ACCESS_KEY,24
 speaker.fake_operator.name,오퍼레이터,,,,,Hidden fake Operator speaker display name,Stable FakeOperator actor identity must remain separate from its concealed display name,16
 speaker.operator.name,오퍼레이터,,,,,Operator speaker display name,Pixel Crushers actor display-name source,16
 speaker.rescue_contact.name,구조 연락원,,,,,RescueContact speaker display name,Pixel Crushers actor display-name source,16
-speaker.settlement_control.name,정착지 관제,,,,,Settlement Control speaker display name,Pixel Crushers actor display-name source,16
+speaker.settlement_control.name,관제탑,CONTROL TOWER,,,,Settlement Control speaker display name,Pixel Crushers actor display-name source,16
 system.pixel_curse.level_up,픽셀 저주 동기화 단계 상승: {level},,,,,Pixel Curse level-up notification,Shown only when derived authoritative level changes,48
 system.settlement.expedition.dialogue_active,통신이 끝난 후 탐사를 시작할 수 있습니다.,,,,,Settlement expedition launch blocked by active dialogue,Shown through the Settlement status message path,48
 tutorial.curse.system_error.body,미확인 신호가 기체 구조를 침식했습니다.,,,,,Tutorial Pixel Curse transformation feedback body,Shown only after the core-to-player transfer reaches the ship,48
@@ -56,3 +138,53 @@ ui.settings.language.ja,일본어,,,,,Japanese language option,Phase 2A foundati
 ui.settings.language.ko,한국어,,,,,Korean language option,Phase 2A foundation entry,12
 ui.settings.language.zh_hans,중국어(간체),,,,,Simplified Chinese language option,Phase 2A foundation entry,16
 ui.settings.language.zh_hant,중국어(번체),,,,,Traditional Chinese language option,Phase 2A foundation entry,16
+ui.settlement.archive.nav,통신 기록,Comms Archive,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.title,통신 기록,Comms Archive,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.notice,진행도 기반 기록 · 선택 응답 제외,Progress records · Choice responses omitted,,,,Settlement read-only archive,No conversation execution,43
+ui.settlement.archive.empty,아직 열람할 기록이 없습니다.,No records available yet.,,,,Settlement read-only archive,No conversation execution,25
+ui.settlement.archive.back,돌아가기,Back,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.opening,첫 교신,First contact,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.radar,레이더 안내,Radar guidance,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.supply,보급 컨테이너,Supply container,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.ancient,고대 신호,Ancient signal,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.relay,중계기 접속,Relay connection,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.takeover,채널 탈취,Channel hijack,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.access,미확인 접속 키,Unknown access key,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.rescue,회수 통신,Recovery call,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.settlement,첫 정착지 보고,First Settlement report,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.analysis1,구획 안정기 분석,Stabilizer analysis,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.analysis2,물질 압축로 분석,Compressor analysis,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.ending,중앙 물류망 종료,Network termination,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.ready,세 부품 복원 안내,Three-part restoration,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.archive.restored,접속키 복원 완료,Access key restored,,,,Settlement read-only archive,No conversation execution,24
+ui.settlement.equipment.title,장비 개발,Equipment Development,,,,Equipment Development,,
+ui.settlement.equipment.hint,장비를 살펴보고 출격 후보를 준비하세요.,Inspect equipment and prepare expedition candidates.,,,,Equipment Development,,
+ui.settlement.equipment.clear,슬롯 비우기,Clear slot,,,,Equipment Development,,
+ui.settlement.equipment.empty,비어 있음,Empty,,,,Equipment Development,,
+ui.settlement.equipment.locked,분석 필요,Research needed,,,,Equipment Development,,
+ui.settlement.equipment.row0,기본 · 3 슬롯,Base · 3 slots,,,,Equipment Development,,
+ui.settlement.equipment.row1,1차 분석 · 6 슬롯,Research I · 6 slots,,,,Equipment Development,,
+ui.settlement.equipment.row2,2차 분석 · 9 슬롯,Research II · 9 slots,,,,Equipment Development,,
+ui.settlement.equipment.row3,3차 분석 · 12 슬롯,Research III · 12 slots,,,,Equipment Development,,
+ui.settlement.equipment.instructions,목록에서 장비를 살펴보세요. 활성화는 무료이며 빈 슬롯도 유효합니다.,Inspect a record. Activation is free and empty slots are valid.,,,,Equipment Development,,
+ui.settlement.equipment.shared,공용,Shared,,,,Equipment Development,,
+ui.settlement.equipment.prerequisites,탐사 내 선행 조건,Prerequisites within the expedition,,,,Equipment Development,,
+ui.settlement.equipment.capacity,출격 후보 {used} / {capacity} · 빈 슬롯 허용,Candidates {used} / {capacity} · empty slots allowed,,,,Equipment Development,,
+ui.settlement.equipment.inspect,장비 정보,Equipment,,,,Equipment Development,,
+ui.settlement.equipment.max_level,출격 시 Lv.0 · 최대 Lv.{max},Start unowned · Max Lv.{max},,,,Equipment Development,,
+ui.settlement.equipment.growth,성장 효과 · 단계 획득 시 추가,Growth · added per acquisition,,,,Equipment Development,,
+ui.settlement.equipment.active,출격 후보군에 포함됨,Included in expedition candidates,,,,Equipment Development,,
+ui.settlement.equipment.inactive,출격 후보군에서 제외됨,Excluded from expedition candidates,,,,Equipment Development,,
+ui.settlement.equipment.active_short,활성,Active,,,,Equipment Development,,
+ui.settlement.equipment.inactive_short,비활성,Inactive,,,,Equipment Development,,
+ui.settlement.equipment.activate,활성화,Activate,,,,Equipment Development,,
+ui.settlement.equipment.deactivate,비활성화,Deactivate,,,,Equipment Development,,
+ui.settlement.equipment.full,슬롯이 가득 참,Slots full,,,,Equipment Development,,
+ui.settlement.equipment.research0,기본 기체 해금 필요,Default ship unlock required,,,,Equipment Development,,
+ui.settlement.equipment.research1,구획 안정기 분석 → 브리처 해금,Analyze Sector Stabilizer to unlock Breacher,,,,Equipment Development,,
+ui.settlement.equipment.research2,물질 압축로 분석 → 랜서 해금,Analyze Matter Compressor to unlock Lancer,,,,Equipment Development,,
+ui.settlement.equipment.research3,위상 항법 렌즈 분석 필요,Analyze Phase Navigation Lens,,,,Equipment Development,,
+ui.settlement.equipment.select_ship,{ship} 기체 선택 필요,Select {ship} to prepare,,,,Equipment Development,,
+ui.settlement.equipment.sweeper,스위퍼,Sweeper,,,,Equipment Development,,
+ui.settlement.equipment.breacher,브리처,Breacher,,,,Equipment Development,,
+ui.settlement.equipment.lancer,랜서,Lancer,,,,Equipment Development,,

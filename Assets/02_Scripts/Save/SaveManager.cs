@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 4;
+    private const int CurrentSaveVersion = 5;
 
     public static SaveManager Instance { get; private set; }
 
@@ -442,6 +442,11 @@ public class SaveManager : MonoBehaviour
                     MigrateVersion3To4(saveData);
                     break;
 
+                case 4:
+                    saveData.equipmentLoadoutTraitIds ??= new List<string>();
+                    saveData.version = 5;
+                    break;
+
                 default:
                     error = $"no migration exists for save version {saveData.version}";
                     return false;
@@ -484,6 +489,8 @@ public class SaveManager : MonoBehaviour
     private void SanitizeSaveData(SaveData saveData)
     {
         saveData.version = CurrentSaveVersion;
+        // ID/catalog/capacity validation belongs to PermanentProgress after campaign migration.
+        saveData.equipmentLoadoutTraitIds ??= new List<string>();
         saveData.scrapParts = Mathf.Max(0, saveData.scrapParts);
         saveData.coreShards = Mathf.Max(0, saveData.coreShards);
         saveData.stabilizedAlloy = Mathf.Max(0, saveData.stabilizedAlloy);

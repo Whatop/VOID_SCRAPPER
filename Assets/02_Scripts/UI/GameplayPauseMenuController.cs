@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -39,6 +40,9 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
     private ExpeditionHUD expeditionHUD;
     private bool quitTransitionStarted;
     private bool ownsWorldSfxSuppression;
+    private bool viewInitialized;
+    private bool listenersBound;
+    private bool startReached;
 
     public bool IsOpen => isOpen;
 
@@ -46,14 +50,59 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
     {
         inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
         InputBindingPersistence.LoadOnce(inputActions);
-        BuildView();
-        ResolveCancelAction();
-        expeditionHUD = FindFirstObjectByType<ExpeditionHUD>();
-        SetClosedPresentation();
+        // Scene integration can still be in progress during Awake. Start runs after
+        // sceneLoaded; no delayed call, coroutine, or external subscription is needed.
+    }
+
+    private void Start()
+    {
+        startReached = true;
+        InitializeView();
+        BindViewListeners();
+    }
+
+    private void InitializeView()
+    {
+        if (viewInitialized) return;
+        SharedOptionsMenuUI.ValidateRuntimeParent(transform);
+        if (!gameObject.scene.isLoaded)
+        {
+            throw new InvalidOperationException(
+                $"Pause UI initialization requires its scene to finish loading. " +
+                $"Scene='{gameObject.scene.path}', valid={gameObject.scene.IsValid()}, loaded={gameObject.scene.isLoaded}.");
+        }
+        try
+        {
+            BuildView();
+            expeditionHUD = FindFirstObjectByType<ExpeditionHUD>();
+            SetClosedPresentation();
+            viewInitialized = true;
+        }
+        catch
+        {
+            if (canvasRoot != null) SharedOptionsMenuUI.DestroyFailedConstruction(canvasRoot);
+            canvasRoot = null;
+            pauseRoot = null;
+            quitRoot = null;
+            sharedOptions = null;
+            continueButton = optionsButton = quitButton = confirmQuitButton = cancelQuitButton = null;
+            quitMessage = null;
+            throw;
+        }
     }
 
     private void OnEnable()
     {
+        if (!startReached) return;
+        InitializeView();
+        BindViewListeners();
+    }
+
+    private void BindViewListeners()
+    {
+        if (!viewInitialized || listenersBound) return;
+        listenersBound = true;
+        ResolveCancelAction();
         EnableCancelAction();
         continueButton.onClick.AddListener(Close);
         optionsButton.onClick.AddListener(OpenOptions);
@@ -77,6 +126,8 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
             sharedOptions.BackRequested -= ReturnFromOptions;
         }
         DisableCancelActionIfOwned();
+        if (cancelAction != null) cancelAction.performed -= HandleCancelPerformed;
+        listenersBound = false;
         CloseImmediate();
 
         if (ownsWorldSfxSuppression)
@@ -103,6 +154,7 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
 
     public void Open()
     {
+        if (!viewInitialized) return;
         GameplayPauseManager pauseManager = GameplayPauseManager.Instance;
         if (isOpen || !CanOpenInCurrentState() ||
             (GameplayPauseManager.IsPaused && !pauseManager.IsPausedBy(this)))
@@ -313,12 +365,12 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
 
     private void BuildView()
     {
-        canvasRoot = new GameObject("Canvas_PauseMenu", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        canvasRoot.transform.SetParent(transform, false);
-        Canvas canvas = canvasRoot.GetComponent<Canvas>();
+        canvasRoot = SharedOptionsMenuUI.CreateRuntimeChild("Canvas_PauseMenu", transform);
+        Canvas canvas = canvasRoot.AddComponent<Canvas>();
+        canvasRoot.AddComponent<GraphicRaycaster>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = canvasSortOrder;
-        CanvasScaler scaler = canvasRoot.GetComponent<CanvasScaler>();
+        CanvasScaler scaler = canvasRoot.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(480f, 270f);
         scaler.matchWidthOrHeight = 0.5f;
@@ -330,8 +382,7 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
         optionsButton = CreateButton("OptionsButton", pauseRoot.transform, "설정", new Vector2(0f, -15f));
         quitButton = CreateButton("QuitButton", pauseRoot.transform, "나가기", new Vector2(0f, -55f));
 
-        GameObject optionsObject = new GameObject("OptionsPanel", typeof(RectTransform));
-        optionsObject.transform.SetParent(canvasRoot.transform, false);
+        GameObject optionsObject = SharedOptionsMenuUI.CreateRuntimeChild("OptionsPanel", canvasRoot.transform);
         sharedOptions = optionsObject.AddComponent<SharedOptionsMenuUI>();
         sharedOptions.Configure(inputActions, masterAudioMixer, uiFont, true, true);
 
@@ -382,8 +433,7 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
 
     private static GameObject CreateRectObject(string name, Transform parent, Vector2 position, Vector2 size)
     {
-        GameObject target = new GameObject(name, typeof(RectTransform));
-        target.transform.SetParent(parent, false);
+        GameObject target = SharedOptionsMenuUI.CreateRuntimeChild(name, parent);
         RectTransform rect = target.GetComponent<RectTransform>();
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = position;
@@ -393,8 +443,7 @@ public sealed class GameplayPauseMenuController : MonoBehaviour
 
     private static GameObject CreateStretchObject(string name, Transform parent)
     {
-        GameObject target = new GameObject(name, typeof(RectTransform));
-        target.transform.SetParent(parent, false);
+        GameObject target = SharedOptionsMenuUI.CreateRuntimeChild(name, parent);
         RectTransform rect = target.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;

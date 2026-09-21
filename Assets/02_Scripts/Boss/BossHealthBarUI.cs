@@ -75,11 +75,14 @@ public class BossHealthBarUI : MonoBehaviour
     private bool authoredLayoutCached;
     private object triadPresentationOwner;
     private FrigateTriadBossController triadController;
-    private RectTransform triadPresentationRoot;
-    private TextMeshProUGUI triadBossNameText;
-    private readonly Image[] triadPartFills = new Image[3];
+    [SerializeField] private RectTransform triadPresentationRoot;
+    [SerializeField] private TextMeshProUGUI triadBossNameText;
+    [SerializeField] private Image[] triadPartFills = new Image[3];
     private readonly RectTransform[] triadPartFillRects = new RectTransform[3];
-    private readonly TextMeshProUGUI[] triadPartLabels = new TextMeshProUGUI[3];
+    [SerializeField] private TextMeshProUGUI[] triadPartLabels = new TextMeshProUGUI[3];
+    private readonly float[] triadFillHeights = new float[3];
+    private bool missingTriadReported;
+    private bool missingCanvasGroupReported;
     private readonly FrigateBossPart[] triadParts = new FrigateBossPart[3];
     private Transform[] aggregateVisualChildren;
     private bool[] aggregateVisualChildStates;
@@ -312,7 +315,7 @@ public class BossHealthBarUI : MonoBehaviour
             return false;
         }
 
-        if (!SetRightSideLayout(owner, true))
+        if (!TryPrepareTriadPresentation() || !SetRightSideLayout(owner, true))
         {
             return false;
         }
@@ -325,7 +328,7 @@ public class BossHealthBarUI : MonoBehaviour
         triadPresentationOwner = owner;
         triadController = controller;
         CacheAndHideAggregateVisualChildren();
-        EnsureTriadPresentation();
+        triadPresentationRoot.gameObject.SetActive(true);
         BindTriadParts();
         RefreshAllTriadParts();
         return triadPresentationRoot != null;
@@ -372,145 +375,37 @@ public class BossHealthBarUI : MonoBehaviour
         }
     }
 
-    private void EnsureTriadPresentation()
+    private bool TryPrepareTriadPresentation()
     {
-        if (triadPresentationRoot != null)
-        {
-            triadPresentationRoot.gameObject.SetActive(true);
-            triadPresentationRoot.SetAsLastSibling();
-            return;
-        }
-
         Transform parent = rootObject != null ? rootObject.transform : transform;
-        GameObject root = new GameObject(
-            "SalvageDevourerTriadHealth",
-            typeof(RectTransform)
-        );
-        root.layer = parent.gameObject.layer;
-        triadPresentationRoot = root.GetComponent<RectTransform>();
-        triadPresentationRoot.SetParent(parent, false);
-        triadPresentationRoot.anchorMin = new Vector2(0.5f, 0.5f);
-        triadPresentationRoot.anchorMax = new Vector2(0.5f, 0.5f);
-        triadPresentationRoot.pivot = new Vector2(0.5f, 0.5f);
-        triadPresentationRoot.anchoredPosition = Vector2.zero;
-        triadPresentationRoot.sizeDelta = new Vector2(72f, 100f);
-
-        for (int i = 0; i < triadPartFills.Length; i++)
+        bool valid = triadPresentationRoot != null && triadPresentationRoot.IsChildOf(parent) &&
+            triadBossNameText != null && triadBossNameText.transform.IsChildOf(triadPresentationRoot) &&
+            triadPartFills != null && triadPartFills.Length == 3 && triadPartLabels != null && triadPartLabels.Length == 3;
+        for (int i = 0; valid && i < 3; i++)
         {
-            CreateTriadPartBar(i);
+            valid = triadPartFills[i] != null && triadPartLabels[i] != null &&
+                triadPartFills[i].transform.IsChildOf(triadPresentationRoot) && triadPartLabels[i].transform.IsChildOf(triadPresentationRoot);
+            for (int j = 0; valid && j < i; j++) valid = triadPartFills[i] != triadPartFills[j] && triadPartLabels[i] != triadPartLabels[j];
         }
-
-        triadBossNameText = CreateTriadText(
-            "BossName",
-            triadPresentationRoot,
-            new Vector2(0f, -34f),
-            new Vector2(86f, 14f),
-            6.5f
-        );
-        triadBossNameText.fontStyle = FontStyles.Bold;
-        triadBossNameText.text = triadController != null
-            ? triadController.BossDisplayName
-            : defaultBossName;
-        triadPresentationRoot.SetAsLastSibling();
-    }
-
-    private void CreateTriadPartBar(int index)
-    {
-        float x = (index - 1) * triadPartBarSpacing;
-        GameObject backgroundObject = new GameObject(
-            $"PartBar_{index}",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image)
-        );
-        backgroundObject.layer = triadPresentationRoot.gameObject.layer;
-        RectTransform backgroundRect = backgroundObject.GetComponent<RectTransform>();
-        backgroundRect.SetParent(triadPresentationRoot, false);
-        backgroundRect.anchorMin = new Vector2(0.5f, 0.5f);
-        backgroundRect.anchorMax = new Vector2(0.5f, 0.5f);
-        backgroundRect.pivot = new Vector2(0.5f, 0.5f);
-        backgroundRect.anchoredPosition = new Vector2(x, 8f);
-        backgroundRect.sizeDelta = triadPartBarSize;
-
-        Image background = backgroundObject.GetComponent<Image>();
-        background.color = triadBarBackgroundColor;
-        background.raycastTarget = false;
-
-        GameObject fillObject = new GameObject(
-            "Fill",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image)
-        );
-        fillObject.layer = backgroundObject.layer;
-        RectTransform fillRect = fillObject.GetComponent<RectTransform>();
-        fillRect.SetParent(backgroundRect, false);
-        fillRect.anchorMin = new Vector2(0f, 0f);
-        fillRect.anchorMax = new Vector2(1f, 0f);
-        fillRect.pivot = new Vector2(0.5f, 0f);
-        fillRect.anchoredPosition = new Vector2(0f, 1.5f);
-        fillRect.sizeDelta = new Vector2(-3f, Mathf.Max(0f, triadPartBarSize.y - 3f));
-
-        Image fill = fillObject.GetComponent<Image>();
-        fill.color = triadBarFillColor;
-        fill.type = Image.Type.Simple;
-        fill.raycastTarget = false;
-        triadPartFills[index] = fill;
-        triadPartFillRects[index] = fillRect;
-
-        TextMeshProUGUI label = CreateTriadText(
-            $"PartLabel_{index}",
-            triadPresentationRoot,
-            new Vector2(x, 45f),
-            new Vector2(14f, 10f),
-            5.5f
-        );
-        label.fontStyle = FontStyles.Bold;
-        label.text = index switch
+        if (!valid)
         {
-            0 => "L",
-            1 => "C",
-            _ => "R"
-        };
-        triadPartLabels[index] = label;
-    }
-
-    private TextMeshProUGUI CreateTriadText(
-        string objectName,
-        RectTransform parent,
-        Vector2 position,
-        Vector2 size,
-        float fontSize)
-    {
-        GameObject textObject = new GameObject(
-            objectName,
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(TextMeshProUGUI)
-        );
-        textObject.layer = parent.gameObject.layer;
-        RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.SetParent(parent, false);
-        textRect.anchorMin = new Vector2(0.5f, 0.5f);
-        textRect.anchorMax = new Vector2(0.5f, 0.5f);
-        textRect.pivot = new Vector2(0.5f, 0.5f);
-        textRect.anchoredPosition = position;
-        textRect.sizeDelta = size;
-
-        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-        if (bossNameText != null)
-        {
-            text.font = bossNameText.font;
-            text.fontSharedMaterial = bossNameText.fontSharedMaterial;
+            if (!missingTriadReported)
+            {
+                missingTriadReported = true;
+                Debug.LogWarning($"[BossHealthBarUI] Missing/invalid triadPresentationRoot/triadBossNameText/triadPartFills/triadPartLabels at '{HierarchyPath(transform)}', scene '{gameObject.scene.path}'. Restore the listed authored Inspector bindings. Only triad presentation was skipped.", this);
+            }
+            return false;
         }
-
-        text.fontSize = fontSize;
-        text.alignment = TextAlignmentOptions.Center;
-        text.textWrappingMode = TextWrappingModes.NoWrap;
-        text.overflowMode = TextOverflowModes.Ellipsis;
-        text.raycastTarget = false;
-        return text;
+        for (int i = 0; i < 3; i++)
+        {
+            if (triadPartFillRects[i] == triadPartFills[i].rectTransform) continue;
+            triadPartFillRects[i] = triadPartFills[i].rectTransform;
+            triadFillHeights[i] = triadPartFillRects[i].sizeDelta.y;
+        }
+        return true;
     }
+
+    private static string HierarchyPath(Transform target) => target.parent != null ? HierarchyPath(target.parent) + "/" + target.name : target.name;
 
     private void BindTriadParts()
     {
@@ -617,7 +512,7 @@ public class BossHealthBarUI : MonoBehaviour
         if (fillRect != null)
         {
             Vector2 size = fillRect.sizeDelta;
-            size.y = Mathf.Max(0f, triadPartBarSize.y - 3f) * ratio;
+            size.y = triadFillHeights[index] * ratio;
             fillRect.sizeDelta = size;
         }
 
@@ -646,19 +541,13 @@ public class BossHealthBarUI : MonoBehaviour
         if (triadPresentationRoot != null)
         {
             triadPresentationRoot.gameObject.SetActive(false);
-            Destroy(triadPresentationRoot.gameObject);
         }
 
-        for (int i = 0; i < triadPartFills.Length; i++)
+        for (int i = 0; i < triadParts.Length; i++)
         {
-            triadPartFills[i] = null;
-            triadPartFillRects[i] = null;
-            triadPartLabels[i] = null;
             triadParts[i] = null;
         }
 
-        triadBossNameText = null;
-        triadPresentationRoot = null;
         aggregateVisualChildren = null;
         aggregateVisualChildStates = null;
         triadController = null;
@@ -921,9 +810,10 @@ public class BossHealthBarUI : MonoBehaviour
             canvasGroup = GetComponent<CanvasGroup>();
         }
 
-        if (canvasGroup == null)
+        if (canvasGroup == null && !missingCanvasGroupReported)
         {
-            canvasGroup = gameObject.AddComponent<CanvasGroup>();
+            missingCanvasGroupReported = true;
+            Debug.LogWarning($"[BossHealthBarUI] Missing canvasGroup at '{HierarchyPath(transform)}', scene '{gameObject.scene.path}'. Restore the listed authored Inspector bindings. No replacement presentation was created.", this);
         }
 
         if (revealRoot == null && rootObject != null)

@@ -10,6 +10,25 @@ using UnityEngine.UI;
 public class ExpeditionHUD : MonoBehaviour
 {
     private readonly HashSet<object> menuHintSuppressors = new HashSet<object>();
+    [SerializeField] private TextMeshProUGUI polarityText;
+    private object polarityOwner;
+
+    public void ShowPolarity(object source, string localizationKey)
+    {
+        if (source == null || polarityText == null) return;
+        if (polarityOwner != null && polarityOwner != source) return;
+        polarityOwner = source;
+        polarityText.text = VoidScrapperLocalizationService.Instance != null
+            ? VoidScrapperLocalizationService.Instance.GetText(localizationKey) : localizationKey;
+        polarityText.gameObject.SetActive(true);
+    }
+
+    public void HidePolarity(object source)
+    {
+        if (polarityOwner != source) return;
+        polarityOwner = null;
+        if (polarityText != null) polarityText.gameObject.SetActive(false);
+    }
 
     [Header("Player References")]
     [SerializeField] private PlayerHealth playerHealth;
@@ -27,7 +46,6 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private string coreSignalCountFormat = "{0}/{1}";
     [SerializeField] private string coreSignalReadyText = "코어 좌표 확인";
     [SerializeField] private TextMeshProUGUI coreTrackingObjectiveText;
-    [SerializeField] private bool createCoreTrackingPresentationIfMissing = true;
     [SerializeField] private TMP_FontAsset uiFont;
 
     [Header("Operation")]
@@ -36,7 +54,6 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI operationTitleText;
     [SerializeField] private TextMeshProUGUI operationDetailText;
     [SerializeField] private Image operationAccentImage;
-    [SerializeField] private bool createOperationPresentationIfMissing = true;
     [SerializeField] private string moveActionName = "Move";
     [SerializeField, Min(0.05f)] private float operationBriefingIntroDuration = 0.24f;
     [SerializeField, Min(0f)] private float operationBriefingVisibleDuration = 2.4f;
@@ -62,7 +79,7 @@ public class ExpeditionHUD : MonoBehaviour
     [Header("HUD Roots")]
     [Tooltip("CanvasGroup owned by ExpeditionHUD for cinematic fades. It must be on the gameplay HUD canvas, not on an individual panel.")]
     [SerializeField] private CanvasGroup cinematicCanvasGroup;
-    [SerializeField] private bool addCinematicCanvasGroupIfMissing = true;
+    [SerializeField] private RadarPanelAnimator cinematicRadarPanel;
     [SerializeField] private GameObject statusRoot;
     [SerializeField] private GameObject resourceRoot;
     [SerializeField] private GameObject cargoRoot;
@@ -78,6 +95,7 @@ public class ExpeditionHUD : MonoBehaviour
     [Tooltip("HP 아래에 고정되는 얇은 Armor 스트립입니다. 폭은 CurrentArmor / MaxArmor로 표시합니다.")]
     [SerializeField] private RectTransform armorFillRect;
     [SerializeField] private Image armorFillImage;
+    [SerializeField] private Image armorTrackImage;
     [SerializeField] private string hpValueFormat = "{0:0}/{1:0}";
     [SerializeField] private string armorBonusFormat = "장갑 {0:0}";
     [SerializeField] private Color armorBonusColor = Color.white;
@@ -85,10 +103,6 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private Color hpNormalStateColor = new Color(0.95f, 0.24f, 0.28f, 1f);
     [SerializeField] private Color hpShieldStateColor = new Color(0.25f, 0.82f, 1f, 1f);
     [SerializeField] private Color hpInvulnerableStateColor = new Color(1f, 0.78f, 0.22f, 1f);
-    [Tooltip("HPValueText와 ArmorValueText가 같은 부모일 때 Armor 텍스트를 HP 텍스트 바로 옆으로 고정합니다.")]
-    [FormerlySerializedAs("autoPositionArmorBonusBesideHpText")]
-    [SerializeField] private bool anchorArmorBonusToHpText = true;
-    [SerializeField] private Vector2 armorBonusOffset = new Vector2(2f, 0f);
     [FormerlySerializedAs("armorGauge")]
     [SerializeField, HideInInspector] private GaugeBarUI legacyArmorGauge;
 
@@ -116,7 +130,6 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private GaugeBarUI cargoGauge;
     [SerializeField] private TextMeshProUGUI cargoValueText;
     [SerializeField] private CanvasGroup cargoCanvasGroup;
-    [SerializeField] private bool createCargoPresentationIfMissing = true;
     [SerializeField] private string cargoLabel = "적재량";
     [SerializeField] private string cargoValueFormat = "{0}/{1}";
     [SerializeField] private Color cargoNormalColor = new Color(0.35f, 0.85f, 1f, 1f);
@@ -146,7 +159,6 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private WeaponHeatUI weaponHeatUI;
     [SerializeField] private PlayerChargeGaugeUI playerChargeGaugeUI;
     [SerializeField] private Canvas worldGaugeCanvas;
-    [SerializeField] private bool createSharedStatusPresentationIfMissing = true;
     [SerializeField] private bool createWorldChargeGaugeIfMissing = true;
 
     [Header("Messages")]
@@ -158,6 +170,14 @@ public class ExpeditionHUD : MonoBehaviour
     private Tween cinematicVisibilityTween;
     private bool additionalVisibilityCaptured;
     private bool subscribed;
+    private PlayerHealth subscribedPlayerHealth;
+    private PlayerArmor subscribedPlayerArmor;
+    private PlayerDash subscribedPlayerDash;
+    private ComponentShieldPassive subscribedComponentShield;
+    private PlayerReinforcementController subscribedReinforcementController;
+    private PlayerCargoController subscribedCargoController;
+    private CoreTrackingSignalController subscribedCoreTrackingController;
+    private ExpeditionObjectiveDirector subscribedObjectiveDirector;
     private bool[] additionalObjectVisibilityBeforeCinematic;
     private InputAction moveAction;
     private Sequence operationBriefingSequence;
@@ -166,26 +186,47 @@ public class ExpeditionHUD : MonoBehaviour
     private bool operationBriefingPending;
     private bool operationBriefingPresented;
     private bool operationPresentationShuttingDown;
+    private bool missingAuthoredOperationReported;
     private bool resourceCounterOriginCached;
     private Vector2 resourceCounterOrigin;
+    private readonly ResourceCounterUI[] resourceCounters = new ResourceCounterUI[5];
+    private static readonly CurrencyType[] resourceCurrencies =
+    {
+        CurrencyType.Credits, CurrencyType.ScrapParts, CurrencyType.CoreShards,
+        CurrencyType.StabilizedAlloy, CurrencyType.TuningChips
+    };
+    private int reportedResourceBindingMask;
+    private RunManager subscribedRunManager;
     private Sequence cargoVisibilitySequence;
     private bool cargoPresentationInitialized;
     private int lastCargoLoad = -1;
     private int lastCargoCapacity = -1;
-    private Image cargoPanelImage;
-    private Image cargoTrackImage;
-    private Image cargoFillImage;
-    private Image cargoAccentImage;
-    private TextMeshProUGUI cargoLabelText;
-    private Outline cargoFrameOutline;
-    private Image hpPanelImage;
-    private Image hpTrackImage;
-    private Image hpAccentImage;
-    private TextMeshProUGUI hpLabelText;
-    private Outline hpFrameOutline;
+    [SerializeField] private Image cargoPanelImage;
+    [SerializeField] private Image cargoTrackImage;
+    [SerializeField] private Image cargoFillImage;
+    [SerializeField] private Image cargoAccentImage;
+    [SerializeField] private TextMeshProUGUI cargoLabelText;
+    [SerializeField] private Outline cargoFrameOutline;
+    [SerializeField] private Image hpPanelImage;
+    [SerializeField] private Image hpTrackImage;
+    [SerializeField] private Image hpAccentImage;
+    [SerializeField] private TextMeshProUGUI hpLabelText;
+    [SerializeField] private Outline hpFrameOutline;
+    private readonly HashSet<string> missingPresentationFields = new HashSet<string>();
+
+    private static string PresentationPath(Transform target) => target.parent != null
+        ? PresentationPath(target.parent) + "/" + target.name : target.name;
+
+    private void CheckPresentation(Object value, string property)
+    {
+        if (value != null || !missingPresentationFields.Add(property)) return;
+        Debug.LogWarning($"[ExpeditionHUD] Missing {property} at '{PresentationPath(transform)}', scene '{gameObject.scene.path}'. " +
+            "Restore the listed authored Inspector binding. Only the affected presentation is skipped.", this);
+    }
     private ComponentShieldPassive componentShield;
 
     public bool IsCinematicMode => cinematicMode;
+    public bool UsesAuthoredStatusPresentation => true;
     public bool IsCinematicVisibilityTransitionActive =>
         cinematicVisibilityTween != null &&
         cinematicVisibilityTween.IsActive() &&
@@ -198,13 +239,8 @@ public class ExpeditionHUD : MonoBehaviour
         EnsureCargoPresentation();
         EnsureCoreTrackingPresentation();
         EnsureMenuHintPresentation();
-        ApplySharedHudLayout();
-        EnsureStabilizedAlloyCounter();
-        EnsureTuningChipCounter();
-        CacheResourceCounterOrigin();
         ResolveCinematicCanvasGroup();
         SetCanvasGroupVisible(true);
-        ConfigureDashIcon();
         inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
         InputBindingPersistence.LoadOnce(inputActions);
     }
@@ -212,17 +248,17 @@ public class ExpeditionHUD : MonoBehaviour
     private void OnEnable()
     {
         operationPresentationShuttingDown = false;
+        // Detach before resolving a new publisher; repeated initialization stays balanced.
+        Unsubscribe();
         ResolveReferences();
         EnsureSharedStatusPresentation();
         EnsureCargoPresentation();
         EnsureCoreTrackingPresentation();
         EnsureMenuHintPresentation();
-        ApplySharedHudLayout();
-        EnsureStabilizedAlloyCounter();
-        EnsureTuningChipCounter();
-        CacheResourceCounterOrigin();
         Subscribe();
+        InputSystem.onActionChange -= HandleInputActionChange;
         InputSystem.onActionChange += HandleInputActionChange;
+        GameSettingsRuntime.Changed -= HandleGameSettingsChanged;
         GameSettingsRuntime.Changed += HandleGameSettingsChanged;
         RefreshAll();
         ApplyCinematicVisibility();
@@ -234,7 +270,6 @@ public class ExpeditionHUD : MonoBehaviour
         ResolveReferences();
         EnsureSharedStatusPresentation();
         EnsureCargoPresentation();
-        ApplySharedHudLayout();
         Subscribe();
         RefreshAll();
         ApplyCinematicVisibility();
@@ -242,6 +277,7 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void OnDisable()
     {
+        HidePolarity(polarityOwner);
         operationPresentationShuttingDown = true;
         HideOperationDisplayImmediate();
         KillCinematicVisibilityTween();
@@ -276,6 +312,11 @@ public class ExpeditionHUD : MonoBehaviour
 
     public void SetCinematicMode(object owner, bool enabled)
     {
+        SetCinematicMode(owner, enabled, 0f);
+    }
+
+    public void SetCinematicMode(object owner, bool enabled, float fadeDuration)
+    {
         if (owner == null)
         {
             SetCinematicMode(enabled);
@@ -288,7 +329,7 @@ public class ExpeditionHUD : MonoBehaviour
 
         if (changed)
         {
-            RefreshCinematicModeState(0f);
+            RefreshCinematicModeState(Mathf.Max(0f, fadeDuration));
         }
     }
 
@@ -328,9 +369,7 @@ public class ExpeditionHUD : MonoBehaviour
         RefreshHealthAndArmor(hp, maxHp, armor, maxArmor);
 
         RefreshObjectiveProgress();
-        RefreshWallet(RunManager.Instance != null && RunManager.Instance.CurrentRun != null
-            ? RunManager.Instance.CurrentRun.Wallet
-            : null);
+        RefreshCurrentResourceBalances();
 
         RefreshBindingHints();
         UpdateDashDisplay();
@@ -390,8 +429,7 @@ public class ExpeditionHUD : MonoBehaviour
             return;
         }
 
-        EnsureOperationPresentation();
-        if (operationRoot == null)
+        if (!TryPrepareOperationPresentation())
         {
             return;
         }
@@ -433,8 +471,7 @@ public class ExpeditionHUD : MonoBehaviour
             return;
         }
 
-        EnsureOperationPresentation();
-        if (operationRoot == null)
+        if (!TryPrepareOperationPresentation())
         {
             return;
         }
@@ -533,8 +570,7 @@ public class ExpeditionHUD : MonoBehaviour
 
         KillOperationBriefingTween();
         operationRoot.SetActive(true);
-        operationRoot.transform.SetAsLastSibling();
-        operationBriefingRect ??= operationRoot.transform as RectTransform;
+        if (operationBriefingRect == null) operationBriefingRect = operationRoot.transform as RectTransform;
         if (operationBriefingRect != null)
         {
             operationBriefingBasePosition = operationBriefingRect.anchoredPosition;
@@ -599,20 +635,16 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void ResolveReferences()
     {
-        playerHealth ??= FindFirstObjectByType<PlayerHealth>();
-        componentShield ??= playerHealth != null
+        if (playerHealth == null) playerHealth = FindFirstObjectByType<PlayerHealth>();
+        if (componentShield == null) componentShield = playerHealth != null
             ? playerHealth.GetComponent<ComponentShieldPassive>()
             : null;
-        playerArmor ??= FindFirstObjectByType<PlayerArmor>();
-        playerDash ??= FindFirstObjectByType<PlayerDash>();
-        reinforcementController ??= FindFirstObjectByType<PlayerReinforcementController>();
-        reinforcementSlotUI ??= FindFirstObjectByType<ReinforcementSlotUI>();
-        statusEffectPresenter ??= FindFirstObjectByType<StatusEffectHUDPresenter>(FindObjectsInactive.Include);
-        cargoController ??= FindFirstObjectByType<PlayerCargoController>(FindObjectsInactive.Include);
-        weaponHeatUI ??= FindFirstObjectByType<WeaponHeatUI>(FindObjectsInactive.Include);
-        playerChargeGaugeUI ??= FindFirstObjectByType<PlayerChargeGaugeUI>(FindObjectsInactive.Include);
-        warningMessageUI ??= FindFirstObjectByType<WarningMessageUI>(FindObjectsInactive.Include);
-        coreTrackingController ??= FindFirstObjectByType<CoreTrackingSignalController>();
+        if (playerArmor == null) playerArmor = FindFirstObjectByType<PlayerArmor>();
+        if (playerDash == null) playerDash = FindFirstObjectByType<PlayerDash>();
+        if (reinforcementController == null) reinforcementController = FindFirstObjectByType<PlayerReinforcementController>();
+        if (cargoController == null) cargoController = FindFirstObjectByType<PlayerCargoController>(FindObjectsInactive.Include);
+        if (playerChargeGaugeUI == null) playerChargeGaugeUI = FindFirstObjectByType<PlayerChargeGaugeUI>(FindObjectsInactive.Include);
+        if (coreTrackingController == null) coreTrackingController = FindFirstObjectByType<CoreTrackingSignalController>();
         inputActions = InputBindingUtility.ResolvePlayerInputActions(inputActions, this);
 
         if (coreTrackingController == null && objectiveDirector == null && Application.isPlaying && !disableObjectiveDirectorAutoResolution)
@@ -623,243 +655,16 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void EnsureSharedStatusPresentation()
     {
-        if (!Application.isPlaying || !createSharedStatusPresentationIfMissing)
-        {
-            return;
-        }
-
-        EnsureWeaponHeatPresentation();
-        EnsureWorldChargeGaugePresentation();
-        EnsureReinforcementPresentation();
-        ApplyHealthVisualPolish();
+        CheckPresentation(hpGauge, nameof(hpGauge));
+        CheckPresentation(hpValueText, nameof(hpValueText));
+        CheckPresentation(armorFillRect, nameof(armorFillRect));
+        CheckPresentation(armorFillImage, nameof(armorFillImage));
+        CheckPresentation(weaponHeatUI, nameof(weaponHeatUI));
+        CheckPresentation(reinforcementSlotUI, nameof(reinforcementSlotUI));
+        if (Application.isPlaying) EnsureWorldChargeGaugePresentation();
     }
 
-    private void EnsureWeaponHeatPresentation()
-    {
-        if (weaponHeatUI != null || statusRoot == null)
-        {
-            return;
-        }
 
-        RectTransform parent = statusRoot.transform as RectTransform;
-        if (parent == null)
-        {
-            return;
-        }
-
-        GameObject root = new GameObject(
-            "WeaponHeatStatus",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image),
-            typeof(CanvasGroup)
-        );
-        root.layer = parent.gameObject.layer;
-        root.SetActive(false);
-
-        RectTransform rootRect = root.GetComponent<RectTransform>();
-        rootRect.SetParent(parent, false);
-        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
-        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
-        rootRect.pivot = new Vector2(0.5f, 0.5f);
-        rootRect.anchoredPosition = new Vector2(-186.5f, 111f);
-        rootRect.sizeDelta = new Vector2(91f, 7f);
-
-        Image background = root.GetComponent<Image>();
-        background.color = new Color(0.015f, 0.03f, 0.05f, 0.86f);
-        background.raycastTarget = false;
-
-        GameObject fillAreaObject = new GameObject("Fill Area", typeof(RectTransform));
-        fillAreaObject.layer = root.layer;
-        RectTransform fillArea = fillAreaObject.GetComponent<RectTransform>();
-        fillArea.SetParent(rootRect, false);
-        fillArea.anchorMin = Vector2.zero;
-        fillArea.anchorMax = Vector2.one;
-        fillArea.offsetMin = new Vector2(1f, 1f);
-        fillArea.offsetMax = new Vector2(-1f, -1f);
-
-        Image fill = CreateRuntimeImage("Fill", fillArea, new Color(0.35f, 0.9f, 1f, 1f));
-
-        Slider slider = root.AddComponent<Slider>();
-        slider.navigation = new Navigation { mode = Navigation.Mode.None };
-        slider.transition = Selectable.Transition.None;
-        slider.interactable = false;
-        slider.targetGraphic = background;
-        slider.fillRect = fill.rectTransform;
-        slider.handleRect = null;
-        slider.direction = Slider.Direction.LeftToRight;
-        slider.minValue = 0f;
-        slider.maxValue = 1f;
-        slider.wholeNumbers = false;
-        slider.SetValueWithoutNotify(0f);
-
-        CanvasGroup group = root.GetComponent<CanvasGroup>();
-        group.interactable = false;
-        group.blocksRaycasts = false;
-
-        PlayerWeaponController weaponController = FindFirstObjectByType<PlayerWeaponController>();
-        GaugeBarUI heatGauge = root.AddComponent<GaugeBarUI>();
-        heatGauge.ConfigureRuntime(fill, null, group, root);
-        weaponHeatUI = root.AddComponent<WeaponHeatUI>();
-        weaponHeatUI.ConfigureRuntime(root, group, weaponController, fill, null);
-        root.SetActive(true);
-    }
-
-    private void ApplyHealthVisualPolish()
-    {
-        if (!Application.isPlaying || hpGauge == null)
-        {
-            return;
-        }
-
-        RectTransform rootRect = hpGauge.transform as RectTransform;
-        if (rootRect == null)
-        {
-            return;
-        }
-
-        hpPanelImage ??= hpGauge.GetComponent<Image>();
-        hpPanelImage ??= hpGauge.gameObject.AddComponent<Image>();
-        hpPanelImage.color = new Color(0.035f, 0.018f, 0.024f, 0.96f);
-        hpPanelImage.raycastTarget = false;
-
-        hpFrameOutline ??= hpGauge.GetComponent<Outline>();
-        hpFrameOutline ??= hpGauge.gameObject.AddComponent<Outline>();
-        hpFrameOutline.effectColor = new Color(0.95f, 0.24f, 0.28f, 0.6f);
-        hpFrameOutline.effectDistance = new Vector2(1f, -1f);
-        hpFrameOutline.useGraphicAlpha = false;
-
-        Slider slider = hpGauge.GetComponent<Slider>();
-        if (slider != null)
-        {
-            hpTrackImage ??= slider.targetGraphic as Image;
-        }
-
-        if (hpAccentImage == null)
-        {
-            Transform accentTransform = rootRect.Find("HPAccent");
-            hpAccentImage = accentTransform != null
-                ? accentTransform.GetComponent<Image>()
-                : CreateRuntimeImage("HPAccent", rootRect, new Color(0.95f, 0.2f, 0.24f, 1f));
-        }
-
-        if (hpLabelText == null)
-        {
-            Transform labelTransform = rootRect.Find("HPLabel");
-            hpLabelText = labelTransform != null
-                ? labelTransform.GetComponent<TextMeshProUGUI>()
-                : CreateRuntimeText("HPLabel", rootRect, 5.5f, TextAlignmentOptions.Left);
-        }
-
-        RectTransform hpValueRect = hpValueText != null ? hpValueText.rectTransform : null;
-        if (hpValueRect != null && hpValueRect.parent != rootRect)
-        {
-            hpValueRect.SetParent(rootRect, false);
-        }
-
-        RectTransform armorTextRect = armorBonusText != null ? armorBonusText.rectTransform : null;
-        if (armorTextRect != null && armorTextRect.parent != rootRect)
-        {
-            armorTextRect.SetParent(rootRect, false);
-        }
-
-        SetCargoPanelRect(
-            hpAccentImage.rectTransform,
-            Vector2.zero,
-            new Vector2(0f, 1f),
-            new Vector2(1f, 2f),
-            new Vector2(3f, -2f)
-        );
-        SetCargoPanelRect(
-            hpLabelText.rectTransform,
-            new Vector2(0f, 0.42f),
-            new Vector2(0.35f, 1f),
-            new Vector2(7f, 0f),
-            new Vector2(-1f, -1f)
-        );
-        SetCargoPanelRect(
-            hpValueRect,
-            new Vector2(0.48f, 0.42f),
-            Vector2.one,
-            Vector2.zero,
-            new Vector2(-5f, -1f)
-        );
-
-        hpLabelText.text = "HP";
-        hpLabelText.fontStyle = FontStyles.Bold;
-        hpLabelText.fontSize = 5.5f;
-        hpLabelText.color = new Color(0.94f, 0.62f, 0.64f, 1f);
-        hpLabelText.raycastTarget = false;
-
-        if (hpValueText != null)
-        {
-            hpValueText.fontStyle = FontStyles.Bold;
-            hpValueText.fontSize = 6.5f;
-            hpValueText.alignment = TextAlignmentOptions.Right;
-            hpValueText.color = Color.white;
-            hpValueText.raycastTarget = false;
-        }
-
-        hpValueFormat = "{0:0} / {1:0}";
-        anchorArmorBonusToHpText = false;
-
-        if (armorBonusText != null)
-        {
-            SetCargoPanelRect(
-                armorTextRect,
-                new Vector2(0.24f, 0.42f),
-                new Vector2(0.57f, 1f),
-                Vector2.zero,
-                new Vector2(-1f, -1f)
-            );
-            armorBonusText.fontSize = 5.5f;
-            armorBonusText.alignment = TextAlignmentOptions.Center;
-            armorBonusText.raycastTarget = false;
-        }
-
-        if (hpTrackImage != null)
-        {
-            SetCargoPanelRect(
-                hpTrackImage.rectTransform,
-                Vector2.zero,
-                new Vector2(1f, 0f),
-                new Vector2(5f, 3f),
-                new Vector2(-4f, 8f)
-            );
-            hpTrackImage.color = new Color(0.1f, 0.025f, 0.035f, 0.98f);
-            hpTrackImage.raycastTarget = false;
-        }
-
-        RectTransform fillAreaRect = slider != null && slider.fillRect != null
-            ? slider.fillRect.parent as RectTransform
-            : null;
-        if (fillAreaRect != null)
-        {
-            SetCargoPanelRect(
-                fillAreaRect,
-                Vector2.zero,
-                new Vector2(1f, 0f),
-                new Vector2(6f, 4f),
-                new Vector2(-5f, 7f)
-            );
-        }
-
-        if (hpGauge.FillImage != null)
-        {
-            hpGauge.FillImage.color = new Color(0.92f, 0.16f, 0.2f, 1f);
-            hpGauge.FillImage.raycastTarget = false;
-        }
-
-        armorFillColor = new Color(0.88f, 0.9f, 0.94f, 1f);
-        armorBonusColor = new Color(0.88f, 0.9f, 0.94f, 1f);
-        if (armorFillImage != null)
-        {
-            armorFillImage.color = armorFillColor;
-            armorFillImage.raycastTarget = false;
-        }
-
-        RefreshHealthStateVisual();
-    }
 
     private void EnsureWorldChargeGaugePresentation()
     {
@@ -985,353 +790,17 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
-    private void EnsureReinforcementPresentation()
-    {
-        if (reinforcementSlotUI != null)
-        {
-            return;
-        }
-
-        RectTransform parent = transform as RectTransform;
-        if (parent == null)
-        {
-            return;
-        }
-
-        GameObject root = new GameObject(
-            "ReinforcementSlotUI_Runtime",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image),
-            typeof(CanvasGroup)
-        );
-        root.layer = parent.gameObject.layer;
-        root.SetActive(false);
-
-        RectTransform rootRect = root.GetComponent<RectTransform>();
-        rootRect.SetParent(parent, false);
-        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
-        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
-        rootRect.pivot = new Vector2(0.5f, 0.5f);
-        rootRect.anchoredPosition = new Vector2(-220f, -103f);
-        rootRect.sizeDelta = new Vector2(28f, 28f);
-        rootRect.localScale = new Vector3(0.8f, 0.8f, 1f);
-
-        Image background = root.GetComponent<Image>();
-        background.color = new Color(0.025f, 0.055f, 0.075f, 0.92f);
-        background.raycastTarget = false;
-
-        Image readyGlow = CreateRuntimeImage("ReadyGlow", rootRect, new Color(0.65f, 0.95f, 1f, 0.2f));
-        SetRuntimeInset(readyGlow.rectTransform, -2f);
-        readyGlow.gameObject.SetActive(false);
-
-        Image icon = CreateRuntimeImage("Icon", rootRect, Color.white);
-        SetRuntimeInset(icon.rectTransform, 2f);
-        icon.preserveAspect = true;
-
-        Image rechargeFill = CreateRuntimeImage("RechargeFill", rootRect, Color.white);
-        SetRuntimeInset(rechargeFill.rectTransform, 2f);
-        rechargeFill.preserveAspect = true;
-
-        Image durationFill = CreateRuntimeImage("DurationFill", rootRect, new Color(0.35f, 0.9f, 1f, 0.55f));
-        SetRuntimeInset(durationFill.rectTransform, 2f);
-        durationFill.preserveAspect = true;
-
-        Image disabledOverlay = CreateRuntimeImage("DisabledOverlay", rootRect, new Color(0f, 0f, 0f, 0.42f));
-        SetRuntimeInset(disabledOverlay.rectTransform, 2f);
-
-        TextMeshProUGUI chargeText = CreateRuntimeText("Charges", rootRect, 6f, TextAlignmentOptions.TopRight);
-        chargeText.rectTransform.offsetMin = new Vector2(2f, 2f);
-        chargeText.rectTransform.offsetMax = new Vector2(-2f, -2f);
-
-        TextMeshProUGUI keyText = CreateRuntimeText("Binding", rootRect, 6f, TextAlignmentOptions.Center);
-        RectTransform keyRect = keyText.rectTransform;
-        keyRect.anchorMin = new Vector2(0.5f, 0f);
-        keyRect.anchorMax = new Vector2(0.5f, 0f);
-        keyRect.pivot = new Vector2(0.5f, 1f);
-        keyRect.anchoredPosition = new Vector2(0f, -2f);
-        keyRect.sizeDelta = new Vector2(36f, 9f);
-
-        CanvasGroup group = root.GetComponent<CanvasGroup>();
-        group.interactable = false;
-        group.blocksRaycasts = false;
-
-        reinforcementSlotUI = root.AddComponent<ReinforcementSlotUI>();
-        reinforcementSlotUI.ConfigureRuntime(
-            root,
-            group,
-            icon,
-            rechargeFill,
-            durationFill,
-            readyGlow.gameObject,
-            readyGlow,
-            chargeText,
-            keyText,
-            disabledOverlay
-        );
-        root.SetActive(true);
-    }
 
     private void EnsureCargoPresentation()
     {
-        if (cargoRoot != null || !Application.isPlaying || !createCargoPresentationIfMissing || statusRoot == null)
-        {
-            ResolveCargoCanvasGroup();
-            ApplyCargoVisualPolish();
-            return;
-        }
-
-        RectTransform parent = statusRoot.transform as RectTransform;
-        if (parent == null)
-        {
-            return;
-        }
-
-        GameObject root = new GameObject(
-            "CargoStatus",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image),
-            typeof(CanvasGroup)
-        );
-        root.layer = parent.gameObject.layer;
-
-        RectTransform rootRect = root.GetComponent<RectTransform>();
-        rootRect.SetParent(parent, false);
-        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
-        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
-        rootRect.pivot = new Vector2(0f, 0.5f);
-        rootRect.anchoredPosition = new Vector2(-232f, -67f);
-        rootRect.sizeDelta = new Vector2(104f, 22f);
-
-        cargoPanelImage = root.GetComponent<Image>();
-        cargoPanelImage.color = new Color(0.012f, 0.026f, 0.04f, 0.94f);
-        cargoPanelImage.raycastTarget = false;
-
-        cargoTrackImage = CreateRuntimeImage(
-            "CargoBarTrack",
-            rootRect,
-            new Color(0.025f, 0.065f, 0.085f, 0.96f)
-        );
-        cargoFillImage = CreateRuntimeImage("Fill", rootRect, cargoNormalColor);
-        cargoFillImage.type = Image.Type.Filled;
-        cargoFillImage.fillMethod = Image.FillMethod.Horizontal;
-        cargoFillImage.fillOrigin = (int)Image.OriginHorizontal.Left;
-        cargoFillImage.fillClockwise = true;
-
-        TextMeshProUGUI valueText = CreateRuntimeText("CargoValue", rootRect, 6.5f, TextAlignmentOptions.Right);
-        valueText.fontStyle = FontStyles.Bold;
-        valueText.color = Color.white;
-
-        cargoRoot = root;
-        cargoCanvasGroup = root.GetComponent<CanvasGroup>();
-        cargoCanvasGroup.interactable = false;
-        cargoCanvasGroup.blocksRaycasts = false;
-        cargoValueText = valueText;
-        cargoGauge = root.AddComponent<GaugeBarUI>();
-        cargoGauge.ConfigureRuntime(cargoFillImage, valueText, cargoCanvasGroup, root);
-        ApplyCargoVisualPolish();
+        CheckPresentation(cargoGauge, nameof(cargoGauge));
+        CheckPresentation(cargoValueText, nameof(cargoValueText));
+        CheckPresentation(cargoCanvasGroup, nameof(cargoCanvasGroup));
     }
 
-    private void ApplyCargoVisualPolish()
-    {
-        if (!Application.isPlaying || cargoRoot == null || cargoGauge == null)
-        {
-            return;
-        }
 
-        RectTransform rootRect = cargoRoot.transform as RectTransform;
-        if (rootRect == null)
-        {
-            return;
-        }
 
-        cargoPanelImage ??= cargoRoot.GetComponent<Image>();
-        cargoPanelImage ??= cargoRoot.AddComponent<Image>();
-        cargoPanelImage.color = new Color(0.012f, 0.026f, 0.04f, 0.94f);
-        cargoPanelImage.raycastTarget = false;
 
-        cargoFrameOutline ??= cargoRoot.GetComponent<Outline>();
-        cargoFrameOutline ??= cargoRoot.AddComponent<Outline>();
-        cargoFrameOutline.effectDistance = new Vector2(1f, -1f);
-        cargoFrameOutline.useGraphicAlpha = false;
-
-        Slider slider = cargoGauge.GetComponent<Slider>();
-        if (slider != null)
-        {
-            cargoTrackImage ??= slider.targetGraphic as Image;
-            cargoFillImage ??= slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
-        }
-
-        if (cargoTrackImage == null)
-        {
-            Transform trackTransform = rootRect.Find("CargoBarTrack");
-            cargoTrackImage = trackTransform != null ? trackTransform.GetComponent<Image>() : null;
-        }
-
-        if (cargoFillImage == null)
-        {
-            Transform fillTransform = rootRect.Find("Fill");
-            cargoFillImage = fillTransform != null ? fillTransform.GetComponent<Image>() : null;
-        }
-
-        if (cargoAccentImage == null)
-        {
-            Transform accentTransform = rootRect.Find("CargoAccent");
-            cargoAccentImage = accentTransform != null
-                ? accentTransform.GetComponent<Image>()
-                : CreateRuntimeImage("CargoAccent", rootRect, cargoNormalColor);
-        }
-
-        if (cargoLabelText == null)
-        {
-            Transform labelTransform = rootRect.Find("CargoLabel");
-            cargoLabelText = labelTransform != null
-                ? labelTransform.GetComponent<TextMeshProUGUI>()
-                : CreateRuntimeText("CargoLabel", rootRect, 5.5f, TextAlignmentOptions.Left);
-        }
-
-        SetCargoPanelRect(
-            cargoAccentImage.rectTransform,
-            Vector2.zero,
-            new Vector2(0f, 1f),
-            new Vector2(1f, 2f),
-            new Vector2(3f, -2f)
-        );
-        SetCargoPanelRect(
-            cargoLabelText.rectTransform,
-            new Vector2(0f, 0.42f),
-            new Vector2(0.58f, 1f),
-            new Vector2(7f, 0f),
-            new Vector2(-1f, -1f)
-        );
-        SetCargoPanelRect(
-            cargoValueText.rectTransform,
-            new Vector2(0.48f, 0.42f),
-            Vector2.one,
-            Vector2.zero,
-            new Vector2(-5f, -1f)
-        );
-
-        cargoLabelText.text = cargoLabel;
-        cargoLabelText.fontStyle = FontStyles.Normal;
-        cargoLabelText.fontSize = 5.5f;
-        cargoLabelText.alignment = TextAlignmentOptions.Left;
-        cargoLabelText.raycastTarget = false;
-
-        cargoValueText.fontStyle = FontStyles.Bold;
-        cargoValueText.fontSize = 6.5f;
-        cargoValueText.alignment = TextAlignmentOptions.Right;
-        cargoValueText.raycastTarget = false;
-        cargoValueText.gameObject.SetActive(true);
-
-        if (cargoTrackImage != null)
-        {
-            SetCargoPanelRect(
-                cargoTrackImage.rectTransform,
-                Vector2.zero,
-                new Vector2(1f, 0f),
-                new Vector2(5f, 3f),
-                new Vector2(-4f, 8f)
-            );
-            cargoTrackImage.color = new Color(0.025f, 0.065f, 0.085f, 0.96f);
-            cargoTrackImage.raycastTarget = false;
-        }
-
-        RectTransform fillAreaRect = slider != null && slider.fillRect != null
-            ? slider.fillRect.parent as RectTransform
-            : null;
-        if (fillAreaRect != null)
-        {
-            SetCargoPanelRect(
-                fillAreaRect,
-                Vector2.zero,
-                new Vector2(1f, 0f),
-                new Vector2(6f, 4f),
-                new Vector2(-5f, 7f)
-            );
-        }
-        else if (cargoFillImage != null)
-        {
-            SetCargoPanelRect(
-                cargoFillImage.rectTransform,
-                Vector2.zero,
-                new Vector2(1f, 0f),
-                new Vector2(6f, 4f),
-                new Vector2(-5f, 7f)
-            );
-        }
-
-        if (cargoFillImage != null)
-        {
-            cargoFillImage.raycastTarget = false;
-        }
-
-        CargoGaugeTickGraphic tickGraphic = cargoRoot.GetComponentInChildren<CargoGaugeTickGraphic>(true);
-        if (tickGraphic != null)
-        {
-            tickGraphic.gameObject.SetActive(false);
-        }
-
-        ResolveCargoCanvasGroup();
-    }
-
-    private static void SetCargoPanelRect(
-        RectTransform rect,
-        Vector2 anchorMin,
-        Vector2 anchorMax,
-        Vector2 offsetMin,
-        Vector2 offsetMax)
-    {
-        if (rect == null)
-        {
-            return;
-        }
-
-        rect.anchorMin = anchorMin;
-        rect.anchorMax = anchorMax;
-        rect.offsetMin = offsetMin;
-        rect.offsetMax = offsetMax;
-    }
-
-    private void ApplySharedHudLayout()
-    {
-        SetCenteredRect(hpGauge != null ? hpGauge.transform as RectTransform : null,
-            new Vector2(-184f, 123f), new Vector2(96f, 20f));
-        SetCenteredRect(weaponHeatUI != null ? weaponHeatUI.transform as RectTransform : null,
-            new Vector2(-186f, 110f), new Vector2(92f, 4f));
-
-        RectTransform dashRect = dashIcon != null ? dashIcon.rectTransform.parent as RectTransform : null;
-        SetCenteredRect(dashRect, new Vector2(-222f, 96f), new Vector2(20f, 20f));
-
-        RectTransform statusEffectRect = statusEffectPresenter != null
-            ? statusEffectPresenter.transform as RectTransform
-            : null;
-        SetCenteredRect(statusEffectRect, new Vector2(-210f, 96f), new Vector2(136f, 16f), new Vector2(0f, 0.5f));
-
-        SetCenteredRect(menuHintRoot != null ? menuHintRoot.transform as RectTransform : null,
-            new Vector2(-160f, -103f), new Vector2(96f, 24f));
-        SetCenteredRect(reinforcementSlotUI != null ? reinforcementSlotUI.transform as RectTransform : null,
-            new Vector2(-220f, -103f), new Vector2(28f, 28f));
-    }
-
-    private static void SetCenteredRect(
-        RectTransform rect,
-        Vector2 position,
-        Vector2 size,
-        Vector2? pivot = null)
-    {
-        if (rect == null)
-        {
-            return;
-        }
-
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = pivot ?? new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = position;
-        rect.sizeDelta = size;
-    }
 
     private Image CreateRuntimeImage(string objectName, RectTransform parent, Color color)
     {
@@ -1355,222 +824,24 @@ public class ExpeditionHUD : MonoBehaviour
         return image;
     }
 
-    private TextMeshProUGUI CreateRuntimeText(
-        string objectName,
-        RectTransform parent,
-        float fontSize,
-        TextAlignmentOptions alignment)
-    {
-        GameObject textObject = new GameObject(
-            objectName,
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(TextMeshProUGUI)
-        );
-        textObject.layer = parent.gameObject.layer;
-        RectTransform rect = textObject.GetComponent<RectTransform>();
-        rect.SetParent(parent, false);
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
 
-        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-        TMP_FontAsset resolvedFont = uiFont;
-        if (resolvedFont == null)
-        {
-            TextMeshProUGUI source = GetComponentInChildren<TextMeshProUGUI>(true);
-            resolvedFont = source != null ? source.font : null;
-        }
-
-        if (resolvedFont != null)
-        {
-            text.font = resolvedFont;
-        }
-
-        text.fontSize = fontSize;
-        text.alignment = alignment;
-        text.textWrappingMode = TextWrappingModes.NoWrap;
-        text.overflowMode = TextOverflowModes.Overflow;
-        text.raycastTarget = false;
-        return text;
-    }
-
-    private static void SetRuntimeInset(RectTransform rect, float inset)
-    {
-        rect.offsetMin = new Vector2(inset, inset);
-        rect.offsetMax = new Vector2(-inset, -inset);
-    }
 
     private void EnsureCoreTrackingPresentation()
     {
-        if ((!createCoreTrackingPresentationIfMissing && coreTrackingObjectiveText == null && coreSignalCountText == null) ||
-            objectiveRoot == null)
-        {
-            return;
-        }
-
-        RectTransform objectiveRect = objectiveRoot.transform as RectTransform;
-        if (objectiveRect == null)
-        {
-            return;
-        }
-
-        TextMeshProUGUI fontSource = GetComponentInChildren<TextMeshProUGUI>(true);
-        RectTransform panelRect = ResolveCoreTrackingPanel(objectiveRect);
-        RectTransform textParent = panelRect != null ? panelRect : objectiveRect;
-
-        if (panelRect != null)
-        {
-            panelRect.anchoredPosition = new Vector2(0f, 119f);
-            panelRect.sizeDelta = new Vector2(154f, 28f);
-
-            Image panelImage = panelRect.GetComponent<Image>();
-            if (panelImage != null)
-            {
-                panelImage.color = new Color(0.025f, 0.075f, 0.11f, 0.82f);
-                panelImage.raycastTarget = false;
-            }
-
-            ConfigureCoreSignalPips();
-        }
-
-        if (coreTrackingObjectiveText == null)
-        {
-            coreTrackingObjectiveText = CreateCoreTrackingText(
-                "CoreTrackingObjective",
-                textParent,
-                fontSource,
-                panelRect != null ? new Vector2(6f, 6f) : new Vector2(0f, 132f),
-                new Vector2(132f, 10f),
-                6f,
-                TextAlignmentOptions.Center
-            );
-        }
-
-        if (coreSignalCountText == null)
-        {
-            coreSignalCountText = CreateCoreTrackingText(
-                "CoreTrackingCount",
-                textParent,
-                fontSource,
-                panelRect != null ? new Vector2(23f, -6f) : new Vector2(43f, 119f),
-                new Vector2(34f, 9f),
-                6.5f,
-                TextAlignmentOptions.Center
-            );
-        }
-
-        ApplyHudFont(coreTrackingObjectiveText);
-        ApplyHudFont(coreSignalCountText);
+        // Tutorial has no Expedition objective tracker; the entire absent role is optional.
+        if (objectiveRoot == null && coreTrackingController == null && objectiveDirector == null) return;
+        CheckPresentation(coreTrackingObjectiveText, nameof(coreTrackingObjectiveText));
+        CheckPresentation(coreSignalCountText, nameof(coreSignalCountText));
     }
 
-    private RectTransform ResolveCoreTrackingPanel(RectTransform fallback)
-    {
-        if (coreSignalPips != null)
-        {
-            for (int i = 0; i < coreSignalPips.Length; i++)
-            {
-                Image pip = coreSignalPips[i];
-                if (pip != null && pip.rectTransform.parent is RectTransform parent)
-                {
-                    return parent;
-                }
-            }
-        }
 
-        return fallback != null ? fallback.Find("BackGround") as RectTransform : null;
-    }
 
-    private void ConfigureCoreSignalPips()
-    {
-        if (coreSignalPips == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < coreSignalPips.Length; i++)
-        {
-            Image pip = coreSignalPips[i];
-            if (pip == null)
-            {
-                continue;
-            }
-
-            pip.rectTransform.anchoredPosition = new Vector2(-31f + (i * 11f), -6f);
-            pip.rectTransform.sizeDelta = new Vector2(8f, 8f);
-            pip.preserveAspect = true;
-            pip.raycastTarget = false;
-        }
-    }
-
-    private static TextMeshProUGUI CreateCoreTrackingText(
-        string objectName,
-        RectTransform parent,
-        TextMeshProUGUI fontSource,
-        Vector2 anchoredPosition,
-        Vector2 sizeDelta,
-        float fontSize,
-        TextAlignmentOptions alignment)
-    {
-        GameObject textObject = new GameObject(
-            objectName,
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(TextMeshProUGUI)
-        );
-        textObject.layer = parent.gameObject.layer;
-
-        RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.SetParent(parent, false);
-        textRect.anchorMin = new Vector2(0.5f, 0.5f);
-        textRect.anchorMax = new Vector2(0.5f, 0.5f);
-        textRect.pivot = new Vector2(0.5f, 0.5f);
-        textRect.anchoredPosition = anchoredPosition;
-        textRect.sizeDelta = sizeDelta;
-
-        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-        if (fontSource != null)
-        {
-            text.font = fontSource.font;
-        }
-
-        text.fontSize = fontSize;
-        text.fontStyle = FontStyles.Bold;
-        text.alignment = alignment;
-        text.textWrappingMode = TextWrappingModes.NoWrap;
-        text.overflowMode = TextOverflowModes.Ellipsis;
-        text.raycastTarget = false;
-        return text;
-    }
 
     private void EnsureMenuHintPresentation()
     {
-        if (menuHintRoot != null || statusRoot == null)
-        {
-            ApplyHudFont(mapHintText);
-            ApplyHudFont(inventoryHintText);
-            return;
-        }
-
-        RectTransform parent = statusRoot.transform as RectTransform;
-        if (parent == null)
-        {
-            return;
-        }
-
-        menuHintRoot = new GameObject("MenuKeyHints", typeof(RectTransform));
-        menuHintRoot.layer = parent.gameObject.layer;
-        RectTransform rootRect = menuHintRoot.GetComponent<RectTransform>();
-        rootRect.SetParent(parent, false);
-        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
-        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
-        rootRect.pivot = new Vector2(0.5f, 0.5f);
-        rootRect.anchoredPosition = new Vector2(-160f, -103f);
-        rootRect.sizeDelta = new Vector2(96f, 24f);
-
-        mapHintText = CreateMenuKeyHint(rootRect, "MapHint", mapHintIcon, -24f);
-        inventoryHintText = CreateMenuKeyHint(rootRect, "InventoryHint", inventoryHintIcon, 10);
+        CheckPresentation(menuHintRoot, nameof(menuHintRoot));
+        CheckPresentation(mapHintText, nameof(mapHintText));
+        CheckPresentation(inventoryHintText, nameof(inventoryHintText));
     }
 
     public void SetMenuHintsSuppressed(object owner, bool suppressed)
@@ -1592,171 +863,50 @@ public class ExpeditionHUD : MonoBehaviour
         RefreshBindingHints();
     }
 
-    private TextMeshProUGUI CreateMenuKeyHint(RectTransform parent, string objectName, Sprite icon, float x)
+
+
+    // The Tutorial installer binds this existing presentation and disables only its builder.
+    public bool HasValidAuthoredOperationPresentation
     {
-        GameObject iconObject = new GameObject($"{objectName}Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        iconObject.layer = parent.gameObject.layer;
-        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-        iconRect.SetParent(parent, false);
-        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
-        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-        iconRect.anchoredPosition = new Vector2(x, 4.5f);
-        iconRect.sizeDelta = new Vector2(9f, 9f);
-
-        Image iconImage = iconObject.GetComponent<Image>();
-        iconImage.sprite = icon;
-        iconImage.color = new Color(0.72f, 0.92f, 1f, 0.92f);
-        iconImage.preserveAspect = true;
-        iconImage.raycastTarget = false;
-
-        GameObject textObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-        textObject.layer = parent.gameObject.layer;
-        RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.SetParent(parent, false);
-        textRect.anchorMin = new Vector2(0.5f, 0.5f);
-        textRect.anchorMax = new Vector2(0.5f, 0.5f);
-        textRect.anchoredPosition = new Vector2(x, -6f);
-        textRect.sizeDelta = new Vector2(46f, 8f);
-
-        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-        text.font = uiFont != null ? uiFont : GetComponentInChildren<TextMeshProUGUI>(true)?.font;
-        text.fontSize = 5.5f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 4.5f;
-        text.fontSizeMax = 5.5f;
-        text.alignment = TextAlignmentOptions.Center;
-        text.textWrappingMode = TextWrappingModes.NoWrap;
-        text.overflowMode = TextOverflowModes.Ellipsis;
-        text.color = new Color(0.88f, 0.94f, 1f, 0.94f);
-        text.raycastTarget = false;
-        return text;
-    }
-
-    private void ApplyHudFont(TextMeshProUGUI text)
-    {
-        if (text != null && uiFont != null)
+        get
         {
-            text.font = uiFont;
+            if (operationRoot == null || !(operationRoot.transform is RectTransform) ||
+                operationRoot.scene != gameObject.scene || operationRoot == gameObject ||
+                !operationRoot.transform.IsChildOf(transform) ||
+                operationCanvasGroup == null || operationCanvasGroup.gameObject != operationRoot ||
+                operationAccentImage == null || operationTitleText == null || operationDetailText == null ||
+                operationTitleText == operationDetailText)
+            {
+                return false;
+            }
+
+            Transform root = operationRoot.transform;
+            return operationAccentImage.transform.IsChildOf(root) &&
+                   operationTitleText.transform.IsChildOf(root) &&
+                   operationDetailText.transform.IsChildOf(root);
         }
     }
 
-    private void EnsureOperationPresentation()
+    private bool TryPrepareOperationPresentation()
     {
-        if (operationRoot != null || !createOperationPresentationIfMissing ||
-            operationPresentationShuttingDown || !isActiveAndEnabled)
+        if (HasValidAuthoredOperationPresentation)
         {
-            return;
+            return true;
         }
 
-        RectTransform objectiveRect = objectiveRoot != null
-            ? objectiveRoot.transform as RectTransform
-            : transform as RectTransform;
-        if (objectiveRect == null)
+        if (!missingAuthoredOperationReported)
         {
-            return;
+            missingAuthoredOperationReported = true;
+            Debug.LogWarning(
+                "[ExpeditionHUD] Authored operation briefing bindings are missing or invalid. " +
+                $"ExpeditionHUD.operationRoot/operationCanvasGroup/operationAccentImage/operationTitleText/operationDetailText at {PresentationPath(transform)} in '{gameObject.scene.path}'. " +
+                 "Restore the listed authored Inspector bindings. " +
+                "Only the operation briefing visual was skipped.", this);
         }
 
-        TextMeshProUGUI fontSource = GetComponentInChildren<TextMeshProUGUI>(true);
-        GameObject root = new GameObject(
-            "OperationStatus",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image),
-            typeof(CanvasGroup)
-        );
-        root.layer = gameObject.layer;
-
-        RectTransform rootRect = root.GetComponent<RectTransform>();
-        rootRect.SetParent(objectiveRect, false);
-        bool useTutorialGuideLayout = disableObjectiveDirectorAutoResolution;
-        rootRect.anchorMin = useTutorialGuideLayout ? new Vector2(0.5f, 1f) : new Vector2(0.5f, 0.5f);
-        rootRect.anchorMax = rootRect.anchorMin;
-        rootRect.pivot = useTutorialGuideLayout ? new Vector2(0.5f, 1f) : new Vector2(0.5f, 0.5f);
-        rootRect.anchoredPosition = useTutorialGuideLayout ? new Vector2(0f, -14f) : new Vector2(0f, 91f);
-        rootRect.sizeDelta = useTutorialGuideLayout ? new Vector2(214f, 44f) : new Vector2(210f, 40f);
-
-        Image background = root.GetComponent<Image>();
-        background.color = new Color(0.025f, 0.04f, 0.055f, 0.88f);
-        background.raycastTarget = false;
-
-        operationAccentImage = CreateRuntimeImage(
-            "Accent",
-            rootRect,
-            new Color(0.42f, 0.9f, 1f, 1f)
-        );
-        RectTransform accentRect = operationAccentImage.rectTransform;
-        accentRect.anchorMin = new Vector2(0f, 0f);
-        accentRect.anchorMax = new Vector2(0f, 1f);
-        accentRect.offsetMin = new Vector2(1f, 2f);
-        accentRect.offsetMax = new Vector2(3f, -2f);
-
-        operationCanvasGroup = root.GetComponent<CanvasGroup>();
-        operationCanvasGroup.interactable = false;
-        operationCanvasGroup.blocksRaycasts = false;
-
-        operationTitleText = CreateOperationText(
-            "Title",
-            rootRect,
-            fontSource,
-            useTutorialGuideLayout ? new Vector2(7f, 25f) : new Vector2(5f, 24f),
-            useTutorialGuideLayout ? new Vector2(-5f, -3f) : new Vector2(-4f, -2f),
-            useTutorialGuideLayout ? 9f : 6.5f,
-            FontStyles.Bold
-        );
-        operationDetailText = CreateOperationText(
-            "Detail",
-            rootRect,
-            fontSource,
-            useTutorialGuideLayout ? new Vector2(7f, 4f) : new Vector2(5f, 3f),
-            useTutorialGuideLayout ? new Vector2(-6f, -18f) : new Vector2(-5f, -17f),
-            useTutorialGuideLayout ? 7.5f : 5.5f,
-            FontStyles.Normal
-        );
-        operationDetailText.color = new Color(0.86f, 0.92f, 0.98f, 1f);
-        ApplyHudFont(operationTitleText);
-        ApplyHudFont(operationDetailText);
-        operationRoot = root;
-        operationRoot.SetActive(false);
+        return false;
     }
 
-    private static TextMeshProUGUI CreateOperationText(
-        string objectName,
-        RectTransform parent,
-        TextMeshProUGUI fontSource,
-        Vector2 offsetMin,
-        Vector2 offsetMax,
-        float fontSize,
-        FontStyles fontStyle)
-    {
-        GameObject textObject = new GameObject(
-            objectName,
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(TextMeshProUGUI)
-        );
-        textObject.layer = parent.gameObject.layer;
-
-        RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.SetParent(parent, false);
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = offsetMin;
-        textRect.offsetMax = offsetMax;
-
-        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-        if (fontSource != null)
-        {
-            text.font = fontSource.font;
-        }
-
-        text.fontSize = fontSize;
-        text.fontStyle = fontStyle;
-        text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.textWrappingMode = objectName == "Detail" ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
-        text.overflowMode = TextOverflowModes.Ellipsis;
-        text.raycastTarget = false;
-        return text;
-    }
 
     private void Subscribe()
     {
@@ -1764,6 +914,15 @@ public class ExpeditionHUD : MonoBehaviour
         {
             return;
         }
+
+        subscribedPlayerHealth = playerHealth;
+        subscribedPlayerArmor = playerArmor;
+        subscribedPlayerDash = playerDash;
+        subscribedComponentShield = componentShield;
+        subscribedReinforcementController = reinforcementController;
+        subscribedCargoController = cargoController;
+        subscribedCoreTrackingController = coreTrackingController;
+        subscribedObjectiveDirector = objectiveDirector;
 
         if (playerHealth != null)
         {
@@ -1813,10 +972,11 @@ public class ExpeditionHUD : MonoBehaviour
             objectiveDirector.CoreRevealedEvent += HandleCoreRevealed;
         }
 
-        if (RunManager.Instance != null)
+        subscribedRunManager = RunManager.Instance;
+        if (subscribedRunManager != null)
         {
-            RunManager.Instance.WalletChanged += HandleWalletChanged;
-            RunManager.Instance.RunStarted += HandleRunStarted;
+            subscribedRunManager.WalletChanged += HandleWalletChanged;
+            subscribedRunManager.RunStarted += HandleRunStarted;
         }
 
         subscribed = true;
@@ -1829,59 +989,60 @@ public class ExpeditionHUD : MonoBehaviour
             return;
         }
 
-        if (playerHealth != null)
+        if (subscribedPlayerHealth != null)
         {
-            playerHealth.Changed -= HandleHealthChanged;
-            playerHealth.InvincibilityChanged -= HandleInvincibilityChanged;
+            subscribedPlayerHealth.Changed -= HandleHealthChanged;
+            subscribedPlayerHealth.InvincibilityChanged -= HandleInvincibilityChanged;
         }
 
-        if (componentShield != null)
+        if (subscribedComponentShield != null)
         {
-            componentShield.ChargeStateChanged -= HandleShieldChargeStateChanged;
+            subscribedComponentShield.ChargeStateChanged -= HandleShieldChargeStateChanged;
         }
 
-        if (playerArmor != null)
+        if (subscribedPlayerArmor != null)
         {
-            playerArmor.Changed -= HandleArmorChanged;
+            subscribedPlayerArmor.Changed -= HandleArmorChanged;
         }
 
-        if (playerDash != null)
+        if (subscribedPlayerDash != null)
         {
-            playerDash.DashStarted -= HandleDashStarted;
-            playerDash.DashEnded -= HandleDashEnded;
+            subscribedPlayerDash.DashStarted -= HandleDashStarted;
+            subscribedPlayerDash.DashEnded -= HandleDashEnded;
         }
 
-        if (reinforcementController != null)
+        if (subscribedReinforcementController != null)
         {
-            reinforcementController.EquipmentChanged -= HandleReinforcementEquipmentChanged;
-            reinforcementController.ChargesChanged -= HandleReinforcementChargesChanged;
-            reinforcementController.Used -= HandleReinforcementUsed;
-            reinforcementController.ActiveTimedStatusesChanged -= HandleReinforcementTimedStatusesChanged;
+            subscribedReinforcementController.EquipmentChanged -= HandleReinforcementEquipmentChanged;
+            subscribedReinforcementController.ChargesChanged -= HandleReinforcementChargesChanged;
+            subscribedReinforcementController.Used -= HandleReinforcementUsed;
+            subscribedReinforcementController.ActiveTimedStatusesChanged -= HandleReinforcementTimedStatusesChanged;
         }
 
-        if (cargoController != null)
+        if (subscribedCargoController != null)
         {
-            cargoController.CargoChanged -= HandleCargoChanged;
-            cargoController.CargoFullRejected -= HandleCargoFullRejected;
-            cargoController.LoadStateChanged -= HandleCargoLoadStateChanged;
+            subscribedCargoController.CargoChanged -= HandleCargoChanged;
+            subscribedCargoController.CargoFullRejected -= HandleCargoFullRejected;
+            subscribedCargoController.LoadStateChanged -= HandleCargoLoadStateChanged;
         }
 
-        if (coreTrackingController != null)
+        if (subscribedCoreTrackingController != null)
         {
-            coreTrackingController.ProgressChanged -= HandleObjectiveProgressChanged;
-            coreTrackingController.CoreRevealed -= HandleCoreRevealed;
+            subscribedCoreTrackingController.ProgressChanged -= HandleObjectiveProgressChanged;
+            subscribedCoreTrackingController.CoreRevealed -= HandleCoreRevealed;
         }
-        else if (objectiveDirector != null)
+        else if (subscribedObjectiveDirector != null)
         {
-            objectiveDirector.ProgressChanged -= HandleObjectiveProgressChanged;
-            objectiveDirector.CoreRevealedEvent -= HandleCoreRevealed;
+            subscribedObjectiveDirector.ProgressChanged -= HandleObjectiveProgressChanged;
+            subscribedObjectiveDirector.CoreRevealedEvent -= HandleCoreRevealed;
         }
 
-        if (RunManager.Instance != null)
+        if (subscribedRunManager != null)
         {
-            RunManager.Instance.WalletChanged -= HandleWalletChanged;
-            RunManager.Instance.RunStarted -= HandleRunStarted;
+            subscribedRunManager.WalletChanged -= HandleWalletChanged;
+            subscribedRunManager.RunStarted -= HandleRunStarted;
         }
+        subscribedRunManager = null;
 
         subscribed = false;
     }
@@ -1901,7 +1062,7 @@ public class ExpeditionHUD : MonoBehaviour
         }
 
         cinematicMode = nextCinematicMode;
-        return ApplyCinematicVisibility(cinematicMode ? 0f : restoreFadeDuration);
+        return ApplyCinematicVisibility(restoreFadeDuration);
     }
 
     private float ApplyCinematicVisibility(float restoreFadeDuration = 0f)
@@ -1912,18 +1073,32 @@ public class ExpeditionHUD : MonoBehaviour
 
         if (!visible)
         {
-            SetCanvasGroupVisible(false);
             ApplyAdditionalCinematicVisibility(false);
             RefreshBindingHints();
+            if (restoreFadeDuration > 0.0001f && cinematicCanvasGroup != null && isActiveAndEnabled)
+            {
+                cinematicCanvasGroup.interactable = false;
+                cinematicCanvasGroup.blocksRaycasts = false;
+                cinematicVisibilityTween = cinematicCanvasGroup.DOFade(0f, restoreFadeDuration)
+                    .SetUpdate(true).SetEase(Ease.OutQuad).OnComplete(() =>
+                    {
+                        cinematicVisibilityTween = null;
+                        if (cinematicMode && cinematicRadarPanel != null)
+                            cinematicRadarPanel.SetPresentationSuppressed(this, true);
+                    });
+                return restoreFadeDuration;
+            }
+            SetCanvasGroupVisible(false);
+            if (cinematicRadarPanel != null) cinematicRadarPanel.SetPresentationSuppressed(this, true);
             return 0f;
         }
 
+        if (cinematicRadarPanel != null) cinematicRadarPanel.SetPresentationSuppressed(this, false);
         float safeFadeDuration = Mathf.Max(0f, restoreFadeDuration);
         if (safeFadeDuration > 0.0001f &&
             cinematicCanvasGroup != null &&
             isActiveAndEnabled)
         {
-            cinematicCanvasGroup.alpha = 0f;
             cinematicCanvasGroup.interactable = false;
             cinematicCanvasGroup.blocksRaycasts = false;
 
@@ -1985,16 +1160,7 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void ResolveCinematicCanvasGroup()
     {
-        if (cinematicCanvasGroup != null)
-        {
-            return;
-        }
-
-        cinematicCanvasGroup = GetComponent<CanvasGroup>();
-        if (cinematicCanvasGroup == null && addCinematicCanvasGroupIfMissing)
-        {
-            cinematicCanvasGroup = gameObject.AddComponent<CanvasGroup>();
-        }
+        CheckPresentation(cinematicCanvasGroup, nameof(cinematicCanvasGroup));
     }
 
     private void SetCanvasGroupVisible(bool visible)
@@ -2154,7 +1320,6 @@ public class ExpeditionHUD : MonoBehaviour
             armorBonusText.color = armorBonusColor;
         }
 
-        RefreshArmorBonusPosition();
         RefreshArmorFill(hpRatio, combinedRatio, hasArmor);
 
         if (legacyArmorGauge != null)
@@ -2214,10 +1379,8 @@ public class ExpeditionHUD : MonoBehaviour
             return;
         }
 
-        armorFillRect.anchorMin = new Vector2(hpRatio, 0.15f);
-        armorFillRect.anchorMax = new Vector2(Mathf.Max(hpRatio, combinedRatio), 0.85f);
-        armorFillRect.offsetMin = Vector2.zero;
-        armorFillRect.offsetMax = Vector2.zero;
+        armorFillRect.anchorMin = new Vector2(hpRatio, armorFillRect.anchorMin.y);
+        armorFillRect.anchorMax = new Vector2(Mathf.Max(hpRatio, combinedRatio), armorFillRect.anchorMax.y);
         if (armorFillImage != null)
         {
             armorFillImage.color = armorFillColor;
@@ -2226,42 +1389,6 @@ public class ExpeditionHUD : MonoBehaviour
     }
 
 
-    private void RefreshArmorBonusPosition()
-    {
-        if (!anchorArmorBonusToHpText || hpValueText == null || armorBonusText == null)
-        {
-            return;
-        }
-
-        RectTransform hpRect = hpValueText.rectTransform;
-        RectTransform armorRect = armorBonusText.rectTransform;
-
-        if (hpRect.parent != armorRect.parent)
-        {
-            return;
-        }
-
-        LayoutGroup parentLayout = hpRect.parent.GetComponent<LayoutGroup>();
-        if (parentLayout != null && parentLayout.isActiveAndEnabled)
-        {
-            return;
-        }
-
-        hpValueText.ForceMeshUpdate();
-        Bounds textBounds = hpValueText.textBounds;
-        float rightEdge = textBounds.size.x > 0.001f
-            ? textBounds.max.x
-            : hpRect.rect.xMax;
-        float centerY = textBounds.size.y > 0.001f
-            ? textBounds.center.y
-            : hpRect.rect.center.y;
-
-        armorRect.anchorMin = hpRect.anchorMin;
-        armorRect.anchorMax = hpRect.anchorMax;
-        armorRect.pivot = new Vector2(0f, 0.5f);
-        armorRect.position = hpRect.TransformPoint(new Vector3(rightEdge, centerY, 0f));
-        armorRect.anchoredPosition += armorBonusOffset;
-    }
 
     private void RefreshObjectiveProgress()
     {
@@ -2354,27 +1481,55 @@ public class ExpeditionHUD : MonoBehaviour
         SetGameObjectVisible(coreSignalReadyPulseRoot, ready);
     }
 
+    private void RefreshCurrentResourceBalances()
+    {
+        RefreshWallet(RunManager.Instance != null && RunManager.Instance.CurrentRun != null
+            ? RunManager.Instance.CurrentRun.Wallet
+            : null);
+    }
+
     private void RefreshWallet(RunWallet wallet)
     {
-        ResourceCounterUI[] counters =
+        resourceCounters[0] = creditsCounter;
+        resourceCounters[1] = scrapCounter;
+        resourceCounters[2] = coreShardCounter;
+        resourceCounters[3] = stabilizedAlloyCounter;
+        resourceCounters[4] = tuningChipCounter;
+        int invalidMask = 0;
+        // Both serialized consumers now have Editor authoring tools; no runtime cloning.
         {
-            creditsCounter,
-            scrapCounter,
-            coreShardCounter,
-            stabilizedAlloyCounter,
-            tuningChipCounter
-        };
-        for (int i = 0; i < counters.Length; i++)
-        {
-            counters[i]?.SetHideWhenZero(hideZeroResources);
+            for (int i = 0; i < resourceCounters.Length; i++)
+            {
+                ResourceCounterUI counter = resourceCounters[i];
+                bool valid = resourceRoot != null && resourceRoot.scene == gameObject.scene &&
+                    resourceRoot.transform.IsChildOf(transform) && counter != null &&
+                    counter.transform.parent == resourceRoot.transform && counter.HasAuthoredBindings;
+                for (int j = 0; j < resourceCounters.Length; j++)
+                {
+                    if (i != j && counter != null && counter == resourceCounters[j]) valid = false;
+                }
+                if (!valid) invalidMask |= 1 << i;
+            }
         }
-
-        creditsCounter?.SetAmount(wallet != null ? wallet.Credits : 0);
-        scrapCounter?.SetAmount(wallet != null ? wallet.PendingScrapParts : 0);
-        coreShardCounter?.SetAmount(wallet != null ? wallet.PendingCoreShards : 0);
-        stabilizedAlloyCounter?.SetAmount(wallet != null ? wallet.PendingStabilizedAlloy : 0);
-        tuningChipCounter?.SetAmount(wallet != null ? wallet.TuningChips : 0);
-        RepackVisibleResourceCounters(counters);
+        for (int i = 0; i < resourceCounters.Length; i++)
+        {
+            if ((invalidMask & (1 << i)) != 0)
+            {
+                if ((reportedResourceBindingMask & (1 << i)) == 0)
+                {
+                    reportedResourceBindingMask |= 1 << i;
+                    Debug.LogWarning($"[ExpeditionHUD] Authored {resourceCurrencies[i]} counter has missing, invalid, or duplicate bindings. " +
+                        $"Resource mapping index {i} at '{PresentationPath(transform)}', scene '{gameObject.scene.path}'. " +
+                         "Restore the listed authored Inspector bindings. " +
+                        "Only this resource counter was skipped.", this);
+                }
+                resourceCounters[i] = null;
+                continue;
+            }
+            resourceCounters[i]?.SetHideWhenZero(hideZeroResources);
+            resourceCounters[i]?.SetAmount(wallet != null ? wallet.GetAmount(resourceCurrencies[i]) : 0);
+        }
+        RepackVisibleResourceCounters(resourceCounters);
         if (cargoController == null)
         {
             UpdateCargoDisplay();
@@ -2388,16 +1543,14 @@ public class ExpeditionHUD : MonoBehaviour
             return;
         }
 
-        ResourceCounterUI anchorCounter = creditsCounter != null
-            ? creditsCounter
-            : scrapCounter != null
-                ? scrapCounter
-                : coreShardCounter;
-
-        if (anchorCounter != null && anchorCounter.transform is RectTransform anchorRect)
+        for (int i = 0; i < resourceCounters.Length; i++)
         {
-            resourceCounterOrigin = anchorRect.anchoredPosition;
-            resourceCounterOriginCached = true;
+            if (resourceCounters[i] != null && resourceCounters[i].transform is RectTransform anchorRect)
+            {
+                resourceCounterOrigin = anchorRect.anchoredPosition;
+                resourceCounterOriginCached = true;
+                break;
+            }
         }
     }
 
@@ -2431,62 +1584,6 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
-    private void EnsureStabilizedAlloyCounter()
-    {
-        if (stabilizedAlloyCounter != null || scrapCounter == null)
-        {
-            return;
-        }
-
-        Transform counterParent = scrapCounter.transform.parent;
-        stabilizedAlloyCounter = Instantiate(scrapCounter, counterParent);
-        stabilizedAlloyCounter.name = "StabilizedAlloyCounter";
-        stabilizedAlloyCounter.SetDisplayName("안정화 합금");
-        stabilizedAlloyCounter.SetIconColor(stabilizedAlloyCounterColor);
-        stabilizedAlloyCounter.SetHideWhenZero(hideZeroResources);
-
-        if (stabilizedAlloyCounter.transform is RectTransform alloyRect)
-        {
-            RectTransform anchorRect = coreShardCounter != null
-                ? coreShardCounter.transform as RectTransform
-                : scrapCounter.transform as RectTransform;
-
-            if (anchorRect != null)
-            {
-                alloyRect.anchoredPosition = anchorRect.anchoredPosition + Vector2.down * 12f;
-            }
-        }
-    }
-
-    private void EnsureTuningChipCounter()
-    {
-        if (tuningChipCounter != null || scrapCounter == null)
-        {
-            return;
-        }
-
-        Transform counterParent = scrapCounter.transform.parent;
-        tuningChipCounter = Instantiate(scrapCounter, counterParent);
-        tuningChipCounter.name = "TuningChipCounter";
-        tuningChipCounter.SetDisplayName("튜닝 칩");
-        tuningChipCounter.SetIconColor(tuningChipCounterColor);
-        tuningChipCounter.SetHideWhenZero(hideZeroResources);
-
-        if (tuningChipCounter.transform is RectTransform tuningRect)
-        {
-            RectTransform anchorRect = stabilizedAlloyCounter != null
-                ? stabilizedAlloyCounter.transform as RectTransform
-                : coreShardCounter != null
-                    ? coreShardCounter.transform as RectTransform
-                    : scrapCounter.transform as RectTransform;
-
-            if (anchorRect != null)
-            {
-                tuningRect.anchoredPosition = anchorRect.anchoredPosition +
-                                              Vector2.down * resourceCounterRowSpacing;
-            }
-        }
-    }
 
     private void UpdateDashDisplay()
     {
@@ -2522,26 +1619,6 @@ public class ExpeditionHUD : MonoBehaviour
         SetGameObjectVisible(dashReadyGlowRoot, ready);
     }
 
-    private void ConfigureDashIcon()
-    {
-        if (dashCooldownFill == null)
-        {
-            return;
-        }
-
-        dashCooldownFill.type = Image.Type.Filled;
-        dashCooldownFill.fillMethod = Image.FillMethod.Horizontal;
-        dashCooldownFill.fillOrigin = (int)Image.OriginHorizontal.Left;
-        dashCooldownFill.fillClockwise = true;
-        dashCooldownFill.preserveAspect = true;
-        dashCooldownFill.raycastTarget = false;
-
-        if (dashIcon != null)
-        {
-            dashIcon.preserveAspect = true;
-            dashIcon.raycastTarget = false;
-        }
-    }
 
     private void UpdateCargoDisplay()
     {
@@ -2615,26 +1692,7 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void ResolveCargoCanvasGroup()
     {
-        if (cargoRoot == null)
-        {
-            return;
-        }
-
-        if (cargoCanvasGroup == null)
-        {
-            cargoCanvasGroup = cargoRoot.GetComponent<CanvasGroup>();
-        }
-
-        if (cargoCanvasGroup == null && Application.isPlaying)
-        {
-            cargoCanvasGroup = cargoRoot.AddComponent<CanvasGroup>();
-        }
-
-        if (cargoCanvasGroup != null)
-        {
-            cargoCanvasGroup.interactable = false;
-            cargoCanvasGroup.blocksRaycasts = false;
-        }
+        CheckPresentation(cargoCanvasGroup, nameof(cargoCanvasGroup));
     }
 
     private void InitializeCargoVisibilityIfNeeded()

@@ -322,10 +322,7 @@ public class BossPatternController : MonoBehaviour
 
     private bool phase2PlayerLockActive;
     private PlayerController2D phase2LockedPlayerController;
-    private bool phase2LockedPlayerControlWasEnabled;
-    private bool phase2LockedPlayerMovementWasLocked;
     private PlayerWeaponController phase2LockedWeaponController;
-    private bool phase2LockedWeaponInputWasLocked;
     private PlayerInteractor phase2LockedPlayerInteractor;
     private bool phase2LockedPlayerInteractorWasEnabled;
     private MonoBehaviour phase2LockedRadarScanner;
@@ -2395,7 +2392,7 @@ public class BossPatternController : MonoBehaviour
 
         if (phase2GungeonCamera != null)
         {
-            phase2GungeonCamera.SetCinematicInputOffsetLocked(true);
+            phase2GungeonCamera.SetCinematicInputOffsetLocked(this, true);
         }
 
         AudioManager.PlayAt(SoundEventIds.BossPhase2, transform.position);
@@ -2437,7 +2434,7 @@ public class BossPatternController : MonoBehaviour
 
         if (phase2GungeonCamera != null)
         {
-            phase2GungeonCamera.SetCinematicFocus(arenaCenter, false);
+            phase2GungeonCamera.TryBeginOwnedCinematicFocusBlend(this, arenaCenter, 0f, null, out _);
         }
 
         if (usePhase2Letterbox)
@@ -2482,8 +2479,8 @@ public class BossPatternController : MonoBehaviour
 
         if (phase2GungeonCamera != null)
         {
-            phase2GungeonCamera.ClearCinematicFocus(false);
-            phase2GungeonCamera.SetCinematicInputOffsetLocked(false);
+            phase2GungeonCamera.ReleaseOwnedCinematicFocus(this, false);
+            phase2GungeonCamera.SetCinematicInputOffsetLocked(this, false);
         }
 
         if (hideHudDuringPhase2Setup && phase2ExpeditionHUD != null)
@@ -2910,8 +2907,8 @@ public class BossPatternController : MonoBehaviour
 
         if (phase2GungeonCamera != null)
         {
-            phase2GungeonCamera.ClearCinematicFocus(resetCamera);
-            phase2GungeonCamera.SetCinematicInputOffsetLocked(false);
+            phase2GungeonCamera.ReleaseOwnedCinematicFocus(this, resetCamera);
+            phase2GungeonCamera.SetCinematicInputOffsetLocked(this, false);
         }
 
         if (resetCamera && phase2CameraZoomController != null)
@@ -2942,18 +2939,15 @@ public class BossPatternController : MonoBehaviour
 
         if (phase2LockedPlayerController != null)
         {
-            phase2LockedPlayerControlWasEnabled = phase2LockedPlayerController.ControlEnabled;
-            phase2LockedPlayerMovementWasLocked = phase2LockedPlayerController.MovementLocked;
-            phase2LockedPlayerController.SetControlEnabled(false);
-            phase2LockedPlayerController.SetMovementLocked(true);
+            phase2LockedPlayerController.GetComponent<PlayerDash>()?.CancelActiveDash();
+            phase2LockedPlayerController.SetExternalControlLocked(this, true);
         }
 
         phase2LockedWeaponController = playerObject.GetComponent<PlayerWeaponController>();
 
         if (phase2LockedWeaponController != null)
         {
-            phase2LockedWeaponInputWasLocked = phase2LockedWeaponController.ExternalInputLocked;
-            phase2LockedWeaponController.SetExternalInputLocked(true);
+            phase2LockedWeaponController.SetExternalInputLocked(this, true);
         }
 
         phase2LockedPlayerInteractor = playerObject.GetComponent<PlayerInteractor>();
@@ -2990,13 +2984,12 @@ public class BossPatternController : MonoBehaviour
 
         if (phase2LockedPlayerController != null)
         {
-            phase2LockedPlayerController.SetControlEnabled(phase2LockedPlayerControlWasEnabled);
-            phase2LockedPlayerController.SetMovementLocked(phase2LockedPlayerMovementWasLocked);
+            phase2LockedPlayerController.SetExternalControlLocked(this, false);
         }
 
         if (phase2LockedWeaponController != null)
         {
-            phase2LockedWeaponController.SetExternalInputLocked(phase2LockedWeaponInputWasLocked);
+            phase2LockedWeaponController.SetExternalInputLocked(this, false);
         }
 
         if (phase2LockedPlayerInteractor != null)

@@ -246,6 +246,10 @@ public class PlayerDash : MonoBehaviour
         health?.SetDashInvincible(true);
 
         DashStarted?.Invoke(direction);
+        if (!isDashing)
+        {
+            yield break;
+        }
         AudioManager.PlayAt(SoundEventIds.ShipDashStart, transform.position);
 
         if (controller != null)
@@ -272,7 +276,9 @@ public class PlayerDash : MonoBehaviour
 
         float elapsed = 0f;
 
-        while (elapsed < dashDuration)
+        // A dash effect/event can kill the boss synchronously, before
+        // StartCoroutine has returned a handle to CancelActiveDash.
+        while (isDashing && elapsed < dashDuration)
         {
             if (controller != null)
             {
@@ -292,7 +298,25 @@ public class PlayerDash : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
 
-        EndDashState();
+        if (isDashing)
+        {
+            EndDashState();
+        }
+    }
+
+    // Cinematics cancel the active dash through its owner, without disabling
+    // the component or capturing its transient movement lock for later restore.
+    public void CancelActiveDash()
+    {
+        if (dashRoutine != null)
+        {
+            StopCoroutine(dashRoutine);
+            dashRoutine = null;
+        }
+        if (isDashing)
+        {
+            EndDashState();
+        }
     }
 
     private void EndDashState()
@@ -317,7 +341,6 @@ public class PlayerDash : MonoBehaviour
         dashRoutine = null;
 
         DashEnded?.Invoke();
-        AudioManager.PlayAt(SoundEventIds.ShipDashEnd, transform.position, 0.6f);
     }
 
     private DashEffectProfile ResolveDashEffectProfile()

@@ -24,6 +24,7 @@ public static class SettlementExpeditionLaunchGuard
         {
             PermanentProgress progress = PermanentProgress.Instance;
             return progress == null ||
+                   progress.HasPendingCampaignRouteAnalysis ||
                    (progress.HasUnlockFlag(
                         StoryProgressionIds.FirstSettlementPendingFlag) &&
                     !progress.HasUnlockFlag(

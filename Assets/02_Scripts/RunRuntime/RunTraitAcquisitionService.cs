@@ -6,6 +6,19 @@ using UnityEngine;
 /// </summary>
 public static class RunTraitAcquisitionService
 {
+    public static WeaponTreeType CurrentEquipmentWeapon => RunManager.Instance != null && RunManager.Instance.HasActiveRun
+        ? RunManager.Instance.CurrentRun.SelectedWeaponTree
+        : PermanentProgress.Instance != null ? PermanentProgress.Instance.LastSelectedWeaponTree : WeaponTreeType.MachineGun;
+
+    public static bool IsOrdinaryCandidate(TraitDefinition trait, WeaponTreeType? weapon = null)
+    {
+        if (trait == null || !trait.CanAppearAsRandomDropTrait || !trait.IsAvailableFor(weapon ?? CurrentEquipmentWeapon)) return false;
+        bool prepared = RunManager.Instance != null && RunManager.Instance.HasActiveRun
+            ? RunManager.Instance.CurrentRun.HasPreparedEquipment(trait.TraitId)
+            : PermanentProgress.Instance != null && PermanentProgress.Instance.IsEquipmentPrepared(trait.TraitId);
+        return prepared && MeetsOfferPrerequisites(trait) && RunRuntimeTraitStore.Instance.CanUpgrade(trait);
+    }
+
     public static bool MeetsOfferPrerequisites(TraitDefinition trait)
     {
         if (trait == null)
@@ -83,7 +96,8 @@ public static class RunTraitAcquisitionService
             return false;
         }
 
-        if (!bypassOfferPrerequisites && !MeetsOfferPrerequisites(trait))
+        if (!bypassOfferPrerequisites && (!MeetsOfferPrerequisites(trait) ||
+            (trait.CanAppearAsRandomDropTrait && !IsOrdinaryCandidate(trait))))
         {
             return false;
         }
@@ -143,11 +157,6 @@ public static class RunTraitAcquisitionService
         if (trait.IsPersistentStoryTrait)
         {
             return progress.HasPersistentStoryTrait(trait) ? Mathf.Max(1, level) : level;
-        }
-
-        if (progress.IsTraitActive(trait.TraitId))
-        {
-            level = Mathf.Max(level, progress.GetTraitLevel(trait.TraitId));
         }
 
         return level;

@@ -159,7 +159,7 @@ MonoBehaviour:
   deathPresentation: {fileID: 100006}
   campaignDefinition: {fileID: 11400000, guid: e5f815d590894ec8a91112c0adfd1daa, type: 2}
   completeFinalBossAsVictory: 1
-  region2CoreRewardPresentationPrefab: {fileID: 0}
+  region2CoreRewardPresentationPrefab: {fileID: 700002, guid: e6ef49f25489455a8f57df7f4874c0d8, type: 3}
   returnBeaconPrefab: {fileID: 790382445115629925, guid: 01366ec2ea978ea4fb283152e5de9f91, type: 3}
   wormholePortalPrefab: {fileID: 5883112289178939255, guid: 2c801ff46de81cc4dadbbc5c54a9625d, type: 3}
   useBossDeathPosition: 1

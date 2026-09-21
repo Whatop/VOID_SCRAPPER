@@ -13,467 +13,927 @@ MonoBehaviour:
   m_Name: LocalizationCatalog
   m_EditorClassIdentifier: 
   entries:
+  - textKey: defense.core.combat
+    korean: "\uC624\uC5FC \uCF54\uC5B4 \uACA9\uB9AC {phase} / 3"
+    english: Isolate corrupted core {phase} / 3
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Defense phase
+    notes: Presentation only
+    maxLengthHint: 28
+  - textKey: defense.core.complete
+    korean: "\uD56D\uB85C \uCF54\uC5B4 \uC548\uC815\uD654 \uC644\uB8CC"
+    english: Route Core stabilized
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Defense complete
+    notes: Presentation only
+    maxLengthHint: 28
+  - textKey: defense.core.fused
+    korean: "\uCF54\uC5B4 \uC548\uC815\uD654 {count} / 3"
+    english: Cores stabilized {count} / 3
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Defense fusion
+    notes: Presentation only
+    maxLengthHint: 28
+  - textKey: defense.core.intro
+    korean: "\uC815\uCC29\uC9C0 \uBC29\uC5B4 \xB7 \uCF54\uC5B4 \uC624\uC5FC \uAC10\uC9C0"
+    english: Settlement Defense - Core corruption detected
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Defense opening
+    notes: Presentation only
+    maxLengthHint: 32
+  - textKey: defense.core.reactivate
+    korean: "{partName} \uC7AC\uD65C\uC131\uD654"
+    english: Reactivate {partName}
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Disabled core interaction
+    notes: Presentation only
+    maxLengthHint: 28
   - textKey: dialogue.rescue_contact.service.choice.accept
-    korean: 신호를 공유받는다.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC2E0\uD638\uB97C \uACF5\uC720\uBC1B\uB294\uB2E4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: RescueContact service accept choice
     notes: Executes the registered RescueContact action when available
     maxLengthHint: 24
   - textKey: dialogue.rescue_contact.service.choice.decline
-    korean: 지금은 필요 없다.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC9C0\uAE08\uC740 \uD544\uC694 \uC5C6\uB2E4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: RescueContact service decline choice
     notes: Closes without a gameplay action
     maxLengthHint: 24
   - textKey: dialogue.rescue_contact.service.line_01
-    korean: 구조 신호를 따라온 건가? 살았다는 게 아직 실감이 안 나는군.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uAD6C\uC870 \uC2E0\uD638\uB97C \uB530\uB77C\uC628 \uAC74\uAC00? \uC0B4\uC558\uB2E4\uB294
+      \uAC8C \uC544\uC9C1 \uC2E4\uAC10\uC774 \uC548 \uB098\uB294\uAD70."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: RescueContact service opening line
     notes: Approved Korean source
     maxLengthHint: 72
   - textKey: dialogue.rescue_contact.service.line_02
-    korean: 숨어 있는 동안 이 해역의 코어 추적 신호를 모아뒀어. 받아가면 목표 위치를 더 빨리 좁힐 수 있을 거야.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC228\uC5B4 \uC788\uB294 \uB3D9\uC548 \uC774 \uD574\uC5ED\uC758 \uCF54\uC5B4
+      \uCD94\uC801 \uC2E0\uD638\uB97C \uBAA8\uC544\uB480\uC5B4. \uBC1B\uC544\uAC00\uBA74
+      \uBAA9\uD45C \uC704\uCE58\uB97C \uB354 \uBE68\uB9AC \uC881\uD790 \uC218 \uC788\uC744
+      \uAC70\uC57C."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: RescueContact service offer line
     notes: Approved Korean source
     maxLengthHint: 112
   - textKey: dialogue.rescue_contact.service.unavailable
-    korean: 이미 공유받았거나 현재는 신호를 받을 수 없다.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC774\uBBF8 \uACF5\uC720\uBC1B\uC558\uAC70\uB098 \uD604\uC7AC\uB294
+      \uC2E0\uD638\uB97C \uBC1B\uC744 \uC218 \uC5C6\uB2E4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: RescueContact unavailable response
     notes: Used instead of a disabled-choice reason in Phase 2B
     maxLengthHint: 56
   - textKey: dialogue.story.first_settlement_unknown_core.line_01
-    korean: 귀환 신호에서 비정상 파형이 검출됐다. 회수한 물체와 기체 기록을 격리 분석 중이다.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uADC0\uD658 \uC2E0\uD638\uC5D0\uC11C \uBE44\uC815\uC0C1 \uD30C\uD615\uC774
+      \uAC80\uCD9C\uB410\uB2E4. \uD68C\uC218\uD55C \uBB3C\uCCB4\uC640 \uAE30\uCCB4
+      \uAE30\uB85D\uC744 \uACA9\uB9AC \uBD84\uC11D \uC911\uC774\uB2E4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: First Settlement unknown-core analysis line 1
     notes: Approved Phase 2C Korean source
     maxLengthHint: 96
   - textKey: dialogue.story.first_settlement_unknown_core.line_02
-    korean: 네 기체에 붙은 건 단순한 오염이 아니야. 붕괴 전 물류망에 접속하던 키 구조와 닮았어.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uB124 \uAE30\uCCB4\uC5D0 \uBD99\uC740 \uAC74 \uB2E8\uC21C\uD55C \uC624\uC5FC\uC774
+      \uC544\uB2C8\uC57C. \uBD95\uAD34 \uC804 \uBB3C\uB958\uB9DD\uC5D0 \uC811\uC18D\uD558\uB358
+      \uD0A4 \uAD6C\uC870\uC640 \uB2EE\uC558\uC5B4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: First Settlement unknown-core analysis line 2
     notes: Approved Phase 2C Korean source
     maxLengthHint: 104
   - textKey: dialogue.story.first_settlement_unknown_core.line_03
-    korean: 문제는 손상됐다는 거야. 그대로 두면 어디에 연결되는지조차 알 수 없어.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uBB38\uC81C\uB294 \uC190\uC0C1\uB410\uB2E4\uB294 \uAC70\uC57C. \uADF8\uB300\uB85C
+      \uB450\uBA74 \uC5B4\uB514\uC5D0 \uC5F0\uACB0\uB418\uB294\uC9C0\uC870\uCC28
+      \uC54C \uC218 \uC5C6\uC5B4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: First Settlement unknown-core analysis line 3
     notes: Approved Phase 2C Korean source
     maxLengthHint: 88
   - textKey: dialogue.story.first_settlement_unknown_core.line_04
-    korean: 정착지 단말에서 임시 경로 세 개를 복원했어. 각 해역의 관리 장치에 안정화 부품이 남아 있을 가능성이 높아.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC815\uCC29\uC9C0 \uB2E8\uB9D0\uC5D0\uC11C \uC784\uC2DC \uACBD\uB85C
+      \uC138 \uAC1C\uB97C \uBCF5\uC6D0\uD588\uC5B4. \uAC01 \uD574\uC5ED\uC758 \uAD00\uB9AC
+      \uC7A5\uCE58\uC5D0 \uC548\uC815\uD654 \uBD80\uD488\uC774 \uB0A8\uC544 \uC788\uC744
+      \uAC00\uB2A5\uC131\uC774 \uB192\uC544."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: First Settlement quest route line 4
     notes: Approved Phase 2C Korean source
     maxLengthHint: 120
   - textKey: dialogue.story.first_settlement_unknown_core.line_05
-    korean: 구획 안정기, 물질 압축로, 위상 항법 렌즈. 세 부품을 확보하면 접속키를 완성할 수 있어.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uAD6C\uD68D \uC548\uC815\uAE30, \uBB3C\uC9C8 \uC555\uCD95\uB85C, \uC704\uC0C1
+      \uD56D\uBC95 \uB80C\uC988. \uC138 \uBD80\uD488\uC744 \uD655\uBCF4\uD558\uBA74
+      \uC811\uC18D\uD0A4\uB97C \uC644\uC131\uD560 \uC218 \uC788\uC5B4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: First Settlement quest parts line 5
     notes: Approved Phase 2C Korean source
     maxLengthHint: 104
   - textKey: dialogue.story.first_settlement_unknown_core.line_06
-    korean: 탐사 경로를 등록할게. 준비가 끝나면 출발해.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uD0D0\uC0AC \uACBD\uB85C\uB97C \uB4F1\uB85D\uD560\uAC8C. \uC900\uBE44\uAC00
+      \uB05D\uB098\uBA74 \uCD9C\uBC1C\uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: First Settlement quest start line 6
     notes: Approved Phase 2C Korean source
     maxLengthHint: 64
+  - textKey: dialogue.story.first_settlement_unknown_core.line_07
+    korean: "\uBD80\uD488\uC744 \uD68C\uC218\uD560 \uB54C\uB9C8\uB2E4 \uAE30\uCCB4\uC758
+      \uC774\uC0C1 \uD30C\uD615\uB3C4 \uCEE4\uC9C8 \uC218 \uC788\uC5B4. \uBC18\uC751\uC740
+      \uACC4\uC18D \uCD94\uC801\uD560\uAC8C."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: First Settlement part-response warning before departure
+    notes: Read-only Pixel Curse reaction; Settlement Control
+    maxLengthHint: 96
+  - textKey: dialogue.story.first_settlement_unknown_core.line_08
+    korean: "\uC138 \uBD80\uD488\uC744 \uBAA8\uC544\uB3C4 \uC790\uB3D9 \uBCF5\uC6D0\uB418\uC9C4
+      \uC54A\uC544. \uC815\uCC29\uC9C0 \uD68C\uC218 \uCC98\uB9AC\uC7A5\uC5D0\uC11C
+      \uACA9\uB9AC \uBCF5\uC6D0\uC744 \uC9C4\uD589\uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: First Settlement explicit Recovery Processor instruction before departure
+    notes: No automatic restoration; Operator
+    maxLengthHint: 96
   - textKey: dialogue.story.main_damaged_access_key.active_0
-    korean: 경로는 세 곳 모두 살아 있어. 가까운 신호부터 확인해.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uACBD\uB85C\uB294 \uC138 \uACF3 \uBAA8\uB450 \uC0B4\uC544 \uC788\uC5B4.
+      \uAC00\uAE4C\uC6B4 \uC2E0\uD638\uBD80\uD130 \uD655\uC778\uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Damaged access-key repeat dialogue at zero parts
     notes: Read-only authoritative quest state
     maxLengthHint: 64
+  - textKey: dialogue.story.main_damaged_access_key.active_0.line_02
+    korean: "\uC0C8 \uBD80\uD488\uC740 \uC544\uC9C1 \uC5C6\uC5B4. \uAE30\uCCB4\uC758
+      \uC774\uC0C1 \uD30C\uD615\uC740 \uACC4\uC18D \uAC10\uC2DC \uC911\uC774\uC57C."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Damaged access-key zero-part monitoring response
+    notes: Read-only Active0 and existing Curse level 1; Settlement Control
+    maxLengthHint: 72
   - textKey: dialogue.story.main_damaged_access_key.active_1
-    korean: 첫 부품은 안정적이야. 두 개 남았어.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uCCAB \uBD80\uD488\uC740 \uC548\uC815\uC801\uC774\uC57C. \uB450 \uAC1C
+      \uB0A8\uC558\uC5B4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Damaged access-key repeat dialogue at one part
     notes: Read-only authoritative quest state
     maxLengthHint: 48
+  - textKey: dialogue.story.main_damaged_access_key.active_1.line_02
+    korean: "\uC811\uC18D\uD0A4\uAC00 \uCCAB \uBD80\uD488\uC5D0 \uBC18\uC751\uD588\uC5B4.
+      \uAE30\uCCB4\uC758 \uBCF4\uB77C\uC0C9 \uC774\uC0C1 \uD30C\uD615\uB3C4 \uD55C
+      \uB2E8\uACC4 \uAC15\uD574\uC84C\uC5B4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Damaged access-key one-part response
+    notes: Read-only Active1 and derived Curse level 2; Settlement Control
+    maxLengthHint: 88
   - textKey: dialogue.story.main_damaged_access_key.active_2
-    korean: 두 신호가 맞물렸어. 마지막 부품만 있으면 조립할 수 있어.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uBB3C\uC9C8 \uC555\uCD95\uB85C\uAE4C\uC9C0 \uD68C\uC218\uD588\uC5B4.
+      \uB450 \uBC88\uC9F8 \uBD80\uD488 \uD655\uC778 \uC644\uB8CC. \uC774\uC81C \uB9C8\uC9C0\uB9C9
+      \uBD80\uD488\uB9CC \uB0A8\uC558\uC5B4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Damaged access-key repeat dialogue at two parts
     notes: Read-only authoritative quest state
-    maxLengthHint: 72
+    maxLengthHint: 88
+  - textKey: dialogue.story.main_damaged_access_key.active_2.line_02
+    korean: "\uC774\uC0C1 \uD30C\uD615\uB3C4 \uB354 \uAC15\uD574\uC84C\uC5B4. \uBD84\uC11D\uC744
+      \uB9C8\uCE58\uBA74 3\uD574\uC5ED \uD56D\uB85C\uB97C \uC2B9\uC778\uD560\uAC8C.
+      \uB9C8\uC9C0\uB9C9 \uD68C\uC218\uC5D0 \uB300\uBE44\uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Damaged access-key two-part response
+    notes: Read-only Active2; existing natural-completion action authorizes the route;
+      Settlement Control
+    maxLengthHint: 96
   - textKey: dialogue.story.main_damaged_access_key.completed
-    korean: 접속키가 안정화됐어. 이제 중앙 네트워크로 이어진 경로를 추적할 수 있어.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC811\uC18D\uD0A4\uAC00 \uC548\uC815\uD654\uB410\uC5B4. \uC774\uC81C
+      \uC911\uC559 \uB124\uD2B8\uC6CC\uD06C\uB85C \uC774\uC5B4\uC9C4 \uACBD\uB85C\uB97C
+      \uCD94\uC801\uD560 \uC218 \uC788\uC5B4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Damaged access-key repeat dialogue after completion
     notes: Read-only RouteCore state
     maxLengthHint: 88
+  - textKey: dialogue.story.main_damaged_access_key.completed.line_02
+    korean: "\uC811\uC18D\uD0A4\uB294 \uBCF5\uC6D0\uB410\uC9C0\uB9CC \uBCF4\uB77C\uC0C9
+      \uC774\uC0C1 \uD30C\uD615\uC740 \uB0A8\uC544 \uC788\uC5B4. \uCD94\uC801\uC740
+      \uACC4\uC18D\uD560\uAC8C."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Damaged access-key restored follow-up
+    notes: Read-only Completed; Pixel Curse remains persistent; Settlement Control
+    maxLengthHint: 80
   - textKey: dialogue.story.main_damaged_access_key.ready_to_restore
-    korean: 세 부품 확인 완료. 정착지 복구에서 접속키를 복원할 수 있어.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC138 \uBD80\uD488 \uD655\uC778 \uC644\uB8CC. \uC811\uC18D\uD0A4 \uBC18\uC751\uACFC
+      \uBCF4\uB77C\uC0C9 \uC774\uC0C1 \uD30C\uD615 \uBAA8\uB450 \uCD5C\uACE0\uCE58\uC57C."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Damaged access-key repeat dialogue when all parts are ready
-    notes: Read-only authoritative quest state
-    maxLengthHint: 72
+    notes: Read-only authoritative quest state; Settlement Control
+    maxLengthHint: 80
+  - textKey: dialogue.story.main_damaged_access_key.ready_to_restore.line_02
+    korean: "\uC138 \uBD80\uD488\uC740 \uBAA8\uB450 \uD655\uBCF4\uD588\uC9C0\uB9CC
+      \uD604\uC7A5 \uC870\uB9BD\uC740 \uC704\uD5D8\uD574. \uD68C\uC218 \uCC98\uB9AC\uC7A5\uC5D0\uC11C
+      \uC9C1\uC811 \uACA9\uB9AC \uBCF5\uC6D0\uC744 \uC9C4\uD589\uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Damaged access-key explicit restoration direction
+    notes: Read-only ReadyToRestore and derived Curse level 4; Operator
+    maxLengthHint: 96
   - textKey: dialogue.tutorial.fake_operator_takeover.line_01
-    korean: 경로를 확인했어. 레이더의 미확인 신호를 따라가.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uACBD\uB85C\uB97C \uD655\uC778\uD588\uC5B4. \uB808\uC774\uB354\uC758
+      \uBBF8\uD655\uC778 \uC2E0\uD638\uB97C \uB530\uB77C\uAC00."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial corrupted Operator takeover
-    notes: FakeOperator uses the Operator display name while retaining a stable hidden actor identity
+    notes: FakeOperator uses the Operator display name while retaining a stable hidden
+      actor identity
     maxLengthHint: 64
   - textKey: dialogue.tutorial.operator_ancient_signal.line_01
-    korean: 고가치 잔해 신호야. 방어 기체가 있을 수 있으니 조심해.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uACE0\uAC00\uCE58 \uC794\uD574 \uC2E0\uD638\uC57C. \uBC29\uC5B4 \uAE30\uCCB4\uAC00
+      \uC788\uC744 \uC218 \uC788\uC73C\uB2C8 \uC870\uC2EC\uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial ancient-signal guidance
     notes: Shown only after the ancient wreck signal is detected
     maxLengthHint: 64
   - textKey: dialogue.tutorial.operator_opening.line_01
-    korean: 들리면 추진기를 움직여 봐. 여기서는 직접 길을 찾아야 해.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uB4E4\uB9AC\uBA74 \uCD94\uC9C4\uAE30\uB97C \uC6C0\uC9C1\uC5EC \uBD10.
+      \uC5EC\uAE30\uC11C\uB294 \uC9C1\uC811 \uAE38\uC744 \uCC3E\uC544\uC57C \uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial movement guidance
     notes: Shown when the movement objective becomes active
     maxLengthHint: 64
   - textKey: dialogue.tutorial.operator_radar.line_01
-    korean: '[var=VS_RadarToggleBinding]로 레이더를 켠 뒤, [var=VS_RadarScanBinding]로 스캔해.'
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "[var=VS_RadarToggleBinding]\uB85C \uB808\uC774\uB354\uB97C \uCF20 \uB4A4,
+      [var=VS_RadarScanBinding]\uB85C \uC2A4\uCE94\uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial Radar guidance
-    notes: Input binding variables are populated immediately before conversation start
+    notes: Input binding variables are populated immediately before conversation
+      start
     maxLengthHint: 72
   - textKey: dialogue.tutorial.operator_supply_container.line_01
-    korean: 보급 컨테이너를 찾았어. 접근해서 파괴하고 자원을 회수해.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uBCF4\uAE09 \uCEE8\uD14C\uC774\uB108\uB97C \uCC3E\uC558\uC5B4. \uC811\uADFC\uD574\uC11C
+      \uD30C\uAD34\uD558\uACE0 \uC790\uC6D0\uC744 \uD68C\uC218\uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial supply-container guidance
-    notes: Starts after the owner-scoped camera finishes focusing the discovered target
+    notes: Starts after the owner-scoped camera finishes focusing the discovered
+      target
     maxLengthHint: 72
   - textKey: dialogue.tutorial.rescue_after_curse.line_01
-    korean: …들려?
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\u2026\uC774\uC81C \uB4E4\uB824?"
+    english: "\u2026Can you hear me now?"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial rescue line 1 after communication recovery
     notes: Approved Phase 2C Korean source
-    maxLengthHint: 16
+    maxLengthHint: 21
   - textKey: dialogue.tutorial.rescue_after_curse.line_02
-    korean: 지금까지 통신이 완전히 끊겨 있었어.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC911\uACC4\uAE30\uB97C \uAC74\uB4DC\uB9B0 \uB4A4\uBD80\uD130 \uB124
+      \uCC44\uB110\uC774 \uC644\uC804\uD788 \uB04A\uACA8 \uC788\uC5C8\uC5B4. \uB124
+      \uCABD\uC5D0\uC120 \uB204\uAC00 \uB9D0\uD55C \uAC70\uC57C?"
+    english: I lost your channel after you touched the relay. Who was talking to
+      you?
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial rescue line 2 after communication recovery
     notes: Approved Phase 2C Korean source
-    maxLengthHint: 48
+    maxLengthHint: 72
   - textKey: dialogue.tutorial.rescue_after_curse.line_03
-    korean: 기체 표면에 정체불명의 접속 패턴이 번지고 있어. 회수 신호를 열었어. 당장 돌아와.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uAE30\uCCB4 \uD45C\uBA74\uC5D0 \uC815\uCCB4\uBD88\uBA85\uC758 \uC811\uC18D
+      \uD328\uD134\uC774 \uBC88\uC9C0\uACE0 \uC788\uC5B4. \uD68C\uC218 \uC2E0\uD638\uB97C
+      \uC5F4\uC5C8\uC5B4. \uB2F9\uC7A5 \uB3CC\uC544\uC640."
+    english: An unknown access pattern is spreading across your hull. The recovery
+      signal is open. Return now.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial rescue line 3 requesting existing return flow
     notes: Approved Phase 2C Korean source
-    maxLengthHint: 96
+    maxLengthHint: 97
   - textKey: dialogue.tutorial.signal_relay_analysis.line_01
-    korean: 신호 장치 분석 완료. 미확인 좌표를 복원하고 있어.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC911\uACC4\uAE30 \uC811\uC18D \uD655\uC778. \uB04A\uC5B4\uC9C4 \uD1B5\uC2E0\uB9DD\uC744
+      \uC6B0\uD68C \uC5F0\uACB0 \uC911\uC774\uC57C."
+    english: Relay connection confirmed. Rerouting around the broken network.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial signal-relay analysis line 1
     notes: Real Operator confirms authoritative relay analysis
     maxLengthHint: 64
   - textKey: dialogue.tutorial.signal_relay_analysis.line_02
-    korean: 잠깐, 통신 채널에 비정상 간섭이—
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC7A0\uAE50, \uB2E4\uB978 \uC2E0\uD638\uAC00 \uCC44\uB110\uC744 \uB09A\uC544\uCC44\uACE0
+      \uC788\uC5B4\u2014"
+    english: "Wait, another signal is hijacking the channel\u2014"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial signal-relay analysis line 2
     notes: Real Operator transmission cuts off before the fake takeover
     maxLengthHint: 56
   - textKey: dialogue.tutorial.unknown_access_key.line_01
-    korean: 이 신호… 붕괴 전 물류망 규격과 비슷해.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC774 \uC2E0\uD638\u2026 \uBD95\uAD34 \uC804 \uBB3C\uB958\uB9DD \uADDC\uACA9\uACFC
+      \uBE44\uC2B7\uD574."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial unknown access-key contact line 1
     notes: Approved Phase 2C Korean source
     maxLengthHint: 56
   - textKey: dialogue.tutorial.unknown_access_key.line_02
-    korean: 잠깐, 접속 패턴이 기체 쪽으로—
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC7A0\uAE50, \uC811\uC18D \uD328\uD134\uC774 \uAE30\uCCB4 \uCABD\uC73C\uB85C\u2014"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial unknown access-key contact line 2
     notes: Approved Phase 2C Korean source
     maxLengthHint: 48
+  - textKey: final.ending.network_closed
+    korean: "\uC911\uC559 \uBB3C\uB958\uB9DD \uC5F0\uACB0 \uC885\uB8CC"
+    english: Central network connection closed.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final ending
+    notes: Non-modal shutdown confirmation
+    maxLengthHint: 40
+  - textKey: final.ending.null.line_01
+    korean: "\uC911\uC559 \uC81C\uC5B4\uAD8C \uBCF5\uAD6C \uC2E4\uD328."
+    english: Central control recovery failed.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final ending
+    notes: Dispatcher subtitle 1
+    maxLengthHint: 48
+  - textKey: final.ending.null.line_02
+    korean: "\uBCF5\uC81C \uAD00\uB9AC\uC790 \uAD8C\uD55C\uC774 \uB3C5\uB9BD \uC0C1\uD0DC\uB85C
+      \uACE0\uC815\uB418\uC5C8\uB2E4."
+    english: Duplicated administrative access is now independent.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final ending
+    notes: The purple core copy remains with the player
+    maxLengthHint: 64
+  - textKey: final.ending.null.line_03
+    korean: "\uD68C\uC218 \uBD88\uAC00. \uC7AC\uBC30\uCC28 \uBD88\uAC00."
+    english: Reclamation impossible. Reassignment impossible.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final ending
+    notes: Dispatcher subtitle 3
+    maxLengthHint: 48
+  - textKey: final.ending.null.line_04
+    korean: "\uC911\uC559 \uBB3C\uB958\uB9DD\uC758 \uAC15\uC81C \uACBD\uB85C \uC9C0\uC815\uC744
+      \uC885\uB8CC\uD55C\uB2E4."
+    english: Terminating forced routing by the central logistics network.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final ending
+    notes: Dispatcher subtitle 4
+    maxLengthHint: 64
+  - textKey: final.ending.operator.line_01
+    korean: "\uC2E0\uD638\uAC00 \uAEBC\uC84C\uC5B4. \uC911\uC559\uB9DD\uC774 \uBA48\uCDC4\uB2E4."
+    english: The signal is gone. The central network has stopped.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final ending
+    notes: Operator subtitle 5
+    maxLengthHint: 48
+  - textKey: final.ending.operator.line_02
+    korean: "...\uB3CC\uC544\uC624\uC790."
+    english: ...Let's go home.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final ending
+    notes: Operator subtitle 6
+    maxLengthHint: 32
+  - textKey: final.phase.inner_core
+    korean: "\uC815\uCC29\uC9C0: \uB0B4\uBD80 \uCF54\uC5B4 \uB178\uCD9C \uD655\uC778.
+      \uB05D\uB0B4\uC2ED\uC2DC\uC624."
+    english: 'Settlement: Inner core exposed. Finish it.'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final combat
+    notes: Non-modal support message
+    maxLengthHint: 48
+  - textKey: final.phase.shell_break
+    korean: "NULL DISPATCHER \xB7 \uC678\uD53C \uBD95\uAD34"
+    english: NULL DISPATCHER - Shell rupture
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final combat
+    notes: Two-second shell transition
+    maxLengthHint: 40
+  - textKey: final.polarity.black
+    korean: "\uADF9\uC131 \xB7 BLACK"
+    english: Polarity - BLACK
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final Phase 2
+    notes: Persistent polarity indicator
+    maxLengthHint: 24
+  - textKey: final.polarity.switch_warning
+    korean: "\uADF9\uC131 \uC804\uD658 \uAC10\uC9C0"
+    english: Polarity switch detected
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final Phase 2
+    notes: Packets cleared before warning
+    maxLengthHint: 32
+  - textKey: final.polarity.white
+    korean: "\uADF9\uC131 \xB7 WHITE"
+    english: Polarity - WHITE
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final Phase 2
+    notes: Persistent polarity indicator
+    maxLengthHint: 24
+  - textKey: final.reclaim.intervention
+    korean: "\uC815\uCC29\uC9C0 \uC5F0\uACB0 \uAC1C\uC785 \xB7 \uC6D0\uACA9 \uC9C0\uC6D0\uC744
+      \uC5F0\uACB0\uD569\uB2C8\uB2E4."
+    english: Settlement intervention. Connecting remote support.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement intervention
+    notes: Non-modal HUD message
+    maxLengthHint: 64
+  - textKey: final.reclaim.reject
+    korean: "NULL DISPATCHER \xB7 \uBC18\uD658 \uAC70\uBD80 \uD655\uC778"
+    english: NULL DISPATCHER - Surrender refused.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Reject transition
+    notes: No damage
+    maxLengthHint: 64
+  - textKey: final.reclaim.resist
+    korean: "\uD68C\uC218 \uC808\uCC28 \uAC1C\uC2DC \xB7 \uC5F0\uACB0\uC5D0 \uC800\uD56D\uD558\uC2ED\uC2DC\uC624."
+    english: Reclaim initiated. Resist the connection.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Playable reclaim beam
+    notes: Movement and dash remain available
+    maxLengthHint: 64
+  - textKey: final.reclaim.severed
+    korean: "\uC624\uD37C\uB808\uC774\uD130: \uC5F0\uACB0\uC744 \uB04A\uB294\uB2E4.
+      \uCE58\uB8CC\uAC00 \uC544\uB2C8\uB77C \uD68C\uC218\uC57C!"
+    english: 'Operator: Cutting the link. That is reclamation!'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement intervention
+    notes: Non-modal HUD message
+    maxLengthHint: 64
+  - textKey: final.treatment.accept
+    korean: "\uCE58\uB8CC\uB97C \uBC1B\uC544\uB4E4\uC778\uB2E4"
+    english: Accept treatment
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final player response
+    notes: Encounter only
+    maxLengthHint: 20
+  - textKey: final.treatment.access
+    korean: "\uC811\uC18D \uAD8C\uD55C \uD655\uC778. \uBE44\uC815\uC0C1 \uBCF5\uC81C
+      \uC2E0\uD638\uAC00 \uC608\uC0C1 \uBC94\uC704\uB97C \uCD08\uACFC\uD588\uB2E4."
+    english: Access verified. The abnormal duplicate signal has exceeded projections.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final treatment
+    notes: Encounter only
+    maxLengthHint: 64
+  - textKey: final.treatment.attachment
+    korean: "\uADF8 \uAD8C\uD55C\uC740 \uBCF4\uB77C\uC0C9 \uCF54\uC5B4\uB97C \uD1B5\uD574
+      \uB124 \uAE30\uCCB4\uC5D0 \uBD99\uC5C8\uB2E4."
+    english: That access attached itself to your ship through the purple core.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final treatment
+    notes: Encounter only
+    maxLengthHint: 64
+  - textKey: final.treatment.components
+    korean: "\uC138 \uAC1C\uC758 \uBCF5\uAD6C \uBD80\uD488\uC774 \uC5F0\uACB0\uB418\uBA74\uC11C
+      \uADF8 \uC2E0\uD638\uB3C4 \uC810\uC810 \uC644\uC131\uB410\uB2E4."
+    english: As the three recovered components connected the signal became more complete.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final treatment
+    notes: Encounter only
+    maxLengthHint: 64
+  - textKey: final.treatment.curse
+    korean: "\uB124\uAC00 \uC800\uC8FC\uB77C\uACE0 \uBD80\uB974\uB294 \uAC74 \uB2E8\uC21C\uD55C
+      \uAC10\uC5FC\uC774 \uC544\uB2C8\uB2E4."
+    english: What you call a curse is not merely an infection.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final treatment
+    notes: Encounter only
+    maxLengthHint: 64
+  - textKey: final.treatment.duplicate
+    korean: "\uC911\uC559 \uBB3C\uB958\uB9DD\uC758 \uAD00\uB9AC\uC790 \uAD8C\uD55C\uC774
+      \uC190\uC0C1\uB41C \uCC44 \uBD88\uC644\uC804\uD558\uAC8C \uBCF5\uC81C\uB41C
+      \uACB0\uACFC\uB2E4."
+    english: It is a damaged and incomplete duplicate of central network administrative
+      access.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final treatment
+    notes: Encounter only
+    maxLengthHint: 64
+  - textKey: final.treatment.offer
+    korean: "\uADF8 \uAD8C\uD55C\uC744 \uBC18\uD658\uD574\uB77C. \uBE44\uC815\uC0C1
+      \uC811\uC18D\uC744 \uC81C\uAC70\uD558\uACE0 \uB124 \uAE30\uCCB4\uB97C \uBCF5\uAD6C\uD574
+      \uC8FC\uACA0\uB2E4."
+    english: Surrender that access. I can remove the abnormal connection and restore
+      your ship.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final treatment
+    notes: Dispatcher claim - intent ambiguous
+    maxLengthHint: 64
+  - textKey: final.treatment.reject
+    korean: "\uAC70\uBD80\uD55C\uB2E4"
+    english: Reject treatment
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final player response
+    notes: Encounter only
+    maxLengthHint: 20
   - textKey: quest.main_damaged_access_key.notification.restored
-    korean: 손상된 접속키 복구 완료.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC190\uC0C1\uB41C \uC811\uC18D\uD0A4 \uBCF5\uAD6C \uC644\uB8CC."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Main quest restoration completion notification
     notes: Published once by Settlement Recovery authority
     maxLengthHint: 40
   - textKey: quest.main_damaged_access_key.notification.started
-    korean: 메인 퀘스트 시작 — 손상된 접속키
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uBA54\uC778 \uD018\uC2A4\uD2B8 \uC2DC\uC791 \u2014 \uC190\uC0C1\uB41C
+      \uC811\uC18D\uD0A4"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Main quest start notification
     notes: Published by Settlement authority after persistent start
     maxLengthHint: 48
   - textKey: quest.main_damaged_access_key.objective.parts
-    korean: "안정화 부품 회수: {collected}/{total}"
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC548\uC815\uD654 \uBD80\uD488 \uD68C\uC218: {collected}/{total}"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Main quest HUD objective
     notes: Named arguments come from authoritative progress
     maxLengthHint: 48
   - textKey: quest.main_damaged_access_key.restoration.action
-    korean: 접속키 복구
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC811\uC18D\uD0A4 \uBCF5\uAD6C"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Settlement Recovery action label
     notes: Uses existing restoration confirmation button
     maxLengthHint: 24
   - textKey: quest.main_damaged_access_key.restoration.completed
-    korean: 접속키 복구 완료
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC811\uC18D\uD0A4 \uBCF5\uAD6C \uC644\uB8CC"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Settlement Recovery completed state
     notes: Read-only authoritative quest state
     maxLengthHint: 24
   - textKey: quest.main_damaged_access_key.restoration.description
-    korean: 세 안정화 부품을 결합해 손상된 접속키를 복원합니다.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC138 \uBD80\uD488\uC73C\uB85C \uC811\uC18D\uD0A4\uC640 \uD56D\uB85C
+      \uCF54\uC5B4\uB97C \uBCF5\uAD6C\uD569\uB2C8\uB2E4. \uB9C8\uC9C0\uB9C9 \uD544\uC218
+      \uBCF5\uAD6C \uB2E8\uACC4\uC785\uB2C8\uB2E4."
+    english: Restore the access key and Route Core with all three parts.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Settlement Recovery description
-    notes: Explicit player-confirmed quest completion
+    notes: Final required restoration before physical core activation
     maxLengthHint: 64
   - textKey: quest.main_damaged_access_key.restoration.ready
-    korean: 복구 준비 완료
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uBCF5\uAD6C \uC900\uBE44 \uC644\uB8CC"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Settlement Recovery ready state
     notes: Requires all three distinct boss parts
     maxLengthHint: 24
   - textKey: quest.main_damaged_access_key.title
-    korean: 손상된 접속키
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC190\uC0C1\uB41C \uC811\uC18D\uD0A4"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Main quest title
     notes: Stable ID MAIN_DAMAGED_ACCESS_KEY
     maxLengthHint: 24
   - textKey: speaker.fake_operator.name
-    korean: 오퍼레이터
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC624\uD37C\uB808\uC774\uD130"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Hidden fake Operator speaker display name
-    notes: Stable FakeOperator actor identity must remain separate from its concealed display name
+    notes: Stable FakeOperator actor identity must remain separate from its concealed
+      display name
+    maxLengthHint: 16
+  - textKey: speaker.null_dispatcher.name
+    korean: "\uC911\uC559 \uBC30\uCC28\uC790"
+    english: NULL DISPATCHER
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Final boss speaker
+    notes: Name TextKey
     maxLengthHint: 16
   - textKey: speaker.operator.name
-    korean: 오퍼레이터
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC624\uD37C\uB808\uC774\uD130"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Operator speaker display name
     notes: Pixel Crushers actor display-name source
     maxLengthHint: 16
   - textKey: speaker.rescue_contact.name
-    korean: 구조 연락원
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uAD6C\uC870 \uC5F0\uB77D\uC6D0"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: RescueContact speaker display name
     notes: Pixel Crushers actor display-name source
     maxLengthHint: 16
   - textKey: speaker.settlement_control.name
-    korean: 정착지 관제
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uAD00\uC81C\uD0D1"
+    english: CONTROL TOWER
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Settlement Control speaker display name
     notes: Pixel Crushers actor display-name source
     maxLengthHint: 16
+  - textKey: system.campaign.recovered.matter_compressor
+    korean: "\uBB3C\uC9C8 \uC555\uCD95\uB85C \uD68C\uC218 \uC644\uB8CC \xB7 \uC601\uAD6C
+      \uBCF4\uAD00\uB428"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Matter Compressor recovered
+    notes: Presentation after authoritative permanent grant and save
+    maxLengthHint: 64
+  - textKey: system.campaign.recovered.phase_navigation_lens
+    korean: "\uC704\uC0C1 \uD56D\uBC95 \uB80C\uC988 \uD68C\uC218 \uC644\uB8CC \xB7
+      \uC601\uAD6C \uBCF4\uAD00\uB428"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Phase Navigation Lens recovered
+    notes: Presentation after authoritative permanent grant and save
+    maxLengthHint: 64
+  - textKey: system.campaign.recovered.sector_stabilizer
+    korean: "\uAD6C\uD68D \uC548\uC815\uAE30 \uD68C\uC218 \uC644\uB8CC \xB7 \uC601\uAD6C
+      \uBCF4\uAD00\uB428"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Sector Stabilizer recovered
+    notes: Presentation after authoritative permanent grant and save
+    maxLengthHint: 64
+  - textKey: system.campaign.route_authorized.region_2
+    korean: "\uBD84\uC11D \uC644\uB8CC \xB7 2\uD574\uC5ED \uD56D\uB85C \uC2B9\uC778"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Region 2 route authorized
+    notes: Only after natural Settlement analysis completion and save
+    maxLengthHint: 64
+  - textKey: system.campaign.route_authorized.region_3
+    korean: "\uBD84\uC11D \uC644\uB8CC \xB7 3\uD574\uC5ED \uD56D\uB85C \uC2B9\uC778"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Region 3 route authorized
+    notes: Only after natural Settlement analysis completion and save
+    maxLengthHint: 64
   - textKey: system.pixel_curse.level_up
-    korean: "픽셀 저주 동기화 단계 상승: {level}"
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uD53D\uC140 \uC800\uC8FC \uB3D9\uAE30\uD654 \uB2E8\uACC4 \uC0C1\uC2B9:
+      {level}"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Pixel Curse level-up notification
     notes: Shown only when derived authoritative level changes
     maxLengthHint: 48
   - textKey: system.settlement.expedition.dialogue_active
-    korean: 통신이 끝난 후 탐사를 시작할 수 있습니다.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uD1B5\uC2E0\uC774 \uB05D\uB09C \uD6C4 \uD0D0\uC0AC\uB97C \uC2DC\uC791\uD560
+      \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Settlement expedition launch blocked by active dialogue
     notes: Shown through the Settlement status message path
     maxLengthHint: 48
   - textKey: tutorial.curse.system_error.body
-    korean: 미확인 신호가 기체 구조를 침식했습니다.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uBBF8\uD655\uC778 \uC2E0\uD638\uAC00 \uAE30\uCCB4 \uAD6C\uC870\uB97C
+      \uCE68\uC2DD\uD588\uC2B5\uB2C8\uB2E4."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial Pixel Curse transformation feedback body
     notes: Shown only after the core-to-player transfer reaches the ship
     maxLengthHint: 48
   - textKey: tutorial.curse.system_error.title
-    korean: 시스템 오류
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC2DC\uC2A4\uD15C \uC624\uB958"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial Pixel Curse transformation feedback title
     notes: Player-facing replacement for the internal mystery placeholder
     maxLengthHint: 24
   - textKey: tutorial.radar.scan_only
-    korean: '{scan}으로 미확인 신호를 스캔하세요.'
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "{scan}\uC73C\uB85C \uBBF8\uD655\uC778 \uC2E0\uD638\uB97C \uC2A4\uCE94\uD558\uC138\uC694."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial unknown-signal Radar objective while Radar is active
     notes: Named argument uses the current Input System scan binding
     maxLengthHint: 56
   - textKey: tutorial.radar.toggle_and_scan
-    korean: '{radar}로 레이더를 켜고 {scan}으로 주변 신호를 스캔하세요.'
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "{radar}\uB85C \uB808\uC774\uB354\uB97C \uCF1C\uACE0 {scan}\uC73C\uB85C
+      \uC8FC\uBCC0 \uC2E0\uD638\uB97C \uC2A4\uCE94\uD558\uC138\uC694."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial Radar objective detail
     notes: Named arguments use current Input System binding display strings
     maxLengthHint: 72
   - textKey: tutorial.signal.purple_core.interact
-    korean: 미확인 코어를 조사하세요.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uBBF8\uD655\uC778 \uCF54\uC5B4\uB97C \uC870\uC0AC\uD558\uC138\uC694."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial Purple Core interaction prompt
     notes: Replaces internal mystery placeholder in player-facing text
     maxLengthHint: 40
   - textKey: tutorial.signal.purple_core.travel
-    korean: 드러난 미확인 코어에 접근하세요.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uB4DC\uB7EC\uB09C \uBBF8\uD655\uC778 \uCF54\uC5B4\uC5D0 \uC811\uADFC\uD558\uC138\uC694."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial Purple Core travel objective
     notes: Shown after the materialization reveal completes
     maxLengthHint: 48
   - textKey: tutorial.signal.unknown.objective
-    korean: 미확인 신호원을 조사하세요.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uBBF8\uD655\uC778 \uC2E0\uD638\uC6D0\uC744 \uC870\uC0AC\uD558\uC138\uC694."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial unknown-signal search objective
     notes: Stable player-facing label for unresolved signal data
     maxLengthHint: 40
   - textKey: tutorial.signal.unknown.title
-    korean: 미확인 신호
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uBBF8\uD655\uC778 \uC2E0\uD638"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial unknown-signal objective title
     notes: Stable player-facing replacement for raw mystery placeholder
     maxLengthHint: 24
   - textKey: tutorial.supply.route_optional
-    korean: 지도에서 경로를 표시하거나 보급 컨테이너로 이동하세요.
-    english:
-    japanese:
-    simplifiedChinese:
-    traditionalChinese:
+    korean: "\uC9C0\uB3C4\uC5D0\uC11C \uACBD\uB85C\uB97C \uD45C\uC2DC\uD558\uAC70\uB098
+      \uBCF4\uAE09 \uCEE8\uD14C\uC774\uB108\uB85C \uC774\uB3D9\uD558\uC138\uC694."
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
     context: Tutorial optional route objective detail
     notes: Route placement is optional and target approach remains authoritative
     maxLengthHint: 72
   - textKey: ui.settings.language
-    korean: 언어
+    korean: "\uC5B8\uC5B4"
     english: 
     japanese: 
     simplifiedChinese: 
@@ -482,7 +942,7 @@ MonoBehaviour:
     notes: Phase 2A foundation entry
     maxLengthHint: 12
   - textKey: ui.settings.language.en
-    korean: 영어
+    korean: "\uC601\uC5B4"
     english: 
     japanese: 
     simplifiedChinese: 
@@ -491,7 +951,7 @@ MonoBehaviour:
     notes: Phase 2A foundation entry
     maxLengthHint: 12
   - textKey: ui.settings.language.ja
-    korean: 일본어
+    korean: "\uC77C\uBCF8\uC5B4"
     english: 
     japanese: 
     simplifiedChinese: 
@@ -500,7 +960,7 @@ MonoBehaviour:
     notes: Phase 2A foundation entry
     maxLengthHint: 12
   - textKey: ui.settings.language.ko
-    korean: 한국어
+    korean: "\uD55C\uAD6D\uC5B4"
     english: 
     japanese: 
     simplifiedChinese: 
@@ -509,7 +969,7 @@ MonoBehaviour:
     notes: Phase 2A foundation entry
     maxLengthHint: 12
   - textKey: ui.settings.language.zh_hans
-    korean: 중국어(간체)
+    korean: "\uC911\uAD6D\uC5B4(\uAC04\uCCB4)"
     english: 
     japanese: 
     simplifiedChinese: 
@@ -518,7 +978,7 @@ MonoBehaviour:
     notes: Phase 2A foundation entry
     maxLengthHint: 16
   - textKey: ui.settings.language.zh_hant
-    korean: 중국어(번체)
+    korean: "\uC911\uAD6D\uC5B4(\uBC88\uCCB4)"
     english: 
     japanese: 
     simplifiedChinese: 
@@ -526,5 +986,826 @@ MonoBehaviour:
     context: Traditional Chinese language option
     notes: Phase 2A foundation entry
     maxLengthHint: 16
+  - textKey: ui.settlement.archive.access
+    korean: "\uBBF8\uD655\uC778 \uC811\uC18D \uD0A4"
+    english: Unknown access key
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.analysis1
+    korean: "\uAD6C\uD68D \uC548\uC815\uAE30 \uBD84\uC11D"
+    english: Stabilizer analysis
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.analysis2
+    korean: "\uBB3C\uC9C8 \uC555\uCD95\uB85C \uBD84\uC11D"
+    english: Compressor analysis
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.ancient
+    korean: "\uACE0\uB300 \uC2E0\uD638"
+    english: Ancient signal
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.back
+    korean: "\uB3CC\uC544\uAC00\uAE30"
+    english: Back
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.empty
+    korean: "\uC544\uC9C1 \uC5F4\uB78C\uD560 \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
+    english: No records available yet.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 25
+  - textKey: ui.settlement.archive.ending
+    korean: "\uC911\uC559 \uBB3C\uB958\uB9DD \uC885\uB8CC"
+    english: Network termination
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.nav
+    korean: "\uD1B5\uC2E0 \uAE30\uB85D"
+    english: Comms Archive
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.notice
+    korean: "\uC9C4\uD589\uB3C4 \uAE30\uBC18 \uAE30\uB85D \xB7 \uC120\uD0DD \uC751\uB2F5
+      \uC81C\uC678"
+    english: "Progress records \xB7 Choice responses omitted"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 43
+  - textKey: ui.settlement.archive.opening
+    korean: "\uCCAB \uAD50\uC2E0"
+    english: First contact
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.radar
+    korean: "\uB808\uC774\uB354 \uC548\uB0B4"
+    english: Radar guidance
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.ready
+    korean: "\uC138 \uBD80\uD488 \uBCF5\uC6D0 \uC548\uB0B4"
+    english: Three-part restoration
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.relay
+    korean: "\uC911\uACC4\uAE30 \uC811\uC18D"
+    english: Relay connection
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.rescue
+    korean: "\uD68C\uC218 \uD1B5\uC2E0"
+    english: Recovery call
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.restored
+    korean: "\uC811\uC18D\uD0A4 \uBCF5\uC6D0 \uC644\uB8CC"
+    english: Access key restored
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.settlement
+    korean: "\uCCAB \uC815\uCC29\uC9C0 \uBCF4\uACE0"
+    english: First Settlement report
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.supply
+    korean: "\uBCF4\uAE09 \uCEE8\uD14C\uC774\uB108"
+    english: Supply container
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.takeover
+    korean: "\uCC44\uB110 \uD0C8\uCDE8"
+    english: Channel hijack
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.archive.title
+    korean: "\uD1B5\uC2E0 \uAE30\uB85D"
+    english: Comms Archive
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement read-only archive
+    notes: No conversation execution
+    maxLengthHint: 24
+  - textKey: ui.settlement.equipment.activate
+    korean: "\uD65C\uC131\uD654"
+    english: Activate
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.active
+    korean: "\uCD9C\uACA9 \uD6C4\uBCF4\uAD70\uC5D0 \uD3EC\uD568\uB428"
+    english: Included in expedition candidates
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.active_short
+    korean: "\uD65C\uC131"
+    english: Active
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.breacher
+    korean: "\uBE0C\uB9AC\uCC98"
+    english: Breacher
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.capacity
+    korean: "\uCD9C\uACA9 \uD6C4\uBCF4 {used} / {capacity} \xB7 \uBE48 \uC2AC\uB86F
+      \uD5C8\uC6A9"
+    english: "Candidates {used} / {capacity} \xB7 empty slots allowed"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.clear
+    korean: "\uC2AC\uB86F \uBE44\uC6B0\uAE30"
+    english: Clear slot
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.deactivate
+    korean: "\uBE44\uD65C\uC131\uD654"
+    english: Deactivate
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.empty
+    korean: "\uBE44\uC5B4 \uC788\uC74C"
+    english: Empty
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.full
+    korean: "\uC2AC\uB86F\uC774 \uAC00\uB4DD \uCC38"
+    english: Slots full
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.growth
+    korean: "\uC131\uC7A5 \uD6A8\uACFC \xB7 \uB2E8\uACC4 \uD68D\uB4DD \uC2DC \uCD94\uAC00"
+    english: "Growth \xB7 added per acquisition"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.hint
+    korean: "\uC7A5\uBE44\uB97C \uC0B4\uD3B4\uBCF4\uACE0 \uCD9C\uACA9 \uD6C4\uBCF4\uB97C
+      \uC900\uBE44\uD558\uC138\uC694."
+    english: Inspect equipment and prepare expedition candidates.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.inactive
+    korean: "\uCD9C\uACA9 \uD6C4\uBCF4\uAD70\uC5D0\uC11C \uC81C\uC678\uB428"
+    english: Excluded from expedition candidates
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.inactive_short
+    korean: "\uBE44\uD65C\uC131"
+    english: Inactive
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.inspect
+    korean: "\uC7A5\uBE44 \uC815\uBCF4"
+    english: Equipment
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.instructions
+    korean: "\uBAA9\uB85D\uC5D0\uC11C \uC7A5\uBE44\uB97C \uC0B4\uD3B4\uBCF4\uC138\uC694.
+      \uD65C\uC131\uD654\uB294 \uBB34\uB8CC\uC774\uBA70 \uBE48 \uC2AC\uB86F\uB3C4
+      \uC720\uD6A8\uD569\uB2C8\uB2E4."
+    english: Inspect a record. Activation is free and empty slots are valid.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.lancer
+    korean: "\uB79C\uC11C"
+    english: Lancer
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.locked
+    korean: "\uBD84\uC11D \uD544\uC694"
+    english: Research needed
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.max_level
+    korean: "\uCD9C\uACA9 \uC2DC Lv.0 \xB7 \uCD5C\uB300 Lv.{max}"
+    english: "Start unowned \xB7 Max Lv.{max}"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.prerequisites
+    korean: "\uD0D0\uC0AC \uB0B4 \uC120\uD589 \uC870\uAC74"
+    english: Prerequisites within the expedition
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.research0
+    korean: "\uAE30\uBCF8 \uAE30\uCCB4 \uD574\uAE08 \uD544\uC694"
+    english: Default ship unlock required
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.research1
+    korean: "\uAD6C\uD68D \uC548\uC815\uAE30 \uBD84\uC11D \u2192 \uBE0C\uB9AC\uCC98
+      \uD574\uAE08"
+    english: Analyze Sector Stabilizer to unlock Breacher
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.research2
+    korean: "\uBB3C\uC9C8 \uC555\uCD95\uB85C \uBD84\uC11D \u2192 \uB79C\uC11C \uD574\uAE08"
+    english: Analyze Matter Compressor to unlock Lancer
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.research3
+    korean: "\uC704\uC0C1 \uD56D\uBC95 \uB80C\uC988 \uBD84\uC11D \uD544\uC694"
+    english: Analyze Phase Navigation Lens
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.row0
+    korean: "\uAE30\uBCF8 \xB7 3 \uC2AC\uB86F"
+    english: "Base \xB7 3 slots"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.row1
+    korean: "1\uCC28 \uBD84\uC11D \xB7 6 \uC2AC\uB86F"
+    english: "Research I \xB7 6 slots"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.row2
+    korean: "2\uCC28 \uBD84\uC11D \xB7 9 \uC2AC\uB86F"
+    english: "Research II \xB7 9 slots"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.row3
+    korean: "3\uCC28 \uBD84\uC11D \xB7 12 \uC2AC\uB86F"
+    english: "Research III \xB7 12 slots"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.select_ship
+    korean: "{ship} \uAE30\uCCB4 \uC120\uD0DD \uD544\uC694"
+    english: Select {ship} to prepare
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.shared
+    korean: "\uACF5\uC6A9"
+    english: Shared
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.sweeper
+    korean: "\uC2A4\uC704\uD37C"
+    english: Sweeper
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.title
+    korean: "\uC7A5\uBE44 \uAC1C\uBC1C"
+    english: Equipment Development
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.nav.recovery
+    korean: "\uC815\uCC29\uC9C0 \uBCF5\uAD6C"
+    english: Recovery
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Stable primary slot before assembled
+    maxLengthHint: 16
+  - textKey: ui.settlement.nav.route_core
+    korean: "\uD56D\uB85C \uCF54\uC5B4"
+    english: Route Core
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Stable primary slot at assembled and activated
+    maxLengthHint: 16
+  - textKey: ui.settlement.progress.core
+    korean: "\uCF54\uC5B4: {state}"
+    english: 'Core: {state}'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Named core state
+    maxLengthHint: 24
+  - textKey: ui.settlement.progress.core_active
+    korean: "\uD65C\uC131\uD654"
+    english: active
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Activated core
+    maxLengthHint: 16
+  - textKey: ui.settlement.progress.core_missing
+    korean: "\uBBF8\uC644\uC131"
+    english: incomplete
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Missing parts
+    maxLengthHint: 16
+  - textKey: ui.settlement.progress.core_ready
+    korean: "\uBCF5\uC6D0 \uB300\uAE30"
+    english: ready
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Ready to restore
+    maxLengthHint: 16
+  - textKey: ui.settlement.progress.core_restored
+    korean: "\uBCF5\uC6D0 \uC644\uB8CC"
+    english: restored
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Assembled core
+    maxLengthHint: 16
+  - textKey: ui.settlement.progress.defense_clear
+    korean: "\uBC29\uC5B4: \uC644\uB8CC"
+    english: 'Defense: clear'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Defense completed
+    maxLengthHint: 20
+  - textKey: ui.settlement.progress.defense_pending
+    korean: "\uBC29\uC5B4: \uB300\uAE30"
+    english: 'Defense: pending'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Defense not completed
+    maxLengthHint: 20
+  - textKey: ui.settlement.progress.final_available
+    korean: "\uCD5C\uC885 \uC6D0\uC815 \uAC00\uB2A5"
+    english: Final route open
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Final launch available
+    maxLengthHint: 20
+  - textKey: ui.settlement.progress.final_complete
+    korean: "\uCD5C\uC885 \uC6D0\uC815 \uC644\uB8CC"
+    english: Final complete
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Final campaign completed
+    maxLengthHint: 20
+  - textKey: ui.settlement.progress.header
+    korean: "\uD604\uC7AC \uBAA9\uD45C"
+    english: NEXT STEP
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Read-only sidebar header
+    maxLengthHint: 12
+  - textKey: ui.settlement.progress.loading
+    korean: "\uC9C4\uD589 \uC815\uBCF4 \uD655\uC778 \uC911"
+    english: Loading progress
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Progress authority not ready
+    maxLengthHint: 24
+  - textKey: ui.settlement.progress.objective_activate
+    korean: "\uD56D\uB85C \uCF54\uC5B4 \uD65C\uC131\uD654"
+    english: Activate Route Core
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Core restored
+    maxLengthHint: 24
+  - textKey: ui.settlement.progress.objective_analyze
+    korean: "\uD68C\uC218 \uBD80\uD488 \uBD84\uC11D"
+    english: Analyze recovered part
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Settlement story analysis pending
+    maxLengthHint: 28
+  - textKey: ui.settlement.progress.objective_complete
+    korean: "\uC911\uC559\uB9DD \uBB34\uB825\uD654"
+    english: Network neutralized
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Final boss defeated
+    maxLengthHint: 24
+  - textKey: ui.settlement.progress.objective_defend
+    korean: "\uC815\uCC29\uC9C0 \uBC29\uC5B4"
+    english: Defend Settlement
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Activated core defense pending
+    maxLengthHint: 24
+  - textKey: ui.settlement.progress.objective_final
+    korean: "\uCD5C\uC885 \uC6D0\uC815 \uCD9C\uACA9"
+    english: Launch final expedition
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Final expedition available
+    maxLengthHint: 28
+  - textKey: ui.settlement.progress.objective_first_part
+    korean: "\uCCAB \uBD80\uD488 \uD68C\uC218"
+    english: Recover first part
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: No story parts
+    maxLengthHint: 24
+  - textKey: ui.settlement.progress.objective_remaining_parts
+    korean: "\uB0A8\uC740 \uBD80\uD488 \uD68C\uC218"
+    english: Recover remaining parts
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: More story parts needed
+    maxLengthHint: 28
+  - textKey: ui.settlement.progress.objective_restore
+    korean: "\uCC98\uB9AC\uC7A5\uC5D0\uC11C \uCF54\uC5B4 \uBCF5\uC6D0"
+    english: Restore core at Recovery Processor
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: All three parts recovered
+    maxLengthHint: 40
+  - textKey: ui.settlement.progress.parts
+    korean: "\uBD80\uD488 {count}/3"
+    english: Parts {count}/3
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement progress
+    notes: Named story part count
+    maxLengthHint: 16
+  - textKey: ui.settlement.route_core.action.enter_deck
+    korean: "\uD56D\uB85C \uCF54\uC5B4 \uAD6C\uC5ED\uC73C\uB85C \uC774\uB3D9"
+    english: Enter Route Core Deck
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Existing EnterDeck navigation only
+    maxLengthHint: 32
+  - textKey: ui.settlement.route_core.action.manage_facilities
+    korean: "\uC2DC\uC124 \uAD00\uB9AC"
+    english: Manage Facilities
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Optional restoration remains accessible
+    maxLengthHint: 24
+  - textKey: ui.settlement.route_core.components.header
+    korean: "\uD68C\uC218 \uBD80\uD488 \xB7 \uBCF5\uAD6C \uC644\uB8CC"
+    english: Recovered components
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Read-only assembled components summary
+    maxLengthHint: 32
+  - textKey: ui.settlement.route_core.components.restored
+    korean: "\uBCF5\uAD6C \uC644\uB8CC"
+    english: Restored
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Assembled implies all three parts restored
+    maxLengthHint: 16
+  - textKey: ui.settlement.route_core.description.activated
+    korean: "\uD56D\uB85C \uCF54\uC5B4\uC5D0\uC11C \uC815\uCC29\uC9C0 \uBC29\uC5B4\uB97C
+      \uC9C4\uD589\uD558\uC138\uC694."
+    english: Return to the core to defend the Settlement.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Physical interaction owns defense
+    maxLengthHint: 72
+  - textKey: ui.settlement.route_core.description.assembled
+    korean: "\uBCF5\uAD6C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uAD6C\uC5ED\uC73C\uB85C
+      \uC774\uB3D9\uD574 \uCF54\uC5B4\uB97C \uC9C1\uC811 \uD65C\uC131\uD654\uD558\uC138\uC694."
+    english: Recovery complete. Visit the deck and activate the core.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Navigation never activates the core
+    maxLengthHint: 72
+  - textKey: ui.settlement.route_core.description.campaign_complete
+    korean: "\uC791\uC804\uC774 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uD56D\uB85C
+      \uCF54\uC5B4 \uAD6C\uC5ED\uC744 \uBC29\uBB38\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+    english: Operation complete. The Route Core deck remains open.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Preserves existing post-campaign deck access
+    maxLengthHint: 72
+  - textKey: ui.settlement.route_core.description.defense_complete
+    korean: "\uD56D\uB85C \uCF54\uC5B4\uC640 \uC0C1\uD638\uC791\uC6A9\uD574 \uC911\uC559
+      \uBB3C\uB958\uB9DD\uC73C\uB85C \uCD9C\uACA9\uD558\uC138\uC694."
+    english: Interact with the core to launch the final expedition.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Physical interaction owns final launch
+    maxLengthHint: 72
+  - textKey: ui.settlement.route_core.status.activated
+    korean: "\uCF54\uC5B4 \uD65C\uC131\uD654 \xB7 \uC815\uCC29\uC9C0 \uBC29\uC5B4
+      \uBBF8\uC644\uB8CC"
+    english: "Core active \xB7 Defense pending"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Activated with defense pending
+    maxLengthHint: 40
+  - textKey: ui.settlement.route_core.status.assembled
+    korean: "\uC870\uB9BD \uC644\uB8CC \xB7 \uD65C\uC131\uD654 \uD544\uC694"
+    english: "Assembled \xB7 Activation needed"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Authoritative assembled state
+    maxLengthHint: 40
+  - textKey: ui.settlement.route_core.status.campaign_complete
+    korean: "\uC911\uC559 \uBB3C\uB958\uB9DD \uC791\uC804 \uC644\uB8CC"
+    english: Central network operation complete
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Final boss defeated
+    maxLengthHint: 40
+  - textKey: ui.settlement.route_core.status.defense_complete
+    korean: "\uD56D\uB85C \uC548\uC815\uD654 \xB7 \uCD5C\uC885 \uCD9C\uACA9 \uAC00\uB2A5"
+    english: "Route stable \xB7 Final route ready"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Settlement recovery hub
+    notes: Defense complete
+    maxLengthHint: 40
+  - textKey: ui.story_recovery.acquired
+    korean: "\uD68D\uB4DD"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Acquired story part
+    notes: Read-only permanent story recovery inventory
+    maxLengthHint: 8
+  - textKey: ui.story_recovery.matter_compressor
+    korean: "\uBB3C\uC9C8 \uC555\uCD95\uB85C"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Matter Compressor name
+    notes: Read-only permanent story recovery inventory
+    maxLengthHint: 16
+  - textKey: ui.story_recovery.phase_navigation_lens
+    korean: "\uC704\uC0C1 \uD56D\uBC95 \uB80C\uC988"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Phase Navigation Lens name
+    notes: Read-only permanent story recovery inventory
+    maxLengthHint: 16
+  - textKey: ui.story_recovery.sector_stabilizer
+    korean: "\uAD6C\uD68D \uC548\uC815\uAE30"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Sector Stabilizer name
+    notes: Read-only permanent story recovery inventory
+    maxLengthHint: 16
+  - textKey: ui.story_recovery.title
+    korean: "\uC2A4\uD1A0\uB9AC \uD68C\uC218\uD488"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Story Recovery section
+    notes: Read-only permanent story recovery inventory
+    maxLengthHint: 16
+  - textKey: ui.story_recovery.unacquired
+    korean: "\uBBF8\uD68D\uB4DD"
+    english: 
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Unacquired story part
+    notes: Read-only permanent story recovery inventory
+    maxLengthHint: 8
   sourceAssetPath: Assets/02_Scripts/Config/Localization/Source/Localization.csv
-  contentHash: 966517bdf63ca759f14e4998344c08da43545d1e9f34f419197f26ae513bce0c
+  contentHash: 5b1580bd56f6675020dba6775464f4464340818b93c1e4d464a21eccdd4a0665

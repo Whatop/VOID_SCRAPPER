@@ -54,7 +54,7 @@ public class WarningMessageUI : MonoBehaviour
     private float lastMessageTime = float.NegativeInfinity;
     private int currentPriority = -1;
     private float currentMessageUntil;
-    private bool layoutConfigured;
+    private bool missingPresentationReported;
 
     private void Reset()
     {
@@ -330,38 +330,20 @@ public class WarningMessageUI : MonoBehaviour
             messageText = GetComponentInChildren<TextMeshProUGUI>(true);
         }
 
-        if (messageText != null)
-        {
-            messageText.richText = true;
-            if (!layoutConfigured)
-            {
-                RectTransform textRect = messageText.rectTransform;
-                textRect.sizeDelta = new Vector2(
-                    Mathf.Min(maximumWidth, Mathf.Max(80f, textRect.rect.width)),
-                    maximumHeight
-                );
-                messageText.enableAutoSizing = true;
-                messageText.fontSizeMin = minimumFontSize;
-                messageText.fontSizeMax = maximumFontSize;
-                messageText.textWrappingMode = TextWrappingModes.Normal;
-                messageText.overflowMode = TextOverflowModes.Ellipsis;
-                messageText.maxVisibleLines = 2;
-                messageText.alignment = TextAlignmentOptions.Center;
-                messageText.margin = new Vector4(2f, 1f, 2f, 1f);
-                layoutConfigured = true;
-            }
-        }
 
         if (canvasGroup == null)
         {
             canvasGroup = GetComponent<CanvasGroup>();
         }
 
-        if (canvasGroup == null)
+        if ((canvasGroup == null || messageText == null) && !missingPresentationReported)
         {
-            canvasGroup = gameObject.AddComponent<CanvasGroup>();
+            missingPresentationReported = true;
+            Debug.LogWarning($"[WarningMessageUI] Missing messageText/canvasGroup at '{MessagePath(transform)}', scene '{gameObject.scene.path}'. Restore the listed authored Inspector bindings. Message presentation only is unavailable.", this);
         }
     }
+
+    private static string MessagePath(Transform target) => target.parent != null ? MessagePath(target.parent) + "/" + target.name : target.name;
 
     private void EnsureActiveForCoroutine()
     {

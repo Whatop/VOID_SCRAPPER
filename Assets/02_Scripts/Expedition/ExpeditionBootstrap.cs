@@ -285,6 +285,13 @@ public class ExpeditionBootstrap : MonoBehaviour
             return;
         }
 
+        // Portal entry rebuilds the player, not the run. An empty active slot
+        // (or an unavailable carried definition) must not grant starting gear again.
+        if (runContext != null && runContext.HasPlayerVitalCarryover)
+        {
+            return;
+        }
+
         ReinforcementDefinition permanentDefinition = FindUnlockedPermanentReinforcement(runContext, definitions);
 
         if (permanentDefinition != null)

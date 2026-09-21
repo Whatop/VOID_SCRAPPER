@@ -51,104 +51,8 @@ public sealed class BootMainMenuButtonBinding
         return false;
     }
 
-#if UNITY_EDITOR
-    public void Configure(
-        Button targetButton,
-        TextMeshProUGUI targetLabel,
-        Image accent,
-        MainMenuButtonPresenter targetPresenter)
-    {
-        button = targetButton;
-        label = targetLabel;
-        selectionAccent = accent;
-        presenter = targetPresenter;
-    }
-#endif
 }
 
-#if UNITY_EDITOR
-public static class BootMainMenuAuthoringObjectFactory
-{
-    public static GameObject CreateRoot(
-        string objectName,
-        UnityEngine.SceneManagement.Scene targetScene,
-        params Type[] componentTypes)
-    {
-        if (!targetScene.IsValid() || !targetScene.isLoaded)
-        {
-            throw new InvalidOperationException(
-                $"Cannot create '{objectName}' in an invalid or unloaded scene.");
-        }
-
-        GameObject target = new GameObject(
-            objectName,
-            componentTypes ?? Array.Empty<Type>());
-        if (target.scene != targetScene)
-        {
-            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(target, targetScene);
-        }
-
-        return target;
-    }
-
-    public static GameObject CreateChild(
-        string objectName,
-        Transform parent,
-        params Type[] componentTypes)
-    {
-        if (parent == null)
-        {
-            throw new ArgumentNullException(nameof(parent));
-        }
-
-        GameObject target = CreateRoot(
-            objectName,
-            parent.gameObject.scene,
-            componentTypes);
-        target.transform.SetParent(parent, false);
-        return target;
-    }
-
-    public static void MoveRootAndParent(GameObject target, Transform parent)
-    {
-        if (target == null)
-        {
-            throw new ArgumentNullException(nameof(target));
-        }
-
-        if (parent == null)
-        {
-            throw new ArgumentNullException(nameof(parent));
-        }
-
-        if (UnityEditor.EditorUtility.IsPersistent(target))
-        {
-            throw new InvalidOperationException(
-                $"Cannot move persistent asset '{target.name}' into a scene hierarchy.");
-        }
-
-        if (target.transform.parent != null)
-        {
-            throw new InvalidOperationException(
-                $"'{target.name}' must be a root before it is moved between scenes.");
-        }
-
-        UnityEngine.SceneManagement.Scene targetScene = parent.gameObject.scene;
-        if (!targetScene.IsValid() || !targetScene.isLoaded)
-        {
-            throw new InvalidOperationException(
-                $"Cannot parent '{target.name}' under an invalid or unloaded scene.");
-        }
-
-        if (target.scene != targetScene)
-        {
-            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(target, targetScene);
-        }
-
-        target.transform.SetParent(parent, false);
-    }
-}
-#endif
 
 [DisallowMultipleComponent]
 public sealed class BootMainMenuView : MonoBehaviour
@@ -317,6 +221,11 @@ public sealed class BootMainMenuView : MonoBehaviour
         {
             return Missing(nameof(sharedOptions), out missingReference);
         }
+        if (sharedOptions.gameObject != optionsRoot || optionsRoot.transform.parent != safeArea)
+        {
+            return Missing("canonical SafeArea/OptionsPanel", out missingReference);
+        }
+        if (!sharedOptions.TryValidateAuthoredLayout(out missingReference)) return false;
 
         if (newGameConfirmationRoot == null)
         {
@@ -385,57 +294,4 @@ public sealed class BootMainMenuView : MonoBehaviour
         return false;
     }
 
-#if UNITY_EDITOR
-    public void ConfigureForAuthoring(
-        Canvas canvas,
-        CanvasScaler scaler,
-        GraphicRaycaster raycaster,
-        CanvasGroup canvasGroup,
-        RectTransform authoredSafeArea,
-        RectTransform authoredBackgroundRoot,
-        MainMenuSpaceBackground background,
-        CanvasGroup authoredTransitionOverlay,
-        GameObject authoredMenuRoot,
-        RectTransform authoredTitleRoot,
-        TextMeshProUGUI authoredGameTitle,
-        TextMeshProUGUI authoredSubtitle,
-        TextMeshProUGUI authoredStatusText,
-        BootMainMenuButtonBinding authoredContinueBinding,
-        BootMainMenuButtonBinding authoredNewGameBinding,
-        BootMainMenuButtonBinding authoredSettingsBinding,
-        BootMainMenuButtonBinding authoredExitBinding,
-        Button authoredInitialSelectable,
-        CanvasGroup[] authoredEntranceGroups,
-        GameObject authoredOptionsRoot,
-        SharedOptionsMenuUI authoredSharedOptions,
-        GameObject authoredConfirmationRoot,
-        Button authoredConfirmButton,
-        Button authoredCancelButton)
-    {
-        rootCanvas = canvas;
-        canvasScaler = scaler;
-        graphicRaycaster = raycaster;
-        rootCanvasGroup = canvasGroup;
-        safeArea = authoredSafeArea;
-        backgroundRoot = authoredBackgroundRoot;
-        spaceBackground = background;
-        transitionOverlay = authoredTransitionOverlay;
-        menuRoot = authoredMenuRoot;
-        titleRoot = authoredTitleRoot;
-        gameTitle = authoredGameTitle;
-        subtitle = authoredSubtitle;
-        statusText = authoredStatusText;
-        continueBinding = authoredContinueBinding;
-        newGameBinding = authoredNewGameBinding;
-        settingsBinding = authoredSettingsBinding;
-        exitBinding = authoredExitBinding;
-        initialSelectable = authoredInitialSelectable;
-        entranceGroups = authoredEntranceGroups ?? Array.Empty<CanvasGroup>();
-        optionsRoot = authoredOptionsRoot;
-        sharedOptions = authoredSharedOptions;
-        newGameConfirmationRoot = authoredConfirmationRoot;
-        confirmNewGameButton = authoredConfirmButton;
-        cancelNewGameButton = authoredCancelButton;
-    }
-#endif
 }

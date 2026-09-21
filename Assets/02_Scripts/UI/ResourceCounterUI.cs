@@ -25,6 +25,12 @@ public class ResourceCounterUI : MonoBehaviour
     public bool HideWhenZero => hideWhenZero;
     public Sprite IconSprite => iconImage != null ? iconImage.sprite : null;
 
+    // Authored compact HUD rows hide their own root, so layout can omit zero rows.
+    public bool HasAuthoredBindings => rootObject == gameObject &&
+        iconImage != null && iconImage.sprite != null && iconImage.transform.IsChildOf(transform) &&
+        amountText != null && amountText.font != null && amountText.transform.IsChildOf(transform) &&
+        (labelText == null || (labelText != amountText && labelText.font != null && labelText.transform.IsChildOf(transform)));
+
     private void Reset()
     {
         iconImage = GetComponentInChildren<Image>(true);

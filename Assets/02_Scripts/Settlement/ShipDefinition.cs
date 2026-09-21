@@ -22,6 +22,10 @@ public class ShipDefinition : ScriptableObject
     [Header("Unlock")]
     [SerializeField] private bool unlockedByDefault = true;
     [SerializeField] private string unlockFlag;
+    [Range(0, 3)] [SerializeField] private int requiredAnalyzedComponents;
+    public int RequiredAnalyzedComponents => requiredAnalyzedComponents;
+    public Color ResearchAccent => defaultWeaponTree == WeaponTreeType.MachineGun ? new Color(1f, .57f, .2f) :
+        defaultWeaponTree == WeaponTreeType.Shotgun ? new Color(.3f, .85f, .45f) : new Color(.3f, .65f, 1f);
     [SerializeField] private string requiredUnlockFlag;
     [SerializeField] private int requiredScrapParts;
     [SerializeField] private int requiredCoreShards;

@@ -3512,14 +3512,15 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
         expeditionHud = FindFirstObjectByType<ExpeditionHUD>();
         CacheCombatCameraBaseSize();
 
+        playerController?.GetComponent<PlayerDash>()?.CancelActiveDash();
         playerController?.SetExternalControlLocked(this, true);
         playerHealth?.AddInvincibleTime(decloakDuration + combatChargeDuration + 0.5f);
         expeditionHud?.SetCinematicMode(this, true);
 
         if (gameplayCamera != null)
         {
-            gameplayCamera.SetCinematicInputOffsetLocked(true);
-            gameplayCamera.SetCinematicFocus(transform.position, false);
+            gameplayCamera.SetCinematicInputOffsetLocked(this, true);
+            gameplayCamera.TrySetOwnedCinematicFocus(this, transform.position, false);
         }
 
         introLocksHeld = true;
@@ -3683,15 +3684,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
         }
 
         Vector3 focus = bounds.center;
-        if (attackCameraFocusHeld)
-        {
-            gameplayCamera.UpdateCinematicFocus(focus);
-        }
-        else
-        {
-            gameplayCamera.SetCinematicFocus(focus, false);
-            attackCameraFocusHeld = true;
-        }
+        attackCameraFocusHeld = gameplayCamera.TrySetOwnedCinematicFocus(this, focus);
     }
 
     private void ReleaseAttackCameraProfile(bool immediate)
@@ -3704,7 +3697,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
 
         if (attackCameraFocusHeld && gameplayCamera != null)
         {
-            gameplayCamera.ClearCinematicFocus(immediate);
+            gameplayCamera.ReleaseOwnedCinematicFocus(this, immediate);
         }
 
         attackCameraFocusHeld = false;
@@ -3752,15 +3745,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
             return;
         }
 
-        if (specialCameraFocusHeld)
-        {
-            gameplayCamera.UpdateCinematicFocus(arenaBounds.center);
-        }
-        else
-        {
-            gameplayCamera.SetCinematicFocus(arenaBounds.center, false);
-            specialCameraFocusHeld = true;
-        }
+        specialCameraFocusHeld = gameplayCamera.TrySetOwnedCinematicFocus(this, arenaBounds.center);
     }
 
     private void ReleaseSpecialCameraFocus(bool immediate)
@@ -3772,7 +3757,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
 
         if (gameplayCamera != null)
         {
-            gameplayCamera.ClearCinematicFocus(immediate);
+            gameplayCamera.ReleaseOwnedCinematicFocus(this, immediate);
         }
 
         specialCameraFocusHeld = false;
@@ -3782,7 +3767,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
     {
         if (attackCameraFocusHeld && gameplayCamera != null)
         {
-            gameplayCamera.ClearCinematicFocus(immediate);
+            gameplayCamera.ReleaseOwnedCinematicFocus(this, immediate);
         }
 
         attackCameraFocusHeld = false;
@@ -3808,8 +3793,8 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
 
         if (gameplayCamera != null)
         {
-            gameplayCamera.SetCinematicInputOffsetLocked(false);
-            gameplayCamera.ClearCinematicFocus(immediateCameraReset);
+            gameplayCamera.SetCinematicInputOffsetLocked(this, false);
+            gameplayCamera.ReleaseOwnedCinematicFocus(this, immediateCameraReset);
         }
 
         introLocksHeld = false;
@@ -3859,6 +3844,11 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
     }
 
     private void HandleBossDied(EnemyHealth _)
+    {
+        StopCombatForDeathPresentation();
+    }
+
+    public void StopCombatForDeathPresentation()
     {
         CleanupEncounter(false);
     }

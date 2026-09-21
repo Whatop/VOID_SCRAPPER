@@ -38,6 +38,7 @@ public sealed class DialogueSubtitleTypewriter : TextMeshProTypewriterEffect
     private float activeVoiceVolume;
     private bool[] layoutVisibleCharacters = Array.Empty<bool>();
     private int layoutCharacterCount;
+    [SerializeField] private DialogueTextAnimationPresentation textAnimationPresentation;
 
     public float VisibleGlyphInterval => visibleGlyphInterval;
     public float CommaPause => commaPause;
@@ -75,6 +76,17 @@ public sealed class DialogueSubtitleTypewriter : TextMeshProTypewriterEffect
         }
 
         PrepareEntry(textComponent.text);
+
+        // Pixel Crushers already accepted this conversation. Only an explicitly remote
+        // session opens this short gate; local dialogue starts typing immediately as before.
+        DialogueCinematicPresentationController presentation =
+            GetComponentInParent<DialogueCinematicPresentationController>();
+        if (presentation != null && presentation.IsIncomingCommunicationIntroActive)
+        {
+            textComponent.maxVisibleCharacters = 0;
+            while (presentation != null && presentation.IsIncomingCommunicationIntroActive)
+                yield return null;
+        }
 
         if (waitOneFrameBeforeStarting)
         {
@@ -201,6 +213,7 @@ public sealed class DialogueSubtitleTypewriter : TextMeshProTypewriterEffect
 
     public override void Stop()
     {
+        if (textAnimationPresentation != null) textAnimationPresentation.ResetPresentation();
         speakableGlyphCount = 0;
         voiceEnabledForEntry = false;
         activeVoiceClip = null;
@@ -272,6 +285,13 @@ public sealed class DialogueSubtitleTypewriter : TextMeshProTypewriterEffect
         speakableGlyphCount = 0;
         ResolveActiveVoiceProfile();
         layoutCharacterCount = 0;
+        if (textAnimationPresentation != null)
+        {
+            ConversationState state = DialogueManager.isConversationActive ? DialogueManager.currentConversationState : null;
+            string actor = state?.subtitle?.speakerInfo?.nameInDatabase ?? string.Empty;
+            textAnimationPresentation.Prepare(textComponent.text,
+                DialogueManager.isConversationActive ? DialogueManager.lastConversationStarted : string.Empty, actor);
+        }
     }
 
     private void SyncBaseConfiguration()

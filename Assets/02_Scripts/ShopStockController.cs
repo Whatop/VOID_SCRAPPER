@@ -432,7 +432,7 @@ public class ShopStockController : MonoBehaviour
             return;
         }
 
-        if (!RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
+        if (!RunTraitAcquisitionService.IsOrdinaryCandidate(trait, selectedTree))
         {
             return;
         }
@@ -525,7 +525,7 @@ public class ShopStockController : MonoBehaviour
             return false;
         }
 
-        if (!RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
+        if (!RunTraitAcquisitionService.IsOrdinaryCandidate(trait, selectedTree))
         {
             return false;
         }

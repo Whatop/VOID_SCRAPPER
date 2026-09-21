@@ -10,10 +10,6 @@ using UnityEngine.UI;
 
 public class RunResultPanelUI : MonoBehaviour
 {
-    [Header("Lifetime")]
-    [SerializeField] private bool dontDestroyOnLoad = true;
-    [SerializeField] private bool detachFromParentBeforeDontDestroy = true;
-
     [Header("Root")]
     [SerializeField] private GameObject panelRoot;
     [SerializeField] private CanvasGroup canvasGroup;
@@ -53,22 +49,22 @@ public class RunResultPanelUI : MonoBehaviour
     private readonly List<ResourceCounterUI> counterPool = new List<ResourceCounterUI>();
     private Sprite scrapResourceIcon;
     private Sprite coreResourceIcon;
-    private RectTransform resultCard;
-    private RectTransform settlementPanel;
-    private RectTransform recordPanel;
-    private TextMeshProUGUI committedHeaderText;
-    private TextMeshProUGUI lostHeaderText;
-    private TextMeshProUGUI emptyCommittedText;
-    private TextMeshProUGUI permanentTotalsText;
-    private Image resultAccentRail;
-    private Image settlementAccentRail;
-    private Image recordAccentRail;
+    [SerializeField] private RectTransform resultCard;
+    [SerializeField] private RectTransform settlementPanel;
+    [SerializeField] private RectTransform recordPanel;
+    [SerializeField] private TextMeshProUGUI committedHeaderText;
+    [SerializeField] private TextMeshProUGUI lostHeaderText;
+    [SerializeField] private TextMeshProUGUI emptyCommittedText;
+    [SerializeField] private TextMeshProUGUI permanentTotalsText;
+    [SerializeField] private Image resultAccentRail;
+    [SerializeField] private Image settlementAccentRail;
+    [SerializeField] private Image recordAccentRail;
     private Sequence showSequence;
     private bool presentationLayoutReady;
     private bool runtimeInitialized;
     private bool runtimeCallbacksBound;
     private bool invalidOwnershipReported;
-    private Coroutine deferredInitializationRoutine;
+    [SerializeField] private ResourceCounterUI[] resourceRows = Array.Empty<ResourceCounterUI>();
 
     private static readonly Color BackdropColor = new Color(0.018f, 0.035f, 0.052f, 1f);
     private static readonly Color CardColor = new Color(0.027f, 0.055f, 0.078f, 0.98f);
@@ -109,15 +105,7 @@ public class RunResultPanelUI : MonoBehaviour
             return;
         }
 
-        ScheduleDeferredInitialization();
-    }
-
-    private void Update()
-    {
-        if (runtimeInitialized && subscribedRunManager == null)
-        {
-            SubscribeRunManager();
-        }
+        ReportInvalidOwnershipOnce();
     }
 
     private void OnDisable()
@@ -127,14 +115,19 @@ public class RunResultPanelUI : MonoBehaviour
             return;
         }
 
-        if (deferredInitializationRoutine != null)
-        {
-            StopCoroutine(deferredInitializationRoutine);
-            deferredInitializationRoutine = null;
-        }
-
         showSequence?.Kill();
         showSequence = null;
+        if (showRoutine != null)
+        {
+            StopCoroutine(showRoutine);
+            showRoutine = null;
+        }
+        if (closeRoutine != null)
+        {
+            StopCoroutine(closeRoutine);
+            closeRoutine = null;
+        }
+        isClosing = false;
 
         RunManager runManager = RunManager.Instance;
 
@@ -158,88 +151,15 @@ public class RunResultPanelUI : MonoBehaviour
             return false;
         }
 
-        if (dontDestroyOnLoad)
-        {
-            Transform authoredRoot = transform.root;
-            bool inheritedFromBootstrapRoot = authoredRoot != null &&
-                                                authoredRoot != transform &&
-                                                authoredRoot.GetComponent<GameBootstrap>() != null;
-
-            if (!inheritedFromBootstrapRoot &&
-                detachFromParentBeforeDontDestroy &&
-                transform.parent != null)
-            {
-                transform.SetParent(null, true);
-            }
-
-            if (!inheritedFromBootstrapRoot && !IsDontDestroyOnLoadScene(gameObject.scene))
-            {
-                DontDestroyOnLoad(gameObject);
-            }
-        }
-
-        if (!HasUsableSceneOwnership(transform))
-        {
-            return false;
-        }
-
-        CacheReferences();
-        if (panelRoot == null || !HasUsableSceneOwnership(panelRoot.transform))
-        {
-            return false;
-        }
+        // The complete presentation inherits persistence from the authored CoreRoot.
+        // This component never detaches, requests persistence or constructs UI.
+        if (!EnsurePresentationLayout()) return false;
 
         BuildCounterPool();
-        if (!EnsurePresentationLayout())
-        {
-            return false;
-        }
-
         HideImmediate();
         runtimeInitialized = true;
         invalidOwnershipReported = false;
         return true;
-    }
-
-    private void ScheduleDeferredInitialization()
-    {
-        if (ShouldScheduleDeferredInitialization(
-                Application.isPlaying,
-                runtimeInitialized,
-                HasUsableSceneOwnership(transform),
-                deferredInitializationRoutine != null,
-                isActiveAndEnabled))
-        {
-            deferredInitializationRoutine = StartCoroutine(InitializeAfterSceneRestoration());
-        }
-    }
-
-    private static bool ShouldScheduleDeferredInitialization(
-        bool isPlaying,
-        bool isInitialized,
-        bool hasUsableSceneOwnership,
-        bool isAlreadyScheduled,
-        bool isActiveAndEnabled)
-    {
-        return isPlaying &&
-               !isInitialized &&
-               !hasUsableSceneOwnership &&
-               !isAlreadyScheduled &&
-               isActiveAndEnabled;
-    }
-
-    private IEnumerator InitializeAfterSceneRestoration()
-    {
-        yield return null;
-        deferredInitializationRoutine = null;
-
-        if (TryInitializeRuntime())
-        {
-            BindRuntimeCallbacks();
-            yield break;
-        }
-
-        ReportInvalidOwnershipOnce();
     }
 
     private void ReportInvalidOwnershipOnce()
@@ -252,7 +172,7 @@ public class RunResultPanelUI : MonoBehaviour
         invalidOwnershipReported = true;
         Scene scene = gameObject.scene;
         Debug.LogError(
-            $"[{nameof(RunResultPanelUI)}] '{name}' could not initialize after Unity scene " +
+            $"[{nameof(RunResultPanelUI)}] '{name}' could not initialize its authored presentation after scene " +
             $"restoration. Scene='{scene.name}', Path='{scene.path}', Valid={scene.IsValid()}, " +
             $"Loaded={scene.isLoaded}. Keep it under a valid loaded CoreRoot hierarchy.",
             this);
@@ -294,13 +214,10 @@ public class RunResultPanelUI : MonoBehaviour
         }
 
         Scene scene = target.gameObject.scene;
+#if UNITY_EDITOR
+        if (UnityEditor.SceneManagement.EditorSceneManager.IsPreviewScene(scene)) return false;
+#endif
         return scene.IsValid() && scene.isLoaded;
-    }
-
-    private static bool IsDontDestroyOnLoadScene(Scene scene)
-    {
-        return scene.IsValid() &&
-               string.Equals(scene.name, "DontDestroyOnLoad", StringComparison.Ordinal);
     }
 
     public void Close()
@@ -505,8 +422,7 @@ public class RunResultPanelUI : MonoBehaviour
 
     private void Show(RunResultData resultData)
     {
-        CacheReferences();
-        EnsurePresentationLayout();
+        if (!EnsurePresentationLayout()) return;
 
         isClosing = false;
 
@@ -634,12 +550,7 @@ public class RunResultPanelUI : MonoBehaviour
             coreResourceIcon = committedCoreCounter.IconSprite;
         }
 
-        AddCounterToPool(committedScrapCounter);
-        AddCounterToPool(committedCoreCounter);
-        AddCounterToPool(lostScrapCounter);
-        AddCounterToPool(lostCoreCounter);
-        AddCounterToPool(totalScrapCounter);
-        AddCounterToPool(totalCoreCounter);
+        for (int i = 0; i < resourceRows.Length; i++) AddCounterToPool(resourceRows[i]);
 
     }
 
@@ -650,8 +561,6 @@ public class RunResultPanelUI : MonoBehaviour
             return;
         }
 
-        counter.SetHideWhenZero(true);
-        counter.ConfigureCompactPresentation(6f, 12f);
         counterPool.Add(counter);
     }
 
@@ -673,7 +582,11 @@ public class RunResultPanelUI : MonoBehaviour
 
         int committedCount = CountResourceRows(resources, ResourceRowKind.Committed);
         int lostCount = CountResourceRows(resources, ResourceRowKind.Lost);
-        EnsureCounterPoolCapacity(committedCount + lostCount);
+        if (committedCount + lostCount > counterPool.Count)
+        {
+            Debug.LogError("RunResultPanelUI has insufficient authored resource rows; repair the Boot presentation.", this);
+            return;
+        }
 
         int rowIndex = 0;
         float rowStep = GetResourceRowStep(committedCount + lostCount, lostCount > 0);
@@ -715,20 +628,6 @@ public class RunResultPanelUI : MonoBehaviour
         if (showLoss)
         {
             AppendResourceGroup(resources, ResourceRowKind.Lost, ref rowIndex, ref y, rowStep);
-        }
-    }
-
-    private void EnsureCounterPoolCapacity(int requiredCount)
-    {
-        ResourceCounterUI template = committedScrapCounter != null
-            ? committedScrapCounter
-            : counterPool.Count > 0 ? counterPool[0] : null;
-
-        while (template != null && counterPool.Count < requiredCount)
-        {
-            ResourceCounterUI clone = Instantiate(template, template.transform.parent);
-            clone.name = $"SettlementResourceRow_{counterPool.Count}";
-            AddCounterToPool(clone);
         }
     }
 
@@ -816,11 +715,6 @@ public class RunResultPanelUI : MonoBehaviour
 
         if (counter.transform is RectTransform rectTransform)
         {
-            if (settlementPanel != null && rectTransform.parent != settlementPanel)
-            {
-                rectTransform.SetParent(settlementPanel, false);
-            }
-
             rectTransform.anchoredPosition = new Vector2(0f, y);
         }
     }
@@ -898,7 +792,107 @@ public class RunResultPanelUI : MonoBehaviour
         };
     }
 
+    public bool TryValidateAuthoredPresentation(out string error)
+    {
+        var missing = new List<string>();
+        Transform root = transform.root;
+        if (root == transform || root.GetComponent<GameBootstrap>() == null) missing.Add("CoreRoot/GameBootstrap owner");
+        if (panelRoot == null || panelRoot == gameObject || !panelRoot.transform.IsChildOf(transform)) missing.Add(nameof(panelRoot));
+        void Required(string field, Component value, Transform parent)
+        {
+            if (value == null || parent == null || value.gameObject.scene != gameObject.scene ||
+                (value.transform != parent && !value.transform.IsChildOf(parent))) missing.Add(field);
+            else if (value is TMP_Text text && text.font == null) missing.Add(field + ".font");
+        }
+        Transform panel = panelRoot != null ? panelRoot.transform : null;
+        Required(nameof(canvasGroup), canvasGroup, transform);
+        Required(nameof(titleText), titleText, panel);
+        Required(nameof(reasonText), reasonText, panel);
+        Required(nameof(summaryText), summaryText, panel);
+        Required(nameof(detailText), detailText, recordPanel);
+        Required(nameof(resultCard), resultCard, panel);
+        Required(nameof(settlementPanel), settlementPanel, panel);
+        Required(nameof(recordPanel), recordPanel, panel);
+        Required(nameof(committedHeaderText), committedHeaderText, settlementPanel);
+        Required(nameof(lostHeaderText), lostHeaderText, settlementPanel);
+        Required(nameof(emptyCommittedText), emptyCommittedText, settlementPanel);
+        Required(nameof(permanentTotalsText), permanentTotalsText, panel);
+        Required(nameof(resultAccentRail), resultAccentRail, resultCard);
+        Required(nameof(settlementAccentRail), settlementAccentRail, settlementPanel);
+        Required(nameof(recordAccentRail), recordAccentRail, recordPanel);
+        Required(nameof(continueButton), continueButton, panel);
+        int capacity = Enum.GetValues(typeof(CurrencyType)).Length * 2;
+        if (resourceRows == null || resourceRows.Length < capacity) missing.Add(nameof(resourceRows) + " capacity");
+        var unique = new HashSet<ResourceCounterUI>();
+        if (resourceRows != null)
+            foreach (ResourceCounterUI row in resourceRows)
+            {
+                Required(nameof(resourceRows), row, settlementPanel);
+                if (row == null || !unique.Add(row) || row.transform.parent != settlementPanel || !row.HasAuthoredBindings)
+                    missing.Add(nameof(resourceRows) + " unique authored row bindings/parent");
+            }
+        error = string.Join(", ", missing);
+        return missing.Count == 0;
+    }
+
     private bool EnsurePresentationLayout()
+    {
+        if (presentationLayoutReady) return true;
+        if (!TryValidateAuthoredPresentation(out string error))
+        {
+            if (!invalidOwnershipReported)
+                Debug.LogError("RunResultPanelUI requires the authored Boot/CoreRoot presentation. Missing or invalid: " + error + ". Runtime UI will not be generated.", this);
+            invalidOwnershipReported = true;
+            return false;
+        }
+        presentationLayoutReady = true;
+        return true;
+    }
+
+#if UNITY_EDITOR
+    // Explicit migration only. Never called by Awake, Start, Show or any production path.
+    public void AuthorPresentationForEditor()
+    {
+        if (Application.isPlaying || !gameObject.scene.IsValid() || !gameObject.scene.isLoaded ||
+            UnityEditor.SceneManagement.EditorSceneManager.IsPreviewScene(gameObject.scene))
+            throw new InvalidOperationException("RunResult authoring requires a loaded non-preview Edit Mode scene.");
+        if (TryValidateAuthoredPresentation(out _)) return;
+        if (resultCard != null) throw new InvalidOperationException("Repair existing result bindings in place; do not rebuild a partially authored presentation.");
+        CacheReferences();
+        AddCounterToPool(committedScrapCounter);
+        AddCounterToPool(committedCoreCounter);
+        AddCounterToPool(lostScrapCounter);
+        AddCounterToPool(lostCoreCounter);
+        AddCounterToPool(totalScrapCounter);
+        AddCounterToPool(totalCoreCounter);
+        EnsureAuthoringCounterCapacity(Enum.GetValues(typeof(CurrencyType)).Length * 2);
+        if (!BuildAuthoredPresentationForEditor()) throw new InvalidOperationException("Cannot author result presentation.");
+        resourceRows = counterPool.ToArray();
+        foreach (ResourceCounterUI row in resourceRows)
+        {
+            row.SetHideWhenZero(true);
+            row.ConfigureCompactPresentation(6f, 12f);
+        }
+        HideImmediate();
+        if (!TryValidateAuthoredPresentation(out string error)) throw new InvalidOperationException(error);
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    private void EnsureAuthoringCounterCapacity(int requiredCount)
+    {
+        ResourceCounterUI template = committedScrapCounter != null
+            ? committedScrapCounter
+            : counterPool.Count > 0 ? counterPool[0] : null;
+
+        while (template != null && counterPool.Count < requiredCount)
+        {
+            ResourceCounterUI clone = Instantiate(template, template.transform.parent);
+            clone.name = $"SettlementResourceRow_{counterPool.Count}";
+            AddCounterToPool(clone);
+        }
+    }
+
+    private bool BuildAuthoredPresentationForEditor()
     {
         if (presentationLayoutReady)
         {
@@ -933,7 +927,7 @@ public class RunResultPanelUI : MonoBehaviour
             panelSprite = existingPanelImage != null ? existingPanelImage.sprite : null;
         }
 
-        resultCard = CreateRuntimePanel(
+        resultCard = CreateAuthoredPanel(
             "ResultCard",
             panelRect,
             Vector2.zero,
@@ -950,7 +944,7 @@ public class RunResultPanelUI : MonoBehaviour
             new Vector2(442f, 2f)
         );
 
-        settlementPanel = CreateRuntimePanel(
+        settlementPanel = CreateAuthoredPanel(
             "SettlementResultPanel",
             panelRect,
             new Vector2(-108f, -5f),
@@ -971,7 +965,7 @@ public class RunResultPanelUI : MonoBehaviour
         ConfigureContinueButton();
         ReparentResourceRows();
 
-        permanentTotalsText = CreateRuntimeText(
+        permanentTotalsText = CreateAuthoredText(
             "PermanentTotalsText",
             panelRect,
             new Vector2(0f, -79f),
@@ -993,7 +987,7 @@ public class RunResultPanelUI : MonoBehaviour
     {
         if (recordPanel == null)
         {
-            recordPanel = CreateRuntimePanel(
+            recordPanel = CreateAuthoredPanel(
                 "ExpeditionRecordPanel",
                 panelRect,
                 new Vector2(108f, -5f),
@@ -1078,7 +1072,7 @@ public class RunResultPanelUI : MonoBehaviour
 
     private void ConfigureSettlementTexts()
     {
-        committedHeaderText = CreateRuntimeText(
+        committedHeaderText = CreateAuthoredText(
             "CommittedHeaderText",
             settlementPanel,
             new Vector2(0f, 47f),
@@ -1090,7 +1084,7 @@ public class RunResultPanelUI : MonoBehaviour
         committedHeaderText.text = "이번 탐사 정산";
         committedHeaderText.fontStyle = FontStyles.Bold;
 
-        lostHeaderText = CreateRuntimeText(
+        lostHeaderText = CreateAuthoredText(
             "LostHeaderText",
             settlementPanel,
             new Vector2(0f, -10f),
@@ -1102,7 +1096,7 @@ public class RunResultPanelUI : MonoBehaviour
         lostHeaderText.text = "손실";
         lostHeaderText.fontStyle = FontStyles.Bold;
 
-        emptyCommittedText = CreateRuntimeText(
+        emptyCommittedText = CreateAuthoredText(
             "EmptyCommittedText",
             settlementPanel,
             new Vector2(0f, 27f),
@@ -1177,6 +1171,8 @@ public class RunResultPanelUI : MonoBehaviour
             }
         }
     }
+
+#endif
 
     private void RefreshPermanentTotals(RunResultData resultData)
     {
@@ -1302,7 +1298,8 @@ public class RunResultPanelUI : MonoBehaviour
         }
     }
 
-    private RectTransform CreateRuntimePanel(
+#if UNITY_EDITOR
+    private RectTransform CreateAuthoredPanel(
         string objectName,
         Transform parent,
         Vector2 anchoredPosition,
@@ -1310,7 +1307,7 @@ public class RunResultPanelUI : MonoBehaviour
         Color color,
         Sprite sprite)
     {
-        GameObject panelObject = CreateSceneOwnedRuntimeObject(
+        GameObject panelObject = CreateSceneOwnedAuthoredObject(
             objectName,
             parent,
             typeof(RectTransform),
@@ -1335,7 +1332,7 @@ public class RunResultPanelUI : MonoBehaviour
         Vector2 anchoredPosition,
         Vector2 size)
     {
-        RectTransform railRect = CreateRuntimePanel(
+        RectTransform railRect = CreateAuthoredPanel(
             objectName,
             parent,
             anchoredPosition,
@@ -1346,7 +1343,7 @@ public class RunResultPanelUI : MonoBehaviour
         return railRect.GetComponent<Image>();
     }
 
-    private TextMeshProUGUI CreateRuntimeText(
+    private TextMeshProUGUI CreateAuthoredText(
         string objectName,
         Transform parent,
         Vector2 anchoredPosition,
@@ -1355,7 +1352,7 @@ public class RunResultPanelUI : MonoBehaviour
         TextAlignmentOptions alignment,
         Color color)
     {
-        GameObject textObject = CreateSceneOwnedRuntimeObject(
+        GameObject textObject = CreateSceneOwnedAuthoredObject(
             objectName,
             parent,
             typeof(RectTransform),
@@ -1382,15 +1379,13 @@ public class RunResultPanelUI : MonoBehaviour
         return text;
     }
 
-    private static GameObject CreateSceneOwnedRuntimeObject(
+    private static GameObject CreateSceneOwnedAuthoredObject(
         string objectName,
         Transform parent,
         params Type[] componentTypes)
     {
-        if (parent == null)
-        {
-            throw new ArgumentNullException(nameof(parent));
-        }
+        if (Application.isPlaying) throw new InvalidOperationException("Result authoring is Editor-only.");
+        if (parent == null) throw new ArgumentNullException(nameof(parent));
 
         Scene targetScene = parent.gameObject.scene;
         if (!targetScene.IsValid() || !targetScene.isLoaded)
@@ -1425,13 +1420,12 @@ public class RunResultPanelUI : MonoBehaviour
         return target;
     }
 
-#if UNITY_EDITOR
-    public static GameObject CreateSceneOwnedRuntimeObjectForEditorAndTests(
+    public static GameObject CreateSceneOwnedAuthoredObjectForEditorAndTests(
         string objectName,
         Transform parent,
         params Type[] componentTypes)
     {
-        return CreateSceneOwnedRuntimeObject(objectName, parent, componentTypes);
+        return CreateSceneOwnedAuthoredObject(objectName, parent, componentTypes);
     }
 
     public static bool HasUsableSceneOwnershipForEditorAndTests(Transform target)
@@ -1439,22 +1433,11 @@ public class RunResultPanelUI : MonoBehaviour
         return HasUsableSceneOwnership(target);
     }
 
-    public static bool ShouldScheduleDeferredInitializationForEditorAndTests(
-        bool isPlaying,
-        bool isInitialized,
-        bool hasUsableSceneOwnership,
-        bool isAlreadyScheduled,
-        bool isActiveAndEnabled)
-    {
-        return ShouldScheduleDeferredInitialization(
-            isPlaying,
-            isInitialized,
-            hasUsableSceneOwnership,
-            isAlreadyScheduled,
-            isActiveAndEnabled);
-    }
+
+
 #endif
 
+#if UNITY_EDITOR
     private void ConfigureTextRect(
         TextMeshProUGUI text,
         Vector2 anchoredPosition,
@@ -1484,11 +1467,14 @@ public class RunResultPanelUI : MonoBehaviour
         rectTransform.localScale = Vector3.one;
     }
 
+#endif
+
     private void SetLocalY(RectTransform rectTransform, float y)
     {
         rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x, y);
     }
 
+#if UNITY_EDITOR
     private void DisableDecorativeChildImages(RectTransform root, Image preservedImage)
     {
         if (root == null)
@@ -1526,6 +1512,8 @@ public class RunResultPanelUI : MonoBehaviour
             continueButton = GetComponentInChildren<Button>(true);
         }
     }
+
+#endif
 
     private void SetVisible(bool visible)
     {

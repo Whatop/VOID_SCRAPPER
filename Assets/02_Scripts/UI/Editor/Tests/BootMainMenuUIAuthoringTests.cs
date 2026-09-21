@@ -30,85 +30,30 @@ public sealed class BootMainMenuUIAuthoringTests
         previousScene = SceneManager.GetActiveScene();
         previousEventSystem = EventSystem.current;
         testScene = EditorSceneManager.NewPreviewScene();
-        Assert.That(
-            SceneManager.GetActiveScene(),
-            Is.EqualTo(previousScene),
-            "Creating the isolated preview fixture must not replace the user's active scene.");
-
-        GameObject controllerObject = CreateTestGameObject("MainMenuRuntime", false);
-        controller = controllerObject.AddComponent<MainMenuController>();
-        ConfigureControllerAssets(controller);
-
-        GameObject eventSystemObject = CreateTestGameObject("EventSystem", false);
-        eventSystemObject.AddComponent<EventSystem>();
-        eventSystemObject.AddComponent<InputSystemUIInputModule>();
-        Assert.That(
-            EventSystem.current,
-            Is.SameAs(previousEventSystem),
-            "The inactive preview fixture EventSystem must not replace the user's EventSystem.");
-
-        GameObject faderObject = CreateTestGameObject("ScreenFaderCanvas", false);
-        faderObject.AddComponent<CanvasGroup>();
-        faderObject.AddComponent<ScreenFader>();
     }
 
     [TearDown]
     public void TearDown()
     {
-        if (previousScene.IsValid() &&
-            previousScene.isLoaded &&
-            SceneManager.GetActiveScene() != previousScene)
+        try
         {
-            SceneManager.SetActiveScene(previousScene);
+            if (testScene.IsValid() && testScene.isLoaded) AuthoredRuntimeFixture.Close(testScene);
         }
-
-        if (testScene.IsValid() && testScene.isLoaded)
+        finally
         {
-            EditorSceneManager.ClosePreviewScene(testScene);
-        }
-
-        for (int i = ownedObjects.Count - 1; i >= 0; i--)
-        {
-            if (ownedObjects[i] != null && !EditorUtility.IsPersistent(ownedObjects[i]))
+            testScene = default;
+            for (int i = ownedObjects.Count - 1; i >= 0; i--)
             {
-                Object.DestroyImmediate(ownedObjects[i]);
+                if (ownedObjects[i] != null && !EditorUtility.IsPersistent(ownedObjects[i]))
+                    Object.DestroyImmediate(ownedObjects[i]);
             }
+            ownedObjects.Clear();
         }
-
-        ownedObjects.Clear();
         Assert.That(
             EventSystem.current,
             Is.SameAs(previousEventSystem),
             "Fixture teardown must preserve the user's EventSystem authority.");
-    }
-
-    [Test]
-    public void Installer_CreatesAuthoredHierarchyAndSerializedBindings()
-    {
-        Assert.That(Install(out BootMainMenuView view), Is.True);
-        Assert.That(view.MenuRoot, Is.Not.Null);
-        Assert.That(view.TitleRoot, Is.Not.Null);
-        Assert.That(view.ContinueButton, Is.Not.Null);
-        Assert.That(view.NewGameButton, Is.Not.Null);
-        Assert.That(view.SettingsButton, Is.Not.Null);
-        Assert.That(view.ExitButton, Is.Not.Null);
-        Assert.That(view.SharedOptions.HasAuthoredLayout, Is.True);
-        Assert.That(view.BackgroundRoot, Is.Not.Null);
-        Assert.That(view.SpaceBackground, Is.Not.Null);
-        Assert.That(view.SpaceBackground.HasAuthoredVisuals, Is.True);
-        Assert.That(
-            view.SpaceBackground.AuthoredStars.Count,
-            Is.EqualTo(MainMenuSpaceBackground.RequiredAuthoredStarCount));
-        Assert.That(
-            view.SpaceBackground.AuthoredAsteroids.Count,
-            Is.EqualTo(MainMenuSpaceBackground.RequiredAuthoredAsteroidCount));
-        Assert.That(view.SpaceBackground.CursePasserRect, Is.Not.Null);
-        Assert.That(
-            GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(view.BackgroundRoot.gameObject),
-            Is.Zero);
-        Assert.That(controller.AuthoredView, Is.SameAs(view));
-        AssertContinueBindingComplete(view);
-        Assert.That(view.GetComponentsInChildren<Button>(true).Length, Is.GreaterThan(4));
+        Assert.That(SceneManager.GetActiveScene().handle, Is.EqualTo(previousScene.handle));
     }
 
     [Test]
@@ -143,256 +88,6 @@ public sealed class BootMainMenuUIAuthoringTests
             Is.SameAs(typeof(MainMenuController).Assembly));
         Assert.That(EditorUtility.IsPersistent(script), Is.True);
         Assert.That(AssetDatabase.AssetPathToGUID(ButtonPresenterScriptPath), Is.Not.Empty);
-    }
-
-    [Test]
-    public void Installer_ReusesCanvasAndEventSystemAndIsIdempotent()
-    {
-        Assert.That(Install(out BootMainMenuView first), Is.True);
-        int buttonCount = first.GetComponentsInChildren<Button>(true).Length;
-        EventSystem eventSystem = FindInTestScene<EventSystem>()[0];
-
-        Assert.That(Install(out BootMainMenuView second), Is.True);
-        Assert.That(second, Is.SameAs(first));
-        Assert.That(FindInTestScene<BootMainMenuView>().Length, Is.EqualTo(1));
-        Assert.That(FindInTestScene<Canvas>().Length, Is.EqualTo(1));
-        Assert.That(FindInTestScene<EventSystem>().Length, Is.EqualTo(1));
-        Assert.That(FindInTestScene<EventSystem>()[0], Is.SameAs(eventSystem));
-        Assert.That(second.GetComponentsInChildren<Button>(true).Length, Is.EqualTo(buttonCount));
-        Assert.That(second.ContinueButton.onClick.GetPersistentEventCount(), Is.Zero);
-    }
-
-    [Test]
-    public void Installer_RerunPreservesManualRectAndColorChanges()
-    {
-        Assert.That(Install(out BootMainMenuView view), Is.True);
-        RectTransform menuRect = view.MenuRoot.transform as RectTransform;
-        Image buttonImage = view.NewGameButton.targetGraphic as Image;
-        Vector2 authoredPosition = new Vector2(-101f, 7f);
-        Color authoredColor = new Color(0.42f, 0.18f, 0.64f, 0.73f);
-        menuRect.anchoredPosition = authoredPosition;
-        buttonImage.color = authoredColor;
-
-        Assert.That(Install(out BootMainMenuView rerun), Is.True);
-        Assert.That(rerun.MenuRoot.transform, Is.SameAs(menuRect));
-        Assert.That(menuRect.anchoredPosition, Is.EqualTo(authoredPosition));
-        Assert.That(buttonImage.color, Is.EqualTo(authoredColor));
-    }
-
-    [Test]
-    public void Installer_RepairsPartialBackgroundWithoutReplacingExistingVisuals()
-    {
-        Assert.That(Install(out BootMainMenuView view), Is.True);
-        RectTransform preservedStar = view.SpaceBackground.AuthoredStars[4];
-        RectTransform preservedAsteroid = view.SpaceBackground.AuthoredAsteroids[2];
-        Image preservedStarImage = preservedStar.GetComponent<Image>();
-        Vector2 authoredPosition = new Vector2(73f, -29f);
-        Color authoredColor = new Color(0.21f, 0.54f, 0.88f, 0.31f);
-        preservedStar.anchoredPosition = authoredPosition;
-        preservedStarImage.color = authoredColor;
-
-        Object.DestroyImmediate(view.SpaceBackground.AuthoredStars[9].gameObject);
-        Object.DestroyImmediate(view.SpaceBackground.AuthoredAsteroids[5].gameObject);
-        Object.DestroyImmediate(view.SpaceBackground.CursePasserRect.gameObject);
-
-        Assert.That(Install(out BootMainMenuView repaired), Is.True);
-        Assert.That(repaired.SpaceBackground.HasAuthoredVisuals, Is.True);
-        Assert.That(repaired.SpaceBackground.AuthoredStars[4], Is.SameAs(preservedStar));
-        Assert.That(repaired.SpaceBackground.AuthoredAsteroids[2], Is.SameAs(preservedAsteroid));
-        Assert.That(preservedStar.anchoredPosition, Is.EqualTo(authoredPosition));
-        Assert.That(preservedStarImage.color, Is.EqualTo(authoredColor));
-        Assert.That(repaired.SpaceBackground.AuthoredStars[9], Is.Not.Null);
-        Assert.That(repaired.SpaceBackground.AuthoredAsteroids[5], Is.Not.Null);
-        Assert.That(repaired.SpaceBackground.CursePasserRect, Is.Not.Null);
-    }
-
-    [Test]
-    public void Installer_RepairsMissingBackgroundComponentAndViewReference()
-    {
-        Assert.That(Install(out BootMainMenuView view), Is.True);
-        RectTransform backgroundRoot = view.BackgroundRoot;
-        RectTransform existingStar = view.SpaceBackground.AuthoredStars[0];
-        Object.DestroyImmediate(view.SpaceBackground);
-        SetObjectReference(view, "spaceBackground", null);
-
-        BootMainMenuValidationReport beforeRepair = BootMainMenuUIInstaller.ValidateForTests(testScene);
-        Assert.That(beforeRepair.IsValid, Is.False);
-        Assert.That(beforeRepair.Format(), Does.Contain("missing MainMenuSpaceBackground"));
-
-        Assert.That(Install(out BootMainMenuView repaired), Is.True);
-        Assert.That(repaired.BackgroundRoot, Is.SameAs(backgroundRoot));
-        Assert.That(repaired.SpaceBackground, Is.Not.Null);
-        Assert.That(repaired.SpaceBackground.AuthoredStars[0], Is.SameAs(existingStar));
-        Assert.That(backgroundRoot.GetComponents<MainMenuSpaceBackground>().Length, Is.EqualTo(1));
-        Assert.That(BootMainMenuUIInstaller.ValidateForTests(testScene).IsValid, Is.True);
-    }
-
-    [Test]
-    public void Installer_RepairsMissingBackgroundComponentOnExistingBackgroundInPlace()
-    {
-        GameObject authoredRoot = CreateTestGameObject(
-            "BootMainMenuUI",
-            true,
-            typeof(RectTransform),
-            typeof(BootMainMenuView));
-        BootMainMenuView existingView = authoredRoot.GetComponent<BootMainMenuView>();
-        GameObject backgroundObject = BootMainMenuAuthoringObjectFactory.CreateChild(
-            "Background",
-            authoredRoot.transform,
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image));
-        RectTransform preservedRect = backgroundObject.GetComponent<RectTransform>();
-        Image preservedImage = backgroundObject.GetComponent<Image>();
-        Vector2 preservedPosition = new Vector2(13f, -7f);
-        Vector3 preservedScale = new Vector3(0.94f, 0.91f, 1f);
-        Color preservedColor = new Color(0.19f, 0.23f, 0.31f, 0.87f);
-        Shader uiShader = Shader.Find("UI/Default");
-        Assert.That(uiShader, Is.Not.Null);
-        Material preservedMaterial = Track(new Material(uiShader));
-        preservedRect.anchoredPosition = preservedPosition;
-        preservedRect.localScale = preservedScale;
-        preservedImage.color = preservedColor;
-        preservedImage.material = preservedMaterial;
-        SetObjectReference(existingView, "backgroundRoot", preservedRect);
-
-        Assert.That(backgroundObject.GetComponent<MainMenuSpaceBackground>(), Is.Null);
-        Assert.That(Install(out BootMainMenuView repaired), Is.True);
-        Assert.That(repaired, Is.SameAs(existingView));
-        Assert.That(repaired.BackgroundRoot.gameObject, Is.SameAs(backgroundObject));
-        Assert.That(repaired.BackgroundRoot, Is.SameAs(preservedRect));
-        Assert.That(repaired.BackgroundRoot.GetComponent<Image>(), Is.SameAs(preservedImage));
-        Assert.That(preservedRect.anchoredPosition, Is.EqualTo(preservedPosition));
-        Assert.That(preservedRect.localScale, Is.EqualTo(preservedScale));
-        Assert.That(preservedImage.color, Is.EqualTo(preservedColor));
-        Assert.That(preservedImage.material, Is.SameAs(preservedMaterial));
-        Assert.That(repaired.SpaceBackground, Is.Not.Null);
-        Assert.That(
-            backgroundObject.GetComponents<MainMenuSpaceBackground>().Length,
-            Is.EqualTo(1));
-        Assert.That(
-            GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(backgroundObject),
-            Is.Zero);
-        Assert.That(
-            repaired.SpaceBackground.AuthoredStars.Count,
-            Is.EqualTo(MainMenuSpaceBackground.RequiredAuthoredStarCount));
-        Assert.That(
-            repaired.SpaceBackground.AuthoredAsteroids.Count,
-            Is.EqualTo(MainMenuSpaceBackground.RequiredAuthoredAsteroidCount));
-        Assert.That(repaired.SpaceBackground.CursePasserRect, Is.Not.Null);
-        Assert.That(repaired.SpaceBackground.HasAuthoredVisuals, Is.True);
-        Assert.That(BootMainMenuUIInstaller.ValidateForTests(testScene).IsValid, Is.True);
-    }
-
-    [Test]
-    public void Installer_RepairsNullSpaceBackgroundBindingAndPreservesRenamedTypedChild()
-    {
-        Assert.That(Install(out BootMainMenuView view), Is.True);
-        MainMenuSpaceBackground background = view.SpaceBackground;
-        RectTransform renamedStar = background.AuthoredStars[3];
-        renamedStar.name = "UserRenamedStar";
-        SetObjectReference(view, "spaceBackground", null);
-
-        BootMainMenuValidationReport beforeRepair = BootMainMenuUIInstaller.ValidateForTests(testScene);
-        Assert.That(beforeRepair.Format(), Does.Contain("spaceBackground is not assigned"));
-
-        Assert.That(Install(out BootMainMenuView repaired), Is.True);
-        Assert.That(repaired.SpaceBackground, Is.SameAs(background));
-        Assert.That(repaired.SpaceBackground.AuthoredStars[3], Is.SameAs(renamedStar));
-        Assert.That(renamedStar.name, Is.EqualTo("UserRenamedStar"));
-        Assert.That(repaired.SpaceBackground.HasDuplicateAuthoredReferences, Is.False);
-        Assert.That(BootMainMenuUIInstaller.ValidateForTests(testScene).IsValid, Is.True);
-    }
-
-    [Test]
-    public void Installer_RepairsMissingContinuePresenterBeforeControllerBinding()
-    {
-        Assert.That(Install(out BootMainMenuView view), Is.True);
-        Button preservedButton = view.ContinueButton;
-        MainMenuButtonPresenter preservedPresenter =
-            preservedButton.GetComponent<MainMenuButtonPresenter>();
-        RectTransform preservedRect = preservedButton.transform as RectTransform;
-        Image preservedImage = preservedButton.targetGraphic as Image;
-        Vector2 authoredPosition = new Vector2(-17f, 31f);
-        Color authoredColor = new Color(0.18f, 0.34f, 0.52f, 0.73f);
-        preservedRect.anchoredPosition = authoredPosition;
-        preservedImage.color = authoredColor;
-
-        SerializedObject serializedView = new SerializedObject(view);
-        SerializedProperty continueBinding = serializedView.FindProperty("continueBinding");
-        continueBinding.FindPropertyRelative("presenter").objectReferenceValue = null;
-        serializedView.ApplyModifiedPropertiesWithoutUndo();
-
-        BootMainMenuValidationReport beforeRepair =
-            BootMainMenuUIInstaller.ValidateForTests(testScene);
-        Assert.That(beforeRepair.IsValid, Is.False);
-        Assert.That(
-            beforeRepair.Errors,
-            Does.Contain(
-                "BootMainMenuView has a missing serialized reference: " +
-                "'continueBinding.presenter'."));
-
-        Assert.That(Install(out BootMainMenuView repaired), Is.True);
-        Assert.That(repaired, Is.SameAs(view));
-        Assert.That(repaired.ContinueButton, Is.SameAs(preservedButton));
-        Assert.That(
-            preservedButton.GetComponent<MainMenuButtonPresenter>(),
-            Is.SameAs(preservedPresenter));
-        Assert.That(
-            preservedButton.GetComponents<MainMenuButtonPresenter>().Length,
-            Is.EqualTo(1));
-        Assert.That(preservedRect.anchoredPosition, Is.EqualTo(authoredPosition));
-        Assert.That(preservedImage.color, Is.EqualTo(authoredColor));
-        AssertContinueBindingComplete(repaired);
-        Assert.That(controller.AuthoredView, Is.SameAs(repaired));
-
-        System.Reflection.MethodInfo bindMethod = typeof(MainMenuController).GetMethod(
-            "TryBindAuthoredView",
-            System.Reflection.BindingFlags.Instance |
-            System.Reflection.BindingFlags.NonPublic);
-        Assert.That(bindMethod, Is.Not.Null);
-        Assert.That((bool)bindMethod.Invoke(controller, null), Is.True);
-    }
-
-    [Test]
-    public void Validator_PassesCorrectFixtureAndReferenceLayout()
-    {
-        Assert.That(Install(out BootMainMenuView view), Is.True);
-        BootMainMenuValidationReport report = BootMainMenuUIInstaller.ValidateForTests(testScene);
-        Assert.That(report.IsValid, Is.True, report.Format());
-        Assert.That(view.CanvasScaler.referenceResolution, Is.EqualTo(new Vector2(480f, 270f)));
-        Assert.That(view.InitialSelectable.navigation.mode, Is.Not.EqualTo(Navigation.Mode.None));
-        Assert.That(
-            view.SpaceBackground.AuthoredStars.Count,
-            Is.EqualTo(MainMenuSpaceBackground.RequiredAuthoredStarCount));
-        Assert.That(
-            view.SpaceBackground.AuthoredAsteroids.Count,
-            Is.EqualTo(MainMenuSpaceBackground.RequiredAuthoredAsteroidCount));
-        Assert.That(view.SpaceBackground.CursePasserRect, Is.Not.Null);
-        Assert.That(
-            view.BackgroundRoot.GetComponent<MainMenuSpaceBackground>(),
-            Is.SameAs(view.SpaceBackground));
-    }
-
-    [Test]
-    public void Validator_ReportsMissingBindingsAndDuplicateAuthorities()
-    {
-        Assert.That(Install(out BootMainMenuView view), Is.True);
-        Object.DestroyImmediate(view.NewGameButton.gameObject);
-        GameObject duplicateRoot = CreateTestGameObject("DuplicateBootMainMenuUI", false);
-        duplicateRoot.AddComponent<BootMainMenuView>();
-        GameObject duplicateEventSystem = CreateTestGameObject("DuplicateEventSystem", false);
-        duplicateEventSystem.AddComponent<EventSystem>();
-
-        const string missingBinding =
-            "BootMainMenuView has a missing serialized reference: 'newGameBinding.button'.";
-        const string duplicateRoots = "Expected one BootMainMenuView marker, found 2.";
-        const string duplicateEventSystems = "Expected exactly one EventSystem in Boot, found 2.";
-        BootMainMenuValidationReport report = BootMainMenuUIInstaller.ValidateForTests(testScene);
-        Assert.That(report.IsValid, Is.False);
-        Assert.That(report.Errors, Does.Contain(missingBinding));
-        Assert.That(report.Errors, Does.Contain(duplicateRoots));
-        Assert.That(report.Errors, Does.Contain(duplicateEventSystems));
     }
 
     [Test]
@@ -439,14 +134,210 @@ public sealed class BootMainMenuUIAuthoringTests
         Assert.That(backgroundRuntimeSource, Does.Not.Contain("new GameObject"));
     }
 
-    private static void SetObjectReference(Object target, string propertyName, Object value)
+
+    [Test]
+    public void SavedBoot_OptionsHaveCanonicalDeepBindingsAndPreserveAuthoredValues()
     {
-        SerializedObject serialized = new SerializedObject(target);
-        SerializedProperty property = serialized.FindProperty(propertyName);
-        Assert.That(property, Is.Not.Null, propertyName);
-        property.objectReferenceValue = value;
-        serialized.ApplyModifiedPropertiesWithoutUndo();
+        OpenAuthoredBoot();
+        BootMainMenuView view = AuthoredRuntimeFixture.Single<BootMainMenuView>(testScene);
+        SharedOptionsMenuUI options = view.SharedOptions;
+        Transform[] transforms = options.GetComponentsInChildren<Transform>(true);
+        string[] before = System.Array.ConvertAll(transforms, t => EditorJsonUtility.ToJson(t));
+        Assert.That(view.OptionsRoot, Is.SameAs(view.transform.Find("SafeArea/OptionsPanel").gameObject));
+        Assert.That(options.gameObject, Is.SameAs(view.OptionsRoot));
+        Assert.That(options.TabController, Is.SameAs(view.OptionsRoot.GetComponent<SettingsMenuTabController>()));
+        Assert.That(options.SettingsPanel, Is.SameAs(view.OptionsRoot.GetComponent<SettlementSettingsPanel>()));
+        Assert.That(view.TryGetMissingRuntimeReference(out string error), Is.True, error);
+        Assert.That(options.TryValidateAuthoredLayout(out error), Is.True, error);
+        var tabs = new SerializedObject(options.TabController);
+        Assert.That(tabs.FindProperty("tabRoots").arraySize, Is.EqualTo(4));
+        Assert.That(tabs.FindProperty("tabButtons").arraySize, Is.EqualTo(4));
+        Assert.That(options.TabController.RebindRows.Count, Is.EqualTo(18));
+        Assert.That(new SerializedObject(options.SettingsPanel).FindProperty("rebindRows").arraySize, Is.EqualTo(18));
+        Assert.That(options.GetComponentsInChildren<InputRebindButtonUI>(true).Length, Is.EqualTo(18));
+        Assert.That(options.TabController.DropdownGuards.Count, Is.EqualTo(3));
+        string[] names = { "ResolutionDropdown", "FullscreenDropdown", "FrameLimitDropdown" };
+        for (int i = 0; i < names.Length; i++)
+            Assert.That(options.TabController.DropdownGuards[i].name, Is.EqualTo(names[i]));
+        Assert.That(System.Array.ConvertAll(transforms, t => EditorJsonUtility.ToJson(t)), Is.EqualTo(before));
     }
+
+    [TestCase("tabRoots", 0)]
+    [TestCase("tabButtons", 1)]
+    [TestCase("rebindRows", 17)]
+    [TestCase("dropdowns", 0)]
+    public void BootOptions_StaleInternalTabReferencesFailDeepValidation(string field, int index)
+    {
+        OpenAuthoredBoot();
+        BootMainMenuView view = AuthoredRuntimeFixture.Single<BootMainMenuView>(testScene);
+        var data = new SerializedObject(view.SharedOptions.TabController);
+        data.FindProperty(field).GetArrayElementAtIndex(index).objectReferenceValue = null;
+        data.ApplyModifiedPropertiesWithoutUndo();
+        Assert.That(view.SharedOptions.HasAuthoredLayout, Is.True, "Shallow valid references are insufficient.");
+        Assert.That(view.TryGetMissingRuntimeReference(out string error), Is.False);
+        Assert.That(error, Does.Contain(field));
+    }
+
+    [TestCase("masterVolumeSlider")]
+    [TestCase("showHudHintsToggle")]
+    [TestCase("resetAllBindingsButton")]
+    [TestCase("resolutionDropdown")]
+    [TestCase("confirmScreenButton")]
+    public void BootOptions_StaleSettingsControlsFailDeepValidation(string field)
+    {
+        OpenAuthoredBoot();
+        SharedOptionsMenuUI options = AuthoredRuntimeFixture.Single<BootMainMenuView>(testScene).SharedOptions;
+        var data = new SerializedObject(options.SettingsPanel);
+        data.FindProperty(field).objectReferenceValue = null;
+        data.ApplyModifiedPropertiesWithoutUndo();
+        Assert.That(options.TryValidateAuthoredLayout(out string error), Is.False);
+        Assert.That(error, Does.Contain(field));
+    }
+
+    [Test]
+    public void BootOptions_InvalidAuthoredConfigurationNeverBuildsOrReplacesObjects()
+    {
+        OpenAuthoredBoot();
+        SharedOptionsMenuUI options = AuthoredRuntimeFixture.Single<BootMainMenuView>(testScene).SharedOptions;
+        var data = new SerializedObject(options);
+        data.FindProperty("built").boolValue = false;
+        data.ApplyModifiedPropertiesWithoutUndo();
+        Transform[] before = options.GetComponentsInChildren<Transform>(true);
+        UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
+            new System.Text.RegularExpressions.Regex("Authored Boot options are invalid"));
+        Assert.That(options.ConfigureAuthored(null, null, null), Is.False);
+        Assert.That(options.GetComponentsInChildren<Transform>(true), Is.EqualTo(before));
+        Assert.That(new SerializedObject(options).FindProperty("built").boolValue, Is.False);
+        string source = File.ReadAllText(Path.Combine(Application.dataPath, "02_Scripts/UI/MainMenuController.cs"));
+        Assert.That(source, Does.Contain("SharedOptions.ConfigureAuthored("));
+        Assert.That(source, Does.Not.Contain("SharedOptions.Configure("));
+    }
+
+    [Test]
+    public void BootOptions_FirstOpenSurvivesDeferredAwake_AndTabsRetainContentAcrossReopens()
+    {
+        OpenAuthoredBoot();
+        SharedOptionsMenuUI options = AuthoredRuntimeFixture.Single<BootMainMenuView>(testScene).SharedOptions;
+        SettlementSettingsPanel settings = options.SettingsPanel;
+        // This fixture exercises the activation contract without applying display/audio
+        // preferences to the user's Editor. Actual initialization is covered in Play Mode.
+        SetPrivate(settings, "initialized", true);
+        Transform[] before = options.GetComponentsInChildren<Transform>(true);
+        settings.Open();
+        CallPrivate(settings, "Awake");
+        Assert.That(settings.IsOpen, Is.True, "Awake must not undo an accepted first Open.");
+        var tabData = new SerializedObject(options.TabController);
+        for (int cycle = 0; cycle < 3; cycle++)
+        {
+            settings.Open();
+            for (int tab = 0; tab < 4; tab++)
+            {
+                options.TabController.ShowTab(tab);
+                for (int i = 0; i < 4; i++)
+                {
+                    var root = (GameObject)tabData.FindProperty("tabRoots").GetArrayElementAtIndex(i).objectReferenceValue;
+                    Assert.That(root.activeSelf, Is.EqualTo(i == tab));
+                    if (i == tab) Assert.That(root.GetComponentsInChildren<TMP_Text>(true).Length, Is.GreaterThan(0));
+                }
+            }
+            settings.Close();
+            Assert.That(settings.IsOpen, Is.False);
+        }
+        Assert.That(options.GetComponentsInChildren<Transform>(true), Is.EqualTo(before));
+        Assert.That(options.TryValidateAuthoredLayout(out string error), Is.True, error);
+    }
+
+    [Test]
+    public void RunResult_SavedPresentationIsCompleteAndRuntimeContainsNoHierarchyBuilder()
+    {
+        OpenAuthoredBoot();
+        RunResultPanelUI result = AuthoredRuntimeFixture.Single<RunResultPanelUI>(testScene);
+        Assert.That(result.TryValidateAuthoredPresentation(out string error), Is.True, error);
+        Assert.That(result.transform.root.GetComponent<GameBootstrap>(), Is.Not.Null);
+        Assert.That(ReadPrivate<ResourceCounterUI[]>(result, "resourceRows").Length,
+            Is.GreaterThanOrEqualTo(System.Enum.GetValues(typeof(CurrencyType)).Length * 2));
+        string runtime = RemoveEditorOnlyBlocks(File.ReadAllText(Path.Combine(Application.dataPath,
+            "02_Scripts/Core/Bootstrap/RunResultPanelUI.cs")));
+        foreach (string mutation in new[] { "new GameObject", "Instantiate(", ".SetParent(", "DontDestroyOnLoad(", "CreateRuntimePanel", "CreateSceneOwnedRuntimeObject" })
+            Assert.That(runtime, Does.Not.Contain(mutation));
+        Assert.That(runtime, Does.Contain("RunEnded += HandleRunEnded"));
+        Assert.That(runtime, Does.Contain("continueButton.onClick.AddListener(Close)"));
+        Assert.That(runtime, Does.Contain("SceneFlowManager.Instance.LoadSettlement()"));
+        Assert.That(runtime, Does.Contain("ReleaseRunEndingPresentationOwnership()"));
+    }
+
+    [TestCase("resultCard")]
+    [TestCase("continueButton")]
+    [TestCase("detailText")]
+    public void RunResult_MissingAuthoredReferenceFailsWithoutAllocating(string field)
+    {
+        OpenAuthoredBoot();
+        RunResultPanelUI result = AuthoredRuntimeFixture.Single<RunResultPanelUI>(testScene);
+        var data = new SerializedObject(result);
+        data.FindProperty(field).objectReferenceValue = null;
+        data.ApplyModifiedPropertiesWithoutUndo();
+        Transform[] before = result.GetComponentsInChildren<Transform>(true);
+        Assert.That(result.TryValidateAuthoredPresentation(out string error), Is.False);
+        Assert.That(error, Does.Contain(field));
+        UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
+            new System.Text.RegularExpressions.Regex("RunResultPanelUI requires the authored Boot/CoreRoot presentation"));
+        Assert.That(CallPrivate(result, "EnsurePresentationLayout"), Is.False);
+        Assert.That(CallPrivate(result, "EnsurePresentationLayout"), Is.False, "Repeated validation does not rebuild or repeat the error.");
+        Assert.That(result.GetComponentsInChildren<Transform>(true), Is.EqualTo(before));
+    }
+
+    [TestCase(RunEndReason.SafeReturn, 11, 0)]
+    [TestCase(RunEndReason.Death, 0, 11)]
+    [TestCase(RunEndReason.FinalVictory, 11, 0)]
+    public void RunResult_AuthoredRowsRenderCommittedAndLostAmountsWithoutReparenting(RunEndReason reason, int committed, int lost)
+    {
+        OpenAuthoredBoot();
+        RunResultPanelUI result = AuthoredRuntimeFixture.Single<RunResultPanelUI>(testScene);
+        Transform[] before = result.GetComponentsInChildren<Transform>(true);
+        Transform[] parents = System.Array.ConvertAll(before, t => t.parent);
+        var data = new RunResultData { endReason = reason };
+        data.settledResources.Add(new RunSettlementResourceResult(CurrencyType.ScrapParts, 11, committed, lost));
+        CallPrivate(result, "RefreshSettlementResourceRows", data);
+        var rows = ReadPrivate<ResourceCounterUI[]>(result, "resourceRows");
+        Assert.That(rows[0].Amount, Is.EqualTo(11));
+        Assert.That(rows[0].gameObject.activeSelf, Is.True);
+        Assert.That(AuthoredRuntimeFixture.Read<TextMeshProUGUI>(rows[0], "amountText").text,
+            Is.EqualTo(lost > 0 ? "-11" : "+11"));
+        for (int i = 1; i < rows.Length; i++) Assert.That(rows[i].gameObject.activeSelf, Is.False);
+        Assert.That((string)CallPrivate(result, "GetReasonText", reason), Is.Not.Empty);
+        Assert.That((string)CallPrivate(result, "BuildSummaryText", data), Is.Not.Empty);
+        CallPrivate(result, "HideImmediate");
+        CallPrivate(result, "HideImmediate");
+        CallPrivate(result, "UnbindRuntimeCallbacks");
+        CallPrivate(result, "UnbindRuntimeCallbacks");
+        Assert.That(AuthoredRuntimeFixture.Read<GameObject>(result, "panelRoot").activeSelf, Is.False);
+        Assert.That(result.GetComponentsInChildren<Transform>(true), Is.EqualTo(before));
+        Assert.That(System.Array.ConvertAll(before, t => t.parent), Is.EqualTo(parents));
+    }
+
+    private void OpenAuthoredBoot()
+    {
+        AuthoredRuntimeFixture.Close(testScene);
+        testScene = AuthoredRuntimeFixture.Open("Boot");
+    }
+
+    [Test]
+    public void SettlementToBootUnload_NavigationPointerCleanupToleratesDestroyedOwner()
+    {
+        GameObject ownerRoot = CreateTestGameObject("UnloadingSettlementOwner", false);
+        SettlementUIController owner = ownerRoot.AddComponent<SettlementUIController>();
+        GameObject pointerRoot = CreateTestGameObject("UnloadingNavigationPointer", false);
+        var pointer = pointerRoot.AddComponent<SettlementPrimaryNavigationPointer>();
+        pointer.Configure(owner, 0);
+        Object.DestroyImmediate(ownerRoot);
+        Assert.DoesNotThrow(() => CallPrivate(pointer, "OnDisable"));
+        Assert.DoesNotThrow(() => CallPrivate(pointer, "OnDisable"));
+    }
+
+    private const System.Reflection.BindingFlags Private = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+    private static object CallPrivate(object target, string method, params object[] args) => target.GetType().GetMethod(method, Private).Invoke(target, args);
+    private static T ReadPrivate<T>(object target, string field) => (T)target.GetType().GetField(field, Private).GetValue(target);
+    private static void SetPrivate(object target, string field, object value) => target.GetType().GetField(field, Private).SetValue(target, value);
 
     private static string RemoveEditorOnlyBlocks(string source)
     {
@@ -464,39 +355,6 @@ public sealed class BootMainMenuUIAuthoringTests
             Assert.That(end, Is.GreaterThan(start));
             source = source.Remove(start, end + endToken.Length - start);
         }
-    }
-
-    private bool Install(out BootMainMenuView view)
-    {
-        bool installed = BootMainMenuUIInstaller.TryInstallForTests(
-            testScene,
-            out view,
-            out string result);
-        Assert.That(installed, Is.True, result);
-        Assert.That(controller.gameObject.activeSelf, Is.False);
-        AssertContinueBindingComplete(view);
-        AssertFixtureSceneOwnership(view);
-        return installed;
-    }
-
-    private void ConfigureControllerAssets(MainMenuController target)
-    {
-        Texture2D texture = Track(new Texture2D(2, 2, TextureFormat.RGBA32, false));
-        Sprite sprite = Track(Sprite.Create(texture, new Rect(0f, 0f, 2f, 2f), new Vector2(0.5f, 0.5f)));
-        SerializedObject serialized = new SerializedObject(target);
-        SerializedProperty inputActions = serialized.FindProperty("inputActions");
-        inputActions.objectReferenceValue = AssetDatabase.LoadAssetAtPath<InputActionAsset>(
-            "Assets/04_Input/PlayerControls.inputactions");
-        SerializedProperty font = serialized.FindProperty("uiFont");
-        TMP_FontAsset productionFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
-            "Assets/07_Txt/neodgm_pro.asset");
-        Assert.That(productionFont, Is.Not.Null);
-        font.objectReferenceValue = productionFont;
-        SerializedProperty asteroids = serialized.FindProperty("backgroundAsteroidSprites");
-        asteroids.arraySize = 1;
-        asteroids.GetArrayElementAtIndex(0).objectReferenceValue = sprite;
-        serialized.FindProperty("cursedBackgroundSprite").objectReferenceValue = sprite;
-        serialized.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private T[] FindInTestScene<T>() where T : Component
@@ -517,77 +375,15 @@ public sealed class BootMainMenuUIAuthoringTests
         return target;
     }
 
-    private GameObject CreateTestGameObject(
-        string objectName,
-        bool active,
-        params System.Type[] componentTypes)
+    private GameObject CreateTestGameObject(string objectName, bool active, params System.Type[] componentTypes)
     {
-        GameObject target = Track(BootMainMenuAuthoringObjectFactory.CreateRoot(
-            objectName,
-            testScene,
-            componentTypes));
+        GameObject target = Track(AuthoredRuntimeFixture.Create(testScene, null, objectName,
+            System.Array.IndexOf(componentTypes, typeof(RectTransform)) >= 0));
         target.SetActive(false);
+        foreach (System.Type type in componentTypes)
+            if (type != typeof(RectTransform) && type != typeof(Transform)) target.AddComponent(type);
         target.SetActive(active);
         return target;
     }
 
-    private static void AssertContinueBindingComplete(BootMainMenuView view)
-    {
-        SerializedObject serialized = new SerializedObject(view);
-        SerializedProperty binding = serialized.FindProperty("continueBinding");
-        Assert.That(binding, Is.Not.Null);
-        Assert.That(
-            binding.FindPropertyRelative("button").objectReferenceValue,
-            Is.SameAs(view.ContinueButton));
-        Assert.That(binding.FindPropertyRelative("label").objectReferenceValue, Is.Not.Null);
-        Assert.That(
-            binding.FindPropertyRelative("selectionAccent").objectReferenceValue,
-            Is.Not.Null);
-        Assert.That(binding.FindPropertyRelative("presenter").objectReferenceValue, Is.Not.Null);
-        Assert.That(view.ContinueButton, Is.Not.Null);
-    }
-
-    private void AssertFixtureSceneOwnership(BootMainMenuView view)
-    {
-        AssertBelongsToTestScene(controller.gameObject, "controller");
-        AssertBelongsToTestScene(view.gameObject, "authored root/view/canvas");
-        AssertBelongsToTestScene(view.SafeArea.gameObject, "SafeArea");
-        AssertBelongsToTestScene(view.BackgroundRoot.gameObject, "Background");
-        AssertBelongsToTestScene(view.ContinueButton.gameObject, "Continue binding");
-
-        EventSystem[] eventSystems = FindInTestScene<EventSystem>();
-        Assert.That(eventSystems.Length, Is.EqualTo(1));
-        AssertBelongsToTestScene(eventSystems[0].gameObject, "EventSystem");
-
-        for (int i = 0; i < view.SpaceBackground.AuthoredStars.Count; i++)
-        {
-            AssertBelongsToTestScene(
-                view.SpaceBackground.AuthoredStars[i].gameObject,
-                $"star {i:00}");
-        }
-
-        for (int i = 0; i < view.SpaceBackground.AuthoredAsteroids.Count; i++)
-        {
-            AssertBelongsToTestScene(
-                view.SpaceBackground.AuthoredAsteroids[i].gameObject,
-                $"asteroid {i:00}");
-        }
-
-        AssertBelongsToTestScene(
-            view.SpaceBackground.CursePasserRect.gameObject,
-            "Curse passer");
-    }
-
-    private void AssertBelongsToTestScene(GameObject target, string label)
-    {
-        Assert.That(target, Is.Not.Null, label);
-        Assert.That(
-            target.scene,
-            Is.EqualTo(testScene),
-            $"The fixture {label} must belong to its preview scene.");
-        Assert.That(
-            target.scene,
-            Is.Not.EqualTo(previousScene),
-            $"The fixture {label} must not belong to the user's active scene.");
-    }
 }

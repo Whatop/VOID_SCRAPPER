@@ -33,6 +33,8 @@ public class GameBootstrap : MonoBehaviour
     private bool startFlowExecuted;
     private bool rejectedAsDuplicate;
     private bool configurationErrorReported;
+    private bool awaitingSceneLoad;
+    private bool persistenceRequestIssued;
 
     private void Awake()
     {
@@ -53,11 +55,10 @@ public class GameBootstrap : MonoBehaviour
 
         Scene owningScene = gameObject.scene;
         bool isPreviewScene = IsPreviewScene(owningScene);
-        if (IsTransientLifecycleState(
-                Application.isPlaying,
-                isPreviewScene,
-                owningScene.IsValid(),
-                owningScene.isLoaded))
+        // Incoming scene objects can receive Awake before scene.isLoaded becomes
+        // true. Reject duplicate ownership now, at this script's early execution
+        // order, rather than letting the incoming managers initialize before Start.
+        if (isPreviewScene || !owningScene.IsValid())
         {
             return false;
         }
@@ -67,7 +68,25 @@ public class GameBootstrap : MonoBehaviour
         {
             rejectedAsDuplicate = true;
             RemoveDialogueManagersCreatedByIncomingBootScene(owningScene);
+            gameObject.SetActive(false);
             Destroy(gameObject);
+            return false;
+        }
+
+        // Initial authority still waits for a fully loaded scene before requesting
+        // persistence, initializing services or loading any player progression.
+        if (IsTransientLifecycleState(
+                Application.isPlaying,
+                isPreviewScene,
+                owningScene.IsValid(),
+                owningScene.isLoaded))
+        {
+            if (!isPreviewScene && owningScene.IsValid())
+            {
+                awaitingSceneLoad = true;
+                SceneManager.sceneLoaded -= HandleOwningSceneLoaded;
+                SceneManager.sceneLoaded += HandleOwningSceneLoaded;
+            }
             return false;
         }
 
@@ -80,6 +99,10 @@ public class GameBootstrap : MonoBehaviour
             return false;
         }
 
+        // Editor backup authorization recognizes the configuration, not safe mutation ownership.
+        if (!isAlreadyPersistent && IsEditorRestorationScene(owningScene)) return false;
+        if (persistenceRequestIssued && !isAlreadyPersistent) return false;
+
         Instance = this;
         if (ShouldRequestPersistence(
                 Application.isPlaying,
@@ -87,8 +110,12 @@ public class GameBootstrap : MonoBehaviour
                 owningScene.IsValid(),
                 owningScene.isLoaded,
                 transform.parent == null,
-                isAlreadyPersistent))
+                isAlreadyPersistent,
+                persistenceRequestIssued,
+                IsEditorRestorationScene(owningScene)))
         {
+            // Claim the mutation before invoking Unity: a reentrant callback cannot request it twice.
+            persistenceRequestIssued = true;
             DontDestroyOnLoad(gameObject);
         }
 
@@ -97,6 +124,14 @@ public class GameBootstrap : MonoBehaviour
         AudioManager.EnsureExists();
         runtimeInitialized = true;
         return true;
+    }
+
+    private void HandleOwningSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (!awaitingSceneLoad || scene != gameObject.scene) return;
+        awaitingSceneLoad = false;
+        SceneManager.sceneLoaded -= HandleOwningSceneLoaded;
+        TryInitializeRuntime();
     }
 
     private void ReportConfigurationError(Scene owningScene)
@@ -145,9 +180,11 @@ public class GameBootstrap : MonoBehaviour
         bool sceneIsValid,
         bool sceneIsLoaded,
         bool isRoot,
-        bool isAlreadyPersistent)
+        bool isAlreadyPersistent,
+        bool requestAlreadyIssued = false,
+        bool isEditorRestorationScene = false)
     {
-        return isPlaying &&
+        return !requestAlreadyIssued && !isEditorRestorationScene && isPlaying &&
                !isPreviewScene &&
                sceneIsValid &&
                sceneIsLoaded &&
@@ -202,6 +239,15 @@ public class GameBootstrap : MonoBehaviour
     }
 #endif
 
+    private static bool IsEditorRestorationScene(Scene scene)
+    {
+#if UNITY_EDITOR
+        return IsEditorPlayModeBackupScene(scene);
+#else
+        return false;
+#endif
+    }
+
     private static bool IsDontDestroyOnLoadScene(Scene scene)
     {
         return scene.IsValid() &&
@@ -220,6 +266,7 @@ public class GameBootstrap : MonoBehaviour
 
     private void OnDestroy()
     {
+        SceneManager.sceneLoaded -= HandleOwningSceneLoaded;
         if (Instance == this)
         {
             Instance = null;
@@ -241,17 +288,29 @@ public class GameBootstrap : MonoBehaviour
         for (int i = 0; i < controllers.Length; i++)
         {
             DialogueSystemController candidate = controllers[i];
-            if (candidate == null ||
-                candidate == canonicalController ||
-                candidate.gameObject.scene != incomingBootScene)
+            if (DeactivateIncomingDialogueManager(incomingBootScene, canonicalController, candidate))
             {
-                continue;
+                Destroy(candidate.gameObject);
             }
-
-            GameObject duplicateRoot = candidate.gameObject;
-            duplicateRoot.SetActive(false);
-            Destroy(duplicateRoot);
         }
+    }
+
+    private static bool DeactivateIncomingDialogueManager(
+        Scene incomingBootScene,
+        DialogueSystemController canonicalController,
+        DialogueSystemController candidate)
+    {
+        if (!incomingBootScene.IsValid() || canonicalController == null ||
+            candidate == null || candidate == canonicalController ||
+            candidate.gameObject.scene != incomingBootScene)
+        {
+            return false;
+        }
+
+        // Deactivate the complete incoming root BEFORE deferred destruction. Its
+        // localization, bridge, dialogue UI and input components must not initialize.
+        candidate.gameObject.SetActive(false);
+        return true;
     }
 
 #if UNITY_EDITOR
@@ -261,7 +320,9 @@ public class GameBootstrap : MonoBehaviour
         bool sceneIsValid,
         bool sceneIsLoaded,
         bool isRoot,
-        bool isAlreadyPersistent)
+        bool isAlreadyPersistent,
+        bool requestAlreadyIssued = false,
+        bool isEditorRestorationScene = false)
     {
         return ShouldRequestPersistence(
             isPlaying,
@@ -269,7 +330,9 @@ public class GameBootstrap : MonoBehaviour
             sceneIsValid,
             sceneIsLoaded,
             isRoot,
-            isAlreadyPersistent);
+            isAlreadyPersistent,
+            requestAlreadyIssued,
+            isEditorRestorationScene);
     }
 
     public static bool IsTransientLifecycleStateForEditorAndTests(
@@ -300,7 +363,7 @@ public class GameBootstrap : MonoBehaviour
 
     private void Start()
     {
-        if (!TryInitializeRuntime() || startFlowExecuted)
+        if (!runtimeInitialized || startFlowExecuted)
         {
             return;
         }

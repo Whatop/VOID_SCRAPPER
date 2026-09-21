@@ -12,6 +12,8 @@ public class BossCampaignDefinition : ScriptableObject
     [Header("Permanent Story Reward")]
     [SerializeField] private BossStoryPart storyPart = BossStoryPart.SectorStabilizer;
     [SerializeField] private bool grantStoryPartOnFirstDefeat = true;
+    [Tooltip("Optional dedicated art. None uses the authored world recovery core and hides the inventory icon.")]
+    [SerializeField] private Sprite storyPartSprite;
 
     [Header("Guaranteed Run Passive")]
     [SerializeField] private TraitDefinition guaranteedPassive;
@@ -25,6 +27,7 @@ public class BossCampaignDefinition : ScriptableObject
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? bossId.ToString() : displayName;
     public string Subtitle => subtitle ?? string.Empty;
     public BossStoryPart StoryPart => storyPart;
+    public Sprite StoryPartSprite => storyPartSprite;
     public bool GrantStoryPartOnFirstDefeat => grantStoryPartOnFirstDefeat;
     public TraitDefinition GuaranteedPassive => guaranteedPassive;
     public bool GrantGuaranteedPassiveEachDefeat => grantGuaranteedPassiveEachDefeat;

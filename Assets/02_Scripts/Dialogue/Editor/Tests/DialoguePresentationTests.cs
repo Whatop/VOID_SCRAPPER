@@ -2,15 +2,19 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text;
+using DG.Tweening;
 using NUnit.Framework;
 using PixelCrushers.DialogueSystem;
 using TMPro;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public sealed class DialoguePresentationTests
+public sealed partial class DialoguePresentationTests
 {
     private GameObject createdObject;
 
@@ -22,6 +26,111 @@ public sealed class DialoguePresentationTests
             UnityEngine.Object.DestroyImmediate(createdObject);
             createdObject = null;
         }
+    }
+
+    [Test]
+    public void RemoteIntro_IsExplicitOncePerSessionAndCleansUpWithoutChangingLocalDialogue()
+    {
+        Scene scene = EditorSceneManager.NewPreviewScene();
+        FieldInfo instance = typeof(DialogueManager).GetField("m_instance", BindingFlags.Static | BindingFlags.NonPublic);
+        object previous = instance.GetValue(null);
+        bool quitting = DialogueSystemController.applicationIsQuitting;
+        GameObject priorTweenOwner = DOTween.instance != null ? DOTween.instance.gameObject : null;
+        DialogueCinematicPresentationController presenter = null;
+        try
+        {
+            GameObject root = AuthoredRuntimeFixture.Create(scene, null, "RemoteIntroFixture", true);
+            root.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+            RectTransform canvasRect = (RectTransform)root.transform;
+            canvasRect.sizeDelta = new Vector2(480f, 270f);
+            DialogueSystemController controller = root.AddComponent<DialogueSystemController>();
+            instance.SetValue(null, controller);
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DialoguePresentationValidator.DialogueUiPrefabPath);
+            GameObject ui = UnityEngine.Object.Instantiate(prefab, root.transform);
+            ui.SetActive(true);
+            RectTransform uiRect = (RectTransform)ui.transform;
+            uiRect.anchorMin = Vector2.zero;
+            uiRect.anchorMax = Vector2.one;
+            uiRect.sizeDelta = Vector2.zero;
+            controller.dialogueUI = ui.GetComponent<StandardDialogueUI>();
+            presenter = ui.GetComponent<DialogueCinematicPresentationController>();
+            InvokePresenter(presenter, "Awake");
+            controller.LastConversationStarted = Phase2CStoryDialogueIds.TutorialOpeningConversation;
+            controller.isAlternateConversationActive = true;
+            // Global/local conversation notification alone must not opt into remote presentation.
+            InvokePresenter(presenter, "HandleConversationStarted", null);
+            Assert.That(presenter.IsIncomingCommunicationIntroActive, Is.False);
+            DialogueCinematicPresentationController.BeginIncomingCommunication();
+            FieldInfo tweenField = typeof(DialogueCinematicPresentationController).GetField(
+                "incomingCommunicationTween", BindingFlags.Instance | BindingFlags.NonPublic);
+            Sequence first = (Sequence)tweenField.GetValue(presenter);
+            Assert.That(first, Is.Not.Null);
+            Assert.That(first.Duration(), Is.InRange(0.15f, 0.4f));
+            DialogueCinematicPresentationController.BeginIncomingCommunication();
+            Assert.That(tweenField.GetValue(presenter), Is.SameAs(first));
+
+            DialogueSubtitleTypewriter typewriter = ui.GetComponentInChildren<DialogueSubtitleTypewriter>(true);
+            ActivateHierarchy(typewriter.transform, ui.transform);
+            typewriter.Awake();
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(canvasRect);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(uiRect);
+            TMP_Text text = typewriter.GetComponent<TMP_Text>();
+            Assert.That(text.gameObject.activeInHierarchy, Is.True);
+            Assert.That(text.rectTransform.rect.width, Is.GreaterThan(0f));
+            text.text = "Signal received.";
+            IEnumerator reveal = typewriter.Play(0);
+            Assert.That(reveal.MoveNext(), Is.True);
+            Assert.That(text.maxVisibleCharacters, Is.Zero, "First subtitle waits for the incoming panel reveal.");
+            first.Complete(true);
+            Assert.That(presenter.IsIncomingCommunicationIntroActive, Is.False);
+            for (int i = 0; i < 8 && text.maxVisibleCharacters == 0; i++) reveal.MoveNext();
+            Assert.That(text.maxVisibleCharacters, Is.GreaterThan(0), "Subtitle reveal must resume after the intro.");
+            (reveal as IDisposable)?.Dispose();
+            typewriter.Stop();
+            DialogueCinematicPresentationController.BeginIncomingCommunication();
+            Assert.That(presenter.IsIncomingCommunicationIntroActive, Is.False, "Later subtitles cannot restart this session's intro.");
+
+            InvokePresenter(presenter, "HandleStoppingAllConversations");
+            DialogueCinematicPresentationController.BeginIncomingCommunication();
+            Assert.That(presenter.IsIncomingCommunicationIntroActive, Is.True, "A new accepted session may reconnect.");
+            InvokePresenter(presenter, "OnDisable");
+            InvokePresenter(presenter, "OnDisable");
+            Assert.That(presenter.IsIncomingCommunicationIntroActive, Is.False);
+            foreach (StandardUISubtitlePanel panel in ui.GetComponentsInChildren<StandardUISubtitlePanel>(true))
+                Assert.That(panel.panel.localScale, Is.EqualTo(Vector3.one));
+        }
+        finally
+        {
+            if (presenter != null) InvokePresenter(presenter, "OnDisable");
+            EditorSceneManager.ClosePreviewScene(scene);
+            if (priorTweenOwner == null && DOTween.instance != null)
+                UnityEngine.Object.DestroyImmediate(DOTween.instance.gameObject);
+            instance.SetValue(null, previous);
+            DialogueSystemController.applicationIsQuitting = quitting;
+        }
+    }
+
+    [Test]
+    public void RemoteIntro_UsesExistingAudioOptInAndLeavesDirectNpcPathsUntouched()
+    {
+        string story = File.ReadAllText(Application.dataPath + "/02_Scripts/Dialogue/DialogueStoryEntryPoint.cs");
+        string tutorial = File.ReadAllText(Application.dataPath + "/02_Scripts/Tutorial/TutorialFlowController.cs");
+        string bridge = File.ReadAllText(Application.dataPath + "/02_Scripts/Dialogue/DialoguePixelCrushersBridge.cs");
+        string npc = File.ReadAllText(Application.dataPath + "/02_Scripts/RunRuntime/FieldNpcObjective.cs");
+        Assert.That(story, Does.Contain("AudioManager.Play(SoundEventIds.DialogueCommIncoming);\n            DialogueCinematicPresentationController.BeginIncomingCommunication();"));
+        Assert.That(tutorial, Does.Contain(": incomingTransmissionSoundEventId);\n                DialogueCinematicPresentationController.BeginIncomingCommunication();"));
+        Assert.That(bridge, Does.Not.Contain("BeginIncomingCommunication"));
+        Assert.That(npc, Does.Not.Contain("BeginIncomingCommunication"));
+        GameObject boss = AssetDatabase.LoadAssetAtPath<GameObject>(FinalAudioIntegrationInstaller.RemoteBossPrefabPath);
+        Assert.That(new SerializedObject(boss.GetComponent<DialogueStoryEntryPoint>())
+            .FindProperty("playIncomingCommunicationCue").boolValue, Is.True);
+    }
+
+    private static void InvokePresenter(DialogueCinematicPresentationController presenter, string method, params object[] arguments)
+    {
+        typeof(DialogueCinematicPresentationController).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)
+            .Invoke(presenter, arguments ?? new object[] { null });
     }
 
     [Test]

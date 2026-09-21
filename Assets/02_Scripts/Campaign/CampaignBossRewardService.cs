@@ -15,7 +15,9 @@ public static class CampaignBossRewardService
         BossCampaignDefinition definition,
         ExpeditionDepth depth)
     {
-        return definition != null
+        // Shared Raider keeps its serialized Region-1 definition. Its run-clear
+        // identity follows the current region and never grants a story part.
+        return definition != null && definition.GrantStoryPartOnFirstDefeat
             ? definition.BossId
             : CampaignProgressionCatalog.GetBossId(depth);
     }

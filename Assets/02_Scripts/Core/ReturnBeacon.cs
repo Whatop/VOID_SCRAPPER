@@ -13,6 +13,19 @@ public class ReturnBeacon : MonoBehaviour, IInteractable
 
     private bool returning;
     private Collider2D beaconCollider;
+    private bool presentationReady = true;
+    public bool PresentationReady => presentationReady;
+    public event System.Action PresentationDisabled;
+
+    public void SetPresentationReady(bool ready)
+    {
+        presentationReady = ready;
+    }
+
+    private void OnDisable()
+    {
+        PresentationDisabled?.Invoke();
+    }
 
     public string InteractionText => returning ? returningText : interactionText;
 
@@ -33,7 +46,7 @@ public class ReturnBeacon : MonoBehaviour, IInteractable
 
     public bool CanInteract(GameObject interactor)
     {
-        if (returning)
+        if (returning || !presentationReady)
         {
             return false;
         }
@@ -43,7 +56,9 @@ public class ReturnBeacon : MonoBehaviour, IInteractable
             return false;
         }
 
-        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun)
+        if (RunManager.Instance == null || !RunManager.Instance.HasActiveRun ||
+            RunManager.Instance.IsCompletingRun ||
+            (SceneFlowManager.Instance != null && SceneFlowManager.Instance.IsLoading))
         {
             return false;
         }
@@ -79,7 +94,7 @@ public class ReturnBeacon : MonoBehaviour, IInteractable
 
     public void ConfirmReturn()
     {
-        if (returning)
+        if (!CanInteract(gameObject))
         {
             return;
         }

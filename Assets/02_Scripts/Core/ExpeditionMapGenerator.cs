@@ -535,6 +535,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
     [ContextMenu("Generate Map")]
     public void Generate()
     {
+        useRepeatBossForGeneratedMap = CampaignProgressionCatalog.ShouldUseRepeatBoss(
+            ResolveCurrentDepth(), PermanentProgress.Instance);
         ResolveConfig();
         ResolveGeneratedRoot();
         ResolvePlayer();
@@ -3895,10 +3897,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
         return maximumY > region2CoreFinalPosition.y - clearance;
     }
 
+    private bool useRepeatBossForGeneratedMap;
+
     private bool IsRegion2SalvageDevourerMap()
     {
         ExpeditionDepth depth = ResolveCurrentDepth();
         return depth == ExpeditionDepth.DeepZone1 &&
+               !useRepeatBossForGeneratedMap &&
                CampaignProgressionCatalog.GetBossId(depth) == CampaignBossId.SalvageDevourer;
     }
 
@@ -3906,6 +3911,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
     {
         ExpeditionDepth depth = ResolveCurrentDepth();
         return depth == ExpeditionDepth.DeepZone2 &&
+               !useRepeatBossForGeneratedMap &&
                CampaignProgressionCatalog.GetBossId(depth) == CampaignBossId.PhaseGatekeeper;
     }
 

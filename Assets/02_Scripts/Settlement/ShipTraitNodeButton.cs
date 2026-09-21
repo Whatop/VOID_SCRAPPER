@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 public enum ShipTraitBranchKind
 {
@@ -45,6 +46,7 @@ public class ShipTraitNodeButton : MonoBehaviour
     [Tooltip("선택 테두리/하이라이트입니다.")]
     [SerializeField] private GameObject selectedRoot;
 
+    [Tooltip("Optional alpha feedback on this object or an explicitly assigned child visual wrapper.")]
     [SerializeField] private CanvasGroup canvasGroup;
 
     [Header("State Image Optional")]
@@ -74,6 +76,9 @@ public class ShipTraitNodeButton : MonoBehaviour
     private bool isAvailable;
     private bool isUnlocked;
     private bool isActive;
+    private Button subscribedButton;
+    private bool alphaCaptured;
+    private float baseAlpha = 1f;
 
     public ShipTraitBranchKind BranchKind => branchKind;
 
@@ -106,9 +111,57 @@ public class ShipTraitNodeButton : MonoBehaviour
 
     private void OnDestroy()
     {
+        UnbindClick();
+    }
+
+    private void OnDisable() => UnbindClick();
+    private void OnEnable() { if (owner != null) BindClick(); }
+    private void UnbindClick()
+    {
+        if (subscribedButton != null) subscribedButton.onClick.RemoveListener(HandleClick);
+        subscribedButton = null;
+    }
+    private void BindClick()
+    {
+        UnbindClick();
+        if (button == null) return;
+        for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+            if (button.onClick.GetPersistentTarget(i) == this && button.onClick.GetPersistentMethodName(i) == nameof(HandleClick) &&
+                button.onClick.GetPersistentListenerState(i) != UnityEngine.Events.UnityEventCallState.Off) return;
+        subscribedButton = button;
+        button.onClick.AddListener(HandleClick);
+    }
+
+    public void CollectPresentationErrors(List<string> errors)
+    {
+        var seen = new HashSet<Component>();
+        void Role(string field, Component value, bool self = false)
+        {
+            string reason = value == null ? "Missing binding" : value.gameObject.scene != gameObject.scene ? "Cross-scene ownership" :
+                (!self && value.transform == transform) || !value.transform.IsChildOf(transform) ? "Wrong ancestry" :
+                !seen.Add(value) ? "Duplicate role" : value is TMP_Text text && text.font == null ? "Missing font" : null;
+            if (reason != null) errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("ShipTraitNodeButton." + field, value, transform, gameObject.scene, reason));
+        }
+        Role(nameof(button), button, true);
+        Role(nameof(iconImage), iconImage);
+        Role(nameof(labelText), labelText);
+        Role(nameof(levelText), levelText);
+        Role(nameof(selectedRoot), selectedRoot != null ? selectedRoot.transform : null);
+        if (canvasGroup != null) Role(nameof(canvasGroup), canvasGroup, true);
+        if (stateImage != null) Role(nameof(stateImage), stateImage);
+        if (lockRoot != null) Role(nameof(lockRoot), lockRoot.transform);
+        if (activeRoot != null) Role(nameof(activeRoot), activeRoot.transform);
+        if (inactiveRoot != null) Role(nameof(inactiveRoot), inactiveRoot.transform);
         if (button != null)
         {
-            button.onClick.RemoveListener(HandleClick);
+            int callbacks = 0;
+            for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+                if (button.onClick.GetPersistentTarget(i) == this && button.onClick.GetPersistentListenerState(i) != UnityEngine.Events.UnityEventCallState.Off)
+                {
+                    callbacks++;
+                    if (button.onClick.GetPersistentMethodName(i) != nameof(HandleClick)) errors.Add("ShipTraitNodeButton.button: incorrect owned action mapping.");
+                }
+            if (callbacks > 1) errors.Add("ShipTraitNodeButton.button: duplicate persistent owned actions.");
         }
     }
 
@@ -125,11 +178,7 @@ public class ShipTraitNodeButton : MonoBehaviour
 
         CacheReferences();
 
-        if (button != null)
-        {
-            button.onClick.RemoveListener(HandleClick);
-            button.onClick.AddListener(HandleClick);
-        }
+        BindClick();
 
         SetStaticView(displayLabel, icon);
     }
@@ -160,7 +209,7 @@ public class ShipTraitNodeButton : MonoBehaviour
         {
             iconImage.sprite = icon;
             iconImage.enabled = icon != null;
-            iconImage.preserveAspect = true;
+            if (owner == null || !owner.UsesAuthoredPresentation) iconImage.preserveAspect = true;
         }
     }
 
@@ -214,6 +263,7 @@ public class ShipTraitNodeButton : MonoBehaviour
 
     private void CacheReferences()
     {
+        if (owner != null && owner.UsesAuthoredPresentation) return;
         if (button == null)
         {
             button = GetComponent<Button>();
@@ -285,17 +335,20 @@ public class ShipTraitNodeButton : MonoBehaviour
             return;
         }
 
+        if (!alphaCaptured) { baseAlpha = canvasGroup.alpha; alphaCaptured = true; }
+        float authoredAlpha = owner != null && owner.UsesAuthoredPresentation ? baseAlpha : 1f;
+
         if (!available)
         {
-            canvasGroup.alpha = lockedAlpha;
+            canvasGroup.alpha = authoredAlpha * lockedAlpha;
         }
         else if (unlocked && !active)
         {
-            canvasGroup.alpha = inactiveAlpha;
+            canvasGroup.alpha = authoredAlpha * inactiveAlpha;
         }
         else
         {
-            canvasGroup.alpha = activeAlpha;
+            canvasGroup.alpha = authoredAlpha * activeAlpha;
         }
     }
 
@@ -335,12 +388,12 @@ public class ShipTraitNodeButton : MonoBehaviour
 
         stateImage.enabled = shouldShow && hasSprite;
         stateImage.gameObject.SetActive(shouldShow && hasSprite);
-        stateImage.preserveAspect = true;
+        if (owner == null || !owner.UsesAuthoredPresentation) stateImage.preserveAspect = true;
     }
 
     private void HandleClick()
     {
-        if (owner == null)
+        if (owner == null || !owner.CanUseTraitInput)
         {
             return;
         }

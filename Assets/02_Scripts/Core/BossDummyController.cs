@@ -8,6 +8,7 @@ public class BossDummyController : MonoBehaviour
     [Header("References")]
     [SerializeField] private EnemyHealth enemyHealth;
     [SerializeField] private BossDeathPresentation deathPresentation;
+    [SerializeField] private NullDispatcherEndingPresentation finalEndingPresentation;
 
     private BossPatternController bossPatternController;
 
@@ -57,7 +58,9 @@ public class BossDummyController : MonoBehaviour
     private bool postDeathFlowStarted;
     private bool rewardExitCoordinatorStarted;
     private int grantedRegion2CoreAmount;
+    private bool recoveredStoryPart;
     private Vector3 resolvedBossDeathPosition;
+    private bool hasResolvedDeathContext;
     private CampaignBossId resolvedDeathBossId;
     private BossCampaignDefinition resolvedDeathCampaignDefinition;
     private Coroutine postDeathRoutine;
@@ -98,6 +101,8 @@ public class BossDummyController : MonoBehaviour
         postDeathFlowStarted = false;
         rewardExitCoordinatorStarted = false;
         grantedRegion2CoreAmount = 0;
+        recoveredStoryPart = false;
+        hasResolvedDeathContext = false;
         resolvedBossDeathPosition = transform.position;
         resolvedDeathBossId = CampaignBossId.None;
         resolvedDeathCampaignDefinition = null;
@@ -105,6 +110,7 @@ public class BossDummyController : MonoBehaviour
         activeRegion2CorePresentation = null;
         encounterBackgroundRestored = false;
         encounterBackgroundGenerator = null;
+        SubscribeRunEnd();
 
         if (enemyHealth != null)
         {
@@ -128,6 +134,7 @@ public class BossDummyController : MonoBehaviour
         }
 
         CleanupPostDeathPresentation();
+        deathPresentation?.CancelPresentation();
 
         if (!deathHandled)
         {
@@ -176,29 +183,37 @@ public class BossDummyController : MonoBehaviour
 
     private void HandleBossDied(EnemyHealth health)
     {
+        if (AcceptBossDeath())
+        {
+            postDeathRoutine = StartCoroutine(CompleteBossDeathAfterPresentation());
+        }
+    }
+
+    private bool AcceptBossDeath()
+    {
         if (deathHandled)
         {
-            return;
+            return false;
         }
 
         deathHandled = true;
         CacheResolvedDeathContext();
 
-        if (resolvedDeathBossId == CampaignBossId.SalvageDevourer)
-        {
-            ProcessCampaignRewardsOnce();
-        }
+        // Permanent recovery/save precedes every optional death/recovery tween.
+        ProcessCampaignRewardsOnce();
 
-        RestoreEncounterBackground(true);
+        if (!ShouldPlayFinalEnding()) RestoreEncounterBackground(true);
         bossPatternController?.StopCombatForDeathPresentation();
+        // Do not depend on EnemyHealth.Died subscriber order. Region-specific
+        // combat must relinquish its camera/arena before the death sequence starts.
+        GetComponent<FrigateTriadBossController>()?.StopCombatForDeathPresentation();
+        GetComponent<PhaseGatekeeperBossController>()?.StopCombatForDeathPresentation();
+        // End final combat before any death VFX, independently of Died subscriber order.
+        if (resolvedDeathBossId == CampaignBossId.NullDispatcher)
+            GetComponent<NullDispatcherBossController>()?.CancelEncounter();
+        ReleaseBossBattleState();
 
-        if (deathPresentation != null)
-        {
-            postDeathRoutine = StartCoroutine(CompleteBossDeathAfterPresentation());
-            return;
-        }
-
-        postDeathRoutine = StartCoroutine(CompleteBossDeathAfterPresentation());
+        return true;
     }
 
     private void RestoreEncounterBackground(bool playRecoveryOverlay)
@@ -248,20 +263,43 @@ public class BossDummyController : MonoBehaviour
 
     private void HandleRunEnded(RunResultData _)
     {
+        if (postDeathRoutine != null)
+        {
+            StopCoroutine(postDeathRoutine);
+            postDeathRoutine = null;
+        }
+        deathPresentation?.CancelPresentation();
         RestoreEncounterBackground(false);
         CleanupPostDeathPresentation();
     }
 
     private IEnumerator CompleteBossDeathAfterPresentation()
     {
-        if (deathPresentation != null)
+        try
         {
-            yield return deathPresentation.PlayRoutine(transform.position);
+            if (deathPresentation != null)
+            {
+                yield return deathPresentation.PlayRoutine(resolvedBossDeathPosition);
+            }
+        }
+        finally
+        {
+            deathPresentation?.CancelPresentation();
         }
 
+        if (ShouldPlayFinalEnding())
+        {
+            yield return finalEndingPresentation.PlayRoutine();
+            if (!finalEndingPresentation.Completed || IsRunEnding()) yield break;
+            RestoreEncounterBackground(true);
+        }
         yield return CompleteBossDeathRoutine();
         postDeathRoutine = null;
     }
+
+    private bool ShouldPlayFinalEnding() =>
+        resolvedDeathBossId == CampaignBossId.NullDispatcher && completeFinalBossAsVictory &&
+        finalEndingPresentation != null && finalEndingPresentation.enabled;
 
     private IEnumerator CompleteBossDeathRoutine()
     {
@@ -287,12 +325,6 @@ public class BossDummyController : MonoBehaviour
             yield break;
         }
 
-        if (resolvedDeathBossId == CampaignBossId.SalvageDevourer &&
-            grantedRegion2CoreAmount > 0)
-        {
-            yield return PlayRegion2CorePresentationRoutine();
-        }
-
         if (IsRunEnding())
         {
             CleanupPostDeathPresentation();
@@ -301,16 +333,26 @@ public class BossDummyController : MonoBehaviour
 
         CreateRewardExitCoordinator();
 
-        if (!grantSelectableBossReward &&
-            changeStateToExpeditionAfterDeath &&
-            GameStateManager.Instance != null)
+    }
+
+    private void ReleaseBossBattleState()
+    {
+        GameStateManager state = GameStateManager.Instance;
+        if (deathHandled && changeStateToExpeditionAfterDeath && !IsRunEnding() &&
+            resolvedDeathBossId != CampaignBossId.NullDispatcher &&
+            state != null && state.CurrentState == GameState.BossBattle)
         {
-            GameStateManager.Instance.ChangeState(GameState.Expedition);
+            state.ChangeState(GameState.Expedition);
         }
     }
 
     private void CacheResolvedDeathContext()
     {
+        if (hasResolvedDeathContext)
+        {
+            return;
+        }
+        hasResolvedDeathContext = true;
         if (resolvedDeathCampaignDefinition == null)
         {
             resolvedDeathCampaignDefinition = ResolveCampaignDefinition();
@@ -342,9 +384,14 @@ public class BossDummyController : MonoBehaviour
         bool grantStoryPart = resolvedDeathCampaignDefinition == null ||
                               resolvedDeathCampaignDefinition.GrantStoryPartOnFirstDefeat;
 
+        BossStoryPart part = CampaignProgressionCatalog.GetStoryPart(resolvedDeathBossId);
+        bool alreadyRecovered = PermanentProgress.Instance != null &&
+            PermanentProgress.Instance.HasBossStoryPart(part);
         RunManager.Instance.MarkBossDefeated(resolvedDeathBossId, grantStoryPart);
+        recoveredStoryPart = grantStoryPart && !alreadyRecovered &&
+            PermanentProgress.Instance != null && PermanentProgress.Instance.HasBossStoryPart(part);
 
-        if (resolvedDeathBossId == CampaignBossId.SalvageDevourer)
+        if (resolvedDeathBossId == CampaignBossId.SalvageDevourer && grantStoryPart)
         {
             grantedRegion2CoreAmount =
                 CampaignBossRewardService.GrantSalvageDevourerCoreReward(
@@ -358,39 +405,9 @@ public class BossDummyController : MonoBehaviour
         );
     }
 
-    private IEnumerator PlayRegion2CorePresentationRoutine()
-    {
-        if (region2CoreRewardPresentationPrefab == null || IsRunEnding())
-        {
-            yield break;
-        }
-
-        Region2BossCoreRewardPresentation presentation = Instantiate(
-            region2CoreRewardPresentationPrefab,
-            resolvedBossDeathPosition,
-            Quaternion.identity
-        );
-        if (presentation == null)
-        {
-            yield break;
-        }
-
-        activeRegion2CorePresentation = presentation;
-        yield return presentation.PlayRoutine(resolvedBossDeathPosition);
-
-        if (activeRegion2CorePresentation == presentation)
-        {
-            activeRegion2CorePresentation = null;
-        }
-
-        if (presentation != null)
-        {
-            Destroy(presentation.gameObject);
-        }
-    }
-
     private void CleanupPostDeathPresentation()
     {
+        finalEndingPresentation?.CancelPresentation();
         Region2BossCoreRewardPresentation presentation =
             activeRegion2CorePresentation;
         activeRegion2CorePresentation = null;
@@ -399,6 +416,29 @@ public class BossDummyController : MonoBehaviour
         {
             presentation.CleanupPresentation();
             Destroy(presentation.gameObject);
+        }
+    }
+
+    public static void ShowStoryPartRecovery(BossStoryPart part)
+    {
+        string key = part switch
+        {
+            BossStoryPart.SectorStabilizer => "system.campaign.recovered.sector_stabilizer",
+            BossStoryPart.MatterCompressor => "system.campaign.recovered.matter_compressor",
+            BossStoryPart.PhaseNavigationLens => "system.campaign.recovered.phase_navigation_lens",
+            _ => null
+        };
+        if (key != null && VoidScrapperLocalizationService.HasInstance)
+        {
+            FindFirstObjectByType<ExpeditionHUD>()?.ShowCommunication(
+                ShipCommunicationChannel.System,
+                VoidScrapperLocalizationService.Instance.GetText(key),
+                ShipCommunicationSeverity.Confirmation, 3f);
+        }
+        if (key != null)
+        {
+            FindFirstObjectByType<PlayerBuildStatusPanelUI>(FindObjectsInactive.Include)
+                ?.PresentStoryPartAcquired(part);
         }
     }
 
@@ -434,25 +474,30 @@ public class BossDummyController : MonoBehaviour
 
         rewardExitCoordinatorStarted = true;
         GameObject coordinatorObject = new GameObject("BossRewardExitCoordinator");
-        coordinatorObject.transform.position = transform.position;
+        coordinatorObject.transform.position = resolvedBossDeathPosition;
 
         BossRewardExitCoordinator coordinator = coordinatorObject.AddComponent<BossRewardExitCoordinator>();
         coordinator.Initialize(
             returnBeaconPrefab,
-            ResolveReturnBeaconSpawnPosition(),
+            resolvedBossDeathPosition,
             wormholePortalPrefab,
-            ResolveWormholeSpawnPosition(),
+            resolvedBossDeathPosition,
             grantSelectableBossReward,
             Mathf.Max(1, bossRewardChoiceCount),
             bossRewardCapsulePrefab,
-            ResolveBossRewardCapsuleSpawnPosition()
+            ResolveBossRewardCapsuleSpawnPosition(),
+            recoveredStoryPart || grantedRegion2CoreAmount > 0
+                ? region2CoreRewardPresentationPrefab : null,
+            recoveredStoryPart,
+            recoveredStoryPart ? CampaignProgressionCatalog.GetStoryPart(resolvedDeathBossId) : BossStoryPart.None,
+            resolvedDeathCampaignDefinition != null ? resolvedDeathCampaignDefinition.StoryPartSprite : null
         );
     }
 
 
     private Vector3 ResolveBossRewardCapsuleSpawnPosition()
     {
-        Vector3 basePosition = useBossDeathPosition ? transform.position : Vector3.zero;
+        Vector3 basePosition = useBossDeathPosition ? resolvedBossDeathPosition : Vector3.zero;
         return basePosition + (Vector3)bossRewardCapsuleSpawnOffset;
     }
 

@@ -1580,7 +1580,8 @@ public class AudioManager : MonoBehaviour
         }
 
         if (IsUiEvent(eventId) ||
-            SoundEventIds.ToNumbered(eventId) == SoundEventIds.SafeReturn)
+            SoundEventIds.ToNumbered(eventId) == SoundEventIds.SafeReturn ||
+            SoundEventIds.ToNumbered(eventId) == SoundEventIds.DialogueCommIncoming)
         {
             return true;
         }
@@ -1643,9 +1644,6 @@ public class AudioManager : MonoBehaviour
             SoundEventIds.ActionDenied ||
 
             numberedEventId ==
-            SoundEventIds.LevelUp ||
-
-            numberedEventId ==
             SoundEventIds.ReturnChoiceOpen ||
 
             numberedEventId ==
@@ -1653,9 +1651,6 @@ public class AudioManager : MonoBehaviour
 
             numberedEventId ==
             SoundEventIds.ShipDashStart ||
-
-            numberedEventId ==
-            SoundEventIds.ShipDashEnd ||
 
             numberedEventId ==
             SoundEventIds.ShipHit ||
@@ -1688,10 +1683,7 @@ public class AudioManager : MonoBehaviour
             SoundEventIds.ShopBuyFail ||
 
             numberedEventId ==
-            SoundEventIds.ShopItemSold ||
-
-            numberedEventId ==
-            SoundEventIds.ShopTransactionComplete;
+            SoundEventIds.DialogueCommIncoming;
     }
 
     private float ResolveAutomaticMinDistance(

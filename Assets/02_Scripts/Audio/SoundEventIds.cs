@@ -21,8 +21,6 @@ public static class SoundEventIds
     public const string ShopOpen = "16_shop_open";
     public const string ShopBuySuccess = "17_shop_buy_success";
     public const string ShopBuyFail = "18_shop_buy_fail";
-    public const string ShopItemSold = "19_shop_item_sold";
-    public const string ShopTransactionComplete = "20_shop_transaction_complete";
     public const string ShopWarning = "21_shop_warning";
     public const string ShopHostile = "22_shop_hostile";
     public const string TraitSelect = "23_trait_select";
@@ -42,8 +40,7 @@ public static class SoundEventIds
     public const string PickupScrap = "37_pickup_scrap";
     public const string PickupCore = "38_pickup_core";
     public const string PickupHeal = "39_pickup_heal";
-    public const string PickupExperience = "40_pickup_experience";
-    public const string LevelUp = "41_level_up";
+    public const string PickupTuningChip = "40_pickup_tuning_chip";
     public const string ReturnChoiceOpen = "42_return_choice_open";
     public const string SafeReturn = "43_safe_return";
     public const string ResultCountTick = "44_result_count_tick";
@@ -51,7 +48,6 @@ public static class SoundEventIds
     public const string EventStart = "46_event_start";
     public const string EventComplete = "47_event_complete";
     public const string ShipDashStart = "48_ship_dash_start";
-    public const string ShipDashEnd = "49_ship_dash_end";
     public const string ShipHit = "50_ship_hit";
     public const string ShipDeathBreakup = "51_ship_death_breakup";
     public const string MachineGunFire = "52_machinegun_fire_loop";
@@ -108,11 +104,14 @@ public static class SoundEventIds
     public const string MapRouteRemoved = "108_map_route_removed";
     public const string MissionReceived = "109_mission_received";
     public const string AmbTutorialLoop = "110_amb_tutorial_loop";
+    public const string DialogueCommIncoming = "111_dialogue_comm_incoming";
+    public const string DialogueCommHijack = "112_dialogue_comm_hijack";
+
+    // Retired slots 19, 20, 41 and 49 stay unused. Preserve the 100-104 gap.
 
     // 기존 코드 호환용 별칭
     public const string UiUpgrade = UiUpgradeSuccess;
     public const string RadarScanPulseUi = RadarScanPulse;
-    public const string PickupTuningChip = PickupExperience;
 
     private static readonly KeyValuePair<string, string>[] OrderedMappings =
     {
@@ -134,8 +133,6 @@ public static class SoundEventIds
         new KeyValuePair<string, string>("shop_open", "16_shop_open"),
         new KeyValuePair<string, string>("shop_buy_success", "17_shop_buy_success"),
         new KeyValuePair<string, string>("shop_buy_fail", "18_shop_buy_fail"),
-        new KeyValuePair<string, string>("shop_item_sold", "19_shop_item_sold"),
-        new KeyValuePair<string, string>("shop_transaction_complete", "20_shop_transaction_complete"),
         new KeyValuePair<string, string>("shop_warning", "21_shop_warning"),
         new KeyValuePair<string, string>("shop_hostile", "22_shop_hostile"),
         new KeyValuePair<string, string>("trait_select", "23_trait_select"),
@@ -155,8 +152,7 @@ public static class SoundEventIds
         new KeyValuePair<string, string>("pickup_scrap", "37_pickup_scrap"),
         new KeyValuePair<string, string>("pickup_core", "38_pickup_core"),
         new KeyValuePair<string, string>("pickup_heal", "39_pickup_heal"),
-        new KeyValuePair<string, string>("pickup_experience", "40_pickup_experience"),
-        new KeyValuePair<string, string>("level_up", "41_level_up"),
+        new KeyValuePair<string, string>("pickup_tuning_chip", "40_pickup_tuning_chip"),
         new KeyValuePair<string, string>("return_choice_open", "42_return_choice_open"),
         new KeyValuePair<string, string>("safe_return", "43_safe_return"),
         new KeyValuePair<string, string>("result_count_tick", "44_result_count_tick"),
@@ -164,7 +160,6 @@ public static class SoundEventIds
         new KeyValuePair<string, string>("event_start", "46_event_start"),
         new KeyValuePair<string, string>("event_complete", "47_event_complete"),
         new KeyValuePair<string, string>("ship_dash_start", "48_ship_dash_start"),
-        new KeyValuePair<string, string>("ship_dash_end", "49_ship_dash_end"),
         new KeyValuePair<string, string>("ship_hit", "50_ship_hit"),
         new KeyValuePair<string, string>("ship_death_breakup", "51_ship_death_breakup"),
         new KeyValuePair<string, string>("machinegun_fire_loop", "52_machinegun_fire_loop"),
@@ -221,6 +216,8 @@ public static class SoundEventIds
         new KeyValuePair<string, string>("map_route_removed", "108_map_route_removed"),
         new KeyValuePair<string, string>("mission_received", "109_mission_received"),
         new KeyValuePair<string, string>("amb_tutorial_loop", "110_amb_tutorial_loop"),
+        new KeyValuePair<string, string>("dialogue_comm_incoming", "111_dialogue_comm_incoming"),
+        new KeyValuePair<string, string>("dialogue_comm_hijack", "112_dialogue_comm_hijack"),
     };
 
     private static Dictionary<string, string> legacyToNumbered;

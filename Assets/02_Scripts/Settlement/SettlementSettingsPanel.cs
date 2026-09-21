@@ -65,6 +65,7 @@ public class SettlementSettingsPanel : MonoBehaviour
     private readonly int[] frameLimitValues = { 30, 60, 120, 144, -1 };
 
     private bool initialized;
+    private bool openRequested;
     private bool applyingSavedValues;
     private Coroutine confirmationRoutine;
 
@@ -93,6 +94,69 @@ public class SettlementSettingsPanel : MonoBehaviour
     private const string FrameLimitKey = "settings_frame_limit";
 
     public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
+    // Required only by the complete shared Options layout. Legacy consumers keep their optional controls.
+    public void CollectSharedOptionsBindingErrors(List<string> errors)
+    {
+        var roles = new HashSet<Component>();
+        void Role(string property, Component value)
+        {
+            if (value == null || value.gameObject.scene != gameObject.scene ||
+                (value.transform != transform && !value.transform.IsChildOf(transform)))
+                errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementSettingsPanel." + property,
+                    value, transform, gameObject.scene, value == null ? "Missing binding" : "Scene ownership or ancestry"));
+            else if (!roles.Add(value))
+                errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementSettingsPanel." + property,
+                    value, transform, gameObject.scene, "Duplicate control mapping"));
+            if (value is Slider slider)
+            {
+                if (slider.fillRect == null || slider.handleRect == null || slider.targetGraphic == null)
+                    errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementSettingsPanel." + property + ".fillRect/handleRect/targetGraphic", slider, slider.transform, gameObject.scene, "Missing nested slider binding"));
+            }
+            if (value is TMP_Dropdown dropdown)
+            {
+                if (dropdown.template == null || dropdown.captionText == null || dropdown.itemText == null)
+                    errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SettlementSettingsPanel." + property + ".template/captionText/itemText", dropdown, dropdown.transform, gameObject.scene, "Missing nested dropdown binding"));
+            }
+        }
+        Role(nameof(panelRoot), panelRoot != null ? panelRoot.transform : null);
+        Role(nameof(tabController), tabController);
+        Role(nameof(masterVolumeSlider), masterVolumeSlider);
+        Role(nameof(bgmVolumeSlider), bgmVolumeSlider);
+        Role(nameof(sfxVolumeSlider), sfxVolumeSlider);
+        Role(nameof(ambientVolumeSlider), ambientVolumeSlider);
+        Role(nameof(uiVolumeSlider), uiVolumeSlider);
+        Role(nameof(showHudHintsToggle), showHudHintsToggle);
+        Role(nameof(cameraShakeSlider), cameraShakeSlider);
+        Role(nameof(warningOpacitySlider), warningOpacitySlider);
+        Role(nameof(resetAllBindingsButton), resetAllBindingsButton);
+        Role(nameof(resolutionDropdown), resolutionDropdown);
+        Role(nameof(fullScreenModeDropdown), fullScreenModeDropdown);
+        Role(nameof(vSyncToggle), vSyncToggle);
+        Role(nameof(frameLimitDropdown), frameLimitDropdown);
+        Role(nameof(applyScreenButton), applyScreenButton);
+        Role(nameof(screenConfirmRoot), screenConfirmRoot != null ? screenConfirmRoot.transform : null);
+        Role(nameof(screenConfirmCountdownText), screenConfirmCountdownText);
+        Role(nameof(confirmScreenButton), confirmScreenButton);
+        Role(nameof(revertScreenButton), revertScreenButton);
+        if (rebindRows == null || rebindRows.Length != 18) Role(nameof(rebindRows), null);
+        else for (int i = 0; i < rebindRows.Length; i++) Role("rebindRows.Array.data[" + i + "]", rebindRows[i]);
+        if (panelRoot != gameObject || tabController == null || tabController.gameObject != gameObject)
+            errors.Add("SettlementSettingsPanel must reference its canonical shared Options root and tab controller.");
+        if (tabController != null)
+        {
+            if (rebindRows != null)
+                foreach (InputRebindButtonUI row in rebindRows)
+                {
+                    bool found = false;
+                    if (tabController.RebindRows != null)
+                        foreach (InputRebindButtonUI guard in tabController.RebindRows) if (guard == row) found = true;
+                    if (!found) errors.Add("SettlementSettingsPanel rebind row is missing from tab input guards: " + row?.name);
+                }
+            var guards = tabController.DropdownGuards;
+            if (guards == null || guards.Count != 3 || guards[0] != resolutionDropdown || guards[1] != fullScreenModeDropdown || guards[2] != frameLimitDropdown)
+                errors.Add("SettlementSettingsPanel display controls must match the Resolution / Fullscreen / FrameLimit guards.");
+        }
+    }
     public bool IsScreenConfirmationVisible =>
         screenConfirmRoot != null && screenConfirmRoot.activeSelf;
 
@@ -106,7 +170,8 @@ public class SettlementSettingsPanel : MonoBehaviour
         InitializeSettings();
         ConfigureButtonSounds();
         SetConfirmVisible(false);
-        Close();
+        // Open may precede Awake on an inactive authored panel. Preserve that request.
+        if (!openRequested) Close();
     }
 
     private void OnEnable()
@@ -122,6 +187,7 @@ public class SettlementSettingsPanel : MonoBehaviour
 
     public void Open()
     {
+        openRequested = true;
         InitializeSettings();
 
         if (panelRoot != null)
@@ -134,6 +200,7 @@ public class SettlementSettingsPanel : MonoBehaviour
 
     public void Close()
     {
+        openRequested = false;
         if (screenConfirmRoot != null && screenConfirmRoot.activeSelf)
         {
             RevertScreenSettings();
@@ -514,13 +581,14 @@ public class SettlementSettingsPanel : MonoBehaviour
 
     private void BindButtonsAndControls()
     {
-        openButton?.onClick.AddListener(Open);
-        closeButton?.onClick.AddListener(Close);
-        backButton?.onClick.AddListener(Close);
-        resetAllBindingsButton?.onClick.AddListener(ResetAllBindings);
-        applyScreenButton?.onClick.AddListener(ApplyScreenSettings);
-        confirmScreenButton?.onClick.AddListener(ConfirmScreenSettings);
-        revertScreenButton?.onClick.AddListener(RevertScreenSettings);
+        UnbindButtonsAndControls();
+        BindOwnedClick(openButton, Open);
+        BindOwnedClick(closeButton, Close);
+        BindOwnedClick(backButton, Close);
+        BindOwnedClick(resetAllBindingsButton, ResetAllBindings);
+        BindOwnedClick(applyScreenButton, ApplyScreenSettings);
+        BindOwnedClick(confirmScreenButton, ConfirmScreenSettings);
+        BindOwnedClick(revertScreenButton, RevertScreenSettings);
 
         masterVolumeSlider?.onValueChanged.AddListener(SetMasterVolume);
         bgmVolumeSlider?.onValueChanged.AddListener(SetBgmVolume);
@@ -539,6 +607,17 @@ public class SettlementSettingsPanel : MonoBehaviour
         fullScreenToggle?.onValueChanged.AddListener(SetPendingFullScreen);
         vSyncToggle?.onValueChanged.AddListener(SetPendingVSync);
         frameLimitDropdown?.onValueChanged.AddListener(SetPendingFrameLimitByIndex);
+    }
+
+    private void BindOwnedClick(Button button, UnityEngine.Events.UnityAction action)
+    {
+        if (button == null) return;
+        button.onClick.RemoveListener(action);
+        for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+            if (button.onClick.GetPersistentTarget(i) == this &&
+                button.onClick.GetPersistentMethodName(i) == action.Method.Name &&
+                button.onClick.GetPersistentListenerState(i) != UnityEngine.Events.UnityEventCallState.Off) return;
+        button.onClick.AddListener(action);
     }
 
     private void UnbindButtonsAndControls()

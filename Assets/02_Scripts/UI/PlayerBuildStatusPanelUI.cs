@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -147,6 +148,105 @@ public sealed class CargoManifestRowUI
 [DisallowMultipleComponent]
 public class PlayerBuildStatusPanelUI : MonoBehaviour
 {
+    [Serializable]
+    public sealed class StoryRecoverySlot
+    {
+        [SerializeField] private BossStoryPart part;
+        [SerializeField] private BossCampaignDefinition definition;
+        [SerializeField] private RectTransform root;
+        [SerializeField] private CanvasGroup canvasGroup;
+        [SerializeField] private Image iconImage;
+        [SerializeField] private TextMeshProUGUI nameText;
+        [SerializeField] private TextMeshProUGUI statusText;
+        [SerializeField] private Image acquiredHighlight;
+
+        private Sequence feedbackTween;
+        private Vector3 feedbackBaseScale;
+
+        public BossStoryPart Part => part;
+
+        public void Refresh(PermanentProgress progress)
+        {
+            bool acquired = progress != null && progress.HasBossStoryPart(part);
+            Sprite icon = definition != null ? definition.StoryPartSprite : null;
+            if (iconImage != null)
+            {
+                iconImage.sprite = icon;
+                iconImage.enabled = icon != null;
+            }
+            string nameKey = part switch
+            {
+                BossStoryPart.SectorStabilizer => "ui.story_recovery.sector_stabilizer",
+                BossStoryPart.MatterCompressor => "ui.story_recovery.matter_compressor",
+                BossStoryPart.PhaseNavigationLens => "ui.story_recovery.phase_navigation_lens",
+                _ => string.Empty
+            };
+            if (nameText != null)
+            {
+                nameText.text = ResolveStoryText(nameKey, CampaignProgressionCatalog.GetStoryPartDisplayName(part));
+            }
+            if (statusText != null)
+            {
+                statusText.text = acquired
+                    ? ResolveStoryText("ui.story_recovery.acquired", "획득")
+                    : ResolveStoryText("ui.story_recovery.unacquired", "미획득");
+            }
+            if (canvasGroup != null)
+            {
+                canvasGroup.alpha = acquired ? 1f : 0.55f;
+            }
+            if (acquiredHighlight != null)
+            {
+                acquiredHighlight.enabled = acquired;
+            }
+        }
+
+        public void Pulse()
+        {
+            StopFeedback();
+            if (root == null || !root.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+            feedbackBaseScale = root.localScale;
+            try
+            {
+                feedbackTween = DOTween.Sequence().SetUpdate(true)
+                    .SetLink(root.gameObject, LinkBehaviour.KillOnDisable);
+                feedbackTween.Append(root.DOScale(feedbackBaseScale * 1.08f, 0.12f).SetEase(Ease.OutQuad));
+                feedbackTween.Append(root.DOScale(feedbackBaseScale, 0.2f).SetEase(Ease.OutQuad));
+                feedbackTween.OnKill(RestoreFeedbackScale);
+            }
+            catch (Exception)
+            {
+                StopFeedback();
+            }
+        }
+
+        public void StopFeedback()
+        {
+            if (feedbackTween == null)
+            {
+                return;
+            }
+            feedbackTween.Kill();
+            RestoreFeedbackScale();
+        }
+
+        private void RestoreFeedbackScale()
+        {
+            feedbackTween = null;
+            if (root != null)
+            {
+                root.localScale = feedbackBaseScale;
+            }
+        }
+    }
+
+    [Header("Read-only Story Recovery")]
+    [SerializeField] private TextMeshProUGUI storyRecoveryTitle;
+    [SerializeField] private StoryRecoverySlot[] storyRecoverySlots = Array.Empty<StoryRecoverySlot>();
+
     [Serializable]
     private sealed class TraitFlavorOverride
     {
@@ -388,6 +488,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     private RunRuntimeTraitStore subscribedRuntimeTraitStore;
     private PermanentProgress subscribedPermanentProgress;
     private RunManager subscribedRunManager;
+    private VoidScrapperLocalizationService subscribedStoryLocalization;
 
     public bool IsOpen => isOpen;
     public Selectable FirstCargoSelectable
@@ -472,6 +573,8 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        StopStoryRecoveryFeedback();
+        UnbindRuntimeEvents();
         UnbindCargoManagementLayout();
     }
 
@@ -503,6 +606,8 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void OnDisable()
     {
+        StopStoryRecoveryFeedback();
+        UnbindRuntimeEvents();
         if (closeButton != null)
         {
             closeButton.onClick.RemoveListener(CloseFromButton);
@@ -652,6 +757,52 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         RefreshShipSection();
         RefreshActiveSection();
         RebuildPassiveSection();
+        RefreshStoryRecovery();
+    }
+
+    public void RefreshStoryRecovery()
+    {
+        SetText(storyRecoveryTitle, ResolveStoryText("ui.story_recovery.title", "스토리 회수품"));
+        for (int i = 0; i < storyRecoverySlots.Length; i++)
+        {
+            storyRecoverySlots[i]?.Refresh(PermanentProgress.Instance);
+        }
+    }
+
+    // Visual completion notification only. Ownership was committed before the
+    // world flight; this method never opens the menu or changes progression.
+    public void PresentStoryPartAcquired(BossStoryPart part)
+    {
+        if (!isOpen || !isActiveAndEnabled || PermanentProgress.Instance == null ||
+            !PermanentProgress.Instance.HasBossStoryPart(part))
+        {
+            return;
+        }
+        RefreshStoryRecovery();
+        for (int i = 0; i < storyRecoverySlots.Length; i++)
+        {
+            StoryRecoverySlot slot = storyRecoverySlots[i];
+            if (slot != null && slot.Part == part)
+            {
+                slot.Pulse();
+            }
+        }
+    }
+
+    private void StopStoryRecoveryFeedback()
+    {
+        for (int i = 0; i < storyRecoverySlots.Length; i++)
+        {
+            storyRecoverySlots[i]?.StopFeedback();
+        }
+    }
+
+    private static string ResolveStoryText(string key, string fallback)
+    {
+        VoidScrapperLocalizationService service = VoidScrapperLocalizationService.Instance;
+        return service != null && service.Catalog != null &&
+               service.Catalog.TryGetText(key, service.CurrentLanguageCode, out string text, out _)
+            ? text : fallback;
     }
 
     public void RefreshShipSection()
@@ -1047,7 +1198,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
                 PassiveEntry entry = GetOrCreatePassiveEntry(trait, order++);
                 entry.permanentLevel = ownsPersistentStoryTrait
                     ? 1
-                    : Mathf.Clamp(progress.GetTraitLevel(trait.TraitId), 0, trait.MaxLevel);
+                    : 0;
             }
         }
 
@@ -2686,12 +2837,19 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         if (subscribedPermanentProgress != null)
         {
             subscribedPermanentProgress.Changed += HandleTraitCollectionChanged;
+            subscribedPermanentProgress.Changed += RefreshStoryRecovery;
         }
 
         subscribedRunManager = RunManager.Instance;
         if (subscribedRunManager != null)
         {
             subscribedRunManager.WalletChanged += HandleWalletChanged;
+            subscribedRunManager.RunEnded += HandleStoryRecoveryRunEnded;
+        }
+        subscribedStoryLocalization = VoidScrapperLocalizationService.Instance;
+        if (subscribedStoryLocalization != null)
+        {
+            subscribedStoryLocalization.LanguageChanged += HandleStoryRecoveryLanguageChanged;
         }
     }
 
@@ -2743,14 +2901,31 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         if (subscribedPermanentProgress != null)
         {
             subscribedPermanentProgress.Changed -= HandleTraitCollectionChanged;
+            subscribedPermanentProgress.Changed -= RefreshStoryRecovery;
             subscribedPermanentProgress = null;
         }
 
         if (subscribedRunManager != null)
         {
             subscribedRunManager.WalletChanged -= HandleWalletChanged;
+            subscribedRunManager.RunEnded -= HandleStoryRecoveryRunEnded;
             subscribedRunManager = null;
         }
+        if (subscribedStoryLocalization != null)
+        {
+            subscribedStoryLocalization.LanguageChanged -= HandleStoryRecoveryLanguageChanged;
+            subscribedStoryLocalization = null;
+        }
+    }
+
+    private void HandleStoryRecoveryRunEnded(RunResultData _)
+    {
+        StopStoryRecoveryFeedback();
+    }
+
+    private void HandleStoryRecoveryLanguageChanged(string _)
+    {
+        RefreshStoryRecovery();
     }
 
     private void HandleHealthChanged(float current, float max)
@@ -2833,6 +3008,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         }
 
         isOpen = false;
+        StopStoryRecoveryFeedback();
         UnbindRuntimeEvents();
 
         if (!externalMenuControlsLifecycle && GameplayPauseManager.Instance != null)

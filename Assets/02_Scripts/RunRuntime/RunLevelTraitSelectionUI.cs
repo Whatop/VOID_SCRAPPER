@@ -436,7 +436,7 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
             if (trait == null ||
                 !trait.CanAppearAsLevelUpTrait ||
-                !RunTraitAcquisitionService.MeetsOfferPrerequisites(trait))
+                !RunTraitAcquisitionService.IsOrdinaryCandidate(trait))
             {
                 continue;
             }

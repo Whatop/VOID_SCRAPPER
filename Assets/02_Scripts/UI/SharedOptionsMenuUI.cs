@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -98,21 +99,52 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
     public event Action BackRequested;
     public event Action ReturnToMainMenuRequested;
 
-#if UNITY_EDITOR
-    public void RepairAuthoredReferences()
+    public bool TryValidateAuthoredLayout(out string error)
     {
-        Transform back = FindChildRecursive(transform, "OptionsBackButton");
-        Transform confirmation = FindChildRecursive(transform, "DisplayConfirmation");
-        backButton = back != null ? back.GetComponent<Button>() : null;
-        tabController = GetComponent<SettingsMenuTabController>();
-        settingsPanel = GetComponent<SettlementSettingsPanel>();
-        displayConfirmationRoot = confirmation != null ? confirmation.gameObject : null;
-        built = backButton != null &&
-                tabController != null &&
-                settingsPanel != null &&
-                displayConfirmationRoot != null;
+        var errors = new List<string>();
+        CollectAuthoredBindingErrors(errors);
+        error = string.Join("\n", errors);
+        return errors.Count == 0;
     }
-#endif
+
+    // Boot uses this path exclusively. Missing authored bindings are configuration errors.
+    public bool ConfigureAuthored(InputActionAsset actions, AudioMixer mixer, TMP_FontAsset font)
+    {
+        if (!TryValidateAuthoredLayout(out string error))
+        {
+            Debug.LogError("Authored Boot options are invalid. Repair the existing Inspector bindings; runtime Build is disabled.\n" + error, this);
+            return false;
+        }
+        inputActions = actions;
+        masterAudioMixer = mixer;
+        uiFont = font;
+        RefreshActionButtonBindings();
+        return true;
+    }
+
+    public void CollectAuthoredBindingErrors(List<string> errors)
+    {
+        var roles = new HashSet<Component>();
+        void Role(string field, Component value, bool sameObject = false)
+        {
+            if (value == null || value.gameObject.scene != gameObject.scene ||
+                (sameObject ? value.transform != transform : value.transform == transform || !value.transform.IsChildOf(transform)))
+                errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SharedOptionsMenuUI." + field, value, transform,
+                    gameObject.scene, value == null ? "Missing binding" : value.gameObject.scene != gameObject.scene ? "Scene ownership" : "Ancestry"));
+            else if (!roles.Add(value))
+                errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SharedOptionsMenuUI." + field,
+                    value, transform, gameObject.scene, "Duplicate control mapping"));
+        }
+        Role(nameof(backButton), backButton);
+        Role(nameof(tabController), tabController, true);
+        Role(nameof(settingsPanel), settingsPanel, true);
+        Role(nameof(displayConfirmationRoot), displayConfirmationRoot != null ? displayConfirmationRoot.transform : null);
+        if (showReturnToMainMenuAction) Role(nameof(returnToMainMenuButton), returnToMainMenuButton);
+        if (!built) errors.Add(SettlementSectorTechnologyPanelUI.BindingDiagnostic("SharedOptionsMenuUI.built", this, transform, gameObject.scene, "Authored layout not installed"));
+        if (settingsPanel != null) settingsPanel.CollectSharedOptionsBindingErrors(errors);
+        if (tabController != null) tabController.CollectSharedOptionsBindingErrors(errors);
+    }
+
 
     public void Configure(
         InputActionAsset actions,
@@ -159,6 +191,8 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
     {
         return settingsPanel != null && settingsPanel.TryCancelScreenConfirmation();
     }
+
+    public bool TryHandleNestedCancel() => (tabController != null && tabController.TryHandleMenuCancel()) || TryCancelScreenConfirmation();
 
     private void OnEnable()
     {
@@ -213,7 +247,51 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
 
     private void Build()
     {
-        built = true;
+        ValidateRuntimeParent(transform);
+        HashSet<Transform> previousChildren = new HashSet<Transform>();
+        foreach (Transform child in transform)
+        {
+            previousChildren.Add(child);
+        }
+        HashSet<Component> previousComponents = new HashSet<Component>(GetComponents<Component>());
+        try
+        {
+            BuildContents();
+            built = true;
+        }
+        catch
+        {
+            // A failed attempt must not poison built or leave controls/listeners for a retry.
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                Transform child = transform.GetChild(i);
+                if (!previousChildren.Contains(child))
+                {
+                    DestroyFailedConstruction(child.gameObject);
+                }
+            }
+            Component[] components = GetComponents<Component>();
+            for (int i = components.Length - 1; i >= 0; i--)
+            {
+                Component component = components[i];
+                if (!previousComponents.Contains(component) && !(component is Transform))
+                {
+                    if (component is Behaviour behaviour) behaviour.enabled = false;
+                    DestroyFailedConstruction(component);
+                }
+            }
+            backButton = null;
+            returnToMainMenuButton = null;
+            tabController = null;
+            settingsPanel = null;
+            displayConfirmationRoot = null;
+            built = false;
+            throw;
+        }
+    }
+
+    private void BuildContents()
+    {
         gameObject.name = "OptionsPanel";
 
         RectTransform rootRect = GetComponent<RectTransform>();
@@ -275,7 +353,13 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         settingsPanel.ConfigureGameplay(showHints, cameraShake, warningOpacity);
         settingsPanel.ConfigureControls(inputActions, resetBindings, rebindRows.ToArray());
         settingsPanel.ConfigureDisplay(resolution, fullScreen, vSync, frameLimit, applyDisplay, displayConfirmationRoot, confirmationText, keepDisplay, revertDisplay);
-        settingsPanel.InitializeConfiguredUi();
+        // Editor authoring/PreviewScene construction must not apply display settings,
+        // write PlayerPrefs, or create the runtime AudioManager. The authored panel's
+        // own Awake initializes those settings when it first runs in the player.
+        if (Application.isPlaying)
+        {
+            settingsPanel.InitializeConfiguredUi();
+        }
         RefreshActionButtonBindings();
     }
 
@@ -369,17 +453,9 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         return panel;
     }
 
-    private static GameObject CreateRectObject(string objectName, Transform parent, Vector2 position, Vector2 size)
+    private GameObject CreateRectObject(string objectName, Transform parent, Vector2 position, Vector2 size)
     {
-#if UNITY_EDITOR
-        GameObject target = BootMainMenuAuthoringObjectFactory.CreateChild(
-            objectName,
-            parent,
-            typeof(RectTransform));
-#else
-        GameObject target = new GameObject(objectName, typeof(RectTransform));
-        target.transform.SetParent(parent, false);
-#endif
+        GameObject target = CreateChild(objectName, parent);
         RectTransform rect = target.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0.5f, 0.5f);
         rect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -389,17 +465,9 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         return target;
     }
 
-    private static GameObject CreateStretchObject(string objectName, Transform parent)
+    private GameObject CreateStretchObject(string objectName, Transform parent)
     {
-#if UNITY_EDITOR
-        GameObject target = BootMainMenuAuthoringObjectFactory.CreateChild(
-            objectName,
-            parent,
-            typeof(RectTransform));
-#else
-        GameObject target = new GameObject(objectName, typeof(RectTransform));
-        target.transform.SetParent(parent, false);
-#endif
+        GameObject target = CreateChild(objectName, parent);
         RectTransform rect = target.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
@@ -534,13 +602,21 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
 
     private TMP_Dropdown CreateDropdown(string objectName, Transform parent, Vector2 position, Vector2 size)
     {
+        ValidateRuntimeParent(parent);
+        // TMP_DefaultControls in Unity 6000.0.69f1 creates in the active scene.
         GameObject target = TMP_DefaultControls.CreateDropdown(default);
         target.name = objectName;
-#if UNITY_EDITOR
-        BootMainMenuAuthoringObjectFactory.MoveRootAndParent(target, parent);
-#else
-        target.transform.SetParent(parent, false);
-#endif
+        try
+        {
+            {
+                ParentRuntimeRoot(target, parent);
+            }
+        }
+        catch
+        {
+            DestroyFailedConstruction(target);
+            throw;
+        }
         RectTransform rect = target.GetComponent<RectTransform>();
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = position;
@@ -614,11 +690,95 @@ public sealed class SharedOptionsMenuUI : MonoBehaviour
         if (itemCheckmark != null) ConfigureSolidImage(itemCheckmark.GetComponent<Image>(), AccentColor);
     }
 
+
     private void ApplyUiFont(TMP_Text text)
     {
         if (text != null && uiFont != null)
         {
             text.font = uiFont;
+        }
+    }
+
+    private GameObject CreateChild(string objectName, Transform parent)
+    {
+        ValidateRuntimeParent(parent);
+        if (parent.gameObject.scene != gameObject.scene || !parent.IsChildOf(transform))
+        {
+            throw new InvalidOperationException($"Options child '{objectName}' must belong to its OptionsPanel root.");
+        }
+        return CreateRuntimeChild(objectName, parent);
+    }
+
+    // Local construction shared by the runtime Pause owner and its Options presentation.
+    // UNITY_EDITOR selects an available scene-targeted API, not an authoring policy.
+    internal static GameObject CreateRuntimeChild(string objectName, Transform parent)
+    {
+        ValidateRuntimeParent(parent);
+#if UNITY_EDITOR
+        GameObject target = UnityEditor.ObjectFactory.CreateGameObject(
+            parent.gameObject.scene, HideFlags.None, objectName, typeof(RectTransform));
+#else
+        GameObject target = new GameObject(objectName, typeof(RectTransform));
+#endif
+        try
+        {
+            ParentRuntimeRoot(target, parent);
+            return target;
+        }
+        catch
+        {
+            DestroyFailedConstruction(target);
+            throw;
+        }
+    }
+
+    private static void ParentRuntimeRoot(GameObject target, Transform parent)
+    {
+        ValidateRuntimeParent(parent);
+        if (target == null || target.transform.parent != null)
+        {
+            throw new InvalidOperationException("Only a newly created root can join the runtime Options hierarchy.");
+        }
+        if (target.scene != parent.gameObject.scene)
+        {
+            SceneManager.MoveGameObjectToScene(target, parent.gameObject.scene);
+        }
+        target.transform.SetParent(parent, false);
+        if (target.scene != parent.gameObject.scene)
+        {
+            throw new InvalidOperationException("Runtime Options child failed to acquire its parent's scene ownership.");
+        }
+    }
+
+    internal static void ValidateRuntimeParent(Transform parent)
+    {
+        if (parent == null || !parent.gameObject.scene.IsValid() ||
+            parent.root.gameObject.scene != parent.gameObject.scene)
+        {
+            throw new InvalidOperationException("Runtime Options require a live parent and root in the same valid scene.");
+        }
+#if UNITY_EDITOR
+        if (UnityEditor.EditorUtility.IsPersistent(parent))
+        {
+            throw new InvalidOperationException("Runtime Options cannot be built into a persistent asset.");
+        }
+#endif
+    }
+
+    internal static void DestroyFailedConstruction(UnityEngine.Object target)
+    {
+        if (target is GameObject root)
+        {
+            root.SetActive(false);
+            root.transform.SetParent(null, false);
+        }
+        if (Application.isPlaying)
+        {
+            Destroy(target);
+        }
+        else
+        {
+            DestroyImmediate(target);
         }
     }
 

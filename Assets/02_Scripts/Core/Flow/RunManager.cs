@@ -85,8 +85,8 @@ public class RunManager : MonoBehaviour
         SeaRegionType seaRegionType)
     {
         if (depth != ExpeditionDepth.Normal &&
-            PermanentProgress.Instance != null &&
-            !PermanentProgress.Instance.IsDepthUnlocked(depth))
+            (PermanentProgress.Instance == null ||
+             !PermanentProgress.Instance.IsDepthUnlocked(depth)))
         {
             Debug.LogWarning($"아직 해금되지 않은 해역입니다: {CampaignProgressionCatalog.GetRegionDisplayName(depth)}", this);
             return;
@@ -243,7 +243,7 @@ public class RunManager : MonoBehaviour
 
     public bool MarkBossDefeated(CampaignBossId bossId, bool grantStoryPart)
     {
-        if (!HasActiveRun)
+        if (!HasActiveRun || IsCompletingRun)
         {
             return false;
         }
@@ -254,14 +254,18 @@ public class RunManager : MonoBehaviour
         }
 
         bool firstRunDefeat = !currentRun.HasDefeatedBossThisRun(bossId);
-        currentRun.MarkBossDefeated(bossId);
+        bool firstStoryClear = grantStoryPart && PermanentProgress.Instance != null &&
+            !PermanentProgress.Instance.HasDefeatedCampaignBoss(bossId) &&
+            CampaignProgressionCatalog.GetStoryPart(bossId) != BossStoryPart.None;
+        currentRun.MarkBossDefeated(bossId, firstStoryClear);
 
         bool firstPermanentDefeat = false;
         int previousPixelCurseLevel = PermanentProgress.Instance != null
             ? PermanentProgress.Instance.PixelCurseLevel
             : 0;
 
-        if (PermanentProgress.Instance != null)
+        if (PermanentProgress.Instance != null &&
+            (grantStoryPart || bossId == CampaignBossId.NullDispatcher))
         {
             firstPermanentDefeat = PermanentProgress.Instance.RegisterCampaignBossDefeat(
                 bossId,
@@ -343,7 +347,9 @@ public class RunManager : MonoBehaviour
             return false;
         }
 
-        if (PermanentProgress.Instance != null && !PermanentProgress.Instance.IsDepthUnlocked(nextDepth))
+        if (IsCompletingRun ||
+            (SceneFlowManager.Instance != null && SceneFlowManager.Instance.IsLoading) ||
+            !CampaignProgressionCatalog.CanAdvanceToNextRegion(currentRun, PermanentProgress.Instance))
         {
             blockReason = $"{CampaignProgressionCatalog.GetRegionShortName(nextDepth)}이 아직 해금되지 않았습니다.";
             return false;

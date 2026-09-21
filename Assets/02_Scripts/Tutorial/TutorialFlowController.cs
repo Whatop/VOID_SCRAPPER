@@ -63,8 +63,8 @@ public sealed class TutorialFlowController : MonoBehaviour
     [SerializeField, Min(0f)] private float movementCompletionDelay = 0.4f;
     [SerializeField, Min(0f)] private float dashCompletionDelay = 0.5f;
     [SerializeField, Min(0f)] private float dialogueGuideHandoffDelay = 0.14f;
-    [Tooltip("Optional existing audio-event ID for the incoming Operator transmission. Leave empty until an intended clip is assigned.")]
-    [SerializeField] private string incomingTransmissionSoundEventId = string.Empty;
+    [Tooltip("Incoming cue for explicitly remote tutorial transmissions. Older scenes with an empty value use DialogueCommIncoming.")]
+    [SerializeField] private string incomingTransmissionSoundEventId = SoundEventIds.DialogueCommIncoming;
 
     [Header("Authored 40x40 Layout")]
     [SerializeField] private Vector2 mapCenter = Vector2.zero;
@@ -234,6 +234,7 @@ public sealed class TutorialFlowController : MonoBehaviour
     private Sequence alienSignalTween;
     private Sequence alienSignalRevealTween;
     private Tween alienSignalIdleTween;
+    private Sequence alienSignalIdleWaveTween;
     private Sequence curseInfiltrationTween;
     private Sequence signalDevicePulseTween;
     private Sequence tutorialPurpleEffectTween;
@@ -248,6 +249,16 @@ public sealed class TutorialFlowController : MonoBehaviour
     private string activeRelayConversationTitle = string.Empty;
     private RadarTarget unknownSignalObjectiveTarget;
     private bool ownsTargetPresentationInput;
+    private readonly object discoveryCameraOwner = new object();
+    private GungeonStyleCamera2D targetPresentationCamera;
+    private Transform targetPresentationPlayer;
+    private bool targetPresentationAwaitingRediscovery;
+    private PlayerController2D lockedPresentationPlayer;
+    private PlayerWeaponController lockedPresentationWeapon;
+    private PlayerRadarScanner lockedPresentationRadar;
+    private PlayerInteractor lockedPresentationInteractor;
+    private PlayerReinforcementController lockedPresentationReinforcement;
+    private ExpeditionMenuController lockedPresentationMenu;
     private TutorialStep activeTargetTriggerStep = TutorialStep.Complete;
     private TutorialStep activeTargetGuidanceStep = TutorialStep.Complete;
     private Transform activePresentationTarget;
@@ -261,6 +272,7 @@ public sealed class TutorialFlowController : MonoBehaviour
     private Vector3 alienSignalPulseRestScale = Vector3.one;
     private Color alienSignalCoreRestColor = Color.white;
     private Color alienSignalPulseRestColor = Color.white;
+    private Vector3 alienSignalPulseRestLocalPosition;
     private Vector3 alienSignalVisualRestLocalPosition;
     private SpriteRenderer[] alienSignalVisualRenderers = Array.Empty<SpriteRenderer>();
     private Color[] alienSignalVisualRestColors = Array.Empty<Color>();
@@ -336,6 +348,10 @@ public sealed class TutorialFlowController : MonoBehaviour
         ApplyTutorialHealthFloor();
         SubscribeGameplayEvents();
         RefreshRelayNarrative();
+        if (corePresentationProgress.Phase == TutorialCorePresentationPhase.Ready)
+        {
+            StartAlienSignalIdleMotion();
+        }
     }
 
     private void Start()
@@ -364,6 +380,9 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void OnDisable()
     {
+        // Release discovery ownership before unrelated teardown can touch objects
+        // already destroyed by a scene exit. StopAllStepRoutines may repeat this.
+        StopTargetPresentation(true, true);
         ClearTutorialHealthFloor();
         StopAllStepRoutines();
         StopRelayNarrative(true);
@@ -371,7 +390,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         StopWaitingForUnknownAccessKeyConversation(true);
         StopCurseTransformation();
         StopSignalDevicePulse();
-        ResetPurpleCorePresentation(true);
+        ResetPurpleCorePresentation(false);
         ClearPurpleCoreRadarReveal();
         ClearUnknownSignalObjectiveMarker();
         promptUI?.Hide();
@@ -508,6 +527,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         openingConversationStarted = false;
         activeOperatorConversationTitle = string.Empty;
         operatorGuidanceProgress.Reset();
+        targetPresentationAwaitingRediscovery = false;
         openingTransmissionProgress.Reset();
         corePresentationProgress.Reset();
         relayNarrativeProgress.Reset();
@@ -779,9 +799,12 @@ public sealed class TutorialFlowController : MonoBehaviour
         expeditionHUD ??= FindFirstObjectByType<ExpeditionHUD>(FindObjectsInactive.Include);
         expeditionMapPanel ??= FindFirstObjectByType<ExpeditionMapPanelUI>(FindObjectsInactive.Include);
         routePlanner ??= FindFirstObjectByType<ExpeditionRoutePlanner>(FindObjectsInactive.Include);
-        tutorialCamera ??= GungeonStyleCamera2D.Instance != null
-            ? GungeonStyleCamera2D.Instance
-            : FindFirstObjectByType<GungeonStyleCamera2D>(FindObjectsInactive.Include);
+        if (tutorialCamera == null)
+        {
+            tutorialCamera = GungeonStyleCamera2D.Instance != null
+                ? GungeonStyleCamera2D.Instance
+                : FindFirstObjectByType<GungeonStyleCamera2D>(FindObjectsInactive.Include);
+        }
     }
 
     private void CacheSignalDevicePulseState()
@@ -846,6 +869,8 @@ public sealed class TutorialFlowController : MonoBehaviour
 
         interactionTargetComponent?.SetInteractionEnabled(false);
         SetTargetPresentationInputLocked(true);
+        AudioManager.PlayAt(SoundEventIds.EventStart,
+            interactionTarget != null ? interactionTarget.transform.position : transform.position, 0.65f);
         PlaySignalDevicePulse();
         relayNarrativeRoutine = StartCoroutine(RelayNarrativeRoutine());
         return true;
@@ -897,6 +922,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         if (fakeOperator &&
             relayNarrativeProgress.TryMarkFakeTakeoverCuePresented())
         {
+            AudioManager.Play(SoundEventIds.DialogueCommHijack);
             PlaySignalDevicePulse();
             yield return new WaitForSecondsRealtime(
                 Mathf.Clamp(fakeOperatorTakeoverDelay, 0.15f, 0.5f));
@@ -945,7 +971,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         relayDialogueController.conversationEnded -= HandleRelayConversationEnded;
         relayDialogueController.conversationEnded += HandleRelayConversationEnded;
         activeRelayConversationTitle = conversationTitle;
-        DialogueManager.StartConversation(
+        StartRemoteConversation(
             conversationTitle,
             playerRoot,
             interactionTarget != null ? interactionTarget.transform : transform);
@@ -1540,6 +1566,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         RadarTarget requiredTarget = currentStep switch
         {
             TutorialStep.RadarDiscoverSalvage => harvestRadarTarget,
+            TutorialStep.TravelHighValue => highValueSalvageRadarTarget,
             TutorialStep.FindSignalDevice => radarScanTarget,
             _ => null
         };
@@ -1562,9 +1589,16 @@ public sealed class TutorialFlowController : MonoBehaviour
                 return;
             }
 
+            if (currentStep == TutorialStep.TravelHighValue)
+            {
+                RegisterHighValueWreckDiscovery();
+                return;
+            }
+
             radarGuidanceProgress.TryRecordSuccessfulTargetScan(true);
             if (radarGuidanceProgress.HasSuccessfulTargetScan)
             {
+                targetPresentationAwaitingRediscovery = false;
                 RequestTargetPresentation(
                     TutorialTargetPresentationKind.SupplyContainer);
             }
@@ -2013,6 +2047,8 @@ public sealed class TutorialFlowController : MonoBehaviour
         string conversationTitle)
     {
         if (openingConversationStarted ||
+            (guidanceStep == activeTargetGuidanceStep &&
+             DialogueManager.hasInstance && DialogueManager.isConversationActive) ||
             currentStep != requiredCurrentStep ||
             operatorGuidanceProgress.IsComplete(guidanceStep) ||
             guidanceStep == TutorialStep.Move &&
@@ -2037,7 +2073,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         bool requestIncomingCue = false;
         if (guidanceStep == TutorialStep.Move &&
             !openingTransmissionProgress.TryBeginTransmission(
-                !string.IsNullOrWhiteSpace(incomingTransmissionSoundEventId),
+                true,
                 out requestIncomingCue))
         {
             return false;
@@ -2063,12 +2099,8 @@ public sealed class TutorialFlowController : MonoBehaviour
         rescueDialogueController.conversationEnded -= HandleOpeningConversationEnded;
         rescueDialogueController.conversationEnded += HandleOpeningConversationEnded;
 
-        if (requestIncomingCue)
-        {
-            AudioManager.Play(incomingTransmissionSoundEventId);
-        }
-
-        DialogueManager.StartConversation(conversationTitle, playerRoot, null);
+        StartRemoteConversation(conversationTitle, playerRoot, null,
+            guidanceStep != TutorialStep.Move || requestIncomingCue);
 
         if (!DialogueManager.isConversationActive ||
             !string.Equals(
@@ -2161,11 +2193,23 @@ public sealed class TutorialFlowController : MonoBehaviour
         }
 
         highValueAutoRegistered = true;
+        targetPresentationAwaitingRediscovery = false;
         RequestTargetPresentation(
             TutorialTargetPresentationKind.HighValueWreck);
     }
 
     private void RequestTargetPresentation(TutorialTargetPresentationKind kind)
+    {
+        if (TryReserveTargetPresentation(kind))
+        {
+            Coroutine routine = StartCoroutine(TargetPresentationRoutine());
+            // StartCoroutine may finish synchronously if ownership is unavailable.
+            targetPresentationRoutine = targetPresentationProgress.Kind != TutorialTargetPresentationKind.None
+                ? routine : null;
+        }
+    }
+
+    private bool TryReserveTargetPresentation(TutorialTargetPresentationKind kind)
     {
         if (!TryResolveTargetPresentation(
                 kind,
@@ -2176,12 +2220,13 @@ public sealed class TutorialFlowController : MonoBehaviour
                 out string conversationTitle) ||
             !isActiveAndEnabled ||
             isCompleting ||
+            targetPresentationAwaitingRediscovery ||
             currentStep != triggerStep ||
             !targetPresentationProgress.TryRequest(
                 kind,
                 IsPresentationTargetValid(target, targetHealth)))
         {
-            return;
+            return false;
         }
 
         activeTargetTriggerStep = triggerStep;
@@ -2191,7 +2236,9 @@ public sealed class TutorialFlowController : MonoBehaviour
         activePresentationCollider = target.GetComponentInChildren<Collider2D>(true);
         activePresentationRenderer = target.GetComponentInChildren<Renderer>(true);
         activeTargetConversationTitle = conversationTitle;
-        targetPresentationRoutine = StartCoroutine(TargetPresentationRoutine());
+        targetPresentationCamera = tutorialCamera;
+        targetPresentationPlayer = playerRoot;
+        return true;
     }
 
     private bool TryResolveTargetPresentation(
@@ -2249,8 +2296,6 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private IEnumerator TargetPresentationRoutine()
     {
-        CacheRuntimeReferences();
-
         while (targetPresentationProgress.Phase ==
                TutorialTargetPresentationPhase.WaitingForSafeViewport)
         {
@@ -2279,11 +2324,9 @@ public sealed class TutorialFlowController : MonoBehaviour
             yield break;
         }
 
-        SetTargetPresentationInputLocked(true);
-
-        if (tutorialCamera == null ||
-            !tutorialCamera.TryBeginOwnedCinematicFocusBlend(
-                this,
+        if (!CanContinueTargetPresentation() ||
+            !targetPresentationCamera.TryBeginOwnedCinematicFocusBlend(
+                discoveryCameraOwner,
                 activePresentationTarget.position,
                 Mathf.Clamp(targetFocusDuration, 0.5f, 0.7f),
                 null,
@@ -2293,7 +2336,10 @@ public sealed class TutorialFlowController : MonoBehaviour
             yield break;
         }
 
-        while (tutorialCamera.IsCinematicFocusBlendActive)
+        SetTutorialFocusHud(discoveryCameraOwner, true);
+        SetTargetPresentationInputLocked(true);
+
+        while (targetPresentationCamera != null && targetPresentationCamera.IsCinematicFocusBlendActive)
         {
             if (!CanContinueTargetPresentation())
             {
@@ -2302,7 +2348,7 @@ public sealed class TutorialFlowController : MonoBehaviour
                 break;
             }
 
-            if (!tutorialCamera.IsCinematicFocusOwnedBy(this))
+            if (!OwnsDiscoveryCamera())
             {
                 InterruptTargetPresentationConversation();
                 FinishTargetPresentationWithoutCheckpoint();
@@ -2316,7 +2362,7 @@ public sealed class TutorialFlowController : MonoBehaviour
             TutorialTargetPresentationPhase.Focusing)
         {
             if (!CanContinueTargetPresentation() ||
-                !tutorialCamera.IsCinematicFocusOwnedBy(this) ||
+                !targetPresentationCamera.IsCinematicFocusOwnedBy(discoveryCameraOwner) ||
                 !targetPresentationProgress.TryBeginDialogue() ||
                 !TryStartOperatorConversation(
                     activeTargetTriggerStep,
@@ -2330,14 +2376,17 @@ public sealed class TutorialFlowController : MonoBehaviour
         while (targetPresentationProgress.Phase ==
                TutorialTargetPresentationPhase.Dialogue)
         {
-            if (!CanContinueTargetPresentation())
+            if (!CanContinueTargetPresentation() ||
+                !DialogueManager.hasInstance || !DialogueManager.isConversationActive ||
+                !string.Equals(DialogueManager.lastConversationStarted,
+                    activeTargetConversationTitle, StringComparison.Ordinal))
             {
                 InterruptTargetPresentationConversation();
                 targetPresentationProgress.TryBeginReturn(false);
                 break;
             }
 
-            if (!tutorialCamera.IsCinematicFocusOwnedBy(this))
+            if (!targetPresentationCamera.IsCinematicFocusOwnedBy(discoveryCameraOwner))
             {
                 InterruptTargetPresentationConversation();
                 FinishTargetPresentationWithoutCheckpoint();
@@ -2354,44 +2403,42 @@ public sealed class TutorialFlowController : MonoBehaviour
             yield break;
         }
 
-        if (tutorialCamera.IsCinematicFocusOwnedBy(this) && playerRoot != null)
-        {
-            if (tutorialCamera.TryBeginOwnedCinematicFocusBlend(
-                    this,
-                    playerRoot.position,
-                    Mathf.Clamp(targetReturnDuration, 0.4f, 0.6f),
-                    null,
-                    out _))
-            {
-                while (tutorialCamera.IsCinematicFocusBlendActive &&
-                       tutorialCamera.IsCinematicFocusOwnedBy(this))
-                {
-                    if (!IsPresentationTargetValid(
-                            activePresentationTarget,
-                            activePresentationHealth))
-                    {
-                        targetPresentationProgress.CancelCheckpointCompletion();
-                    }
-
-                    yield return null;
-                }
-            }
-        }
-
-        if (!IsPresentationTargetValid(
-                activePresentationTarget,
-                activePresentationHealth))
-        {
-            targetPresentationProgress.CancelCheckpointCompletion();
-        }
-
-        if (!tutorialCamera.IsCinematicFocusOwnedBy(this))
+        if (!CanReturnTargetPresentation() ||
+            !targetPresentationCamera.TryBeginOwnedPlayerReturnBlend(
+                discoveryCameraOwner, Mathf.Clamp(targetReturnDuration, 0.4f, 0.6f)))
         {
             FinishTargetPresentationWithoutCheckpoint();
             yield break;
         }
 
-        tutorialCamera.ReleaseOwnedCinematicFocus(this, true);
+        while (targetPresentationCamera != null && targetPresentationCamera.IsCinematicFocusBlendActive)
+        {
+            if (!CanReturnTargetPresentation())
+            {
+                FinishTargetPresentationWithoutCheckpoint();
+                yield break;
+            }
+
+            if (!IsPresentationTargetValid(activePresentationTarget, activePresentationHealth))
+            {
+                targetPresentationProgress.CancelCheckpointCompletion();
+            }
+
+            yield return null;
+        }
+
+        if (!CanReturnTargetPresentation())
+        {
+            FinishTargetPresentationWithoutCheckpoint();
+            yield break;
+        }
+
+        if (!IsPresentationTargetValid(activePresentationTarget, activePresentationHealth))
+        {
+            targetPresentationProgress.CancelCheckpointCompletion();
+        }
+
+        targetPresentationCamera.ReleaseOwnedCinematicFocus(discoveryCameraOwner, true);
         SetTargetPresentationInputLocked(false);
         targetPresentationRoutine = null;
         TutorialStep completedTriggerStep = activeTargetTriggerStep;
@@ -2402,7 +2449,7 @@ public sealed class TutorialFlowController : MonoBehaviour
                 out bool shouldAdvanceCheckpoint))
         {
             ClearActiveTargetPresentation();
-            RefreshObjectiveChecks();
+            targetPresentationAwaitingRediscovery = true;
             yield break;
         }
 
@@ -2412,7 +2459,7 @@ public sealed class TutorialFlowController : MonoBehaviour
                 true))
         {
             ClearActiveTargetPresentation();
-            RefreshObjectiveChecks();
+            targetPresentationAwaitingRediscovery = true;
             yield break;
         }
 
@@ -2424,6 +2471,10 @@ public sealed class TutorialFlowController : MonoBehaviour
     {
         return isActiveAndEnabled &&
                !isCompleting &&
+               !IsSceneExitPending() &&
+               targetPresentationCamera != null &&
+               targetPresentationCamera.isActiveAndEnabled &&
+               IsPresentationPlayerValid() &&
                currentStep == activeTargetTriggerStep &&
                targetPresentationProgress.Kind !=
                TutorialTargetPresentationKind.None &&
@@ -2432,13 +2483,45 @@ public sealed class TutorialFlowController : MonoBehaviour
                    activePresentationHealth);
     }
 
+    private bool OwnsDiscoveryCamera()
+    {
+        return targetPresentationCamera != null &&
+               targetPresentationCamera.isActiveAndEnabled &&
+               targetPresentationCamera.IsCinematicFocusOwnedBy(discoveryCameraOwner);
+    }
+
+    private bool IsPresentationPlayerValid()
+    {
+        // Replacement during the trip aborts instead of leaving the new player's
+        // input unlocked behind dialogue; release still uses the captured publishers.
+        return targetPresentationPlayer != null &&
+               targetPresentationPlayer.gameObject.activeInHierarchy &&
+               playerRoot == targetPresentationPlayer &&
+               targetPresentationCamera != null &&
+               targetPresentationCamera.FollowTarget == targetPresentationPlayer;
+    }
+
+    private bool CanReturnTargetPresentation()
+    {
+        return isActiveAndEnabled && !isCompleting && !IsSceneExitPending() &&
+               currentStep == activeTargetTriggerStep &&
+               OwnsDiscoveryCamera() && IsPresentationPlayerValid();
+    }
+
+    private static bool IsSceneExitPending()
+    {
+        return SceneFlowManager.Instance != null && SceneFlowManager.Instance.IsLoading;
+    }
+
     private static bool IsPresentationTargetValid(
         Transform target,
         HarvestObjectHealth targetHealth)
     {
         return target != null &&
                target.gameObject.activeInHierarchy &&
+               target.gameObject.scene.IsValid() && target.gameObject.scene.isLoaded &&
                targetHealth != null &&
+               targetHealth.isActiveAndEnabled &&
                !targetHealth.IsDead;
     }
 
@@ -2511,6 +2594,10 @@ public sealed class TutorialFlowController : MonoBehaviour
             return;
         }
 
+        bool stopOwnedConversation = DialogueManager.hasInstance &&
+            DialogueManager.isConversationActive &&
+            string.Equals(DialogueManager.lastConversationStarted,
+                activeTargetConversationTitle, StringComparison.Ordinal);
         if (rescueDialogueController != null)
         {
             rescueDialogueController.conversationEnded -=
@@ -2523,7 +2610,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         activeOperatorGuidanceStep = TutorialStep.Complete;
         activeOperatorConversationTitle = string.Empty;
 
-        if (DialogueManager.hasInstance && DialogueManager.isConversationActive)
+        if (stopOwnedConversation)
         {
             DialogueManager.StopConversation();
         }
@@ -2539,25 +2626,65 @@ public sealed class TutorialFlowController : MonoBehaviour
         ownsTargetPresentationInput = locked;
         if (locked)
         {
-            expeditionMenuController?.Close();
+            lockedPresentationMenu = expeditionMenuController;
+            lockedPresentationPlayer = playerController;
+            lockedPresentationWeapon = weaponController;
+            lockedPresentationRadar = radarScanner;
+            lockedPresentationInteractor = playerInteractor;
+            lockedPresentationReinforcement = reinforcementController;
+            if (lockedPresentationMenu != null)
+            {
+                lockedPresentationMenu.Close();
+            }
         }
 
-        expeditionMenuController?.SetExternalOpenLocked(this, locked);
-        playerController?.SetExternalControlLocked(this, locked);
-        weaponController?.SetExternalInputLocked(this, locked);
-        radarScanner?.SetExternalInputLocked(this, locked);
-        playerInteractor?.SetExternalInputLocked(this, locked);
-        reinforcementController?.SetExternalInputLocked(this, locked);
+        if (lockedPresentationMenu != null)
+        {
+            lockedPresentationMenu.SetExternalOpenLocked(this, locked);
+        }
+        if (lockedPresentationPlayer != null)
+        {
+            lockedPresentationPlayer.SetExternalControlLocked(this, locked);
+        }
+        if (lockedPresentationWeapon != null)
+        {
+            lockedPresentationWeapon.SetExternalInputLocked(this, locked);
+        }
+        if (lockedPresentationRadar != null)
+        {
+            lockedPresentationRadar.SetExternalInputLocked(this, locked);
+        }
+        if (lockedPresentationInteractor != null)
+        {
+            lockedPresentationInteractor.SetExternalInputLocked(this, locked);
+        }
+        if (lockedPresentationReinforcement != null)
+        {
+            lockedPresentationReinforcement.SetExternalInputLocked(this, locked);
+        }
+        if (!locked)
+        {
+            lockedPresentationMenu = null;
+            lockedPresentationPlayer = null;
+            lockedPresentationWeapon = null;
+            lockedPresentationRadar = null;
+            lockedPresentationInteractor = null;
+            lockedPresentationReinforcement = null;
+        }
     }
 
     private void FinishTargetPresentationWithoutCheckpoint()
     {
-        tutorialCamera?.ReleaseOwnedCinematicFocus(this, true);
+        InterruptTargetPresentationConversation();
+        if (targetPresentationCamera != null)
+        {
+            targetPresentationCamera.ReleaseOwnedCinematicFocus(discoveryCameraOwner, true);
+        }
         SetTargetPresentationInputLocked(false);
         targetPresentationProgress.Reset();
         targetPresentationRoutine = null;
         ClearActiveTargetPresentation();
-        RefreshObjectiveChecks();
+        targetPresentationAwaitingRediscovery = true;
     }
 
     private void StopTargetPresentation(
@@ -2575,9 +2702,15 @@ public sealed class TutorialFlowController : MonoBehaviour
             InterruptTargetPresentationConversation();
         }
 
-        tutorialCamera?.ReleaseOwnedCinematicFocus(
-            this,
-            resetCameraImmediately);
+        if (targetPresentationCamera != null)
+        {
+            targetPresentationCamera.ReleaseOwnedCinematicFocus(
+                discoveryCameraOwner, resetCameraImmediately);
+        }
+        if (targetPresentationProgress.Kind != TutorialTargetPresentationKind.None)
+        {
+            targetPresentationAwaitingRediscovery = true;
+        }
         SetTargetPresentationInputLocked(false);
         targetPresentationProgress.Reset();
         ClearActiveTargetPresentation();
@@ -2585,13 +2718,24 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void ClearActiveTargetPresentation()
     {
+        SetTutorialFocusHud(discoveryCameraOwner, false);
         activeTargetTriggerStep = TutorialStep.Complete;
         activeTargetGuidanceStep = TutorialStep.Complete;
         activePresentationTarget = null;
         activePresentationHealth = null;
         activePresentationCollider = null;
         activePresentationRenderer = null;
+        targetPresentationCamera = null;
+        targetPresentationPlayer = null;
         activeTargetConversationTitle = string.Empty;
+    }
+
+    private void SetTutorialFocusHud(object owner, bool suppressed)
+    {
+        if (expeditionHUD != null)
+        {
+            expeditionHUD.SetCinematicMode(owner, suppressed, 0.22f);
+        }
     }
 
     private void ScheduleDialogueGuideHandoff(
@@ -3366,7 +3510,7 @@ public sealed class TutorialFlowController : MonoBehaviour
 
         FindFirstObjectByType<GameplayPauseMenuController>(
             FindObjectsInactive.Include)?.Close();
-        DialogueManager.StartConversation(
+        StartRemoteConversation(
             unknownAccessKeyConversation,
             playerRoot,
             transform);
@@ -3750,6 +3894,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         {
             alienSignalPulseRestScale = alienSignalPulseRenderer.transform.localScale;
             alienSignalPulseRestColor = alienSignalPulseRenderer.color;
+            alienSignalPulseRestLocalPosition = alienSignalPulseRenderer.transform.localPosition;
         }
 
         if (alienSignalCoreRenderer != null)
@@ -3772,6 +3917,8 @@ public sealed class TutorialFlowController : MonoBehaviour
     private bool CanContinueCurseTransformation()
     {
         return isActiveAndEnabled &&
+               (!ownsCurseCameraPresentation ||
+                (tutorialCamera != null && tutorialCamera.IsCinematicFocusOwnedBy(this))) &&
                currentStep == TutorialStep.CurseTransformation &&
                playerRoot != null &&
                playerRoot.gameObject.activeInHierarchy &&
@@ -3965,6 +4112,7 @@ public sealed class TutorialFlowController : MonoBehaviour
                 null,
                 out _))
         {
+            SetTutorialFocusHud(this, true);
             return true;
         }
 
@@ -3974,6 +4122,7 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void ReleaseCurseCameraPresentation(bool immediate)
     {
+        SetTutorialFocusHud(this, false);
         if (!ownsCurseCameraPresentation)
         {
             return;
@@ -4012,6 +4161,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         ReleaseTransformationPause();
         coreAcquisitionLatch.Cancel();
         RefreshPlayerVisualState(false);
+        StartAlienSignalIdleMotion();
     }
 
     private void ShowLocalizedCurseAcquisitionBriefing()
@@ -4040,7 +4190,9 @@ public sealed class TutorialFlowController : MonoBehaviour
         }
 
         alienSignalTween?.Kill();
+        StopAlienSignalIdleWave();
         RestoreAlienSignalVisualState();
+        alienSignalPulseRenderer.gameObject.SetActive(true);
 
         float duration = Mathf.Max(0.1f, purpleCoreApproachPulseDuration);
         Color pulseColor = alienSignalPeakColor;
@@ -4074,6 +4226,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         {
             alienSignalTween = null;
             RestoreAlienSignalVisualState();
+            StartAlienSignalIdleWave();
         });
     }
 
@@ -4206,9 +4359,14 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void StartAlienSignalIdleMotion()
     {
-        StopAlienSignalIdleMotion();
-        if (alienSignalVisualRoot == null || !alienSignalVisualRoot.gameObject.activeInHierarchy)
+        if (!CanPresentIdlePurpleCore())
         {
+            StopAlienSignalIdleMotion();
+            return;
+        }
+        if (alienSignalIdleTween != null && alienSignalIdleTween.IsActive())
+        {
+            StartAlienSignalIdleWave();
             return;
         }
 
@@ -4221,10 +4379,12 @@ public sealed class TutorialFlowController : MonoBehaviour
             .SetLoops(-1, LoopType.Yoyo)
             .SetUpdate(true)
             .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        StartAlienSignalIdleWave();
     }
 
     private void StopAlienSignalIdleMotion()
     {
+        StopAlienSignalIdleWave();
         alienSignalIdleTween?.Kill();
         alienSignalIdleTween = null;
 
@@ -4232,6 +4392,42 @@ public sealed class TutorialFlowController : MonoBehaviour
         {
             alienSignalVisualRoot.localPosition = alienSignalVisualRestLocalPosition;
         }
+    }
+
+    private bool CanPresentIdlePurpleCore()
+    {
+        return isActiveAndEnabled && alienSignalVisualRoot != null &&
+               alienSignalVisualRoot.gameObject.activeInHierarchy &&
+               corePresentationProgress.Phase == TutorialCorePresentationPhase.Ready &&
+               !HasPersistentPixelCurse();
+    }
+
+    private void StartAlienSignalIdleWave()
+    {
+        if (!CanPresentIdlePurpleCore() || alienSignalPulseRenderer == null ||
+            alienSignalTween != null || alienSignalIdleWaveTween != null) return;
+        Transform wave = alienSignalPulseRenderer.transform;
+        wave.localPosition = alienSignalPulseRestLocalPosition;
+        wave.localScale = alienSignalPulseRestScale;
+        Color color = alienSignalPulseRestColor;
+        color.a = Mathf.Min(color.a, 0.22f);
+        alienSignalPulseRenderer.color = color;
+        wave.gameObject.SetActive(true);
+        alienSignalIdleWaveTween = DOTween.Sequence().SetUpdate(true)
+            .SetLoops(-1, LoopType.Restart).SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        alienSignalIdleWaveTween.Join(wave.DOScale(alienSignalPulseRestScale * 1.55f, 1.6f).SetEase(Ease.OutSine));
+        alienSignalIdleWaveTween.Join(alienSignalPulseRenderer.DOFade(0f, 1.6f).SetEase(Ease.InSine));
+    }
+
+    private void StopAlienSignalIdleWave()
+    {
+        alienSignalIdleWaveTween?.Kill(false);
+        alienSignalIdleWaveTween = null;
+        if (alienSignalPulseRenderer == null) return;
+        alienSignalPulseRenderer.transform.localPosition = alienSignalPulseRestLocalPosition;
+        alienSignalPulseRenderer.transform.localScale = alienSignalPulseRestScale;
+        alienSignalPulseRenderer.color = alienSignalPulseRestColor;
+        alienSignalPulseRenderer.gameObject.SetActive(false);
     }
 
     private void ResetPurpleCorePresentation(bool resetProgress)
@@ -4337,7 +4533,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         awaitingRescueConversationEnd = true;
 
         FindFirstObjectByType<GameplayPauseMenuController>(FindObjectsInactive.Include)?.Close();
-        trigger.TryStart(playerRoot);
+        StartRemoteConversation(trigger.conversation, playerRoot, null, true, trigger);
 
         if (!DialogueManager.isConversationActive ||
             !string.Equals(DialogueManager.lastConversationStarted, trigger.conversation, StringComparison.Ordinal))
@@ -4348,6 +4544,47 @@ public sealed class TutorialFlowController : MonoBehaviour
         }
 
         promptUI?.Hide();
+    }
+
+    private void StartRemoteConversation(
+        string conversationTitle,
+        Transform actor,
+        Transform conversant,
+        bool playIncomingCue = true,
+        DialogueSystemTrigger trigger = null)
+    {
+        DialogueSystemController controller = DialogueManager.instance;
+        // Only the explicit remote authorities above use this helper. In
+        // particular, FieldNpcObjective's local RescueContact path does not.
+        void HandleStarted(Transform startedActor)
+        {
+            if (playIncomingCue && string.Equals(
+                    DialogueManager.lastConversationStarted, conversationTitle,
+                    StringComparison.Ordinal))
+            {
+                AudioManager.Play(string.IsNullOrWhiteSpace(incomingTransmissionSoundEventId)
+                    ? SoundEventIds.DialogueCommIncoming
+                    : incomingTransmissionSoundEventId);
+                DialogueCinematicPresentationController.BeginIncomingCommunication();
+            }
+        }
+
+        controller.conversationStarted += HandleStarted;
+        try
+        {
+            if (trigger != null)
+            {
+                trigger.TryStart(actor);
+            }
+            else
+            {
+                DialogueManager.StartConversation(conversationTitle, actor, conversant);
+            }
+        }
+        finally
+        {
+            controller.conversationStarted -= HandleStarted;
+        }
     }
 
     private void HandleRescueConversationEnded(Transform actor)

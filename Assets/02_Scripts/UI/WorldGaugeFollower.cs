@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [DefaultExecutionOrder(10000)]
 [DisallowMultipleComponent]
@@ -26,20 +27,19 @@ public class WorldGaugeFollower : MonoBehaviour
     [SerializeField] private bool hideWhenTargetMissing = true;
     [SerializeField] private bool hideWhenBehindCamera = true;
     [SerializeField] private bool startHidden = true;
-    [SerializeField] private bool forceBottomCenterPivot = true;
-    [SerializeField] private bool stabilizeForPixelPerfectCamera = true;
-    [SerializeField, Min(1)] private int assetsPixelsPerUnit = 32;
+    [Tooltip("Round the actual projected screen position once. Authored anchors, pivot and scale are never reset.")]
     [SerializeField] private bool snapToCanvasPixelGrid = true;
 
     private RectTransform rectTransform;
-    private RectTransform canvasRectTransform;
+    private RectTransform parentRectTransform;
     private CanvasGroup canvasGroup;
     private Component targetComponent;
     private InteractionPromptAnchor targetAnchor;
 
     private bool visibleRequested;
-    private bool presentationDirty;
     private int lastPresentationFrame = -1;
+    private Renderer[] targetRenderers = System.Array.Empty<Renderer>();
+    private Collider2D[] targetColliders = System.Array.Empty<Collider2D>();
 
     public void ConfigureRuntime(
         Transform runtimeTarget,
@@ -59,12 +59,9 @@ public class WorldGaugeFollower : MonoBehaviour
         uiCamera = runtimeCanvas != null && runtimeCanvas.renderMode != RenderMode.ScreenSpaceOverlay
             ? runtimeCanvas.worldCamera
             : null;
-        stabilizeForPixelPerfectCamera = true;
-        assetsPixelsPerUnit = 32;
         snapToCanvasPixelGrid = true;
         CacheReferences();
-        ApplyPivotOption();
-        presentationDirty = true;
+        CacheTargetGeometry();
         SetVisible(false);
     }
 
@@ -74,7 +71,6 @@ public class WorldGaugeFollower : MonoBehaviour
         canvasGroup = GetComponent<CanvasGroup>();
         canvas = GetComponentInParent<Canvas>();
         worldCamera = Camera.main;
-        ApplyPivotOption();
     }
 
     private void Awake()
@@ -86,6 +82,7 @@ public class WorldGaugeFollower : MonoBehaviour
             targetComponent = target;
             targetAnchor = target.GetComponentInChildren<InteractionPromptAnchor>(true);
         }
+        CacheTargetGeometry();
 
         if (startHidden)
         {
@@ -95,28 +92,46 @@ public class WorldGaugeFollower : MonoBehaviour
 
     private void OnEnable()
     {
-        Canvas.preWillRenderCanvases += HandlePreWillRenderCanvases;
-        presentationDirty = true;
+        ReleaseRenderingCallbacks();
+        RenderPipelineManager.beginCameraRendering += HandleBeginCameraRendering;
+        Camera.onPreRender += HandleCameraPreRender;
+        lastPresentationFrame = -1;
     }
 
     private void OnDisable()
     {
-        Canvas.preWillRenderCanvases -= HandlePreWillRenderCanvases;
+        ReleaseRenderingCallbacks();
     }
 
-    private void LateUpdate()
+    private void OnDestroy()
     {
-        presentationDirty = true;
+        ReleaseRenderingCallbacks();
     }
 
-    private void HandlePreWillRenderCanvases()
+    private void ReleaseRenderingCallbacks()
     {
-        if (!presentationDirty || lastPresentationFrame == Time.frameCount)
+        RenderPipelineManager.beginCameraRendering -= HandleBeginCameraRendering;
+        Camera.onPreRender -= HandleCameraPreRender;
+    }
+
+    private void HandleBeginCameraRendering(ScriptableRenderContext context, Camera renderingCamera)
+    {
+        PresentForCamera(renderingCamera);
+    }
+
+    private void HandleCameraPreRender(Camera renderingCamera)
+    {
+        if (GraphicsSettings.currentRenderPipeline == null) PresentForCamera(renderingCamera);
+    }
+
+    private void PresentForCamera(Camera renderingCamera)
+    {
+        // Late player interpolation, camera follow/zoom and the camera's own render
+        // projection have completed. Ignore UI/SceneView cameras and repeat callbacks.
+        if (!isActiveAndEnabled || renderingCamera != worldCamera || lastPresentationFrame == Time.frameCount)
         {
             return;
         }
-
-        presentationDirty = false;
         lastPresentationFrame = Time.frameCount;
         Follow();
     }
@@ -126,6 +141,7 @@ public class WorldGaugeFollower : MonoBehaviour
         target = newTarget;
         targetComponent = newTarget;
         targetAnchor = newTarget != null ? newTarget.GetComponentInChildren<InteractionPromptAnchor>(true) : null;
+        CacheTargetGeometry();
 
         if (target == null && hideWhenTargetMissing)
         {
@@ -138,6 +154,7 @@ public class WorldGaugeFollower : MonoBehaviour
         targetComponent = component;
         target = component != null ? component.transform : null;
         targetAnchor = component != null ? component.GetComponentInChildren<InteractionPromptAnchor>(true) : null;
+        CacheTargetGeometry();
 
         if (target == null && hideWhenTargetMissing)
         {
@@ -162,7 +179,7 @@ public class WorldGaugeFollower : MonoBehaviour
             rectTransform = GetComponent<RectTransform>();
         }
 
-        ApplyPivotOption();
+        parentRectTransform = transform.parent as RectTransform;
 
         if (canvasGroup == null)
         {
@@ -179,11 +196,6 @@ public class WorldGaugeFollower : MonoBehaviour
             canvas = GetComponentInParent<Canvas>();
         }
 
-        if (canvas != null)
-        {
-            canvasRectTransform = canvas.transform as RectTransform;
-        }
-
         if (worldCamera == null)
         {
             worldCamera = Camera.main;
@@ -195,17 +207,6 @@ public class WorldGaugeFollower : MonoBehaviour
         }
     }
 
-    private void ApplyPivotOption()
-    {
-        if (!forceBottomCenterPivot || rectTransform == null)
-        {
-            return;
-        }
-
-        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-        rectTransform.pivot = new Vector2(0.5f, 0f);
-    }
 
     private void Follow()
     {
@@ -225,25 +226,7 @@ public class WorldGaugeFollower : MonoBehaviour
             return;
         }
 
-        if (rectTransform == null || canvas == null || canvasRectTransform == null)
-        {
-            CacheReferences();
-
-            if (rectTransform == null || canvas == null || canvasRectTransform == null)
-            {
-                return;
-            }
-        }
-
-        if (worldCamera == null)
-        {
-            worldCamera = Camera.main;
-
-            if (worldCamera == null)
-            {
-                return;
-            }
-        }
+        if (rectTransform == null || canvas == null || parentRectTransform == null || worldCamera == null) return;
 
         Vector3 targetWorldPosition = ResolveTargetWorldPosition();
         Vector3 screenPosition = ProjectWorldToScreen(targetWorldPosition);
@@ -257,7 +240,7 @@ public class WorldGaugeFollower : MonoBehaviour
         Camera eventCamera = GetCanvasEventCamera();
 
         bool converted = RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasRectTransform,
+            parentRectTransform,
             screenPosition,
             eventCamera,
             out Vector2 localPoint
@@ -269,51 +252,23 @@ public class WorldGaugeFollower : MonoBehaviour
             return;
         }
 
-        if (snapToCanvasPixelGrid)
-        {
-            localPoint.x = Mathf.Round(localPoint.x);
-            localPoint.y = Mathf.Round(localPoint.y);
-        }
-
-        rectTransform.anchoredPosition = localPoint;
+        // Parent-local position, not Canvas-local coordinates assigned as an
+        // anchoredPosition. This respects saved pivots, anchors and nested wrappers.
+        rectTransform.localPosition = new Vector3(localPoint.x, localPoint.y, rectTransform.localPosition.z);
         ApplyVisible(true);
     }
 
     private Vector3 ProjectWorldToScreen(Vector3 worldPosition)
     {
-        if (!stabilizeForPixelPerfectCamera || !worldCamera.orthographic)
+        // Never invent a separately snapped camera: WorldToScreenPoint includes
+        // the actual projection/view matrices (including real pixel-perfect cameras).
+        Vector3 screen = worldCamera.WorldToScreenPoint(worldPosition);
+        if (snapToCanvasPixelGrid)
         {
-            return worldCamera.WorldToScreenPoint(worldPosition);
+            screen.x = Mathf.Round(screen.x);
+            screen.y = Mathf.Round(screen.y);
         }
-
-        Transform cameraTransform = worldCamera.transform;
-        Vector3 cameraPosition = cameraTransform.position;
-
-        if (assetsPixelsPerUnit > 0)
-        {
-            float pixelUnit = 1f / assetsPixelsPerUnit;
-            cameraPosition.x = Mathf.Round(cameraPosition.x / pixelUnit) * pixelUnit;
-            cameraPosition.y = Mathf.Round(cameraPosition.y / pixelUnit) * pixelUnit;
-        }
-
-        Vector3 cameraLocal = Quaternion.Inverse(cameraTransform.rotation) * (worldPosition - cameraPosition);
-        Rect pixelRect = worldCamera.pixelRect;
-
-        if (pixelRect.width <= 0f || pixelRect.height <= 0f)
-        {
-            return worldCamera.WorldToScreenPoint(worldPosition);
-        }
-
-        float halfHeight = Mathf.Max(0.0001f, worldCamera.orthographicSize);
-        float halfWidth = halfHeight * (pixelRect.width / pixelRect.height);
-        float normalizedX = (cameraLocal.x / (halfWidth * 2f)) + 0.5f;
-        float normalizedY = (cameraLocal.y / (halfHeight * 2f)) + 0.5f;
-
-        return new Vector3(
-            pixelRect.xMin + normalizedX * pixelRect.width,
-            pixelRect.yMin + normalizedY * pixelRect.height,
-            cameraLocal.z
-        );
+        return screen;
     }
 
     private Vector3 ResolveTargetWorldPosition()
@@ -329,6 +284,22 @@ public class WorldGaugeFollower : MonoBehaviour
         }
 
         return target.position + worldOffset;
+    }
+
+    private void CacheTargetGeometry()
+    {
+        if (!anchorToTargetTop || targetComponent == null)
+        {
+            targetRenderers = System.Array.Empty<Renderer>();
+            targetColliders = System.Array.Empty<Collider2D>();
+            return;
+        }
+        targetRenderers = includeChildRenderers
+            ? targetComponent.GetComponentsInChildren<Renderer>(true)
+            : targetComponent.GetComponents<Renderer>();
+        targetColliders = includeChildColliders
+            ? targetComponent.GetComponentsInChildren<Collider2D>(true)
+            : targetComponent.GetComponents<Collider2D>();
     }
 
     private bool TryCalculateTargetTop(Component component, out Vector3 position)
@@ -369,9 +340,7 @@ public class WorldGaugeFollower : MonoBehaviour
         bounds = default;
         bool hasBounds = false;
 
-        Renderer[] renderers = includeChildRenderers
-            ? component.GetComponentsInChildren<Renderer>(true)
-            : new[] { component.GetComponent<Renderer>() };
+        Renderer[] renderers = targetRenderers;
 
         if (renderers == null)
         {
@@ -406,9 +375,7 @@ public class WorldGaugeFollower : MonoBehaviour
         bounds = default;
         bool hasBounds = false;
 
-        Collider2D[] colliders = includeChildColliders
-            ? component.GetComponentsInChildren<Collider2D>(true)
-            : new[] { component.GetComponent<Collider2D>() };
+        Collider2D[] colliders = targetColliders;
 
         if (colliders == null)
         {

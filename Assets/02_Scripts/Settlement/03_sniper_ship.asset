@@ -22,9 +22,10 @@ MonoBehaviour:
   defaultWeaponTree: 1
   unlockedByDefault: 0
   unlockFlag: 
+  requiredAnalyzedComponents: 2
   requiredUnlockFlag: 
-  requiredScrapParts: 10
-  requiredCoreShards: 1
+  requiredScrapParts: 0
+  requiredCoreShards: 0
   maxHp: 20
   moveSpeedBonusPercent: 0
   dashDistanceBonus: 0

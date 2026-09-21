@@ -15,6 +15,19 @@ public class WormholePortal : MonoBehaviour, IInteractable
 
     [Header("Optional")]
     [SerializeField] private RadarTarget radarTarget;
+    private bool presentationReady = true;
+    public bool PresentationReady => presentationReady;
+    public event System.Action PresentationDisabled;
+
+    public void SetPresentationReady(bool ready)
+    {
+        presentationReady = ready;
+    }
+
+    private void OnDisable()
+    {
+        PresentationDisabled?.Invoke();
+    }
 
     public string InteractionText
     {
@@ -50,6 +63,11 @@ public class WormholePortal : MonoBehaviour, IInteractable
 
     public bool CanInteract(GameObject interactor)
     {
+        if (!presentationReady)
+        {
+            return false;
+        }
+
         if (interactor == null)
         {
             LogBlock("상호작용 대상이 없습니다.");

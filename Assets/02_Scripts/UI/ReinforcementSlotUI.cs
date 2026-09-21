@@ -373,45 +373,9 @@ public class ReinforcementSlotUI : MonoBehaviour
             rechargeFillImage = rechargeSlider.fillRect.GetComponent<Image>();
         }
 
-        ConfigureIconRechargeFill();
-        ConfigureActiveDurationFill();
-
-        if (readyGlowImage != null)
-        {
-            readyGlowImage.raycastTarget = false;
-            readyGlowImage.preserveAspect = true;
-        }
     }
 
-    private void ConfigureActiveDurationFill()
-    {
-        if (activeDurationFillImage == null)
-        {
-            return;
-        }
 
-        activeDurationFillImage.type = Image.Type.Filled;
-        activeDurationFillImage.fillMethod = Image.FillMethod.Radial360;
-        activeDurationFillImage.fillOrigin = (int)Image.Origin360.Top;
-        activeDurationFillImage.fillClockwise = true;
-        activeDurationFillImage.preserveAspect = true;
-        activeDurationFillImage.raycastTarget = false;
-    }
-
-    private void ConfigureIconRechargeFill()
-    {
-        if (iconRechargeFillImage == null)
-        {
-            return;
-        }
-
-        iconRechargeFillImage.type = Image.Type.Filled;
-        iconRechargeFillImage.fillMethod = iconFillMethod;
-        iconRechargeFillImage.fillOrigin = Mathf.Max(0, iconFillOrigin);
-        iconRechargeFillImage.fillClockwise = iconFillClockwise;
-        iconRechargeFillImage.preserveAspect = true;
-        iconRechargeFillImage.raycastTarget = false;
-    }
 
     private void SetIcon(Sprite icon, Color color)
     {
@@ -423,25 +387,21 @@ public class ReinforcementSlotUI : MonoBehaviour
         iconImage.sprite = icon;
         iconImage.enabled = icon != null;
         iconImage.color = color;
-        iconImage.preserveAspect = true;
 
         if (iconRechargeFillImage != null)
         {
             iconRechargeFillImage.sprite = icon;
-            iconRechargeFillImage.preserveAspect = true;
         }
 
         if (activeDurationFillImage != null)
         {
             activeDurationFillImage.sprite = icon;
-            activeDurationFillImage.preserveAspect = true;
         }
 
         if (readyGlowImage != null)
         {
             readyGlowImage.sprite = icon;
             readyGlowImage.color = readyGlowColor;
-            readyGlowImage.preserveAspect = true;
         }
     }
 
@@ -493,10 +453,7 @@ public class ReinforcementSlotUI : MonoBehaviour
 
         if (rechargeSlider != null)
         {
-            rechargeSlider.minValue = 0f;
-            rechargeSlider.maxValue = 1f;
-            rechargeSlider.value = ratio;
-            rechargeSlider.interactable = false;
+            rechargeSlider.SetValueWithoutNotify(Mathf.Lerp(rechargeSlider.minValue, rechargeSlider.maxValue, ratio));
         }
 
         Color gaugeColor = canUse

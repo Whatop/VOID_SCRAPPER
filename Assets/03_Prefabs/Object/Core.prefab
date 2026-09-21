@@ -114,6 +114,7 @@ MonoBehaviour:
   requirePlayerStayInRange: 1
   interactionStayRadius: 3
   bossPrefab: {fileID: 2869722714546691079, guid: bd35c3a3a0ce6de45bbb6b45c19770b8, type: 3}
+  finalBossPrefab: {fileID: 100000, guid: e403693d7e404945a69c79053e21d741, type: 3}
   region2BossPrefab: {fileID: 100000, guid: 662621d35e964a9facf578eff82da1e4, type: 3}
   region1RepeatBossPrefab: {fileID: 100000, guid: e28d3d3313ed47cf894549274d2b4938, type: 3}
   region1RepeatBossDefinition: {fileID: 11400000, guid: 33e42a9f02564b98b66245c0a262836c, type: 2}

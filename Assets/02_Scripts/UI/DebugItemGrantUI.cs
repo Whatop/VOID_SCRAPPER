@@ -8,7 +8,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
-public sealed class DebugItemGrantUI : MonoBehaviour
+public sealed partial class DebugItemGrantUI : MonoBehaviour
 {
     private enum ItemKind
     {
@@ -95,10 +95,18 @@ public sealed class DebugItemGrantUI : MonoBehaviour
         closeButton.onClick.AddListener(Close);
         idInputField.onSubmit.AddListener(HandleIdSubmitted);
         amountInputField.onSubmit.AddListener(HandleAmountSubmitted);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        resourceMaxButton.onClick.AddListener(GrantPermanentResources);
+        applyCheckpointButton.onClick.AddListener(ApplySelectedCheckpoint);
+#endif
     }
 
     private void OnDisable()
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (resourceMaxButton != null) resourceMaxButton.onClick.RemoveListener(GrantPermanentResources);
+        if (applyCheckpointButton != null) applyCheckpointButton.onClick.RemoveListener(ApplySelectedCheckpoint);
+#endif
         if (grantButton != null)
         {
             grantButton.onClick.RemoveListener(GrantCurrentId);
@@ -163,6 +171,9 @@ public sealed class DebugItemGrantUI : MonoBehaviour
         StoreCursorState();
         isOpen = true;
         canvasRoot.SetActive(true);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        RefreshCampaignControls();
+#endif
         pauseManager.PushPause(this, "Debug Item Grant UI");
         pauseManager.RegisterCancelHandler(this, Close);
         ownsPause = true;
@@ -198,7 +209,7 @@ public sealed class DebugItemGrantUI : MonoBehaviour
         }
 
         GameState state = GameStateManager.Instance.CurrentState;
-        return state == GameState.Tutorial ||
+        return state == GameState.Settlement || state == GameState.Tutorial ||
                state == GameState.Expedition ||
                state == GameState.BossBattle;
     }
@@ -371,7 +382,8 @@ public sealed class DebugItemGrantUI : MonoBehaviour
         }
 
         ExpeditionDepth depth = runManager.CurrentRun.ExpeditionDepth;
-        if (depth == ExpeditionDepth.DeepZone2)
+        bool repeatBoss = CampaignProgressionCatalog.ShouldUseRepeatBoss(depth, PermanentProgress.Instance);
+        if (depth == ExpeditionDepth.DeepZone2 && !repeatBoss)
         {
             PhaseGatekeeperBossController encounter =
                 generator.CurrentRegion3BossEncounter;
@@ -415,7 +427,7 @@ public sealed class DebugItemGrantUI : MonoBehaviour
             return;
         }
 
-        string resultMessage = depth switch
+        string resultMessage = repeatBoss ? "Raider Commander encounter started." : depth switch
         {
             ExpeditionDepth.Normal => "Region 1 Boss encounter started.",
             ExpeditionDepth.DeepZone1 => "Salvage Devourer encounter started.",
@@ -932,6 +944,9 @@ public sealed class DebugItemGrantUI : MonoBehaviour
 
         grantButton = CreateButton("GrantButton", panel.transform, "GRANT", new Vector2(-62f, -91f), new Vector2(110f, 26f));
         closeButton = CreateButton("CloseButton", panel.transform, "CLOSE", new Vector2(62f, -91f), new Vector2(110f, 26f));
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        BuildCampaignControls(panel.transform);
+#endif
     }
 
     private void HandleIdSubmitted(string _)
@@ -957,6 +972,13 @@ public sealed class DebugItemGrantUI : MonoBehaviour
 
     private void FocusIdInput()
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (campaignMode)
+        {
+            EventSystem.current?.SetSelectedGameObject(campaignCheckpointDropdown.gameObject);
+            return;
+        }
+#endif
         if (idInputField == null)
         {
             return;

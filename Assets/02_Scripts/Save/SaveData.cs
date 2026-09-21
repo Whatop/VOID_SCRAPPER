@@ -4,7 +4,8 @@ using System.Collections.Generic;
 [Serializable]
 public class SaveData
 {
-    public int version = 4;
+    public int version = 5;
+    public List<string> equipmentLoadoutTraitIds = new List<string>();
 
     public int scrapParts;
     public int coreShards;

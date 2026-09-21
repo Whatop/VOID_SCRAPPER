@@ -684,6 +684,19 @@ public sealed class FrigateTriadBossController : MonoBehaviour
         SnapLivingPartsToFormationTargets();
     }
 
+    public void StopCombatForDeathPresentation()
+    {
+        aggregateDeathInProgress = true;
+        try
+        {
+            CleanupBossRuntime();
+        }
+        finally
+        {
+            aggregateDeathInProgress = false;
+        }
+    }
+
     public void CleanupBossRuntime()
     {
         if (cleanupInProgress)
@@ -1462,9 +1475,7 @@ public sealed class FrigateTriadBossController : MonoBehaviour
 
     private void HandleAggregateBossDied(EnemyHealth _)
     {
-        aggregateDeathInProgress = true;
-        CleanupBossRuntime();
-        aggregateDeathInProgress = false;
+        StopCombatForDeathPresentation();
     }
 
     private void SetState(FrigateTriadBossState nextState)

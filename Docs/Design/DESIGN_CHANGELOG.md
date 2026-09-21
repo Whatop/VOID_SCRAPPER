@@ -1,5 +1,484 @@
 # VOID SCRAPPER 설계 변경 원장
 
+## 2026-09-21 - Equipment Development UI refinement
+
+- Retire the remaining legacy Upgrade action display and old paragraph/clear-slot
+  presentation from the authored Equipment Development path. Keep legacy save data
+  and unrelated persistent story trait authority compatible.
+- Separate inspection from free activation/deactivation; retain optional empty slots,
+  fixed capacity, compatibility and the existing run candidate snapshot.
+- Author compact per-level effect rows, MaxLv/unowned wording, compatibility tag,
+  locked research conditions and explicit active/inactive status. Share the run reward
+  effect formatter; do not invent cumulative totals, prices or equipment drawbacks.
+- Grant the final row at natural third-component analysis completion before Route Core
+  assembly. Persist that milestone in the existing flag store and add F10 preset 11.
+- Keep activation controls above the existing launch footer; validate both bounds and
+  the rendered 480x270 result. Runtime acquisition and catalog balance are unchanged.
+
+## 2026-09-20 - Tutorial cinematic and Radar presentation polish
+
+- Extend owner-scoped HUD cinematic presentation with an optional unscaled fade;
+  Tutorial camera focus uses 0.22 seconds and hides irrelevant prompts immediately.
+- Separate the existing Core pulse from VisualRoot; own one Ready-only stationary wave,
+  stop it before travel and restore only unconsumed presentation after interruption.
+- Retire Radar sprite-frame arrays and coroutine interpolation. Repurpose the existing
+  frame Image into an authored sprite-free sweep in both Tutorial and Expedition.
+- Use owned DOTween open/close/idle/scan presentation and preserve boss suppression,
+  manual close, marker symbols, background reduction and scanner gameplay authority.
+- Fix the exact dialogue-active launch-guard fallback when localization is unavailable.
+- Extend existing Tutorial authoring/discovery tests; actual Play Mode probe covers
+  paused fading, scanner presentation and interrupted Core travel. Visual review at
+  480x270 and a complete Tutorial narrative playthrough remain outstanding.
+
+## 2026-09-20 - Boot lifecycle and authored Options recovery
+
+- Separate Boot configuration recognition from permission to mutate persistence; claim
+  a one-shot request and use sceneLoaded instead of retrying persistence from Start.
+- Author the existing result presentation under CoreRoot; remove runtime hierarchy
+  construction/reparenting and retain RunEnded, counters, fades and Continue behavior.
+- Preserve all existing Options objects and Inspector values. Repair only the reversed
+  Resolution/FrameLimit dropdown guards; add deep validation and a Boot-only authored path.
+- Preserve the first Settings Open across deferred Awake to fix the blank screen.
+- Guard the navigation pointer's destroyed owner during Settlement -> Boot unload;
+  leave Settlement progression, layouts and interaction behavior unchanged.
+
+## 2026-09-20 - Unified Settlement Recovery / Route Core panel
+
+- Evolve one existing primary navigation slot at the authoritative Assembled boundary;
+  retain Activated and later status without new flags or optional-facility gates.
+- Reuse Repair_HUD for restoration and a compact Route Core summary; transition in place
+  immediately after the existing explicit Recovery Processor action and save.
+- Move the existing authored deck shortcut into the core view while retaining EnterDeck.
+  Preserve the physical core's activation, corrupted-defense and final-launch ownership.
+- Keep optional facilities accessible through a subordinate mode toggle; preserve the
+  shared blue hover/yellow selected style and the independent read-only progress panel.
+- Add 14 Korean/English UI localization keys and clarify the final required restoration
+  description. Reuse component names; import the catalog through the normal Unity tool.
+- Extend the existing restoration tests with authority-driven status, immediate handoff,
+  optional access, navigation visuals, deck round trips and localized layout coverage.
+
+## 2026-09-20 - Settlement / Tutorial UX polish
+
+- Add a scene-authored read-only objective/progress block to the existing Settlement sidebar.
+- Project story parts, pending analysis, restoration, activation, defense and final state
+  from PermanentProgress; refresh through existing change events and scene lifecycle.
+- Unify navigation/card hover and focus as blue; preserve yellow selected state on exit.
+- Separate reinforcement preview from selection. Details and the purchase transaction use
+  the explicitly selected card; Click/Submit commits it, hover/focus cannot steal it.
+- Extend the existing explicitly remote audio hooks with a compact unscaled DOTween panel
+  reveal and first-subtitle gate. Preserve local NPC paths and Pixel Crushers lifecycle.
+- Add 20 Korean/English localization keys with named placeholders and extend existing UI,
+  dialogue and audio regression coverage. Gameplay, economy and dialogue content unchanged.
+
+## 2026-09-14 - NULL DISPATCHER Pass 4E
+
+- Add a final-only optional ending hook after BossDeathPresentation; retain the existing
+  BossDummyController -> RunManager FinalVictory authority and exact-once death guard.
+- Explicitly cancel final combat before death VFX, independent of health-event subscriber
+  order. Defer final background recovery until after the ending shutdown.
+- Add NullDispatcherEndingPresentation with inner-core flicker, neutral shutdown pulse,
+  source-owned player/weapon/camera locks, safe dash cancellation and idempotent cleanup.
+- Install FINAL_NullDispatcherTermination: four Dispatcher subtitles, two Operator
+  subtitles, no choices and one natural terminal marker. Keep the player's purple copy.
+- Reuse the existing treatment entry without changing its interruption notifications.
+  Allow one ending restart and controlled fallback on genuine start/lifecycle failure.
+- Author ending bindings on the existing final prefab using supported Unity prefab APIs.
+  Reuse core5/inner-core/outer-shell/pulse art. Add seven ending CSV keys and regenerate
+  the catalog/database only through Unity's importer and deterministic installer.
+- Preserve RunResult copy, resource commitment, final completion save authority, Continue
+  -> Settlement, all previous combat phases, corrupted defense, and Story Recovery.
+- Ending visual timing is 2.5 seconds plus existing user-paced subtitles; do not enforce
+  a short timeout on readable dialogue. Art/audio/credits and Play Mode acceptance remain.
+
+## 2026-09-14 - NULL DISPATCHER Pass 4D
+
+- Add an exact-once 20% gate using the existing owner-keyed health-floor API, including
+  the Weapon Lab support damage window. Release it permanently when FinalPhase starts.
+- Author outer shell, four sprite remnants and an inner corrupted core on the existing
+  prefab. Add a 2-second DOTween shell-break presentation with independent gameplay timing.
+- Alternate two sparse final combinations, preserve polarity, and increase ongoing
+  1-HP support to a 3.5-second cadence. Keep packet caps and one-time support unchanged.
+- Retain BossDummyController -> RunManager -> FinalVictory/RunResult authority. No ending,
+  credits, dedicated art, final audio or new run-ending system is implemented.
+- Extend QA regression coverage for the final gate, interruption, visuals, support,
+  cleanup and floor ownership; update previous prototype-death tests to traverse the gate.
+- Execute Runtime/Editor static compilation and Unity catalog import/validation. Final full
+  EditMode suite: 415/415 passed. Correct two pre-existing inactive-physics test fixtures;
+  player movement production code is unchanged. Manual Play Mode remains pending.
+
+## 2026-09-13 - NULL DISPATCHER Pass 4C
+
+- Replace the temporary post-support attack continuation with encounter-local White/Black
+  Phase 2. Retain the Pass 4A/4B treatment, branch and one-time facility support authority.
+- Add two pooled packet prefabs and one concrete component: opposite-polarity hostile
+  diamonds use ordinary damage; matching Settlement plus packets heal 1 every ~5 seconds.
+- Evolve Compression Dispatch and Phase Redirect; retain neutral Route Partition lasers.
+  Clear both packet kinds BEFORE each two-pattern polarity switch and its 0.5-second cue.
+- Author a compact persistent polarity label in the Expedition scene HUD and three CSV keys.
+  Both black and white packet silhouettes have contrasting outlines from existing sprites.
+- Extend QAStabilizationPass1Tests with Phase-2 rules, scheduler protocol, health, pause,
+  reuse, cleanup and authoring coverage; update three earlier post-support expectations.
+- Static compilation, source localization validation and serialized-reference checks are
+  distinct from Unity execution. Unity Test Runner and Play Mode are pending.
+- No <=20% phase, dual-pattern climax, shell break, ending or dedicated art in this pass.
+
+## 2026-09-13 - NULL DISPATCHER Pass 4B
+
+- Replace immediate post-choice attacks with playable Accept reclaim resistance or a
+  damage-free Reject transition, converging on the existing Settlement facility support.
+- Add a source-owned contribution to PlayerController2D's external-push composition;
+  preserve normal movement/dash and use direct current-HP restoration for capped drain.
+- Author ReclaimBeamRoot and ReclaimBreakPulse on the existing final prefab. Add four
+  localized non-modal HUD messages and reuse existing boss warning/transition sounds.
+- Keep boss protection through branches; hold player firing through support, clear old
+  player shots before removing protection, and allow Weapon Lab damage. Support completion
+  resumes the existing pattern pool in temporary PostSupportCombat.
+- Preserve support UnityEvents and add exact-once C# completion. Fix missing-progress
+  completion and cancellation of engine buffs using existing source-owned stat modifiers.
+- Extend existing QA tests and adapt Pass 4A continuation assertions. No dialogue graph,
+  permanent progression, regional campaign, defense or StoryRecovery changes.
+- Static Runtime/Editor builds and CSV validation pass; Unity Test Runner and Play Mode
+  are pending. Polarity, final shell break, final art and ending remain future work.
+
+## 2026-09-10 - NULL DISPATCHER Pass 4A
+
+- Add one final-boss combat controller and authored prefab bindings for three sequential
+  telegraphed patterns using existing laser and pooled bullet infrastructure.
+- Introduce source-owned EnemyHealth damage floors: intro protection and an exact 50%
+  treatment gate that cannot be skipped by lethal damage. No regional health policy changes.
+- Add nine CSV keys and a deterministic Pixel Crushers installer/validator for six
+  disclosures, Accept/Reject responses and one completion marker. Runtime choice is
+  provisional until natural completion; interruption clears it and re-offers safely.
+- Make legacy automatic 45% support manual-only; retain the callable support system.
+- Source-owned cinematic locks, dash cancellation and idempotent cleanup preserve the
+  recent movement fix. Either choice resumes temporary Phase-1 patterns and FinalVictory.
+- Extend QA and story dialogue suites for threshold/choice/floor/cleanup/authoring
+  contracts. Static Runtime + Editor/test compilation and CSV validation pass. No Unity
+  Test Runner or Play Mode execution claimed; generated content import/install is pending.
+- Reclaim Beam, NPC intervention, branch consequences, polarity, shell break, ending and
+  final art remain later work. Settlement defense and StoryRecovery code/bindings are preserved.
+
+## 2026-09-10 - Corrupted Three-Core Settlement Defense
+
+- Replace live transmission anchors and Raider defenders with one reusable corrupted
+  component prefab and green -> blue -> orange sequential combat configurations.
+- Separate combat defeat from explicit reactivation and fusion; only the third fusion
+  permits existing Route Core defense completion/save and final expedition eligibility.
+- Add failed-fusion intro, corruption wave, cleanse/central fusion, and stabilization
+  DOTween presentation without player-control locks. Retain explicit Recovery Processor
+  restoration/assembly and existing Activated -> DefenseCleared progression ownership.
+- Hide the authored ReturnToFacilities button during defense and restore prior UI state
+  on completion, death or cancellation. Unlimited retries reset only encounter runtime.
+- Retire live anchor/Raider bindings; retain the unused old anchor prefab for asset safety.
+  Reuse core5 art, EnemyHealth and enemy projectile infrastructure. NULL DISPATCHER and
+  its canonical finalBossPrefab binding remain unchanged.
+- Extend existing QAStabilizationPass1Tests for phase/interaction/fusion authority,
+  duplicate calls, cancellation at all stages, retry, UI and unrelated input ownership.
+  Add five CSV localization keys; generated catalogs require normal Unity import.
+- Validation: static Runtime and Editor/test compilation; serialized references,
+  ordered identities, localization rows and unchanged final bindings audited. Unity
+  Test Runner / Play Mode not executed. Combat balance and presentation await gameplay.
+
+## 2026-09-09 - Campaign Vertical Slice Pass 3
+
+- Author RouteCoreDeck, its player/light/interaction stages, a facilities entry button
+  and compact deck HUD in Settlement.unity. Preserve existing objects/components;
+  only four existing records change for the button, message binding/layout and roots.
+- Preserve Recovery Processor as the restoration/assembly boundary; visiting the Core
+  at ReadyToAssemble cannot bypass it. Activation uses existing Route Core authority.
+- Add one concrete SettlementDefenseEncounterController: three 100-HP transmission
+  anchors plus six existing Raider escorts at 24 HP. Destruction events alone finish
+  defense; retry/cancel/death/scene exit cleanup never grants a clear. Auto-clear stays off.
+- Reuse EnemyHealth and core5 art in PF_SettlementTransmissionAnchor. Author the deck's
+  existing Global Light 2D so the reused lit sprites remain visible. Clear two missing
+  Animator controller references only on already-disabled copies of player Animators.
+- Add PF_Boss_NullDispatcher and bind Core.finalBossPrefab. It is a 300-HP damageable
+  target with existing intro/health/death/FinalVictory plumbing, no attack controller,
+  and dormant existing support hooks. No final combat patterns or ending implemented.
+- Extend gameplay-state recognition to defense/final combat and apply the existing
+  emergency-return boss restriction to FinalBossBattle.
+- Extend QAStabilizationPass1Tests for authoring, bounded defense start, destruction,
+  cancellation, exact-once restoration/activation/completion, final binding and victory.
+- Runtime and Editor/test assemblies compile; serialized GUID/local-reference and
+  hierarchy checks pass. Unity Test Runner and manual Play Mode remain unexecuted.
+
+## 2026-09-09 - Campaign Vertical Slice Pass 2
+
+- Stop Region 2/3 combat synchronously at authoritative death before starting the
+  shared death sequence. Remove dependence on EnemyHealth.Died subscriber order.
+- Convert Phase Gatekeeper focus/offset control to owned camera calls; cancel active
+  dash through its owner at intro acquisition. Preserve the verified Region-1 fix.
+- Preserve intentionally empty active equipment during portal bootstrap instead of
+  granting default starting gear again. Keep the same RunContext and carryover data.
+- Reject non-Normal run creation without authoritative permanent progress. An unwired
+  Settlement defense event no longer strands the player in SettlementDefense; reject
+  duplicate requests and unsolicited completion, release only owned state on cleanup.
+- Clarify three existing CSV dialogue lines: Matter Compressor/last component, stronger
+  anomaly and upcoming Region-3 authorization, and unsafe field assembly/explicit
+  Recovery Processor restoration. No new dialogue graph or progression actions.
+- Extend existing QA and Phase2C suites for encounter selection, death cleanup, final
+  prerequisites, both portal transitions, active equipment and Story Recovery stages.
+- Static runtime and Editor/test compilation passed; Unity Test Runner and Play Mode
+  were not executed. The full playable slice remains incomplete: Route Core authoring,
+  Settlement defense encounter and NullDispatcher prefab binding are absent locally.
+
+## 2026-09-09 - Story Recovery Inventory Presentation
+
+- The user confirmed the boss-death stuck movement/dash fix. Preserve that flow.
+- Missing dedicated story art now uses the shared prefab's authored generic core
+  for world recovery; inventory icons remain disabled until dedicated art is assigned.
+- Author StoryRecoverySection inside the existing inventory: title and exactly three
+  horizontal read-only slots. Preserve cargo/equipment hierarchy and bindings.
+  Mirror this addition into Expedition's unpacked authored inventory copy so the
+  runtime scene receives it; Tutorial already references the shared prefab.
+- Refresh from PermanentProgress directly; pulse only an already-open matching slot
+  after the world presentation completes. No new inventory, progression, or input owner.
+- Add six ui.story_recovery localization source keys (title, two statuses, three names).
+  Generated localization and dialogue assets remain untouched.
+- Extend existing QA tests for fallback/override, read-only bindings, authoritative
+  event refresh, duplicate/cargo guards, fixed icon space, control isolation, and tween cleanup.
+
+## 2026-09-09 - Boss Death Recovery Hotfix
+
+- Replace death/phase/intro stale movement-state restoration with source-owned
+  control/weapon locks and idempotent active-dash cancellation. Preserve foreign
+  locks and component enable states; release owned camera focus/input offset.
+- Accept ordinary boss death and leave BossBattle before optional death/reward/exit
+  presentation. Keep Emergency Return recent-combat restrictions and final gates.
+- Freeze the resolved death anchor. Place a lone Beacon there when clear; use
+  nearest sampled clear positions when blocked and center repeat exit pairs there.
+- Add a dedicated storyPartSprite binding to each existing campaign definition.
+  Reuse the recovery prefab for rise/hold/reparent/local flight/fade with no control
+  lock. Missing art skips visual only; permanent grant/save and message survive.
+- Extend QAStabilizationPass1Tests for control/dash/camera ownership, cancellation,
+  death-state handoff, saved rewards/duplicates/cargo, anchors, and manually sought
+  recovery tweens. Static compilation is separate from Unity/Play Mode validation.
+
+## 2026-09-09 — Campaign Spine Pass 1
+
+- Stop deriving next-region authorization from boss defeats. Keep the existing
+  saved highestUnlockedDepth, preserve old saves' stored routes, and authorize
+  DeepZone1/DeepZone2 only from naturally completed Active1/Active2 Settlement analysis.
+  Reuse the current typed completion transaction, save on change, and block new
+  Settlement launches while analysis is pending. No graph IDs or save schema changes.
+- First story defeats grant/save unique permanent parts before death animation;
+  first-clear exits are Beacon-only. Reuse the existing Raider prefab/definition
+  for cleared Regions 1-3, with region-correct run-clear identity and no repeated
+  story grants. Region 2 repeat maps omit the story corridor; Region 3 retains its
+  first-clear coreless foundation and uses Core-based Raider encounters on repeats.
+- Preserve explicit Recovery Processor / Route Core / defense / final launch gates.
+  Region 3 never provides a FinalNetwork portal. Ordinary new runs still start at
+  Normal and existing portal carryover remains authoritative. No final combat added.
+- Share the existing Region-2 recovery visual with Region-1/3 story bosses, using
+  unscaled DOTween and coordinator-owned lifetime independent of corpse release.
+  Add three localized part-recovery and two route-authorization messages.
+- Reveal valid exits together over 0.65 seconds with interaction/colliders gated,
+  safe placement retained, portal eligibility rechecked after rewards, and owned
+  tween cleanup plus immediate completion on presentation failure.
+- Extend Phase2CStoryDialogueTests and QAStabilizationPass1Tests for progression,
+  interruption guards, save round trips, old authorizations, carryover, exit decisions,
+  shared prefab bindings and cleanup. No internal component-array manipulation or
+  active PreviewScene requirement is introduced.
+- Static runtime and Editor/test builds passed. Unity Editor is open on this checkout;
+  no connected Test Runner was available, so new Unity test/playback results are not
+  claimed. Import/Validate Localization Catalog and run focused/full Unity suites.
+  Only two boss prefab recovery references were edited; authored scenes, Core/exit
+  prefabs, campaign definitions and generated dialogue/localization assets are preserved.
+  No commit or push.
+
+## 2026-09-09 — Settlement boss-part and Pixel Curse narrative expansion
+
+- Preserve all six original first-Settlement Korean lines. Insert two warnings
+  before departure: parts can intensify the anomalous waveform, and collecting
+  three parts does not automatically restore the key; use the Recovery Processor.
+- Expand Active0/Active1/Active2/ReadyToRestore/Completed to two subtitles each.
+  Keep legacy text keys, add seven keys, and revise only the legacy ready line to
+  acknowledge three parts and the peak anomalous response. Translations remain empty.
+- Keep STORY_FirstSettlementUnknownCore and original entry IDs 0-12; add opening
+  IDs 13-14 and response IDs 15-19. Six conditional entrances, unconditional
+  continuations and one shared terminal 12; no dialogue gameplay actions added.
+- Extend existing Phase2C tests for branch traversal/speakers, required new keys,
+  repeat-state exact-once start protection, deterministic installation and read-only
+  projection of real unique-part/Curse/restoration state using test-owned progress.
+- No bridge, transaction, reward, Curse formula, camera, UI or Boot lifecycle edits.
+  The user reports the pre-task EditMode suite and previous Boot loops passed; this
+  new content has not run in Unity Test Runner or Play Mode here. Runtime and Editor
+  static builds passed (0 errors; 73 and 77 warnings respectively). Generated assets
+  are unchanged and require the existing Import Catalog / Install Phase 2C Story
+  workflow before validation and playback. No UI authoring tools were restored.
+- Static CSV checks: 64 unique records, seven additions, one changed legacy key,
+  no orphaned keys or fabricated translations; new Korean lines are 34-46 characters.
+  Scoped whitespace checks passed and all 512 protected asset/project hashes match.
+
+## 2026-09-09 — Boot re-entry ownership ordering
+
+- Incoming `GameBootstrap` duplicate rejection now precedes the `scene.isLoaded`
+  initialization gate. Its existing -32000 execution order deactivates the incoming
+  Dialogue Manager and duplicate CoreRoot before default-order components awake;
+  initial persistence/service/progression initialization still requires a loaded scene.
+- Settlement Settings retains save-before-return and Close (pause/cursor cleanup),
+  then delegates to `SceneFlowManager.LoadBoot()` instead of loading Boot directly.
+  Expedition pause already uses this flow; Boot fade, GameState and run-ending
+  presentation release remain owned by SceneFlowManager.
+- The persistent canonical manager/service, Pixel Crushers single-instance/DDOL
+  configuration and unexpected-duplicate localization Error are unchanged. No scene,
+  prefab, dialogue, localization or authored UI values were edited.
+- Added lifecycle coverage for gate ordering, scene-scoped/idempotent deactivation
+  preserving localization authority, and save/close/LoadBoot routing. Native scene-load
+  Awake timing and repeated Play Mode loops still require Unity verification; the
+  user-reported 256 passing EditMode tests are the pre-change baseline, not a new run.
+- Validation: runtime static build 0 errors / 73 warnings; Editor/test static build
+  0 errors / 77 warnings. Scoped whitespace checks passed. All 512 protected
+  scene/prefab/asset/InputActions/generated-project hashes match the pre-task state,
+  including manually saved Boot. No Unity Test Runner or Play Mode run performed.
+
+## 2026-09-08 — Five-failure targeted follow-up
+
+- Confirmed Boot's manually saved 18 rebind rows and three dropdowns read-only:
+  unique, correct types, correct OptionsPanel ancestry. No assignment/reorder/save.
+- Corrected the native Settings conflict expectation to exact LogType.Log directly
+  before Configure; retained rollback/retry and duplicate-free reconfiguration.
+- Pause cleanup records original/runtime root and component IDs, isolates actions
+  from real Editor devices, and removes only its InputBindingPersistence entry.
+  Retained strict lifetime and dirty-state assertions. Current line 90 is the
+  dirty-state check; actual acceptance and survivor IDs still require a rerun.
+- Navigation tests now use real UI-module lifecycle/input processing with temporary
+  settings, copied actions and keyboard/gamepad devices. Removed obsolete sector
+  backButton reflection while retaining Back/Settings/no-replacement assertions.
+- Supplied reinforcement failure plus installed uGUI source identify synchronous
+  focus clearing before the presenter's check. Capture ownership before refresh;
+  retain external focus and use existing card/sidebar fallback. Added semantic-ID,
+  native-setter and ownership regressions without changing transactions or style.
+- Runtime compilation: 0 errors / 73 warnings. Editor/tests: 0 errors / 77 warnings.
+  Unity execution: 0 tests; passed/failed/skipped/inconclusive totals unverified.
+  No safe runner connected, XML export, Play Mode or rendered result. All 511
+  protected hashes match the fresh baseline, including the new Boot save.
+  Nothing committed or pushed; no retired UI tool restored.
+
+## 2026-09-08 — Third-pass EditMode stabilization and binding classification
+
+- Replaced all five remaining additive temporary-scene helpers with PreviewScenes;
+  removed active-scene changes and an unnecessary navigation clone into the user
+  scene. Added an unsaved-Untitled environment regression without opening or
+  replacing the user's scene (explicitly skipped when no Untitled scene is open).
+- Pause cleanup tracks/destroys the root at creation and tests finally cleanup at
+  pre-Awake, pre-Start and post-Start boundaries, including repeated teardown.
+  Kept strict lifetime assertions and exact synchronous native Settings-conflict
+  expectations; the anchored expectation tolerates only an optional final newline.
+- Split charge-presenter geometry invariants from follower position ownership.
+  No PlayerChargeGaugeUI/WorldGaugeFollower runtime changes.
+- Established semantic Hangar selection and reinforcement CanShow readiness;
+  enabled only test-added persistent callbacks for EditMode dispatch. Production
+  routing, duplicate-listener protection and transactions are unchanged.
+- Classified the saved trait template's absent CanvasGroup as supported optional
+  data, not refresh-time loss. Boot's missing Settings input-guard arrays are a
+  genuine saved-binding blocker: 18 rows and three dropdowns require manual
+  Inspector assignment. Tests report exact object/scene paths; no automatic repair.
+- Runtime compilation: 0 errors / 73 warnings. Editor/test compilation: 0 errors /
+  77 warnings. Unity execution: 0 tests; passed/failed/skipped/inconclusive totals
+  remain unknown. No production validation, Play Mode or rendered result claimed.
+- Rechecked 498 assets / 6,951 script references, with no unresolved first-party
+  source MonoScript GUID. All 511 protected-file hashes are unchanged. No UI tools
+  restored, no production source or assets edited, and nothing committed/pushed.
+
+## 2026-09-08 — Second-pass EditMode scene ownership and cleanup
+
+- Inspected installed Unity 6000.0.69f1 managed IL: targeted ObjectFactory creation
+  still invokes Editor default parenting. Fixtures failed to enforce final scene
+  ownership before grouping; this explains a supported escape path for leaked
+  roots and subsequent zero-owner searches. Removed ObjectFactory creation from
+  affected tests, without changing runtime code or Editor default-parent state.
+- Plain fixture roots are explicitly moved before parenting/component setup.
+  Added handle/path/load/preview diagnostics, inactive scene-scoped owner searches,
+  explicit owned-root destruction and post-close lifetime assertions.
+- Replaced both EditMode-invalid SceneManager.CreateScene calls with additive
+  EditorSceneManager.NewScene; strengthened finally cleanup and tween ownership.
+- Sorted/materialized scene-scoped snapshots (including Expedition's lazy
+  projection comparison). Retained user-scene preservation checks and strict leak
+  detection. No global Resources.FindObjectsOfTypeAll snapshots remain in tests.
+- Added grouping/inactive-owner and foreign-parent/cleanup regression cases.
+  Kept charge render-callback, tutorial coroutine, pause action, bootstrap and
+  runtime UI assertions; no authoring tools, migration flags or runtime builders
+  were restored.
+- Deliberate Settlement/TuningChips missing-binding tests now expect exact warning
+  strings and restore references in finally. Exact Settings-conflict and duplicate
+  localization expectations remain unchanged.
+- Saved assets confirm the user's ItemDetailRoot, ShopProjectile and Settlement
+  cleanup. Scan: 498 assets / 6,951 script references; no first-party unresolved
+  source GUID found. HUD/navigation owners and item-detail bindings remain.
+- Runtime and Editor/test compilation passed; no connected safe Unity runner,
+  so zero Unity tests executed here and latest pass/fail/skip/inconclusive totals
+  remain unverified. All 511 protected-file hashes match the start of this pass.
+
+## 2026-09-08 — Phase 2C.2 discovery focus and interruption hardening
+
+- Verified the saved Tutorial uses the existing GameplayCameraRig/player references;
+  the optional tutorialCamera reference resolves through its existing runtime path.
+  No scene or prefab edits are needed.
+- Removed the ancient-wreck pre-focus viewport gate; Radar and map discoveries now
+  share atomic reservation. Supply introduction's existing viewport hold remains.
+- Reused owned GungeonStyleCamera2D unscaled SmoothStep focus (0.6s), followed by
+  Pixel Crushers guidance and an owned live-player-framing return (0.5s).
+- Separated discovery camera identity from other tutorial cinematic ownership.
+  Cleanup captures input publishers, respects Unity destruction, yields to camera
+  takeover, checks scene exits and player replacement, and stops only its own
+  conversation. Aborted guidance remains replayable on later discovery.
+- Confirmed route-free supply completion already uses HarvestObjectHealth.Died
+  from Map/RoutePing/Travel/Destroy -> CollectResources; retained this transaction
+  authority and added controller-level duplicate/convergence coverage.
+- Added test-owned PreviewScene coroutine/camera boundary tests and retained the
+  existing Pixel Crushers completion/localization tests. Static compilation is
+  distinct from Unity Test Runner, Play Mode and rendered acceptance.
+- UI authoring tools remain retired; fixed UI, charge-gauge correction, dialogue
+  content, localization, rewards, saves and route/ping implementation are untouched.
+
+## 2026-09-07 — Retire completed UI authoring tools; fix shared charge follow
+
+- Fixed production Scene/Prefab presentation remains authoritative and untouched.
+  Removed the completed VOID SCRAPPER > UI menu tree (14 installer/validator
+  scripts and metadata), exclusive authoring helpers and installer-only tests.
+  Runtime regression tests now consume disposable saved-scene PreviewScene copies.
+- Removed proven inert migration policy fields. Existing scene YAML scalar remnants
+  are left untouched; runtime owners, their MonoScript GUIDs and legacy object
+  references remain. Missing-binding diagnostics now direct manual Inspector
+  correction instead of naming removed menus.
+- Corrected WorldGaugeFollower's mismatched synthetic snapped camera projection,
+  canvas-local/anchored conversion and forced pivot. Both gameplay cameras use
+  the existing late camera rig, not an attached Pixel Perfect Camera or Cinemachine
+  Brain. Follow uses the actual render camera matrix, one optional screen-pixel
+  rounding, immediate-parent conversion and a once-per-frame render callback.
+- Removed PlayerChargeGaugeUI's root-scale cooling pulse. Fill, colors, visibility
+  and hold timing remain; subscriptions detach from actual publishers and dedupe
+  repeated weapon sources. No smoothing, layout polling or per-frame allocations.
+- Retained world charge construction, radar/map/inventory dynamic content, authored
+  template cloning, Boot background animation, runtime Pause/Options, gameplay
+  authority, localization and input/modal ownership.
+- Static runtime and Editor/test compilation passed. No Unity Test Runner,
+  production installation/validation, Play Mode or rendered verification claimed.
+  Manual movement/zoom/charge/pause/scene-loop checks remain in both scenes.
+- Phase 2C.2 remains the next separate task; no dialogue, checkpoint, route, quest,
+  save, camera presentation or Pixel Crushers integration changes.
+
+> Previous UI tool workflows below describe retired migrations only. There is
+> no current Install/Repair/Validate UI menu workflow.
+
+### Historical record: 2026-09-07 — Freeze user-authored UI and complete Expedition reinforcement
+
+- Retired public Settlement navigation and Tutorial/Expedition status/heat reset
+  commands plus reset-only code/tests. Historical entries below describe their
+  former behavior, not current workflows. Use Install only for missing bindings
+  and Validate for read-only diagnostics; edit presentation directly in Inspector.
+- Removed adopted Boot scaler reset, Hangar curse-layer reorder and operation
+  panel sibling reset. Removed heat/reinforcement default Image styling writes;
+  retained state/fill/localization/visibility and authored-baseline animation.
+- Added Expedition Install/Validate Reinforcement Slot UI. Saved Expedition already
+  contains an inactive bound slot; adoption preserves it. Missing roles/components
+  copy only presentation defaults from saved Tutorial in an isolated PreviewScene.
+  No production asset or gameplay state is edited, no new action owner is created.
+- Added preservation, partial/renamed adoption, duplicate/ownership rejection,
+  Undo/rollback, temporary serialization, source-equivalence and state-refresh
+  coverage. Static builds are distinct from Unity test and visual execution.
+
 작성 기준일: 2026-08-30
 
 ## 문서 목적과 판정 기준
@@ -1197,3 +1676,349 @@ Reason:
 - The initial installer treated its aggregate authored flag as sufficient and did not
   serialize stars, so a partially installed `Background` could skip repair and leave
   `BootMainMenuView.spaceBackground` unset.
+
+## Tutorial Guidance UI Authoring — Pass 1 (2026-09-06)
+
+Status: Implemented; manual scene installation and Unity verification pending.
+
+- Added Tutorial-only installer/validator menus for the existing TutorialPrompt and
+  previously runtime-created OperationStatus. New objects use the former Tutorial
+  appearance; existing visual values and typed renamed references remain intact.
+- Repair uses SerializedObject/SerializedProperty, scene-scoped discovery, Undo,
+  temporary inactivity, and direct destination-scene creation. No automatic save.
+  Validation accumulates missing binding/font, duplicate, hierarchy, wrong-scene,
+  cross-scene, CanvasScaler, and fallback-flag errors.
+- Installed Tutorial disables only its `createOperationPresentationIfMissing` flag.
+  Missing authored operation references produce one repair warning and skip the
+  briefing visual. Valid bindings bypass construction. Expedition's fallback and
+  serialized scene configuration are retained; no shared helper can yet be deleted.
+- TutorialFlowController's 28 stages, TutorialPromptUI/input/font behavior,
+  ExpeditionHUD briefing timing, Pixel Crushers dialogue, and gameplay ownership
+  remain unchanged. All broader UI migrations remain out of scope.
+- Added isolated PreviewScene EditMode coverage for fresh/partial authoring,
+  typed/renamed adoption, preservation, idempotency, binding validation, scene
+  ownership, and runtime briefing boundaries. Legacy Expedition fallback availability
+  is checked statically; its runtime behavior still needs ordinary-scene Play Mode.
+- Delivery changes code/tests/docs only. Install, validate, manually save/reopen,
+  run Test Runner regression suites, and verify Tutorial plus Expedition in Play Mode.
+
+## 2026-09-06 — Tutorial resource strip authoring (limited slice)
+
+- Proven identifiers are `CurrencyType.TuningChips` and `CurrencyType.StabilizedAlloy`.
+  Both read the current run wallet; Alloy retains cargo and run-result settlement
+  rules. Existing wallet events and five HUD serialized fields already provide
+  registration and refresh. Missing additional references previously caused runtime
+  ScrapCounter clones; no separate missing resource authority was found.
+- Added resource-specific Install/Tutorial > Validate Resource HUD menus. Adopt the
+  copied ResourceRoot and valid renamed typed rows; repair missing components,
+  nested bindings and registrations with Undo, explicit scene ownership, inactive
+  binding repair and active-state restoration. Do not save or restyle existing rows.
+- Tutorial's inspected Credits/Scrap slots both point to ScrapCounter. The tool
+  reports this ambiguous duplicate instead of guessing: manually assign the existing
+  CreditsCounter to Credits Counter before installation. Missing base strips are
+  not recreated by this limited installer.
+- Newly authored Alloy/Chip rows reuse ScrapCounter structure, project pickup icons,
+  existing resource tint and Korean-safe font conventions. Sprite, color, font,
+  text and RectTransform settings remain editable. Existing optional labels remain;
+  no tooltip/localization framework or content changes are introduced.
+- Successful Tutorial installation disables one aggregate resource-construction
+  fallback flag. Runtime still refreshes current balances, subscribes once, hides
+  zero rows and packs the existing display order; missing authored bindings warn
+  once per resource and skip only that counter. Expedition keeps its runtime fallback.
+- Added focused PreviewScene tests for adoption, missing row/binding repair, renamed
+  references, manual preservation, ambiguity/cross-scene diagnostics, initial and
+  changing balances, subscription cleanup/re-enable, and both runtime boundaries.
+  Static .NET compilation passed; Unity Test Runner/Play Mode execution is pending.
+- No scene/prefab/vendor/localization/font asset was edited by this pass. Manually
+  install, inspect, validate, save/reopen Tutorial, run the tests and check Tutorial
+  and Expedition at 480x270. Guidance, dialogue, pause, Radar, Map, saves, pickups,
+  the 28-step flow and Settlement ownership remain unchanged; Settlement is deferred.
+
+## 2026-09-06 — Settlement persistent-resource strip authoring
+
+- Narrow first Settlement slice: adopt `Canvas/resourcesUI`, author/adopt its
+  ResourceStrip and three fixed ScrapParts/CoreShards/StabilizedAlloy cells.
+  Navigation, previews, facilities, traits, technology and settings remain deferred.
+- Added Install/Settlement > Validate Resource HUD menus. Explicit loaded-scene
+  ownership, Play Mode refusal, typed renamed-reference adoption, partial repair,
+  duplicate refusal, SerializedObject assignments, Undo, safe binding inactivity,
+  rollback, dirty marking and manual saving follow the prior focused installers.
+- Added plain serialized cell binding groups to SettlementHUD. Existing builder
+  appearance initializes only new objects; existing manual art, typography,
+  anchors/offsets and active states remain intact. No LayoutGroup or cell scripts
+  are added. Legacy source Graphics are individually disabled, not deleted or
+  deactivated along with their shared parent.
+- A single default-enabled compatibility flag retains uninstalled behavior; only
+  successful authored installation disables it. Valid authored bindings bypass
+  BuildResourceStrip/CreateResourceChip. Missing authored references warn once per
+  HUD and skip only affected cells. Compatibility construction is not retired.
+- PermanentProgress remains balance authority; all three zero balances stay
+  visible. Existing controller event updates are retained, with immediate HUD
+  re-enable refresh and cleanup against its actual subscribed publisher.
+- Added focused PreviewScene regression coverage and a separate test-owned
+  temporary additive-scene save/reload test. Static compilation passed; Unity
+  tests, manual installation/save/reopen and Play Mode are not claimed as executed.
+- No user scene, prefab, vendor, localization, Dialogue Database, generated project
+  or protected TMP asset was edited by this delivery. No gameplay transactions,
+  progression changes or saves were performed. Existing unrelated mapping and
+  embedded-script risks remain later work.
+
+## 2026-09-06 - Settlement main-navigation authoring
+
+- Added Install/Settlement > Validate Navigation UI menus for the explicit loaded
+  Settlement scene, with scene-aware creation, typed/renamed adoption, partial
+  binding repair, Undo/rollback, inactive binding setup and manual saving only.
+- Serialized the existing five primary navigation views, root/header/background,
+  modal input CanvasGroup and six existing action/back labels. Kept the routes to
+  Hangar, Settlement Restoration, Ship Reinforcement, Additional Traits and Settings.
+- Valid authored navigation bypasses compatibility construction/base restyling.
+  One default-enabled fallback policy remains for uninstalled owners; successful
+  installation disables it. Missing authored bindings warn once without clones.
+- Selection feedback uses authored inactive color baselines and Inspector-selected
+  colors, with no transform/scale drift. Existing button layout/links/styles and
+  unrelated callbacks are preserved. Owned runtime listeners and publisher
+  subscriptions are duplicate-safe and clean up their actual sources.
+- Moved SettlementPrimaryNavigationPointer into its matching script/meta without
+  changing the controller GUID. No unknown missing scripts are removed; the
+  inactive Canvas/Temp_ClearButton missing GUID remains a separate issue.
+- Narrowly guarded HUD ship-action and trait-unlock typography defaults; their
+  text updates/actions and all panel initialization/content remain unchanged.
+- Added focused test-owned PreviewScene, routing/subscription, authored/fallback,
+  Undo/rollback, identity and temporary save/reload regression coverage. Tests
+  compile; Unity Test Runner, installation, reload and Play Mode remain unexecuted.
+- Resource HUD migration, transactions, saves, Pixel Crushers, launch guards,
+  input/pause/camera and transitions are preserved. No production scenes/prefabs,
+  vendor/localization/Dialogue Database/generated project/protected TMP assets
+  were modified. Broader Settlement panels remain later work.
+
+## 2026-09-06 - Settlement navigation usability and explicit layout repair
+
+- Verified saved OptionButton was inactive/28x22, while two primary captions kept
+  20pt non-autosized typography. Existing cyan selection Outline followed focus,
+  not the open panel; separated focus Outline from active-tab strip/colors.
+- Extended Settlement > Install Navigation UI to restore Settings, hide only the
+  two authored redundant Back controls, repair boundary/default links and retain
+  compatibility references. Installed Ship Reinforcement skips its runtime Back
+  construction; sector content/cards and transactions are otherwise unchanged.
+- Added Settlement > Repair Navigation Layout: explicit Undo-supported 62x24 button
+  layout and 7pt, autosize 6-7, single-line padded captions; no font/fallback/content
+  replacement. Normal installation preserves subsequent styling edits.
+- Replaced raw W/S polling with focused EventSystem move callbacks and existing
+  repeat timing. Clamp/skip behavior, primary-only Space consumption, standard
+  Enter/controller Submit, and panel/sidebar boundary navigation prevent parallel
+  movement or action activation behind another input context.
+- Existing Settings authority now announces opening before focus changes, restores
+  prior content focus on close and consumes Cancel once per frame. Rebinding,
+  dropdown and screen-confirmation cancellation stay inside their modal context.
+- Expanded navigation tests, including TMP bounds execution for Unity Test Runner.
+  Static compilation is verified; Unity tests/rendering/Play Mode/reload are not
+  claimed as executed. No production scene, prefab, Input Actions asset, protected
+  font, localization, vendor, save or Dialogue Database edits were made.
+
+### 2026-09-06 - Ship Reinforcement authored panel/template and grouped UI menus
+
+- Added Settlement > Install/Validate Ship Reinforcement UI. The focused installer
+  authors static panel/detail/action presentation and an inactive editable card
+  template, preserving typed/renamed references and manual styling. Explicit scene
+  ownership, Undo, scoped rollback and accumulated diagnostics; never auto-saves
+  or invokes gameplay/settings lifecycle. Navigation installation is a prerequisite.
+- Serialized existing panel fields and moved SettlementSectorTechnologyEntrySelection
+  to a matching script/meta, adding its nested template bindings. The five catalog
+  IDs, ordering and glyph icons remain catalog-owned; no prefab or scrolling
+  structure existed to adopt. No redundant Ship Reinforcement Back is introduced.
+- Authored runtime clones only the template, preserves base layout/typography and
+  updates data/selection. Actual controller-publisher subscriptions refresh on
+  initialization/re-enable; owned action binding is idempotent. Locked upgrade
+  focus returns to the selected card; card Left retains a route to the sidebar.
+- One aggregate compatibility policy stays enabled for uninstalled configurations;
+  installation validates before disabling it. Partial authored failures warn once,
+  never create replacement visuals, and leave other panels/input operational.
+- Grouped existing menus beneath UI > Boot, Tutorial and Settlement; retained all
+  Install/Repair/Validate operations, without Install All. Updated diagnostic and
+  documentation/test references. No builders deleted: shared Options and Expedition
+  fallbacks still have consumers, and Settlement retirement needs manual verification.
+- Added fourteen focused tests including temporary test-owned save/reload, binding
+  identity, catalog mapping, one-click upgrades without SaveManager, styles, focus,
+  fallback, lifecycle and menu paths. Compiled only; Unity execution/rendering not
+  claimed. Existing navigation/resource/settings/dialogue/launch coverage retained.
+
+## 2026-09-06 — Settlement Restoration authoring
+
+- Added Settlement > Install Restoration UI / Validate Restoration UI. Adopt the
+  existing Repair_HUD and role-scoped Bg/Cost/preview containers; repair missing
+  references/objects only, with scene ownership, Undo, rollback and manual saving.
+- Retained existing facility order, art, restoration-state/requirements/results
+  meanings, explicit access-key confirmation, authority and transactions.
+- Removed Restoration runtime typography/aspect resets and obsolete hidden-cost
+  icon layout helpers. Indicator feedback derives from authored scale/tint.
+  Existing serialized legacy cost fields remain; only the Images are hidden.
+- Kept Restoration Back inactive and excluded from EventSystem focus; unavailable
+  action focus recovers locally without changing sidebar or Settings/dialogue rules.
+- Preserved existing owned listener deduplication, actual-publisher cleanup and
+  re-enable refresh. Incomplete bindings warn once and block only Restoration
+  presentation/action; no runtime replacement or extra fallback flag.
+- Added focused PreviewScene and inactive temporary-scene regression fixtures.
+  Static runtime/Editor/test compilation passed; Unity tests, temporary reload
+  tests and visual checks were not executed. Production assets were not edited.
+
+## 2026-09-07 — Additional Traits presentation authoring
+
+- Added Settlement > Install Additional Traits UI and Validate Additional Traits UI.
+  Adopt existing detail/category/scroll structures and clone the existing node
+  prefab into an inactive editable scene-local template; no production asset saves.
+- Added explicit container/template/sidebar bindings to ShipTraitTreePanel.
+  Dynamic catalog population remains definition-driven, reuses nodes on re-enable,
+  binds inactive clones before activation, and retains uninstalled prefab fallback.
+- Authored mode bypasses typography/aspect/cost-position defaults. Tab/node/branch
+  feedback uses authored baselines. EventSystem focus navigation remains separate
+  from selection and respects sidebar, Settings, dialogue and pause contexts.
+- Balanced actual-publisher/action listeners and matching persistent callbacks;
+  existing purchase, activation, prerequisites, maximum levels, currencies and
+  persistence authority are unchanged.
+- Removed OnValidate's definition-copy mutation; runtime definition synchronization
+  remains. No compatibility builder deletion: authored scene installation and
+  reload/Play Mode verification are still manual gates.
+- Found existing statusText/messageText alias on temp1. Installer explicitly rejects
+  it rather than silently replacing either reference. Keep statusText and clear or
+  separately assign messageText in the Inspector before installation.
+- Focused test fixtures cover installation/repair/Undo/rollback, identity, styles,
+  mappings/filtering, transactions/activation, focus, lifecycle and compatibility.
+  Compiled only; Unity test execution and Korean 480x270 visual verification pending.
+
+## 2026-09-07 — Verified static UI runtime retirement
+
+- Removed Settlement resource-strip construction/legacy text fallback, navigation
+  construction/default styling, and Ship Reinforcement static panel/card-child
+  builders. Saved local bindings, nested assets and sole production GUID consumers
+  were inspected before deletion; Editor installers do not call these builders.
+- Preserved serialized migration flags, Editor default fields and public technology
+  Initialize arguments. Flags are now inert at runtime but still support existing
+  saved data, installer assignments, validators and Undo fixtures.
+- Kept runtime balances, dynamic technology template cloning, selection/focus,
+  audio, modal restrictions, transactions, listeners and publisher cleanup.
+- Missing bindings fail locally with once-only property/path/scene/menu diagnostics;
+  no replacement UI. Replaced three legacy-construction tests with authored-only
+  failure expectations; retained existing state/style/lifecycle/transaction tests.
+- Additional Traits retirement deferred: saved authored containers/template remain
+  null and forced rebuilding is enabled. The earlier status/message alias is cleared
+  in the saved scene, but this does not constitute authored installation.
+- Retained Expedition operation/resources, shared Pause/Settings construction,
+  Boot Editor-only authoring helpers and unmigrated ship-preview presentation.
+  No MonoBehaviour file, GUID, production asset or gameplay authority was removed.
+- Runtime/Editor static compilation only; Unity tests, production validators,
+  reload, Play Mode and visual verification remain pending.
+
+## 2026-09-07 — Settlement-only static construction retirement completed in code
+
+- Verified saved Additional Traits authored roots/template before deleting its
+  prefab generation chain, ConfigureSettlementPresentation and cost-icon style/layout
+  helpers. Dynamic authored-template cloning and gameplay ownership are retained.
+- Replaced Hangar curse-layer construction with serialized Image bindings and
+  Install/Validate Hangar UI. Removed ship/message typography and aspect resets;
+  authored ghost/edge/indicator baselines now drive intentional feedback.
+- Replaced Settlement's Settings modal construction with serialized modal/menu
+  bindings and Install/Validate Settings UI. Scoped partial repair reuses the shared
+  Editor defaults in a PreviewScene and preserves existing presentation.
+- Shared Options runtime construction remains for pause; Editor dropdown construction
+  now uses explicit target-scene creation instead of TMP's active-scene factory.
+  Serialized rebind/dropdown guards survive scene reload. Settings input/pause is
+  acquired only after valid bindings, and owned subscriptions are idempotent.
+- Existing resource/navigation/Restoration/reinforcement migrations are preserved.
+  Gameplay, catalogs, rewards, purchases, persistence and dialogue were not changed.
+- Added focused Hangar/Settings fixtures and replaced legacy trait/re-style tests
+  with authored/no-construction expectations. Runtime and Editor/test sources were
+  compiled; Unity tests, production installation/reload and visuals were not executed.
+- No production scene, prefab, protected asset or generated project was saved.
+  Newly migrated Hangar/Settings require manual installers before Play. Saved Hangar
+  typography is preserved and needs visual inspection. Pre-existing inactive
+  Canvas/Temp_ClearButton has unresolved DebugSettlementDataButtons script GUID
+  38fef9b49173e9d498b97aaa02cf1d81; unrelated debug repair remains separate.
+
+## 2026-09-07 — Expedition scene-owned HUD authoring and verified retirement
+
+- Added scoped Operation, Status, Resource, Radar, Boss Status, Return Confirmation,
+  Wormhole Confirmation and Message install/validate menus under UI > Expedition;
+  added read-only Shop validation. No production scene or prefab was edited/saved.
+- Removed operation hierarchy construction, additional fixed resource cloning,
+  boss triad child construction/destruction, travel-confirmation fixed layout
+  construction, shop/maintenance typography resets and warning-message layout reset.
+- Existing Expedition ReinforcementSlotUI is adopted by type. Status installation
+  disables shared fallback/layout writes for its HUD only. Tutorial's remaining
+  shared status/scope construction, shared Map/Inventory augmentation, pause/Options,
+  dynamic catalogs/markers, world-space feedback and persistent services are retained.
+- RadarScopeGraphic now has a matching script/meta. Boss triad bindings persist and
+  ratio updates derive from authored height. Listener cleanup uses the subscribed
+  HUD/heat publishers. No transaction, reward, save or input authority was replaced.
+- Runtime and Editor/test-source compilation passed. Focused Unity tests, production
+  installations/validators, save/reload, scene loops and visual verification were not
+  executed. Run the separate installers and validators, inspect, save manually,
+  reload, then execute EditMode and Play Mode regressions before release.
+
+### 2026-09-07 — Explicit Expedition status layout repair
+
+- Added `VOID SCRAPPER > UI > Expedition > Repair Status Layout`, restricted to
+  existing HP/armor/cargo presentation. Ordinary installation remains nondestructive.
+- Recovered compact dimensions, typography and bar insets from prior HUD defaults;
+  reserved a one-pixel armor strip before heat and placed cargo below the status row.
+- Added an authored armor-background binding; retained Slider mappings, dynamic
+  fill ratios, visibility, state colors, fonts, sprites, materials and all input/data
+  authority. No runtime layout-reset option or production asset changes.
+- Added reference-bounds validation and PreviewScene regression coverage for scope,
+  values, fade/full-state, manual-edit preservation, idempotency, Undo and rollback.
+- Runtime/Editor compilation is separate from Unity test execution and visual
+  acceptance. Use Install Status UI for missing bindings, Validate Status UI, inspect,
+  save manually, reload, and verify the 480x270 Game view before accepting the layout.
+
+### 2026-09-07 — Tutorial shared Status/Cargo/Hint/Radar authoring
+
+- Added Tutorial Install Status UI / Repair Status Layout / Validate Status UI
+  menus through explicit scene-scoped existing Editor helpers. The reference layout
+  is shared with Expedition; ordinary installation preserves later manual edits.
+- Tutorial's absent objective tracker stays absent. HP/armor, cargo, heat,
+  reinforcement, binding hints and fixed radar scope are authored; resource and
+  guidance migrations remain separate and unchanged.
+- Removed final shared fixed child builders and base-layout/font writes after
+  checking both scene consumers, prefab/asset GUIDs, lifecycle/source callers,
+  serialized events and tests. Retained world gauges, dynamic markers, runtime
+  values/visibility/animation and inert serialized compatibility markers.
+- Tutorial's saved HP canvasGroup references StatusRoot: correct that optional
+  field to None or a gauge-owned group in Unity before installation. Invalid
+  assignments are reported rather than silently cleared.
+- Added PreviewScene coverage for scoped installation/rollback/Undo, flow and
+  visibility preservation, partial/renamed bindings, shared layout, dynamic radar,
+  missing bindings and temporary scene serialization. Compilation does not imply
+  executed Unity tests or a production Tutorial installation/playthrough.
+
+### 2026-09-07 — Restore authored Tutorial/Expedition weapon heat gauge
+
+- Verified both saved heat roots are 92x4 with sprite-less Filled Images and no
+  Slider. UGUI's no-sprite mesh path ignores fillAmount. Restored the committed
+  read-only Slider approach through explicit `Repair Heat Gauge Layout` menus,
+  not runtime layout resets or a heat gameplay redesign.
+- Kept the latest shared-layout center (-186,110), one-pixel inset and original
+  dark root/cyan-to-amber-to-red feedback. Added a darker empty inset track as a
+  documented visual judgment; current runtime supports no visible text role.
+- Added serialized background/track roles to WeaponHeatUI. Repair adopts typed
+  fills, corrects root-as-fill aliases, keeps only the leaf fill moving, disconnects
+  and retains inactive legacy handles, excludes navigation/raycast interception,
+  and reports all resets with scoped Undo/rollback. Sprites/materials/publishers
+  and other HUD presentation remain intact.
+- Added status-validation and regression coverage for geometry, mappings,
+  publisher refresh, repeated initialization, Undo and rollback. Production
+  scenes were not edited or saved; manual Unity installation and visual checks
+  remain required. Existing compatibility and gameplay authorities were retained.
+
+### 2026-09-07 — Correct Tutorial heat versus prompt overlap handling
+
+- Confirmed a real saved background overlap: TutorialPrompt is 360x48, alpha .88,
+  at screen (60,208); heat baseline is (8,243,92,4). Both canvases use matching
+  overlay scaling. The failure was not caused by a full-screen logical root or
+  mismatched units in this particular scene.
+- Cross-canvas validation now compares contributing panel/track/prompt Graphics
+  in common screen coordinates, excludes transparent/non-rendering containers,
+  and reports uncertain projection/empty-text cases without root-only rollback.
+- Explicit Tutorial repair relocates only heat to the nearest clear pixel position
+  when visible overlap is proven; no-space failures retain scoped rollback.
+  Expedition baseline, ordinary installation, prompt presentation and runtime
+  ownership remain unchanged. Added test-owned projection/relocation/rollback
+  fixtures; Unity execution and visual verification remain manual.

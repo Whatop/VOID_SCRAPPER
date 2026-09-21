@@ -144,6 +144,13 @@ public static class Phase2CStoryDialogueIds
     public const string MainQuestCompletedTextKey =
         "dialogue.story.main_damaged_access_key.completed";
 
+    // Keep the original single-line keys as each branch's first subtitle.
+    public const string MainQuestActive0ResponseTextKey = MainQuestActive0TextKey + ".line_02";
+    public const string MainQuestActive1ResponseTextKey = MainQuestActive1TextKey + ".line_02";
+    public const string MainQuestActive2ResponseTextKey = MainQuestActive2TextKey + ".line_02";
+    public const string MainQuestReadyResponseTextKey = MainQuestReadyTextKey + ".line_02";
+    public const string MainQuestCompletedResponseTextKey = MainQuestCompletedTextKey + ".line_02";
+
     public static string GetNumberedTextKey(string prefix, int oneBasedIndex)
     {
         return prefix + oneBasedIndex.ToString("00", CultureInfo.InvariantCulture);
@@ -642,7 +649,11 @@ public sealed class TutorialTargetPresentationProgress
         dialogueCompletedNaturally = false;
         safeViewportSeconds = 0f;
         Kind = kind;
-        Phase = TutorialTargetPresentationPhase.WaitingForSafeViewport;
+        // Discovery, not prior visibility, reserves the ancient-wreck camera trip.
+        // Supply retains its existing safe-viewport introduction contract.
+        Phase = kind == TutorialTargetPresentationKind.HighValueWreck
+            ? TutorialTargetPresentationPhase.Focusing
+            : TutorialTargetPresentationPhase.WaitingForSafeViewport;
         return true;
     }
 

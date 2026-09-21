@@ -38,7 +38,8 @@ public sealed class DialogueGameplayActionDispatcher
         string actionId,
         IRescueContactDialogueServiceAuthority rescueContactAuthority,
         IMainDamagedAccessKeyQuestStartAuthority mainQuestAuthority,
-        GameObject interactor)
+        GameObject interactor,
+        IFinalBossTreatmentAuthority finalBossAuthority = null)
     {
         if (!Enum.TryParse(actionId, false, out DialogueGameplayActionId typedId) ||
             !Enum.IsDefined(typeof(DialogueGameplayActionId), typedId) ||
@@ -53,7 +54,8 @@ public sealed class DialogueGameplayActionDispatcher
             typedId,
             rescueContactAuthority,
             mainQuestAuthority,
-            interactor);
+            interactor,
+            finalBossAuthority);
     }
 
     public bool TryDispatch(
@@ -68,7 +70,8 @@ public sealed class DialogueGameplayActionDispatcher
         DialogueGameplayActionId actionId,
         IRescueContactDialogueServiceAuthority rescueContactAuthority,
         IMainDamagedAccessKeyQuestStartAuthority mainQuestAuthority,
-        GameObject interactor)
+        GameObject interactor,
+        IFinalBossTreatmentAuthority finalBossAuthority = null)
     {
         if (!HasActiveConversation)
         {
@@ -92,12 +95,20 @@ public sealed class DialogueGameplayActionDispatcher
 
         switch (actionId)
         {
+            case DialogueGameplayActionId.FinalBossTreatmentAccept:
+            case DialogueGameplayActionId.FinalBossTreatmentReject:
+                executed = activeConversationTitle == NullDispatcherDialogueIds.Conversation &&
+                    finalBossAuthority != null && finalBossAuthority.TryRequestTreatmentChoice(
+                        actionId == DialogueGameplayActionId.FinalBossTreatmentAccept);
+                break;
             case DialogueGameplayActionId.RescueContactAccept:
                 executed = rescueContactAuthority != null &&
                            rescueContactAuthority.IsRescueContactDialogueServiceAvailable &&
                            rescueContactAuthority.TryExecuteRescueContactDialogueService(interactor);
                 break;
             case DialogueGameplayActionId.MainDamagedAccessKeyStart:
+                // Existing typed Settlement completion transaction also commits
+                // pending route analysis. The bridge admits this only after END.
                 executed = mainQuestAuthority != null &&
                            mainQuestAuthority.TryCompleteFirstSettlementStory();
                 break;

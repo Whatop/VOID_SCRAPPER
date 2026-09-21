@@ -360,15 +360,7 @@ public class PlayerStealthController : MonoBehaviour
             runtimeLevel = runtimeStore.GetLevel(infiltrationTraitId);
         }
 
-        int permanentLevel = 0;
-        PermanentProgress progress = PermanentProgress.Instance;
-
-        if (progress != null && progress.IsTraitActive(infiltrationTraitId))
-        {
-            permanentLevel = progress.GetTraitLevel(infiltrationTraitId);
-        }
-
-        return Mathf.Max(0, Mathf.Max(runtimeLevel, permanentLevel));
+        return Mathf.Max(0, runtimeLevel);
     }
 
     private WeaponTreeType ResolveCurrentWeaponTree()

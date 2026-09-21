@@ -12,6 +12,10 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
     [SerializeField] private Transform defaultActor;
     [SerializeField] private Transform defaultConversant;
 
+    [Header("Remote Communication")]
+    [Tooltip("Opt in only for an authored remote/network connection, never a nearby NPC conversation.")]
+    [SerializeField] private bool playIncomingCommunicationCue;
+
     [Header("Completion")]
     [SerializeField] private UnityEvent conversationStarted;
     [SerializeField] private UnityEvent conversationCompleted;
@@ -123,11 +127,23 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
 
         Transform resolvedActor = actor != null ? actor : defaultActor;
         Transform resolvedConversant = conversant != null ? conversant : defaultConversant;
-        DialogueManager.StartConversation(
-            activeConversationTitle,
-            resolvedActor,
-            resolvedConversant
-        );
+        // Pixel Crushers raises this only after accepting the conversation and
+        // before presenting its first subtitle. Keep the subscription local to
+        // this start attempt so unrelated conversations cannot trigger the cue.
+        DialogueSystemController startingController = activeController;
+        startingController.conversationStarted += HandleIncomingCommunicationStarted;
+        try
+        {
+            DialogueManager.StartConversation(
+                activeConversationTitle,
+                resolvedActor,
+                resolvedConversant
+            );
+        }
+        finally
+        {
+            startingController.conversationStarted -= HandleIncomingCommunicationStarted;
+        }
 
         bool started = DialogueManager.isConversationActive &&
                        string.Equals(
@@ -150,6 +166,17 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
         conversationStarted?.Invoke();
         Started?.Invoke(this);
         return true;
+    }
+
+    private void HandleIncomingCommunicationStarted(Transform actor)
+    {
+        if (playIncomingCommunicationCue &&
+            string.Equals(DialogueManager.lastConversationStarted,
+                activeConversationTitle, StringComparison.Ordinal))
+        {
+            AudioManager.Play(SoundEventIds.DialogueCommIncoming);
+            DialogueCinematicPresentationController.BeginIncomingCommunication();
+        }
     }
 
     private void OnDisable()
@@ -255,11 +282,16 @@ public sealed class DialogueStoryEntryPoint : MonoBehaviour
 
         PermanentProgress progress = PermanentProgress.Instance;
 
-        if (progress == null ||
+        bool campaignAnalysisPending = progress != null &&
+            conversationTitle == Phase2CStoryDialogueIds.FirstSettlementConversation &&
+            (progress.HasPendingCampaignRouteAnalysis ||
+             progress.DamagedAccessKeyQuestState == MainDamagedAccessKeyQuestState.ReadyToRestore);
+
+        if (progress == null || (!campaignAnalysisPending && (
             string.IsNullOrWhiteSpace(requiredUnlockFlag) ||
             !progress.HasUnlockFlag(requiredUnlockFlag) ||
             (!string.IsNullOrWhiteSpace(completionUnlockFlag) &&
-             progress.HasUnlockFlag(completionUnlockFlag)))
+             progress.HasUnlockFlag(completionUnlockFlag)))))
         {
             yield break;
         }

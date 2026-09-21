@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -338,7 +338,9 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
             progress.AddUnlockFlag(StoryProgressionIds.FirstSettlementCompleteFlag);
         }
 
-        if (questStarted || !storyWasComplete)
+        bool routeAuthorized = progress.TryAuthorizeAnalyzedRegion();
+        bool finalComponentAnalyzed = progress.TryCompleteFinalComponentAnalysis();
+        if (questStarted || !storyWasComplete || routeAuthorized || finalComponentAnalyzed)
         {
             saveManager.Save(progress);
         }
@@ -347,6 +349,13 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
         {
             ShowLocalizedMessage(
                 MainDamagedAccessKeyQuestIds.StartedNotificationTextKey);
+        }
+
+        if (routeAuthorized)
+        {
+            ShowLocalizedMessage(progress.HighestUnlockedDepth == ExpeditionDepth.DeepZone1
+                ? "system.campaign.route_authorized.region_2"
+                : "system.campaign.route_authorized.region_3");
         }
 
         return progress.DamagedAccessKeyQuestState !=
@@ -570,7 +579,7 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
         }
 
         PermanentProgress progress = PermanentProgress.Instance;
-        return progress != null && progress.HasUnlockFlag(ship.UnlockFlag);
+        return progress != null && progress.AnalyzedEquipmentComponentCount >= ship.RequiredAnalyzedComponents && progress.HasUnlockFlag(ship.UnlockFlag);
     }
 
     public bool IsPreviewShipSelected()
@@ -1316,6 +1325,9 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
             return false;
         }
 
+        if (ship.RequiredAnalyzedComponents > 0 && (PermanentProgress.Instance == null ||
+            PermanentProgress.Instance.AnalyzedEquipmentComponentCount < ship.RequiredAnalyzedComponents)) return false;
+
         if (string.IsNullOrWhiteSpace(ship.RequiredUnlockFlag))
         {
             return true;
@@ -1559,6 +1571,8 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
 
     private bool CanTraitBePurchasedInCurrentSelection(TraitDefinition trait)
     {
+        // Ordinary equipment is prepared here and leveled exclusively during expeditions.
+        if (trait != null && trait.CanAppearAsRandomDropTrait) return false;
         if (trait == null)
         {
             return false;
@@ -1745,6 +1759,13 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
 
     private static string GetLocalizedText(string textKey)
     {
+        // A direct scene entry may precede the Boot localization service. Keep
+        // this launch-gate fallback readable instead of exposing the raw key.
+        if (!VoidScrapperLocalizationService.HasInstance &&
+            textKey == SettlementExpeditionLaunchGuard.DialogueActiveTextKey)
+        {
+            return "통신이 끝난 후 탐사를 시작할 수 있습니다.";
+        }
         return VoidScrapperLocalizationService.HasInstance
             ? VoidScrapperLocalizationService.Instance.GetText(textKey)
             : textKey;

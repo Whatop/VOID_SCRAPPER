@@ -42,6 +42,8 @@ public class GameStateManager : MonoBehaviour
     {
         return currentState == GameState.Expedition ||
                currentState == GameState.BossBattle ||
+               currentState == GameState.SettlementDefense ||
+               currentState == GameState.FinalBossBattle ||
                currentState == GameState.Tutorial;
     }
 
@@ -49,6 +51,8 @@ public class GameStateManager : MonoBehaviour
     {
         return currentState == GameState.ExpeditionLoading ||
                currentState == GameState.BossBattle ||
+               currentState == GameState.SettlementDefense ||
+               currentState == GameState.FinalBossBattle ||
                currentState == GameState.ReturnChoice ||
                currentState == GameState.RunResult;
     }

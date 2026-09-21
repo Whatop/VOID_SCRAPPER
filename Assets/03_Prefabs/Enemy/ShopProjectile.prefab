@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 3881396596618056788}
   - component: {fileID: 6115508124978452639}
   - component: {fileID: 6680330364725810212}
-  - component: {fileID: -7105352789253658719}
   m_Layer: 7
   m_Name: ShopProjectile
   m_TagString: Untagged
@@ -153,22 +152,3 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.5
---- !u!114 &-7105352789253658719
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4939712952834317954}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fdbde4d99ead7a140929ffc455a004b1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  defaultSpeed: 9
-  defaultDamage: 2
-  defaultLifetime: 4
-  hitLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  releaseOnHit: 1

@@ -133,6 +133,21 @@ public static class CampaignProgressionCatalog
         return depth == ExpeditionDepth.FinalNetwork;
     }
 
+    public static bool ShouldUseRepeatBoss(ExpeditionDepth depth, PermanentProgress progress)
+    {
+        return depth != ExpeditionDepth.FinalNetwork && progress != null &&
+               progress.HasDefeatedCampaignBoss(GetBossId(depth));
+    }
+
+    public static bool CanAdvanceToNextRegion(RunContext run, PermanentProgress progress)
+    {
+        return run != null && run.IsActive && run.BossDefeated &&
+               !run.FirstStoryClearThisRegion &&
+               run.CurrentBossId == GetBossId(run.ExpeditionDepth) &&
+               TryGetNextExplorationDepth(run.ExpeditionDepth, out ExpeditionDepth next) &&
+               progress != null && progress.IsDepthUnlocked(next);
+    }
+
     public static bool IsCampaignRegion(ExpeditionDepth depth)
     {
         return depth == ExpeditionDepth.Normal ||

@@ -33,6 +33,7 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
 
     public UnityEvent DefenseRequested => defenseRequested;
     public UnityEvent DefenseCompleted => defenseCompleted;
+    public bool IsDefenseRequested => defenseRequestInProgress;
 
     public string InteractionText
     {
@@ -48,7 +49,7 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
             return progress.CurrentRouteCoreState switch
             {
                 RouteCoreState.MissingParts => missingPartsText,
-                RouteCoreState.ReadyToAssemble => assembleText,
+                RouteCoreState.ReadyToAssemble => $"{assembleText} · 회수 처리장에서 복원",
                 RouteCoreState.Assembled => activateText,
                 RouteCoreState.Activated when !progress.SettlementDefenseCleared => defenseText,
                 RouteCoreState.Activated => finalLaunchText,
@@ -93,6 +94,7 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
 
     private void OnDisable()
     {
+        ReleaseDefenseRequest();
         if (PermanentProgress.Instance != null)
         {
             PermanentProgress.Instance.Changed -= HandleProgressChanged;
@@ -103,6 +105,8 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
     {
         return interactor != null &&
                PermanentProgress.Instance != null &&
+               !GameplayPauseManager.IsPaused &&
+               !SettlementExpeditionLaunchGuard.IsDialogueActive &&
                !defenseRequestInProgress;
     }
 
@@ -122,7 +126,7 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
                 break;
 
             case RouteCoreState.ReadyToAssemble:
-                TryAssembleRouteCore();
+                ShowMessage("현장 조립은 위험합니다. 회수 처리장에서 접속키를 먼저 복원하십시오.");
                 break;
 
             case RouteCoreState.Assembled:
@@ -177,6 +181,11 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
 
     public bool BeginSettlementDefense()
     {
+        if (defenseRequestInProgress)
+        {
+            return false;
+        }
+
         PermanentProgress progress = PermanentProgress.Instance;
 
         if (progress == null || progress.CurrentRouteCoreState != RouteCoreState.Activated)
@@ -191,6 +200,13 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
             return true;
         }
 
+        if (!autoCompleteDefenseForPrototype && !HasAuthoredDefenseHandler())
+        {
+            Debug.LogError("Settlement defense is not configured: bind a defense encounter to " +
+                           "SettlementRouteCoreController.defenseRequested. Final launch remains locked.", this);
+            return false;
+        }
+
         defenseRequestInProgress = true;
 
         if (GameStateManager.Instance != null)
@@ -198,7 +214,7 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
             GameStateManager.Instance.ChangeState(GameState.SettlementDefense);
         }
 
-        ShowMessage("정착지 방어 시작 · 전송 앵커를 제거하십시오.");
+        ShowMessage(SettlementDefenseEncounterController.Text("defense.core.intro", "정착지 방어 · 코어 오염 감지"));
         defenseRequested?.Invoke();
 
         if (autoCompleteDefenseForPrototype)
@@ -211,21 +227,55 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
 
     public void CancelSettlementDefenseRequest()
     {
-        defenseRequestInProgress = false;
+        if (!defenseRequestInProgress)
+        {
+            return;
+        }
 
-        if (GameStateManager.Instance != null)
+        ReleaseDefenseRequest();
+        ShowMessage("정착지 방어 준비를 취소했습니다.");
+    }
+
+    private bool HasAuthoredDefenseHandler()
+    {
+        if (defenseRequested == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < defenseRequested.GetPersistentEventCount(); i++)
+        {
+            if (defenseRequested.GetPersistentTarget(i) != null &&
+                !string.IsNullOrEmpty(defenseRequested.GetPersistentMethodName(i)) &&
+                defenseRequested.GetPersistentListenerState(i) != UnityEventCallState.Off)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ReleaseDefenseRequest()
+    {
+        if (!defenseRequestInProgress)
+        {
+            return;
+        }
+
+        defenseRequestInProgress = false;
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.CurrentState == GameState.SettlementDefense)
         {
             GameStateManager.Instance.ChangeState(GameState.Settlement);
         }
-
-        ShowMessage("정착지 방어 준비를 취소했습니다.");
     }
 
     public void CompleteSettlementDefense()
     {
         PermanentProgress progress = PermanentProgress.Instance;
 
-        if (progress == null)
+        if (progress == null || !defenseRequestInProgress || progress.SettlementDefenseCleared)
         {
             return;
         }
@@ -237,13 +287,8 @@ public class SettlementRouteCoreController : MonoBehaviour, IInteractable
         }
 
         progress.MarkSettlementDefenseCleared();
-        defenseRequestInProgress = false;
+        ReleaseDefenseRequest();
         SaveProgress();
-
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.ChangeState(GameState.Settlement);
-        }
 
         defenseCompleted?.Invoke();
         ShowMessage("정착지 방어 완료 · 중앙 물류망 항로가 안정화되었습니다.");

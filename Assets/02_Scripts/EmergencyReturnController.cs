@@ -209,7 +209,8 @@ public class EmergencyReturnController : MonoBehaviour
 
         if (blockDuringBossBattle &&
             GameStateManager.Instance != null &&
-            GameStateManager.Instance.CurrentState == GameState.BossBattle)
+            (GameStateManager.Instance.CurrentState == GameState.BossBattle ||
+             GameStateManager.Instance.CurrentState == GameState.FinalBossBattle))
         {
             reason = bossBattleMessage;
             return false;

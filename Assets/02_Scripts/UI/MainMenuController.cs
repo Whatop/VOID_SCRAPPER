@@ -168,7 +168,7 @@ public class MainMenuController : MonoBehaviour
         {
             Debug.LogError(
                 $"[{nameof(MainMenuController)}] '{name}' has no authored BootMainMenuView. " +
-                "Open Boot and run VOID SCRAPPER > UI > Install Boot Main Menu UI.",
+                "Restore MainMenuController.authoredView on the Boot owner in the Inspector.",
                 this);
             return false;
         }
@@ -177,7 +177,7 @@ public class MainMenuController : MonoBehaviour
         {
             Debug.LogError(
                 $"[{nameof(MainMenuController)}] Authored Boot UI '{authoredView.name}' is " +
-                $"missing '{missingReference}'. Run Validate Boot Main Menu UI and repair it " +
+                $"missing '{missingReference}'. Restore this authored Inspector binding " +
                 "in the Boot scene; runtime replacement UI will not be generated.",
                 authoredView);
             return false;
@@ -187,7 +187,7 @@ public class MainMenuController : MonoBehaviour
         {
             Debug.LogError(
                 $"[{nameof(MainMenuController)}] '{authoredView.SharedOptions.name}' has no " +
-                "serialized options layout. Run Install Boot Main Menu UI in the Boot scene.",
+                "serialized options layout. Restore BootMainMenuView.sharedOptions in the Inspector.",
                 authoredView.SharedOptions);
             return false;
         }
@@ -206,12 +206,7 @@ public class MainMenuController : MonoBehaviour
         titleRestPosition = titleRect.anchoredPosition;
         subtitleRestPosition = subtitleRect.anchoredPosition;
 
-        authoredView.SharedOptions.Configure(
-            inputActions,
-            masterAudioMixer,
-            uiFont,
-            true,
-            true);
+        if (!authoredView.SharedOptions.ConfigureAuthored(inputActions, masterAudioMixer, uiFont)) return false;
         optionsBackButton = authoredView.SharedOptions.BackButton;
         settingsTabController = authoredView.SharedOptions.TabController;
         settingsPanel = authoredView.SharedOptions.SettingsPanel;
@@ -459,6 +454,12 @@ public class MainMenuController : MonoBehaviour
     {
         if (transitionStarted || settingsPanel == null)
         {
+            return;
+        }
+
+        if (!authoredView.SharedOptions.TryValidateAuthoredLayout(out string error))
+        {
+            Debug.LogError("Cannot open authored Boot options. Repair existing bindings:\n" + error, authoredView.SharedOptions);
             return;
         }
 

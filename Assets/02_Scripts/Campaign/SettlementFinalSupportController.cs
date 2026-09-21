@@ -42,8 +42,12 @@ public class SettlementFinalSupportController : MonoBehaviour
     private Coroutine supportRoutine;
     private Coroutine engineBuffRoutine;
     private bool sequenceTriggered;
+    private bool supportCancelled;
+    private bool completionNotified;
 
     public bool SequenceTriggered => sequenceTriggered;
+    public bool SequenceCompleted => completionNotified;
+    public event System.Action Completed;
 
     private void Awake()
     {
@@ -63,6 +67,7 @@ public class SettlementFinalSupportController : MonoBehaviour
         }
 
         sequenceTriggered = true;
+        supportCancelled = false;
         ResolvePlayerReferences();
 
         if (supportRoutine != null)
@@ -70,19 +75,46 @@ public class SettlementFinalSupportController : MonoBehaviour
             StopCoroutine(supportRoutine);
         }
 
-        supportRoutine = StartCoroutine(SupportRoutine());
+        if (Application.isPlaying && isActiveAndEnabled)
+        {
+            Coroutine started = StartCoroutine(SupportRoutine());
+            supportRoutine = completionNotified || supportCancelled ? null : started;
+        }
         return true;
     }
 
     public void ResetSupportSequence()
     {
+        CancelSupportSequence();
         sequenceTriggered = false;
+        completionNotified = false;
+    }
 
+    public void CancelSupportSequence()
+    {
+        supportCancelled = true;
         if (supportRoutine != null)
         {
             StopCoroutine(supportRoutine);
             supportRoutine = null;
         }
+        if (engineBuffRoutine != null)
+        {
+            StopCoroutine(engineBuffRoutine);
+            engineBuffRoutine = null;
+        }
+        ClearEngineSupport();
+    }
+
+    private void OnDisable() => CancelSupportSequence();
+
+    private void FinishSupportSequence()
+    {
+        if (!sequenceTriggered || supportCancelled || completionNotified) return;
+        completionNotified = true;
+        supportRoutine = null;
+        supportSequenceCompleted?.Invoke();
+        Completed?.Invoke();
     }
 
     private IEnumerator SupportRoutine()
@@ -92,7 +124,7 @@ public class SettlementFinalSupportController : MonoBehaviour
         if (progress == null)
         {
             ShowMessage("정착지 지원 정보를 찾지 못했습니다.");
-            supportRoutine = null;
+            FinishSupportSequence();
             yield break;
         }
 
@@ -102,6 +134,7 @@ public class SettlementFinalSupportController : MonoBehaviour
         if (ShouldRunSupport(hangarLevel))
         {
             ApplyHangarSupport(hangarLevel);
+            if (supportCancelled) yield break;
             yield return WaitStep();
         }
 
@@ -109,6 +142,7 @@ public class SettlementFinalSupportController : MonoBehaviour
         if (ShouldRunSupport(engineLevel))
         {
             ApplyEngineSupport(engineLevel);
+            if (supportCancelled) yield break;
             yield return WaitStep();
         }
 
@@ -116,6 +150,7 @@ public class SettlementFinalSupportController : MonoBehaviour
         if (ShouldRunSupport(weaponLabLevel))
         {
             ApplyWeaponLabSupport(weaponLabLevel);
+            if (supportCancelled) yield break;
             yield return WaitStep();
         }
 
@@ -123,12 +158,12 @@ public class SettlementFinalSupportController : MonoBehaviour
         if (ShouldRunSupport(recoveryLevel))
         {
             ApplyRecoverySupport(recoveryLevel);
+            if (supportCancelled) yield break;
             yield return WaitStep();
         }
 
         ShowMessage("정착지 지원 연결 완료 · 중앙 코어를 마무리하십시오.");
-        supportSequenceCompleted?.Invoke();
-        supportRoutine = null;
+        FinishSupportSequence();
     }
 
     private bool ShouldRunSupport(int buildingLevel)
@@ -168,27 +203,24 @@ public class SettlementFinalSupportController : MonoBehaviour
             yield break;
         }
 
-        float originalMoveSpeed = playerController.MoveSpeed;
         float originalDashCooldown = playerDash.DashCooldown;
         float moveMultiplier = 1f + Mathf.Max(0f, engineMoveSpeedPercentPerLevel) * level * 0.01f;
         float cooldownReduction = Mathf.Max(0f, engineDashCooldownReductionPerLevel) * level;
 
-        playerController.SetMoveSpeed(originalMoveSpeed * moveMultiplier);
-        playerDash.SetDashCooldown(Mathf.Max(0.05f, originalDashCooldown - cooldownReduction));
+        playerController.SetExternalMoveSpeedMultiplier(this, moveMultiplier);
+        playerDash.SetExternalCooldownMultiplier(this,
+            Mathf.Max(0.05f, originalDashCooldown - cooldownReduction) / Mathf.Max(0.05f, originalDashCooldown));
 
         yield return new WaitForSeconds(Mathf.Max(0.1f, engineBuffDuration));
 
-        if (playerController != null)
-        {
-            playerController.SetMoveSpeed(originalMoveSpeed);
-        }
-
-        if (playerDash != null)
-        {
-            playerDash.SetDashCooldown(originalDashCooldown);
-        }
-
+        ClearEngineSupport();
         engineBuffRoutine = null;
+    }
+
+    private void ClearEngineSupport()
+    {
+        playerController?.ClearExternalMoveSpeedMultiplier(this);
+        playerDash?.ClearExternalCooldownMultiplier(this);
     }
 
     private void ApplyWeaponLabSupport(int level)
@@ -259,7 +291,8 @@ public class SettlementFinalSupportController : MonoBehaviour
 
     private void ShowMessage(string message)
     {
-        ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
+        // Pure/editor validation of support effects must not activate an authored scene HUD.
+        ExpeditionHUD hud = Application.isPlaying ? FindFirstObjectByType<ExpeditionHUD>() : null;
 
         if (hud != null)
         {

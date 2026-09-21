@@ -11,6 +11,8 @@ public class WeaponHeatUI : MonoBehaviour
     [SerializeField] private PlayerWeaponController weaponController;
     [SerializeField] private GaugeBarUI heatGauge;
     [SerializeField] private Image fillImage;
+    [SerializeField] private Image backgroundImage;
+    [SerializeField] private Image trackImage;
     [SerializeField] private TextMeshProUGUI stateText;
     [SerializeField] private bool hideAtZeroHeat = true;
     [SerializeField] private Color normalColor = new Color(0.35f, 0.9f, 1f, 1f);
@@ -22,9 +24,11 @@ public class WeaponHeatUI : MonoBehaviour
     [SerializeField, Min(0.05f)] private float zeroHeatFadeDuration = 0.2f;
 
     private MachineGunWeapon machineGunWeapon;
+    private PlayerWeaponController subscribedWeaponController;
     private bool externalVisible = true;
     private bool presentationVisible;
     private Sequence visibilitySequence;
+    private bool missingCanvasGroupReported;
 
     public void ConfigureRuntime(
         GameObject presentationRoot,
@@ -38,26 +42,11 @@ public class WeaponHeatUI : MonoBehaviour
         weaponController = controller;
         fillImage = presentationFill;
         stateText = presentationText;
-        heatGauge ??= rootObject.GetComponent<GaugeBarUI>();
-
-        if (fillImage != null)
-        {
-            bool usesSlider = rootObject.GetComponent<Slider>() != null;
-            fillImage.type = usesSlider ? Image.Type.Simple : Image.Type.Filled;
-            if (!usesSlider)
-            {
-                fillImage.fillMethod = Image.FillMethod.Horizontal;
-                fillImage.fillOrigin = (int)Image.OriginHorizontal.Left;
-                fillImage.fillClockwise = true;
-            }
-
-            fillImage.raycastTarget = false;
-        }
+        if (heatGauge == null) heatGauge = rootObject.GetComponent<GaugeBarUI>();
 
         if (stateText != null)
         {
             stateText.text = string.Empty;
-            stateText.raycastTarget = false;
             stateText.gameObject.SetActive(false);
         }
 
@@ -75,10 +64,6 @@ public class WeaponHeatUI : MonoBehaviour
         if (canvasGroup == null && rootObject == gameObject)
         {
             canvasGroup = GetComponent<CanvasGroup>();
-            if (canvasGroup == null)
-            {
-                canvasGroup = gameObject.AddComponent<CanvasGroup>();
-            }
         }
 
         ResolveController();
@@ -86,7 +71,9 @@ public class WeaponHeatUI : MonoBehaviour
 
     private void OnEnable()
     {
+        if (subscribedWeaponController != null) subscribedWeaponController.WeaponEquipped -= HandleWeaponEquipped;
         ResolveController();
+        subscribedWeaponController = weaponController;
 
         if (weaponController != null)
         {
@@ -103,10 +90,8 @@ public class WeaponHeatUI : MonoBehaviour
     {
         KillVisibilityTween();
 
-        if (weaponController != null)
-        {
-            weaponController.WeaponEquipped -= HandleWeaponEquipped;
-        }
+        if (subscribedWeaponController != null) subscribedWeaponController.WeaponEquipped -= HandleWeaponEquipped;
+        subscribedWeaponController = null;
 
         BindMachineGun(null);
     }
@@ -231,7 +216,12 @@ public class WeaponHeatUI : MonoBehaviour
                 canvasGroup = GetComponent<CanvasGroup>();
                 if (canvasGroup == null)
                 {
-                    canvasGroup = gameObject.AddComponent<CanvasGroup>();
+                    if (!missingCanvasGroupReported)
+                    {
+                        missingCanvasGroupReported = true;
+                        Debug.LogWarning($"[WeaponHeatUI] Missing canvasGroup at '{HeatPath(transform)}', scene '{gameObject.scene.path}'. Restore the listed authored Inspector bindings. Heat presentation only was skipped.", this);
+                    }
+                    return;
                 }
             }
 
@@ -287,4 +277,6 @@ public class WeaponHeatUI : MonoBehaviour
         visibilitySequence = null;
         canvasGroup?.DOKill();
     }
+
+    private static string HeatPath(Transform target) => target.parent != null ? HeatPath(target.parent) + "/" + target.name : target.name;
 }

@@ -1,14 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Collections;
+using System.Reflection;
 using NUnit.Framework;
 using PixelCrushers.DialogueSystem;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
-public sealed class Phase2CStoryDialogueTests
+public sealed partial class Phase2CStoryDialogueTests
 {
     private sealed class FakeMainQuestAuthority :
         IMainDamagedAccessKeyQuestStartAuthority
@@ -184,13 +188,17 @@ public sealed class Phase2CStoryDialogueTests
         Assert.That(authority.QuestStartCount, Is.EqualTo(1));
     }
 
-    [Test]
-    public void AlreadyStartedQuest_CompletesStoryWithoutAnotherQuestStart()
+    [TestCase(MainDamagedAccessKeyQuestState.Active0)]
+    [TestCase(MainDamagedAccessKeyQuestState.Active1)]
+    [TestCase(MainDamagedAccessKeyQuestState.Active2)]
+    [TestCase(MainDamagedAccessKeyQuestState.ReadyToRestore)]
+    [TestCase(MainDamagedAccessKeyQuestState.Completed)]
+    public void AlreadyStartedQuest_CompletesStoryWithoutAnotherQuestStart(MainDamagedAccessKeyQuestState state)
     {
         DialogueGameplayActionDispatcher dispatcher =
             new DialogueGameplayActionDispatcher();
         FakeMainQuestAuthority authority = new FakeMainQuestAuthority(
-            MainDamagedAccessKeyQuestState.Active0);
+            state);
         dispatcher.BeginConversation(
             Phase2CStoryDialogueIds.FirstSettlementConversation);
 
@@ -203,6 +211,7 @@ public sealed class Phase2CStoryDialogueTests
         Assert.That(dispatched, Is.True);
         Assert.That(authority.CompletionRequestCount, Is.EqualTo(1));
         Assert.That(authority.QuestStartCount, Is.Zero);
+        Assert.That(authority.DamagedAccessKeyQuestState, Is.EqualTo(state));
     }
 
     [Test]
@@ -735,19 +744,18 @@ public sealed class Phase2CStoryDialogueTests
             Is.True);
         Assert.That(
             progress.Phase,
-            Is.EqualTo(TutorialTargetPresentationPhase.WaitingForSafeViewport),
-            "Discovery records the target without taking camera ownership.");
-        Assert.That(progress.TryBeginDialogue(), Is.False);
-        Assert.That(progress.TryBeginFocus(true, 0.08f, 0.15f), Is.False);
-        Assert.That(progress.TryBeginFocus(false, 0.08f, 0.15f), Is.False);
-        Assert.That(progress.TryBeginFocus(true, 0.1f, 0.15f), Is.False);
-        Assert.That(progress.TryBeginFocus(true, 0.06f, 0.15f), Is.True);
+            Is.EqualTo(TutorialTargetPresentationPhase.Focusing),
+            "A discovered ancient wreck reserves focus even outside the viewport.");
+        Assert.That(progress.TryBeginFocus(false, 0f, 0.15f), Is.False,
+            "High-value discovery has already reserved focus; it must not wait for visibility.");
         Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Focusing));
         Assert.That(progress.TryBeginDialogue(), Is.True);
         Assert.That(
             progress.Phase,
             Is.EqualTo(TutorialTargetPresentationPhase.Dialogue));
         Assert.That(progress.TryBeginReturn(true), Is.True);
+        Assert.That(progress.TryBeginReturn(true), Is.False,
+            "Duplicate terminal callbacks cannot restart the return transition.");
         Assert.That(
             progress.Phase,
             Is.EqualTo(TutorialTargetPresentationPhase.Returning));
@@ -801,7 +809,7 @@ public sealed class Phase2CStoryDialogueTests
                 TutorialTargetPresentationKind.HighValueWreck,
                 true),
             Is.True);
-        Assert.That(progress.TryBeginFocus(true, 0.15f, 0.15f), Is.True);
+        Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Focusing));
         Assert.That(progress.TryBeginDialogue(), Is.True);
         Assert.That(progress.TryBeginReturn(true), Is.True);
         progress.CancelCheckpointCompletion();
@@ -1408,13 +1416,13 @@ public sealed class Phase2CStoryDialogueTests
             settlement[1].conditionsString,
             Does.Contain(DialogueConditionId.MainDamagedAccessKeyNotStarted.ToString()));
         Assert.That(
-            settlement[7].conditionsString,
+            settlement.Find(entry => entry.id == 7).conditionsString,
             Does.Contain(DialogueConditionId.MainDamagedAccessKeyActive0.ToString()));
         Assert.That(
-            settlement[11].conditionsString,
+            settlement.Find(entry => entry.id == 11).conditionsString,
             Does.Contain(DialogueConditionId.MainDamagedAccessKeyCompleted.ToString()));
         Assert.That(
-            settlement[10].conditionsString,
+            settlement.Find(entry => entry.id == 10).conditionsString,
             Does.Contain(DialogueConditionId.MainDamagedAccessKeyReadyToRestore.ToString()));
 
         Assert.That(
@@ -1461,6 +1469,151 @@ public sealed class Phase2CStoryDialogueTests
         Assert.That(BuildPhase2CSignature(database), Is.EqualTo(firstSignature));
         Assert.That(database.actors.Count, Is.EqualTo(firstActorCount));
         Assert.That(database.conversations.Count, Is.EqualTo(firstConversationCount));
+        Assert.That(database.conversations.FindAll(conversation =>
+            conversation.Title == Phase2CStoryDialogueIds.FirstSettlementConversation).Count, Is.EqualTo(1));
+        Assert.That(Phase2CStoryDialogueInstaller.TryValidateInstalled(database, catalog, out string validation),
+            Is.True, validation);
+    }
+
+    [TestCase(MainDamagedAccessKeyQuestState.NotStarted, 1, 8)]
+    [TestCase(MainDamagedAccessKeyQuestState.Active0, 7, 2)]
+    [TestCase(MainDamagedAccessKeyQuestState.Active1, 8, 2)]
+    [TestCase(MainDamagedAccessKeyQuestState.Active2, 9, 2)]
+    [TestCase(MainDamagedAccessKeyQuestState.ReadyToRestore, 10, 2)]
+    [TestCase(MainDamagedAccessKeyQuestState.Completed, 11, 2)]
+    public void SettlementBranches_SelectOnceAndConvergeWithoutGameplayActions(
+        MainDamagedAccessKeyQuestState state, int entranceId, int lineCount)
+    {
+        LoadContent(out DialogueDatabase database, out LocalizationCatalog catalog);
+        Assert.That(Phase2CStoryDialogueInstaller.TryBuildEntries(database, catalog, out var graphs,
+            out int operatorId, out _, out string result), Is.True, result);
+        List<DialogueEntry> entries = graphs[Phase2CStoryDialogueIds.FirstSettlementConversation];
+        Assert.That(entries.Count, Is.EqualTo(20));
+        DialogueEntry root = entries.Find(entry => entry.id == 0);
+        DialogueEntry terminal = entries.Find(entry => entry.id == 12);
+        Assert.That(root.outgoingLinks.Count, Is.EqualTo(6));
+        Assert.That(terminal.outgoingLinks, Is.Empty);
+        Assert.That(terminal.userScript, Is.EqualTo(
+            $"{DialoguePixelCrushersBridge.CompletionLuaFunction}(\"{Phase2CStoryDialogueIds.FirstSettlementConversation}\")"));
+        var authority = new FakeMainQuestAuthority(state);
+        var registry = new DialogueConditionRegistry();
+        DialogueEntry selected = null;
+        int matchingBranches = 0;
+        foreach (Link link in root.outgoingLinks)
+        {
+            DialogueEntry candidate = entries.Find(entry => entry.id == link.destinationDialogueID);
+            string conditionId = candidate.conditionsString.Split('"')[1];
+            Assert.That(registry.TryEvaluate(conditionId, null, authority, out bool matches), Is.True);
+            if (matches)
+            {
+                matchingBranches++;
+                selected = candidate;
+            }
+        }
+        Assert.That(matchingBranches, Is.EqualTo(1));
+        Assert.That(selected.id, Is.EqualTo(entranceId));
+        int settlementId = database.GetConversation(Phase2CStoryDialogueIds.FirstSettlementConversation).ConversantID;
+        int[] initialIds = { 1, 2, 3, 4, 5, 13, 14, 6 };
+        int[] initialLines = { 1, 2, 3, 4, 5, 7, 8, 6 };
+        for (int i = 0; i < lineCount; i++)
+        {
+            Assert.That(selected.id, Is.Not.EqualTo(terminal.id), "Branch ended too early.");
+            Assert.That(selected.userScript, Is.Null.Or.Empty, "Only END may notify completion.");
+            if (i > 0) Assert.That(selected.conditionsString, Is.Null.Or.Empty);
+            if (state == MainDamagedAccessKeyQuestState.NotStarted)
+            {
+                Assert.That(selected.id, Is.EqualTo(initialIds[i]));
+                Assert.That(Field.LookupValue(selected.fields, "TextKey"), Is.EqualTo(
+                    Phase2CStoryDialogueIds.GetNumberedTextKey(Phase2CStoryDialogueIds.FirstSettlementLinePrefix, initialLines[i])));
+                Assert.That(selected.ActorID, Is.EqualTo(i < 3 || i == 5 ? settlementId : operatorId));
+            }
+            else
+            {
+                Assert.That(selected.id, Is.EqualTo(i == 0 ? entranceId : entranceId + 8));
+                bool settlementSpeaks = state == MainDamagedAccessKeyQuestState.ReadyToRestore ? i == 0 : i == 1;
+                Assert.That(selected.ActorID, Is.EqualTo(settlementSpeaks ? settlementId : operatorId));
+            }
+            Assert.That(selected.outgoingLinks.Count, Is.EqualTo(1));
+            selected = entries.Find(entry => entry.id == selected.outgoingLinks[0].destinationDialogueID);
+        }
+        Assert.That(selected, Is.SameAs(terminal));
+        Assert.That(authority.CompletionRequestCount, Is.Zero);
+        Assert.That(authority.QuestStartCount, Is.Zero);
+        Assert.That(authority.DamagedAccessKeyQuestState, Is.EqualTo(state));
+    }
+
+    [Test]
+    public void SettlementNarrative_ProjectsUniquePartsWithoutChangingCurseOrRestoration()
+    {
+        PermanentProgress progress = CreateProgress("SettlementNarrativeReadOnlyProgress");
+        Assert.That(progress.TryStartDamagedAccessKeyQuest(), Is.True);
+        TraitDefinition curse = AssetDatabase.LoadAssetAtPath<TraitDefinition>(
+            "Assets/02_Scripts/Config/TraitDefinition/Story/45_pixel_curse.asset");
+        Assert.That(progress.TryAcquirePersistentStoryTrait(curse), Is.True);
+        var registry = new DialogueConditionRegistry();
+        CampaignBossId[] bosses = { CampaignBossId.SectorAdministrator, CampaignBossId.SalvageDevourer, CampaignBossId.PhaseGatekeeper };
+        DialogueConditionId[] conditions = { DialogueConditionId.MainDamagedAccessKeyActive0,
+            DialogueConditionId.MainDamagedAccessKeyActive1, DialogueConditionId.MainDamagedAccessKeyActive2,
+            DialogueConditionId.MainDamagedAccessKeyReadyToRestore, DialogueConditionId.MainDamagedAccessKeyCompleted };
+        for (int stage = 0; stage <= 4; stage++)
+        {
+            if (stage > 0 && stage < 4)
+            {
+                Assert.That(progress.RegisterCampaignBossDefeat(bosses[stage - 1]), Is.True);
+                Assert.That(progress.RegisterCampaignBossDefeat(bosses[stage - 1]), Is.False);
+            }
+            if (stage == 4)
+            {
+                Assert.That(progress.DamagedAccessKeyQuestState, Is.EqualTo(MainDamagedAccessKeyQuestState.ReadyToRestore));
+                Assert.That(progress.TryRestoreDamagedAccessKey(), Is.True, "Only explicit recovery changes Ready to Completed.");
+            }
+            string before = JsonUtility.ToJson(progress.CreateSaveData());
+            for (int repeat = 0; repeat < 2; repeat++)
+            {
+                for (int i = 0; i < conditions.Length; i++)
+                {
+                    Assert.That(registry.TryEvaluate(conditions[i], null, progress, out bool matches), Is.True);
+                    Assert.That(matches, Is.EqualTo(i == stage));
+                }
+            }
+            Assert.That(JsonUtility.ToJson(progress.CreateSaveData()), Is.EqualTo(before));
+            Assert.That(progress.AcquiredBossStoryPartCount, Is.EqualTo(Math.Min(stage, 3)));
+            Assert.That(progress.PixelCurseLevel, Is.EqualTo(Math.Min(stage + 1, 4)));
+        }
+    }
+
+    [Test]
+    public void SettlementNewLines_AreRequiredByInstallerAndPresentInCsv()
+    {
+        LoadContent(out DialogueDatabase database, out LocalizationCatalog catalog);
+        Assert.That(LocalizationContentImporter.TryReadUtf8File(LocalizationContentImporter.DefaultSourceAssetPath,
+            out string csv, out string readError), Is.True, readError);
+        LocalizationValidationReport report = LocalizationContentValidator.ValidateCsv(
+            LocalizationContentImporter.DefaultSourceAssetPath, csv);
+        Assert.That(report.HasErrors, Is.False);
+        string[] newKeys = { Phase2CStoryDialogueIds.FirstSettlementLinePrefix + "07",
+            Phase2CStoryDialogueIds.FirstSettlementLinePrefix + "08",
+            Phase2CStoryDialogueIds.MainQuestActive0ResponseTextKey, Phase2CStoryDialogueIds.MainQuestActive1ResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestActive2ResponseTextKey, Phase2CStoryDialogueIds.MainQuestReadyResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestCompletedResponseTextKey };
+        foreach (string missingKey in newKeys)
+        {
+            var entries = new List<LocalizationEntry>();
+            bool found = false;
+            foreach (LocalizationCsvRecord record in report.Records)
+            {
+                if (record.TextKey != missingKey) entries.Add(record.ToCatalogEntry());
+                else found = true;
+            }
+            Assert.That(found, Is.True, missingKey);
+            LocalizationCatalog incomplete = ScriptableObject.CreateInstance<LocalizationCatalog>();
+            createdObjects.Add(incomplete);
+            incomplete.SetGeneratedContentForEditor(entries, LocalizationContentImporter.DefaultSourceAssetPath, report.ContentHash);
+            Assert.That(Phase2CStoryDialogueInstaller.TryBuildEntries(database, incomplete, out _, out _, out _, out string error), Is.False);
+            Assert.That(error, Does.Contain(missingKey));
+            Assert.That(catalog.TryGetEntry(missingKey, out LocalizationEntry imported), Is.True, "Import Catalog first: " + missingKey);
+            Assert.That(imported.Korean, Is.Not.Empty);
+        }
     }
 
     [Test]
@@ -1522,6 +1675,107 @@ public sealed class Phase2CStoryDialogueTests
         Assert.That(allowedFailure, Is.EqualTo(SettlementExpeditionLaunchFailure.None));
     }
 
+    [Test]
+    public void NullDispatcher_InstallerIsIdempotentAndKeepsExactlyTwoTypedResponses()
+    {
+        LoadContent(out var source, out _);
+        var database = UnityEngine.Object.Instantiate(source);
+        createdObjects.Add(database);
+        string oldStories = BuildPhase2CSignature(database);
+        Assert.That(LocalizationContentImporter.TryReadUtf8File(LocalizationContentImporter.DefaultSourceAssetPath,
+            out string csv, out string error), Is.True, error);
+        var report = LocalizationContentValidator.ValidateCsv(LocalizationContentImporter.DefaultSourceAssetPath, csv);
+        Assert.That(report.HasErrors, Is.False);
+        var entries = new List<LocalizationEntry>();
+        foreach (var row in report.Records) entries.Add(row.ToCatalogEntry());
+        var catalog = ScriptableObject.CreateInstance<LocalizationCatalog>();
+        createdObjects.Add(catalog);
+        catalog.SetGeneratedContentForEditor(entries, LocalizationContentImporter.DefaultSourceAssetPath, report.ContentHash);
+        Assert.That(NullDispatcherDialogueInstaller.TryInstall(database, catalog, false, out error), Is.True, error);
+        int actors = database.actors.Count;
+        int conversations = database.conversations.Count;
+        var graph = database.GetConversation(NullDispatcherDialogueIds.Conversation);
+        int stableId = graph.id;
+        string signature = Phase2CStoryDialogueInstaller.BuildGraphSignature(graph.dialogueEntries);
+        Assert.That(NullDispatcherDialogueInstaller.TryInstall(database, catalog, false, out error), Is.True, error);
+        graph = database.GetConversation(NullDispatcherDialogueIds.Conversation);
+        Assert.That(graph.id, Is.EqualTo(stableId));
+        Assert.That(database.actors.Count, Is.EqualTo(actors));
+        Assert.That(database.conversations.Count, Is.EqualTo(conversations));
+        Assert.That(Phase2CStoryDialogueInstaller.BuildGraphSignature(graph.dialogueEntries), Is.EqualTo(signature));
+        Assert.That(BuildPhase2CSignature(database), Is.EqualTo(oldStories), "Existing Settlement/defense story remains intact.");
+        Assert.That(NullDispatcherDialogueInstaller.TryValidateInstalled(database, catalog, out error), Is.True, error);
+        int responses = 0;
+        foreach (var node in graph.dialogueEntries)
+        {
+            if (node.ActorID == graph.ActorID)
+            {
+                responses++;
+                Assert.That(node.id, Is.EqualTo(7).Or.EqualTo(8));
+                Assert.That(node.outgoingLinks.Count, Is.EqualTo(1));
+                Assert.That(node.outgoingLinks[0].destinationDialogueID, Is.EqualTo(9));
+            }
+        }
+        Assert.That(responses, Is.EqualTo(2));
+        Assert.That(graph.GetDialogueEntry(7).userScript, Is.EqualTo("VS_DispatchAction(\"FinalBossTreatmentAccept\")"));
+        Assert.That(graph.GetDialogueEntry(8).userScript, Is.EqualTo("VS_DispatchAction(\"FinalBossTreatmentReject\")"));
+        Assert.That(graph.GetDialogueEntry(9).userScript, Is.EqualTo("VS_MarkConversationComplete(\"FINAL_NullDispatcherTreatmentOffer\")"));
+        Assert.That(Field.LookupValue(database.GetActor(NullDispatcherDialogueIds.Actor).fields, "Name TextKey"),
+            Is.EqualTo(NullDispatcherDialogueIds.SpeakerKey));
+        graph.GetDialogueEntry(6).outgoingLinks.RemoveAt(1);
+        Assert.That(NullDispatcherDialogueInstaller.TryValidateInstalled(database, catalog, out _), Is.False,
+            "A graph with one missing response must fail validation.");
+    }
+
+    [Test]
+    public void NullDispatcher_ActionsCannotDispatchOutsideTreatmentConversation()
+    {
+        var dispatcher = new DialogueGameplayActionDispatcher();
+        var authority = new FinalTreatmentProbe();
+        dispatcher.BeginConversation(Phase2CStoryDialogueIds.FirstSettlementConversation);
+        Assert.That(dispatcher.TryDispatch(DialogueGameplayActionId.FinalBossTreatmentAccept, null, null, null, authority), Is.False);
+        Assert.That(authority.Requests, Is.Zero);
+        dispatcher.BeginConversation(NullDispatcherDialogueIds.Conversation);
+        Assert.That(authority.Requests, Is.Zero, "Conversation start is read-only.");
+        Assert.That(dispatcher.TryDispatch(DialogueGameplayActionId.FinalBossTreatmentReject, null, null, null, authority), Is.True);
+        Assert.That(authority.Requests, Is.EqualTo(1));
+        LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("Duplicate action 'FinalBossTreatmentReject'"));
+        Assert.That(dispatcher.TryDispatch(DialogueGameplayActionId.FinalBossTreatmentReject, null, null, null, authority), Is.False);
+        Assert.That(authority.Requests, Is.EqualTo(1));
+    }
+
+    private sealed class FinalTreatmentProbe : IFinalBossTreatmentAuthority
+    {
+        public int Requests { get; private set; }
+        public bool TryRequestTreatmentChoice(bool accept)
+        {
+            Requests++;
+            return Requests == 1;
+        }
+    }
+
+    [Test]
+    public void NullDispatcher_BridgeRegistrationPreservesCurrentEncounterOwner()
+    {
+        var root = new GameObject("Final bridge registration fixture");
+        root.SetActive(false);
+        createdObjects.Add(root);
+        var bridge = root.AddComponent<DialoguePixelCrushersBridge>();
+        var first = new FinalTreatmentProbe();
+        var other = new FinalTreatmentProbe();
+        Assert.That(bridge.RegisterFinalBossAuthority(first), Is.True);
+        Assert.That(bridge.RegisterFinalBossAuthority(first), Is.True);
+        Assert.That(bridge.RegisterFinalBossAuthority(other), Is.False);
+        bridge.UnregisterFinalBossAuthority(other);
+        Assert.That(bridge.RegisterFinalBossAuthority(other), Is.False);
+        bridge.UnregisterFinalBossAuthority(first);
+        bridge.UnregisterFinalBossAuthority(first);
+        Assert.That(bridge.RegisterFinalBossAuthority(other), Is.True);
+        bridge.UnregisterFinalBossAuthority(other);
+        Assert.That(first.Requests, Is.Zero);
+        Assert.That(other.Requests, Is.Zero);
+    }
+
     private static void LoadContent(
         out DialogueDatabase database,
         out LocalizationCatalog catalog)
@@ -1575,6 +1829,11 @@ public sealed class Phase2CStoryDialogueTests
             Phase2CStoryDialogueIds.MainQuestActive2TextKey,
             Phase2CStoryDialogueIds.MainQuestReadyTextKey,
             Phase2CStoryDialogueIds.MainQuestCompletedTextKey,
+            Phase2CStoryDialogueIds.MainQuestActive0ResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestActive1ResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestActive2ResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestReadyResponseTextKey,
+            Phase2CStoryDialogueIds.MainQuestCompletedResponseTextKey,
             MainDamagedAccessKeyQuestIds.TitleTextKey,
             MainDamagedAccessKeyQuestIds.StartedNotificationTextKey,
             MainDamagedAccessKeyQuestIds.ObjectiveTextKey,
@@ -1608,7 +1867,7 @@ public sealed class Phase2CStoryDialogueTests
             1);
         AddNumberedKeys(keys, Phase2CStoryDialogueIds.TutorialUnknownLinePrefix, 2);
         AddNumberedKeys(keys, Phase2CStoryDialogueIds.TutorialRescueLinePrefix, 3);
-        AddNumberedKeys(keys, Phase2CStoryDialogueIds.FirstSettlementLinePrefix, 6);
+        AddNumberedKeys(keys, Phase2CStoryDialogueIds.FirstSettlementLinePrefix, 8);
         return keys.ToArray();
     }
 
@@ -1618,6 +1877,182 @@ public sealed class Phase2CStoryDialogueTests
         root.SetActive(false);
         createdObjects.Add(root);
         return root.AddComponent<PermanentProgress>();
+    }
+
+    [Test]
+    public void CampaignSpine_FirstDefeatsRequireAnalysis_RepeatClearsAllowChaining()
+    {
+        PermanentProgress progress = CreateProgress("CampaignSpine");
+        progress.TryStartDamagedAccessKeyQuest();
+        TraitDefinition curse = AssetDatabase.LoadAssetAtPath<TraitDefinition>(
+            "Assets/02_Scripts/Config/TraitDefinition/Story/45_pixel_curse.asset");
+        Assert.That(progress.TryAcquirePersistentStoryTrait(curse), Is.True);
+        Assert.That(progress.HighestUnlockedDepth, Is.EqualTo(ExpeditionDepth.Normal));
+        Assert.That(progress.IsDepthUnlocked(ExpeditionDepth.DeepZone1), Is.False);
+        Assert.That(progress.IsDepthUnlocked(ExpeditionDepth.DeepZone2), Is.False);
+        Assert.That(progress.IsDepthUnlocked(ExpeditionDepth.FinalNetwork), Is.False);
+
+        CampaignBossId[] bosses = { CampaignBossId.SectorAdministrator, CampaignBossId.SalvageDevourer,
+            CampaignBossId.PhaseGatekeeper };
+        for (int i = 0; i < bosses.Length; i++)
+        {
+            ExpeditionDepth depth = (ExpeditionDepth)i;
+            Assert.That(CampaignProgressionCatalog.ShouldUseRepeatBoss(depth, progress), Is.False);
+            var firstRun = new RunContext(WeaponTreeType.MachineGun, depth);
+            Assert.That(progress.RegisterCampaignBossDefeat(bosses[i]), Is.True);
+            firstRun.MarkBossDefeated(bosses[i], true);
+            Assert.That(progress.HasDefeatedCampaignBoss(bosses[i]), Is.True);
+            Assert.That(progress.HasBossStoryPart(CampaignProgressionCatalog.GetStoryPart(bosses[i])), Is.True);
+            Assert.That(progress.AcquiredBossStoryPartCount, Is.EqualTo(i + 1));
+            Assert.That(progress.PixelCurseLevel, Is.EqualTo(i + 2));
+            Assert.That(CampaignProgressionCatalog.CanAdvanceToNextRegion(firstRun, progress), Is.False);
+            string saved = JsonUtility.ToJson(progress.CreateSaveData());
+            Assert.That(progress.RegisterCampaignBossDefeat(bosses[i]), Is.False);
+            Assert.That(JsonUtility.ToJson(progress.CreateSaveData()), Is.EqualTo(saved));
+
+            PermanentProgress reloaded = CreateProgress("CampaignSpineReload" + i);
+            reloaded.LoadFromSave(JsonUtility.FromJson<SaveData>(saved));
+            Assert.That(reloaded.HighestUnlockedDepth, Is.EqualTo(depth));
+            Assert.That(reloaded.AcquiredBossStoryPartCount, Is.EqualTo(i + 1));
+            Assert.That(reloaded.HasDefeatedCampaignBoss(bosses[i]), Is.True);
+            Assert.That(reloaded.PixelCurseLevel, Is.EqualTo(i + 2));
+
+            if (i < 2)
+            {
+                Assert.That(progress.IsDepthUnlocked((ExpeditionDepth)(i + 1)), Is.False);
+                Assert.That(progress.HasPendingCampaignRouteAnalysis, Is.True);
+                Assert.That(progress.TryAuthorizeAnalyzedRegion(), Is.True);
+                Assert.That(progress.HighestUnlockedDepth, Is.EqualTo((ExpeditionDepth)(i + 1)));
+                Assert.That(progress.HasPendingCampaignRouteAnalysis, Is.False);
+                string authorized = JsonUtility.ToJson(progress.CreateSaveData());
+                int repeatedChanges = 0;
+                Action countChange = () => repeatedChanges++;
+                progress.Changed += countChange;
+                Assert.That(progress.TryAuthorizeAnalyzedRegion(), Is.False);
+                progress.Changed -= countChange;
+                Assert.That(repeatedChanges, Is.Zero);
+                Assert.That(JsonUtility.ToJson(progress.CreateSaveData()), Is.EqualTo(authorized));
+                reloaded.LoadFromSave(JsonUtility.FromJson<SaveData>(authorized));
+                Assert.That(reloaded.HighestUnlockedDepth, Is.EqualTo((ExpeditionDepth)(i + 1)));
+                // Even a newly authorized route cannot turn this first clear into a portal exit.
+                Assert.That(CampaignProgressionCatalog.CanAdvanceToNextRegion(firstRun, progress), Is.False);
+                var repeatRun = new RunContext(WeaponTreeType.MachineGun, depth);
+                Assert.That(CampaignProgressionCatalog.CanAdvanceToNextRegion(repeatRun, progress), Is.False);
+                repeatRun.MarkBossDefeated(bosses[i]);
+                Assert.That(CampaignProgressionCatalog.CanAdvanceToNextRegion(repeatRun, progress), Is.True);
+                Assert.That(CampaignProgressionCatalog.CanAdvanceToNextRegion(repeatRun, null), Is.False);
+            }
+            else
+            {
+                Assert.That(progress.TryAuthorizeAnalyzedRegion(), Is.False);
+                Assert.That(progress.DamagedAccessKeyQuestState, Is.EqualTo(MainDamagedAccessKeyQuestState.ReadyToRestore));
+                Assert.That(progress.CurrentRouteCoreState, Is.EqualTo(RouteCoreState.ReadyToAssemble));
+                Assert.That(progress.IsDepthUnlocked(ExpeditionDepth.FinalNetwork), Is.False);
+                Assert.That(progress.TryRestoreDamagedAccessKey(), Is.True);
+                Assert.That(progress.CurrentRouteCoreState, Is.EqualTo(RouteCoreState.Assembled));
+                Assert.That(progress.TryActivateRouteCore(), Is.True);
+                Assert.That(progress.CanLaunchFinalExpedition, Is.False);
+                progress.MarkSettlementDefenseCleared();
+                Assert.That(progress.CanLaunchFinalExpedition, Is.True);
+                Assert.That(CampaignProgressionCatalog.CanAdvanceToNextRegion(firstRun, progress), Is.False);
+                reloaded.LoadFromSave(JsonUtility.FromJson<SaveData>(JsonUtility.ToJson(progress.CreateSaveData())));
+                Assert.That(reloaded.CurrentRouteCoreState, Is.EqualTo(RouteCoreState.Activated));
+                Assert.That(reloaded.SettlementDefenseCleared, Is.True);
+                Assert.That(reloaded.CanLaunchFinalExpedition, Is.True);
+            }
+            Assert.That(CampaignProgressionCatalog.ShouldUseRepeatBoss(depth, progress), Is.True);
+        }
+        Assert.That(CampaignProgressionCatalog.ShouldUseRepeatBoss(ExpeditionDepth.FinalNetwork, progress), Is.False);
+    }
+
+    [TestCase(ExpeditionDepth.DeepZone1, false, false, false)]
+    [TestCase(ExpeditionDepth.DeepZone1, true, false, true)]
+    [TestCase(ExpeditionDepth.DeepZone1, true, true, false)]
+    [TestCase(ExpeditionDepth.DeepZone2, false, false, false)]
+    [TestCase(ExpeditionDepth.DeepZone2, true, false, true)]
+    [TestCase(ExpeditionDepth.DeepZone2, true, true, false)]
+    public void CampaignSpine_CompletionGuardRejectsInterruptedAndActiveDialogue(
+        ExpeditionDepth nextDepth, bool natural, bool active, bool expected)
+    {
+        string title = Phase2CStoryDialogueIds.FirstSettlementConversation;
+        PermanentProgress progress = CreateProgress("CampaignAnalysisBoundary");
+        progress.TryStartDamagedAccessKeyQuest();
+        progress.RegisterCampaignBossDefeat(CampaignBossId.SectorAdministrator);
+        if (nextDepth == ExpeditionDepth.DeepZone2)
+        {
+            progress.TryAuthorizeAnalyzedRegion();
+            progress.RegisterCampaignBossDefeat(CampaignBossId.SalvageDevourer);
+        }
+        string before = JsonUtility.ToJson(progress.CreateSaveData());
+        bool allowed = DialoguePixelCrushersBridge.IsCompletionActionEligible(
+            DialogueGameplayActionId.MainDamagedAccessKeyStart, title, title, active, natural);
+        Assert.That(allowed, Is.EqualTo(expected));
+        if (allowed)
+        {
+            progress.TryAuthorizeAnalyzedRegion();
+        }
+        Assert.That(progress.IsDepthUnlocked(nextDepth), Is.EqualTo(expected));
+        if (!allowed)
+        {
+            Assert.That(JsonUtility.ToJson(progress.CreateSaveData()), Is.EqualTo(before));
+        }
+        Assert.That(DialoguePixelCrushersBridge.IsCompletionActionEligible(
+            DialogueGameplayActionId.MainDamagedAccessKeyStart, title, "Other", false, true), Is.False);
+        Assert.That(DialoguePixelCrushersBridge.IsCompletionActionEligible(
+            DialogueGameplayActionId.MainDamagedAccessKeyStart, "Other", "Other", false, true), Is.False);
+    }
+
+    [Test]
+    public void CampaignSpine_LegacyAuthorizationSurvivesLoadWithoutNewUnlocks()
+    {
+        PermanentProgress progress = CreateProgress("LegacyCampaignAuthorization");
+        var save = new SaveData { highestUnlockedDepth = ExpeditionDepth.DeepZone2 };
+        save.defeatedCampaignBosses.Add(CampaignBossId.SectorAdministrator);
+        save.acquiredBossStoryParts.Add(BossStoryPart.SectorStabilizer);
+        progress.LoadFromSave(save);
+        Assert.That(progress.HighestUnlockedDepth, Is.EqualTo(ExpeditionDepth.DeepZone2));
+        Assert.That(progress.IsDepthUnlocked(ExpeditionDepth.FinalNetwork), Is.False);
+        save.highestUnlockedDepth = ExpeditionDepth.Normal;
+        progress.LoadFromSave(save);
+        Assert.That(progress.HighestUnlockedDepth, Is.EqualTo(ExpeditionDepth.Normal));
+    }
+
+    [TestCase(ExpeditionDepth.Normal, ExpeditionDepth.DeepZone1)]
+    [TestCase(ExpeditionDepth.DeepZone1, ExpeditionDepth.DeepZone2)]
+    public void CampaignSpine_RegionTransitionKeepsRunCargoBuildAndVitals(
+        ExpeditionDepth from, ExpeditionDepth to)
+    {
+        var run = new RunContext(WeaponTreeType.Sniper, from, "carryover_ship");
+        run.SetLevel(5);
+        run.Wallet.Add(CurrencyType.Credits, 123);
+        run.Wallet.Add(CurrencyType.ScrapParts, 4);
+        run.Wallet.Add(CurrencyType.TuningChips, 7);
+        run.Wallet.Add(CurrencyType.StabilizedAlloy, 3);
+        run.SetEquippedReinforcement("carryover_active", 2);
+        run.AddTrait("campaign_fixture_trait");
+        run.CapturePlayerVitals(31f, 7f);
+        run.MarkBossDefeated(CampaignProgressionCatalog.GetBossId(from), true);
+        RunWallet wallet = run.Wallet;
+        int cargo = run.CurrentCargoLoad;
+        run.PrepareNextRegion(to, SeaRegionType.RaiderOccupied);
+        Assert.That(run.Wallet, Is.SameAs(wallet));
+        Assert.That(run.Wallet.Credits, Is.EqualTo(123));
+        Assert.That(run.Wallet.PendingScrapParts, Is.EqualTo(4));
+        Assert.That(run.Wallet.TuningChips, Is.EqualTo(7));
+        Assert.That(run.Wallet.PendingStabilizedAlloy, Is.EqualTo(3));
+        Assert.That(run.CurrentCargoLoad, Is.EqualTo(cargo));
+        Assert.That(run.SelectedShipId, Is.EqualTo("carryover_ship"));
+        Assert.That(run.EquippedReinforcementId, Is.EqualTo("carryover_active"));
+        Assert.That(run.EquippedReinforcementCharges, Is.EqualTo(2));
+        Assert.That(run.ExpeditionDepth, Is.EqualTo(to));
+        Assert.That(run.SelectedTraitIds, Does.Contain("campaign_fixture_trait"));
+        Assert.That(run.SelectedWeaponTree, Is.EqualTo(WeaponTreeType.Sniper));
+        Assert.That(run.CurrentLevel, Is.EqualTo(5));
+        Assert.That(run.BossDefeated, Is.False);
+        Assert.That(run.FirstStoryClearThisRegion, Is.False);
+        Assert.That(run.TryGetPlayerVitalCarryover(out float hp, out float armor), Is.True);
+        Assert.That(hp, Is.EqualTo(31f));
+        Assert.That(armor, Is.EqualTo(7f));
     }
 
     private static void RegisterAllRequiredBossParts(PermanentProgress progress)
@@ -1711,5 +2146,398 @@ public sealed class Phase2CStoryDialogueTests
                userScript.IndexOf(
                    DialoguePixelCrushersBridge.ActionLuaFunction,
                    StringComparison.Ordinal) >= 0;
+    }
+}
+
+
+/// <summary>
+/// Test-owned PreviewScene suppresses automatic gameplay lifecycle. These tests
+/// explicitly step the existing coroutine and camera calculation; terminal-state
+/// injection tests the existing dialogue boundary, not a second dialogue runtime.
+/// Actual Pixel Crushers terminal-marker/localization tests remain above.
+/// </summary>
+public sealed class TutorialDiscoveryPresentationTests
+{
+    private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
+    private Scene scene;
+    private Scene userScene;
+    private bool userSceneDirty;
+    private float oldTimeScale;
+    private TutorialFlowController flow;
+    private GungeonStyleCamera2D camera;
+    private Transform player;
+    private HarvestObjectHealth wreck;
+    private RadarTarget radar;
+    private PlayerController2D controls;
+    private PlayerWeaponController weapons;
+    private TutorialTargetPresentationProgress progress;
+    private ExpeditionHUD cinematicHud;
+    private CanvasGroup cinematicGroup;
+
+    [SetUp]
+    public void SetUp()
+    {
+        userScene = SceneManager.GetActiveScene();
+        userSceneDirty = userScene.isDirty;
+        oldTimeScale = Time.timeScale;
+        scene = EditorSceneManager.NewPreviewScene();
+        player = Create("Player").transform;
+        controls = player.gameObject.AddComponent<PlayerController2D>();
+        weapons = player.gameObject.AddComponent<PlayerWeaponController>();
+        camera = Create("CameraRig").AddComponent<GungeonStyleCamera2D>();
+        Camera lens = Create("Camera").AddComponent<Camera>();
+        lens.transform.SetParent(camera.transform, false);
+        lens.orthographic = true;
+        lens.orthographicSize = 4.21875f;
+        Set(camera, "mainCamera", lens);
+        Set(camera, "shakeRoot", lens.transform);
+        Set(camera, "player", player);
+        Set(camera, "playerController", controls);
+        Set(camera, "mapGenerator", Create("TestMap").AddComponent<ExpeditionMapGenerator>());
+        camera.transform.position = new Vector3(0f, 0f, -10f);
+        GameObject wreckObject = Create("DiscoveredWreck");
+        // HarvestObjectHealth requires Collider2D, which is abstract. Supply the
+        // concrete collider used by a real wreck before adding the health owner.
+        wreckObject.AddComponent<BoxCollider2D>();
+        wreck = wreckObject.AddComponent<HarvestObjectHealth>();
+        wreck.transform.position = new Vector3(12f, 0f, 0f);
+        radar = wreck.gameObject.AddComponent<RadarTarget>();
+        flow = Create("Tutorial").AddComponent<TutorialFlowController>();
+        Set(flow, "playerRoot", player);
+        Set(flow, "playerController", controls);
+        Set(flow, "weaponController", weapons);
+        Set(flow, "tutorialCamera", camera);
+        Set(flow, "currentStep", TutorialStep.TravelHighValue);
+        Set(flow, "highValueAutoRegistered", true);
+        Set(flow, "highValueSalvageInstance", wreck.gameObject);
+        Set(flow, "highValueSalvageHealth", wreck);
+        Set(flow, "highValueSalvageRadarTarget", radar);
+        GameObject gameplay = AuthoredRuntimeFixture.Create(scene, null, "GameplayHud", true);
+        cinematicGroup = gameplay.AddComponent<CanvasGroup>();
+        cinematicHud = gameplay.AddComponent<ExpeditionHUD>();
+        // This fixture tests sequence ownership; authored fade interpolation is
+        // covered by TutorialGuidanceUIAuthoringTests without a frame runner here.
+        cinematicHud.enabled = false;
+        Set(cinematicHud, "cinematicCanvasGroup", cinematicGroup);
+        Set(flow, "expeditionHUD", cinematicHud);
+        progress = Read<TutorialTargetPresentationProgress>(flow, "targetPresentationProgress");
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        try
+        {
+            if (flow != null) Call(flow, "StopTargetPresentation", true, true);
+            if (cinematicHud != null) cinematicHud.CompleteCinematicVisibilityTransition();
+        }
+        finally
+        {
+            try
+            {
+                if (scene.IsValid()) AuthoredRuntimeFixture.Close(scene);
+            }
+            finally
+            {
+                scene = default;
+                Time.timeScale = oldTimeScale;
+            }
+        }
+        Assert.That(SceneManager.GetActiveScene(), Is.EqualTo(userScene));
+        Assert.That(userScene.isDirty, Is.EqualTo(userSceneDirty));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void OffscreenReservation_DuplicateRadarAndMapNotificationsDoNotStartDialogue(bool fromMap)
+    {
+        IEnumerator routine = Begin();
+        Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Focusing));
+        Assert.That(routine.MoveNext(), Is.True);
+        object owner = Read<object>(flow, "discoveryCameraOwner");
+        Assert.That(camera.IsCinematicFocusOwnedBy(owner), Is.True);
+        Assert.That(cinematicHud.IsCinematicMode, Is.True);
+        Assert.That(Read<HashSet<object>>(cinematicHud, "cinematicModeOwners"), Is.EquivalentTo(new[] { owner }));
+        Assert.That(controls.ControlEnabled, Is.False);
+        Assert.That(weapons.ExternalInputLocked, Is.True);
+        if (fromMap) Call(flow, "HandleMapTargetDiscovered", radar);
+        else Call(flow, "HandleRadarScanCompleted", Vector2.zero, 30f, new[] { radar });
+        Assert.That(Read<bool>(flow, "openingConversationStarted"), Is.False);
+        Assert.That(Read<Transform>(flow, "activePresentationTarget"), Is.SameAs(wreck.transform));
+        Assert.That(Call(flow, "TryReserveTargetPresentation", TutorialTargetPresentationKind.HighValueWreck), Is.False);
+        Time.timeScale = 0f;
+        AdvanceCamera(0.3f);
+        Assert.That(camera.transform.position.x, Is.EqualTo(6f).Within(0.001f));
+        Assert.That(routine.MoveNext(), Is.True);
+        Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Focusing));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void TerminalBoundary_ReturnsUnscaledAndCompletesOnlyNaturallyOnce(bool natural)
+    {
+        int steps = 0;
+        flow.StepChanged += (_, _) => steps++;
+        IEnumerator routine = Begin();
+        Assert.That(routine.MoveNext(), Is.True);
+        Time.timeScale = 0f;
+        AdvanceCamera(0.6f);
+        Assert.That(camera.IsCinematicFocusBlendActive, Is.False);
+        Assert.That(progress.TryBeginDialogue(), Is.True);
+        Assert.That(progress.TryBeginReturn(natural), Is.True);
+        Assert.That(progress.TryBeginReturn(!natural), Is.False);
+        Assert.That(routine.MoveNext(), Is.True);
+        Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Returning));
+        player.position = new Vector3(2f, 1f, 0f);
+        AdvanceCamera(0.25f);
+        Assert.That(camera.transform.position.x, Is.EqualTo(7f).Within(0.001f));
+        Assert.That(routine.MoveNext(), Is.True);
+        Assert.That(Read<bool>(flow, "openingConversationStarted"), Is.False);
+        AdvanceCamera(0.25f);
+        Assert.That(routine.MoveNext(), Is.False);
+        Assert.That(camera.transform.position, Is.EqualTo(new Vector3(2f, 1f, -10f)));
+        Assert.That(steps, Is.EqualTo(natural ? 1 : 0));
+        Assert.That(cinematicHud.IsCinematicMode, Is.False);
+        Assert.That(Read<TutorialStoryGuidanceProgress>(flow, "operatorGuidanceProgress")
+            .IsComplete(TutorialStep.TravelHighValue), Is.EqualTo(natural));
+        Assert.That(controls.ControlEnabled, Is.True);
+        Assert.That(weapons.ExternalInputLocked, Is.False);
+        Assert.That(progress.TryFinishReturn(out _, out _), Is.False);
+        Assert.That(routine.MoveNext(), Is.False);
+        Assert.That(steps, Is.EqualTo(natural ? 1 : 0));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void TargetInvalidation_DuringFocusOrDialogueReturnsWithoutCheckpoint(bool duringDialogue)
+    {
+        IEnumerator routine = Begin();
+        Assert.That(routine.MoveNext(), Is.True);
+        if (duringDialogue)
+        {
+            AdvanceCamera(0.6f);
+            Assert.That(progress.TryBeginDialogue(), Is.True);
+        }
+        else
+        {
+            AdvanceCamera(0.3f);
+        }
+        wreck.gameObject.SetActive(false);
+        Assert.That(routine.MoveNext(), Is.True);
+        Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Returning));
+        AdvanceCamera(0.5f);
+        Assert.That(routine.MoveNext(), Is.False);
+        AssertUnfinishedAndReleased();
+        Assert.That(Read<bool>(flow, "targetPresentationAwaitingRediscovery"), Is.True);
+    }
+
+    [TestCase("OnDisable", TutorialTargetPresentationPhase.Focusing)]
+    [TestCase("OnDisable", TutorialTargetPresentationPhase.Dialogue)]
+    [TestCase("OnDisable", TutorialTargetPresentationPhase.Returning)]
+    [TestCase("OnDestroy", TutorialTargetPresentationPhase.Focusing)]
+    [TestCase("OnDestroy", TutorialTargetPresentationPhase.Dialogue)]
+    [TestCase("OnDestroy", TutorialTargetPresentationPhase.Returning)]
+    [TestCase("HandleRunEnded", TutorialTargetPresentationPhase.Focusing)]
+    [TestCase("HandleRunEnded", TutorialTargetPresentationPhase.Dialogue)]
+    [TestCase("HandleRunEnded", TutorialTargetPresentationPhase.Returning)]
+    public void LifecycleAndSceneExit_ReleaseOnlyTheDiscoveryCamera(
+        string callback, TutorialTargetPresentationPhase phase)
+    {
+        IEnumerator routine = Begin();
+        Assert.That(routine.MoveNext(), Is.True);
+        if (phase != TutorialTargetPresentationPhase.Focusing)
+        {
+            AdvanceCamera(0.6f);
+            progress.TryBeginDialogue();
+        }
+        if (phase == TutorialTargetPresentationPhase.Returning)
+        {
+            progress.TryBeginReturn(true);
+            Assert.That(routine.MoveNext(), Is.True);
+        }
+        object otherOwner = new object();
+        cinematicHud.SetCinematicMode(otherOwner, true);
+        weapons.SetExternalInputLocked(otherOwner, true);
+        if (callback == "OnDestroy")
+        {
+            // Fixture owns destruction in EditMode; production OnDestroy must not
+            // schedule runtime Destroy on a PreviewScene object.
+            UnityEngine.Object.DestroyImmediate(wreck.gameObject);
+        }
+        if (callback == "HandleRunEnded") Call(flow, callback, new object[] { null });
+        else Call(flow, callback);
+        Assert.That(camera.IsCinematicFocusActive, Is.False);
+        Assert.That(Read<HashSet<object>>(cinematicHud, "cinematicModeOwners"), Is.EquivalentTo(new[] { otherOwner }));
+        cinematicHud.SetCinematicMode(otherOwner, false);
+        Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Idle));
+        Assert.That(weapons.ExternalInputLocked, Is.True, "Do not release another input owner.");
+        weapons.SetExternalInputLocked(otherOwner, false);
+        Assert.That(weapons.ExternalInputLocked, Is.False);
+        Assert.That(controls.ControlEnabled, Is.True);
+    }
+
+    [Test]
+    public void ForeignCameraOwner_IsNotAcquiredOrReleasedByDiscoveryCleanup()
+    {
+        object other = new object();
+        Assert.That(camera.TryBeginOwnedCinematicFocusBlend(other, Vector3.right * 7f, 0.6f, null, out _), Is.True);
+        IEnumerator routine = Begin();
+        Assert.That(routine.MoveNext(), Is.False);
+        Assert.That(camera.IsCinematicFocusOwnedBy(other), Is.True);
+        Assert.That(cinematicHud.IsCinematicMode, Is.False);
+        Assert.That(controls.ControlEnabled, Is.True);
+        Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Idle));
+        Assert.That(camera.ReleaseOwnedCinematicFocus(other, true), Is.True);
+    }
+
+    [TestCase(TutorialTargetPresentationPhase.Focusing)]
+    [TestCase(TutorialTargetPresentationPhase.Dialogue)]
+    [TestCase(TutorialTargetPresentationPhase.Returning)]
+    public void CameraTakeover_YieldsWithoutFightingTheNewPosition(TutorialTargetPresentationPhase phase)
+    {
+        IEnumerator routine = Begin();
+        Assert.That(routine.MoveNext(), Is.True);
+        if (phase != TutorialTargetPresentationPhase.Focusing)
+        {
+            AdvanceCamera(0.6f);
+            progress.TryBeginDialogue();
+        }
+        if (phase == TutorialTargetPresentationPhase.Returning)
+        {
+            progress.TryBeginReturn(true);
+            Assert.That(routine.MoveNext(), Is.True);
+        }
+        camera.SetCinematicFocus(new Vector3(-6f, 3f, -10f), true);
+        Vector3 newOwnerPosition = camera.transform.position;
+        Assert.That(routine.MoveNext(), Is.False);
+        Assert.That(camera.IsCinematicFocusActive, Is.True);
+        Assert.That(camera.transform.position, Is.EqualTo(newOwnerPosition));
+        Assert.That(controls.ControlEnabled, Is.True);
+        Assert.That(Read<bool>(flow, "targetPresentationAwaitingRediscovery"), Is.True);
+        Assert.That(cinematicHud.IsCinematicMode, Is.False);
+    }
+
+    [Test]
+    public void DestroyedCamera_DoesNotDereferenceUnityObjectsOrLeaveInputLocked()
+    {
+        IEnumerator routine = Begin();
+        Assert.That(routine.MoveNext(), Is.True);
+        UnityEngine.Object.DestroyImmediate(camera.gameObject);
+        Assert.That(routine.MoveNext(), Is.False);
+        Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Idle));
+        Assert.That(controls.ControlEnabled, Is.True);
+        Assert.That(weapons.ExternalInputLocked, Is.False);
+        Assert.That(Read<TutorialStoryGuidanceProgress>(flow, "operatorGuidanceProgress")
+            .IsComplete(TutorialStep.TravelHighValue), Is.False);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void PlayerLostOrReplacedDuringReturn_CancelsCompletionAndUnlocksCapturedPublishers(bool replace)
+    {
+        IEnumerator routine = Begin();
+        Assert.That(routine.MoveNext(), Is.True);
+        AdvanceCamera(0.6f);
+        progress.TryBeginDialogue();
+        progress.TryBeginReturn(true);
+        Assert.That(routine.MoveNext(), Is.True);
+        if (replace)
+        {
+            Transform replacement = Create("Replacement").transform;
+            replacement.position = Vector3.left * 3f;
+            camera.SetPlayer(replacement);
+            Set(flow, "playerRoot", replacement);
+            Set(flow, "weaponController", replacement.gameObject.AddComponent<PlayerWeaponController>());
+            Assert.That(camera.IsCinematicFocusBlendActive, Is.True, "SetPlayer must not snap an owned blend.");
+        }
+        else
+        {
+            player.gameObject.SetActive(false);
+        }
+        Assert.That(routine.MoveNext(), Is.False);
+        AssertUnfinishedAndReleased();
+    }
+
+    [TestCase(TutorialStep.Map)]
+    [TestCase(TutorialStep.RoutePing)]
+    [TestCase(TutorialStep.TravelNormalSalvage)]
+    [TestCase(TutorialStep.DestroyNormalSalvage)]
+    public void AuthoritativeBoxDeath_NeverRequiresRouteAndAdvancesOnce(TutorialStep stage)
+    {
+        Set(flow, "currentStep", stage);
+        Set(flow, "harvestTargetHealth", wreck);
+        int steps = 0;
+        flow.StepChanged += (_, _) => steps++;
+        Call(flow, "HandleHarvestTargetDied", wreck);
+        Assert.That(flow.CurrentStep, Is.EqualTo(TutorialStep.CollectResources));
+        Call(flow, "HandleHarvestTargetDied", wreck);
+        Call(flow, "HandleRouteChanged");
+        Assert.That(steps, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void FocusCompletion_IsTheOnlyDialogueStartBoundary_AndRetiredUiRemainsAbsent()
+    {
+        string source = File.ReadAllText("Assets/02_Scripts/Tutorial/TutorialFlowController.cs");
+        int routine = source.IndexOf("private IEnumerator TargetPresentationRoutine()", StringComparison.Ordinal);
+        int wait = source.IndexOf("while (targetPresentationCamera != null", routine, StringComparison.Ordinal);
+        int dialogue = source.IndexOf("!TryStartOperatorConversation(", wait, StringComparison.Ordinal);
+        int returning = source.IndexOf("TryBeginOwnedPlayerReturnBlend(", dialogue, StringComparison.Ordinal);
+        Assert.That(dialogue, Is.GreaterThan(wait));
+        Assert.That(returning, Is.GreaterThan(dialogue));
+        Assert.That(source.Substring(returning, source.IndexOf("private bool CanContinueTargetPresentation", returning,
+            StringComparison.Ordinal) - returning), Does.Not.Contain("TryStartOperatorConversation"));
+        foreach (string file in Directory.GetFiles("Assets/02_Scripts", "*.cs", SearchOption.AllDirectories))
+        {
+            if (file.Replace('\\', '/').Contains("/Tests/")) continue;
+            Assert.That(File.ReadAllText(file), Does.Not.Contain("[MenuItem(\"VOID SCRAPPER/UI/"), file);
+        }
+        string follower = File.ReadAllText("Assets/02_Scripts/UI/WorldGaugeFollower.cs");
+        Assert.That(follower, Does.Contain("beginCameraRendering"));
+        Assert.That(follower.Split(new[] { "rectTransform.localPosition =" }, StringSplitOptions.None).Length,
+            Is.EqualTo(2), "One shared charge-root position writer remains.");
+    }
+
+    private IEnumerator Begin()
+    {
+        Assert.That(Call(flow, "TryReserveTargetPresentation", TutorialTargetPresentationKind.HighValueWreck), Is.True);
+        return (IEnumerator)Call(flow, "TargetPresentationRoutine");
+    }
+
+    private void AdvanceCamera(float unscaled)
+    {
+        Vector3 center = (Vector3)Call(camera, "ResolveDesiredCameraCenter", player.position, 0f, unscaled);
+        camera.transform.position = center;
+    }
+
+    private void AssertUnfinishedAndReleased()
+    {
+        Assert.That(cinematicHud.IsCinematicMode, Is.False);
+        Assert.That(progress.Phase, Is.EqualTo(TutorialTargetPresentationPhase.Idle));
+        Assert.That(Read<TutorialStoryGuidanceProgress>(flow, "operatorGuidanceProgress")
+            .IsComplete(TutorialStep.TravelHighValue), Is.False);
+        Assert.That(camera.IsCinematicFocusActive, Is.False);
+        Assert.That(weapons.ExternalInputLocked, Is.False);
+        Assert.That(controls.ControlEnabled, Is.True);
+    }
+
+    private GameObject Create(string name)
+    {
+        return AuthoredRuntimeFixture.Create(scene, null, name, false);
+    }
+
+    private static T Read<T>(object owner, string field)
+    {
+        return (T)owner.GetType().GetField(field, Private).GetValue(owner);
+    }
+
+    private static void Set(object owner, string field, object value)
+    {
+        owner.GetType().GetField(field, Private).SetValue(owner, value);
+    }
+
+    private static object Call(object owner, string method, params object[] args)
+    {
+        return owner.GetType().GetMethod(method, Private).Invoke(owner, args);
     }
 }

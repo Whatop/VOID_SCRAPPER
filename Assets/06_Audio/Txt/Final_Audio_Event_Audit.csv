@@ -1,0 +1,107 @@
+﻿BeforeEventId,AfterEventId,Status,BeforeClipSlots,BeforeMissingReferences,AudioClipPaths,volume,pitchMin,pitchMax,loop,priority,spatialMode,spatialBlend,minDistance,maxDistance,maxSimultaneousVoices,minimumRetriggerInterval
+01_ui_click,01_ui_click,Unchanged,1,0,06_Audio/SFX/UI/ui_click.wav,0.37,1,1,0,128,0,0,1.5,14,0,-1
+02_ui_hover,02_ui_hover,Unchanged,1,0,06_Audio/SFX/UI/02_ui_hover.wav,0.11,1,1,0,128,0,0,1.5,14,0,-1
+03_ui_back,03_ui_back,Unchanged,1,0,06_Audio/SFX/UI/ui_cancle.wav,0.37,0.97,1.03,0,128,0,0,1.5,14,0,-1
+04_ui_panel_open,04_ui_panel_open,Unchanged,1,0,06_Audio/SFX/UI/ui_confirm_01.wav,0.72,0.98,1.02,0,128,0,0,1.5,14,0,-1
+05_ui_panel_close,05_ui_panel_close,Unchanged,1,0,06_Audio/SFX/UI/ui_cancle.wav,0.68,0.98,1.02,0,128,0,0,1.5,14,0,-1
+06_ui_insufficient,06_ui_insufficient,Unchanged,1,0,06_Audio/SFX/UI/ui_insufficient 1.wav,0.78,0.98,1.02,0,128,0,0,1.5,14,0,-1
+07_ui_upgrade_success,07_ui_upgrade_success,Unchanged,1,0,06_Audio/SFX/UI/ui_confirm_01.wav,0.6,0.98,1.03,0,128,0,0,1.5,14,0,-1
+08_ui_upgrade_fail,08_ui_upgrade_fail,Unchanged,1,0,06_Audio/SFX/UI/ui_insufficient 1.wav,0.75,0.97,1.02,0,128,0,0,1.5,14,0,-1
+09_ui_unlock,09_ui_unlock,Unchanged,1,0,06_Audio/SFX/UI/09_ui_unlock.wav,0.74,0.97,1.03,0,120,0,0,1.5,14,0,-1
+10_ui_activate,10_ui_activate,Unchanged,1,0,06_Audio/SFX/UI/10_ui_activate.wav,0.72,0.98,1.04,0,120,0,0,1.5,14,0,-1
+11_ui_deactivate,11_ui_deactivate,Unchanged,1,0,06_Audio/SFX/UI/11_ui_deactivate.wav,0.64,0.97,1.03,0,120,0,0,1.5,14,0,-1
+12_ui_disabled,12_ui_disabled,Unchanged,1,0,06_Audio/SFX/UI/ui_insufficient 1.wav,0.58,0.98,1.02,0,118,0,0,1.5,14,0,-1
+13_ui_settings,13_ui_settings,Filled,0,0,06_Audio/SFX/UI/ui_confirm_01.wav,0.55,1,1,0,128,1,0,1.5,14,1,0.15
+14_ui_pause,14_ui_pause,Unchanged,1,0,06_Audio/SFX/UI/ui_confirm_01.wav,0.72,0.98,1.02,0,110,0,0,1.5,14,0,-1
+15_ui_launch,15_ui_launch,Unchanged,1,0,06_Audio/SFX/UI/ui_system_close.wav,0.78,0.98,1.02,0,105,0,0,1.5,14,0,-1
+16_shop_open,16_shop_open,Filled,0,0,06_Audio/SFX/Shop/shop_open.wav,0.55,0.99,1.01,0,100,1,0,1.5,14,1,0.2
+17_shop_buy_success,17_shop_buy_success,Unchanged,1,0,06_Audio/SFX/Shop/shop_buy_success.wav,0.82,0.98,1.03,0,128,0,0,1.5,14,0,-1
+18_shop_buy_fail,18_shop_buy_fail,Filled,0,0,06_Audio/SFX/Shop/shop_buy_fail.wav,0.5,1,1,0,96,1,0,1.5,14,1,0.15
+19_shop_item_sold,,Intentionally retired,0,0,,,,,,,,,,,,
+20_shop_transaction_complete,,Intentionally retired,0,0,,,,,,,,,,,,
+21_shop_warning,21_shop_warning,Unchanged,1,0,06_Audio/SFX/Shop/shop_warning_03.ogg,0.86,0.96,1.02,0,128,0,0.18,1.5,14,0,-1
+22_shop_hostile,22_shop_hostile,Filled,0,0,06_Audio/SFX/Shop/shop_hostile_03.ogg,0.55,0.98,1.02,0,48,2,0.25,3,22,1,0.5
+23_trait_select,23_trait_select,Restored missing references from archive,3,3,06_Audio/SFX/UI/trait_select.wav | 06_Audio/SFX/UI/trait_select_02.wav | 06_Audio/SFX/UI/trait_select_03.wav,0.78,0.98,1.03,0,128,0,0,1.5,14,0,-1
+24_reinforcement_equip,24_reinforcement_equip,Restored missing references from archive,3,3,06_Audio/SFX/UI/reinforcement_equip.wav | 06_Audio/SFX/UI/reinforcement_equip_02.wav | 06_Audio/SFX/UI/reinforcement_equip_03.wav,0.76,0.98,1.03,0,128,0,0,1.5,14,0,-1
+25_reinforcement_drop,25_reinforcement_drop,Restored missing references from archive,3,3,06_Audio/SFX/UI/reinforcement_drop.wav | 06_Audio/SFX/UI/reinforcement_drop_02.wav | 06_Audio/SFX/UI/reinforcement_drop_03.wav,0.66,0.96,1.04,0,128,0,0.15,1.5,14,0,-1
+26_reinforcement_pickup,26_reinforcement_pickup,Restored missing references from archive,3,3,06_Audio/SFX/UI/reinforcement_pickup.wav | 06_Audio/SFX/UI/reinforcement_pickup_02.wav | 06_Audio/SFX/Pickups/pickup_scrap.wav,0.78,0.98,1.03,0,128,0,0,1.5,14,0,-1
+27_reinforcement_use,27_reinforcement_use,Unchanged,2,0,06_Audio/SFX/Reinforcement/reinforcement_use_01.wav | 06_Audio/SFX/Reinforcement/reinforcement_use_02.wav,0.74,0.96,1.04,0,126,0,0.08,1.5,14,0,-1
+28_tab_status_open,28_tab_status_open,Restored missing references from archive,2,2,06_Audio/SFX/UI/tab_status_open.wav | 06_Audio/SFX/UI/tab_status_open_02.wav,0.72,0.98,1.02,0,128,0,0,1.5,14,0,-1
+29_tab_status_close,29_tab_status_close,Restored missing references from archive,2,2,06_Audio/SFX/UI/tab_status_close.wav | 06_Audio/SFX/UI/tab_status_close_02.wav,0.7,0.98,1.02,0,128,0,0,1.5,14,0,-1
+30_warning_message,30_warning_message,Restored missing references from archive,2,2,06_Audio/SFX/UI/warning_message.wav | 06_Audio/SFX/UI/warning_message_02.wav,0.82,0.98,1.02,0,128,0,0,1.5,14,0,-1
+31_action_denied,31_action_denied,Restored missing references from archive,3,3,06_Audio/SFX/UI/action_denied.wav | 06_Audio/SFX/UI/action_denied_02.wav | 06_Audio/SFX/UI/action_denied_03.wav,0.76,0.98,1.02,0,128,0,0,1.5,14,0,-1
+32_radar_open,32_radar_open,Unchanged,2,0,06_Audio/SFX/Radar/radar_open.wav | 06_Audio/SFX/Radar/radar_open_02.wav,0.7,0.98,1.02,0,128,0,0,1.5,14,0,-1
+33_radar_close,33_radar_close,Unchanged,1,0,06_Audio/SFX/Radar/radar_close.wav,0.62,0.98,1.02,0,128,0,0,1.5,14,0,-1
+34_radar_scan_pulse,34_radar_scan_pulse,Unchanged,2,0,06_Audio/SFX/Radar/radar_scan_pulse_new_01.wav | 06_Audio/SFX/Radar/radar_scan_pulse_new_02.wav,0.7,0.96,1.04,0,124,0,0.1,1.5,14,0,-1
+35_radar_fail,35_radar_fail,Unchanged,1,0,06_Audio/SFX/Radar/radar_fail.wav,0.72,0.98,1.02,0,128,0,0,1.5,14,0,-1
+36_pickup_credit,36_pickup_credit,Unchanged,2,0,06_Audio/SFX/Pickups/pickup_credit.wav | 06_Audio/SFX/Pickups/pickup_credit_03.ogg,0.58,0.98,1.06,0,128,0,0,1.5,14,0,-1
+37_pickup_scrap,37_pickup_scrap,Filled,0,0,06_Audio/SFX/Pickups/pickup_scrap_03.ogg,0.38,0.96,1.05,0,128,1,0,1.5,14,3,0.08
+38_pickup_core,38_pickup_core,Filled,0,0,06_Audio/SFX/Pickups/pickup_core.wav,0.55,0.99,1.02,0,80,1,0,1.5,14,2,0.15
+39_pickup_heal,39_pickup_heal,Unchanged,1,0,06_Audio/SFX/Pickups/pickup_heal.wav,0.74,0.98,1.04,0,128,0,0,1.5,14,0,-1
+40_pickup_experience,40_pickup_tuning_chip,Filled - migrated Tuning Chip,0,0,06_Audio/SFX/UI/reinforcement_equip.wav,0.48,1.03,1.06,0,96,1,0,1.5,14,2,0.12
+41_level_up,,Intentionally retired,0,0,,,,,,,,,,,,
+42_return_choice_open,42_return_choice_open,Unchanged,1,0,06_Audio/SFX/Return/return_choice_open.wav,0.78,0.98,1.02,0,128,0,0,1.5,14,0,-1
+43_safe_return,43_safe_return,Unchanged,1,0,06_Audio/SFX/Return/safe_return.wav,0.9,0.98,1.02,0,128,0,0,1.5,14,0,-1
+44_result_count_tick,44_result_count_tick,Unchanged,1,0,06_Audio/SFX/Return/result_count_tick_02.wav,0.36,0.98,1.08,0,128,0,0,1.5,14,0,-1
+45_result_reward_total,45_result_reward_total,Unchanged,1,0,06_Audio/SFX/Return/safe_return 1.wav,0.86,0.98,1.02,0,128,0,0,1.5,14,0,-1
+46_event_start,46_event_start,Unchanged,1,0,06_Audio/SFX/Events/event_start_02.wav,0.76,0.98,1.02,0,128,0,0,1.5,14,0,-1
+47_event_complete,47_event_complete,Unchanged,2,0,06_Audio/SFX/Events/event_complete.wav | 06_Audio/SFX/Events/event_complete_02.wav,0.86,0.98,1.02,0,128,0,0,1.5,14,0,-1
+48_ship_dash_start,48_ship_dash_start,Unchanged,1,0,06_Audio/SFX/Player/dash (2).wav,0.56,0.94,1.06,0,125,0,0.22,1.5,14,0,-1
+49_ship_dash_end,,Intentionally retired,0,0,,,,,,,,,,,,
+50_ship_hit,50_ship_hit,Unchanged,4,0,06_Audio/SFX/Player/ship_hit_prof.wav | 06_Audio/SFX/Player/ship_hit_prof_02.wav | 06_Audio/SFX/Player/ship_hit_prof_03.wav | 06_Audio/SFX/Player/ship_hit_prof_04.wav,0.68,0.94,1.05,0,128,0,0.28,1.5,14,0,-1
+51_ship_death_breakup,51_ship_death_breakup,Unchanged,1,0,06_Audio/SFX/Player/ship_death_breakup_prof_02.wav,0.86,0.92,1.03,0,128,0,0.35,1.5,14,0,-1
+52_machinegun_fire_loop,52_machinegun_fire_loop,Unchanged,4,0,06_Audio/SFX/Weapons/machinegun_fire_loop.ogg | 06_Audio/SFX/Weapons/machinegun_fire_loop_02.ogg | 06_Audio/SFX/Weapons/machinegun_fire_loop_03.ogg | 06_Audio/SFX/Weapons/machinegun_fire_loop_04.ogg,0.46,0.94,1.08,0,128,0,0.27,1.5,14,0,-1
+53_shotgun_fire,53_shotgun_fire,Unchanged,1,0,06_Audio/SFX/Weapons/shotgun_fire_03.ogg,0.78,0.9,1.03,0,128,0,0.32,1.5,14,0,-1
+54_sniper_charge_start,54_sniper_charge_start,Unchanged,1,0,06_Audio/SFX/Weapons/sniper_charge_start_new_01.wav,0.66,0.98,1.02,0,126,0,0.18,1.5,14,0,-1
+55_sniper_charge_cancel,55_sniper_charge_cancel,Unchanged,1,0,06_Audio/SFX/Weapons/sniper_charge_cancel_new_01.wav,0.55,0.97,1.03,0,126,0,0.15,1.5,14,0,-1
+56_sniper_fire,56_sniper_fire,Unchanged,2,0,06_Audio/SFX/Weapons/sniper_fire.ogg | 06_Audio/SFX/Weapons/sniper_fire_02.ogg,0.92,0.88,1.02,0,128,0,0.35,1.5,14,0,-1
+57_enemy_alert,57_enemy_alert,Unchanged,3,0,06_Audio/SFX/Enemies/enemy_alert.ogg | 06_Audio/SFX/Enemies/enemy_alert_02.ogg | 06_Audio/SFX/Enemies/enemy_alert_03.ogg,0.58,0.96,1.04,0,128,0,0.3,1.5,14,0,-1
+58_enemy_basic_fire,58_enemy_basic_fire,Unchanged,2,0,06_Audio/SFX/Enemies/enemy_basic_fire_02.ogg | 06_Audio/SFX/Enemies/enemy_basic_fire_03.ogg,0.44,0.94,1.08,0,128,0,0.35,1.5,14,0,-1
+59_enemy_shotgun_fire,59_enemy_shotgun_fire,Unchanged,1,0,06_Audio/SFX/Enemies/enemy_shotgun_fire_02.ogg,0.56,0.92,1.05,0,128,0,0.36,1.5,14,0,-1
+60_enemy_charger_aim_loop,60_enemy_charger_aim_loop,Unchanged,1,0,06_Audio/SFX/Enemies/enemy_charger_aim_loop_prof.wav,0.5,0.98,1.04,0,128,0,0.3,1.5,14,0,-1
+61_enemy_charger_fire,61_enemy_charger_fire,Unchanged,2,0,06_Audio/SFX/Enemies/enemy_charger_fire.ogg | 06_Audio/SFX/Enemies/enemy_charger_fire_02.ogg,0.7,0.9,1.03,0,128,0,0.36,1.5,14,0,-1
+62_enemy_elite_spread_fire,62_enemy_elite_spread_fire,Unchanged,1,0,06_Audio/SFX/Enemies/enemy_elite_spread_fire_03.ogg,0.62,0.93,1.04,0,128,0,0.36,1.5,14,0,-1
+63_enemy_elite_big_fire,63_enemy_elite_big_fire,Unchanged,2,0,06_Audio/SFX/Enemies/enemy_elite_big_fire.ogg | 06_Audio/SFX/Enemies/enemy_elite_big_fire_02.ogg,0.74,0.88,1.02,0,128,0,0.36,1.5,14,0,-1
+64_enemy_hit,64_enemy_hit,Unchanged,4,0,06_Audio/SFX/Enemies/enemy_hit_prof.wav | 06_Audio/SFX/Enemies/enemy_hit_prof_02.wav | 06_Audio/SFX/Enemies/enemy_hit_prof_03.wav | 06_Audio/SFX/Enemies/enemy_hit_prof_04.wav,0.42,0.92,1.1,0,128,0,0.28,1.5,14,0,-1
+65_enemy_death,65_enemy_death,Unchanged,4,0,06_Audio/SFX/Enemies/enemy_death_prof.wav | 06_Audio/SFX/Enemies/enemy_death_prof_02.wav | 06_Audio/SFX/Enemies/enemy_death_prof_03.wav | 06_Audio/SFX/Enemies/enemy_death_prof_04.wav,0.64,0.92,1.08,0,128,0,0.28,1.5,14,0,-1
+66_object_container_hit,66_object_container_hit,Unchanged,2,0,06_Audio/SFX/Objects/object_container_hit_prof.wav | 06_Audio/SFX/Objects/object_container_hit_prof_02.wav,0.48,0.94,1.07,0,128,0,0.25,1.5,14,0,-1
+67_object_container_break,67_object_container_break,Unchanged,3,0,06_Audio/SFX/Objects/object_container_break_prof.wav | 06_Audio/SFX/Objects/object_container_break_prof_02.wav | 06_Audio/SFX/Objects/object_container_break_prof_03.wav,0.68,0.94,1.06,0,128,0,0.28,1.5,14,0,-1
+68_object_debris_hit,68_object_debris_hit,Unchanged,1,0,06_Audio/SFX/Objects/object_debris_hit_prof_02.wav,0.16,0.94,1.04,0,128,0,0.28,1.5,14,0,-1
+69_object_debris_break,69_object_debris_break,Unchanged,2,0,06_Audio/SFX/Objects/object_debris_break_prof.wav | 06_Audio/SFX/Objects/object_debris_break_prof_02.wav,0.78,0.92,1.04,0,128,0,0.32,1.5,14,0,-1
+70_object_shipwreck_break,70_object_shipwreck_break,Unchanged,1,0,06_Audio/SFX/Objects/object_shipwreck_break_prof_04.wav,0.88,0.9,1.02,0,128,0,0.35,1.5,14,0,-1
+71_object_meteor_hit,71_object_meteor_hit,Unchanged,1,0,06_Audio/SFX/Objects/object_meteor_hit_prof.wav,0.11,0.88,1.02,0,128,0,0.28,1.5,14,0,-1
+72_object_meteor_break,72_object_meteor_break,Unchanged,1,0,06_Audio/SFX/Objects/object_meteor_break_prof_02.wav,0.76,0.85,1,0,128,0,0.32,1.5,14,0,-1
+73_core_interact_loop,73_core_interact_loop,Unchanged,1,0,06_Audio/SFX/Boss/core_interact_loop_prof.wav,0.55,0.98,1.02,0,128,0,0.25,1.5,14,0,-1
+74_core_activate,74_core_activate,Unchanged,1,0,06_Audio/SFX/Boss/core_activate_prof.wav,0.82,0.96,1.03,0,128,0,0.28,1.5,14,0,-1
+75_boss_spawn,75_boss_spawn,Unchanged,1,0,06_Audio/SFX/Boss/boss_spawn_prof_02.wav,0.9,0.92,1.02,0,128,0,0.35,1.5,14,0,-1
+76_boss_laser_warning,76_boss_laser_warning,Unchanged,1,0,06_Audio/SFX/Boss/boss_laser_warning_prof_02.wav,0.62,0.98,1.04,0,128,0,0.3,1.5,14,0,-1
+77_boss_laser_loop,77_boss_laser_loop,Unchanged,1,0,06_Audio/SFX/Boss/boss_laser_loop_prof_02.wav,0.74,0.96,1.02,0,128,0,0.3,1.5,14,0,-1
+78_boss_spread_fire,78_boss_spread_fire,Unchanged,1,0,06_Audio/SFX/Boss/boss_spread_fire_03.ogg,0.7,0.92,1.04,0,128,0,0.36,1.5,14,0,-1
+79_boss_charge_aim,79_boss_charge_aim,Unchanged,1,0,06_Audio/SFX/Boss/boss_charge_aim_prof_03.wav,0.58,0.98,1.04,0,128,0,0.3,1.5,14,0,-1
+80_boss_charge_fire,80_boss_charge_fire,Unchanged,1,0,06_Audio/SFX/Boss/boss_charge_fire_prof_02.wav,0.85,0.93,1.02,0,128,0,0.35,1.5,14,0,-1
+81_boss_phase2,81_boss_phase2,Unchanged,1,0,06_Audio/SFX/Boss/boss_phase2_prof.wav,0.86,0.96,1.02,0,128,0,0.3,1.5,14,0,-1
+82_boss_death,82_boss_death,Unchanged,1,0,06_Audio/SFX/Boss/boss_death_prof_03.wav,0.95,0.88,1,0,128,0,0.4,1.5,14,0,-1
+83_return_beacon_spawn,83_return_beacon_spawn,Filled,0,0,06_Audio/SFX/Return/return_beacon_spawn_03.ogg,0.58,0.98,1.02,0,64,2,0.25,3,24,1,0.4
+84_wormhole_enter,84_wormhole_enter,Filled,0,0,06_Audio/SFX/Return/wormhole_enter.ogg,0.62,0.98,1.02,0,48,2,0.25,3,24,1,0.4
+85_shop_shield_hit,85_shop_shield_hit,Unchanged,3,0,06_Audio/SFX/Shop/shop_shield_hit_prof.wav | 06_Audio/SFX/Shop/shop_shield_hit_prof_02.wav | 06_Audio/SFX/Shop/shop_shield_hit_prof_03.wav,0.58,0.94,1.05,0,128,0,0.28,1.5,14,0,-1
+86_shop_shield_break,86_shop_shield_break,Unchanged,2,0,06_Audio/SFX/Shop/shop_shield_break_prof_02.wav | 06_Audio/SFX/Shop/shop_shield_break_prof_03.wav,0.82,0.94,1.03,0,128,0,0.32,1.5,14,0,-1
+87_shop_shotgun_fire,87_shop_shotgun_fire,Unchanged,3,0,06_Audio/SFX/Shop/shop_shotgun_fire.ogg | 06_Audio/SFX/Shop/shop_shotgun_fire_02.ogg | 06_Audio/SFX/Shop/shop_shotgun_fire_03.ogg,0.6,0.94,1.04,0,128,0,0.32,1.5,14,0,-1
+88_security_drone_spawn,88_security_drone_spawn,Unchanged,1,0,06_Audio/SFX/Shop/security_drone_spawn_prof_02.wav,0.58,0.94,1.06,0,128,0,0.25,1.5,14,0,-1
+89_radar_charge_start,89_radar_charge_start,Unchanged,1,0,06_Audio/SFX/Radar/radar_charge_start_01.wav,0.58,0.97,1.03,0,126,0,0.1,1.5,14,0,-1
+90_radar_charge_loop,90_radar_charge_loop,Unchanged,1,0,06_Audio/SFX/Radar/radar_charge_loop_01.wav,0.28,0.99,1.01,1,135,0,0.08,1.5,14,0,-1
+91_radar_charge_cancel,91_radar_charge_cancel,Unchanged,1,0,06_Audio/SFX/Radar/radar_charge_cancel_02.wav,0.48,0.97,1.03,0,126,0,0.08,1.5,14,0,-1
+92_sniper_charge_loop,92_sniper_charge_loop,Unchanged,1,0,06_Audio/SFX/Weapons/sniper_charge_loop_01.wav,0.24,0.99,1.01,1,135,0,0.12,1.5,14,0,-1
+93_ship_move_puff,93_ship_move_puff,Unchanged,3,0,06_Audio/SFX/Player/ship_move_puff_1.ogg | 06_Audio/SFX/Player/ship_move_puff_2.ogg | 06_Audio/SFX/Player/ship_move_puff_3.ogg,0.13,0.97,1.04,0,110,0,0.1,1.5,14,0,-1
+94_amb_space_loop,94_amb_space_loop,Unchanged,1,0,06_Audio/Ambience/amb_space_loop_01.wav,0.22,1,1,1,200,0,0,1.5,14,0,-1
+95_amb_settlement_loop,95_amb_settlement_loop,Unresolved - dedicated loop needed,0,0,,0.18,1,1,1,200,0,0,1.5,14,0,-1
+96_music_combat_loop,96_music_combat_loop,Unchanged,1,0,06_Audio/BGM/main_loop.wav,0.2,1,1,1,210,0,0,1.5,14,0,-1
+97_music_boss_loop,97_music_boss_loop,Unchanged,1,0,06_Audio/BGM/boss.ogg,0.24,1,1,1,210,0,0,1.5,14,0,-1
+98_music_settlement_loop,98_music_settlement_loop,Unchanged,1,0,06_Audio/BGM/music_settlement_loop_02.wav,0.08,1,1,1,220,0,0,1.5,14,0,-1
+99_music_shop_loop,99_music_shop_loop,Unchanged,1,0,06_Audio/BGM/shop.wav,0.14,1,1,1,210,1,0,1.5,14,1,-1
+105_music_main_menu_loop,105_music_main_menu_loop,Unchanged,1,0,06_Audio/BGM/loop_main.flac,0.12,1,1,1,220,1,0,1.5,14,1,-1
+106_music_tutorial_loop,106_music_tutorial_loop,Unchanged,1,0,06_Audio/BGM/tutri.wav,0.1,1,1,1,220,1,0,1.5,14,1,-1
+107_map_route_placed,107_map_route_placed,Filled,0,0,06_Audio/SFX/Events/event_start.wav,0.38,1,1.02,0,112,1,0,1.5,14,2,0.08
+108_map_route_removed,108_map_route_removed,Filled,0,0,06_Audio/SFX/UI/tab_status_close.wav,0.3,0.98,1,0,128,1,0,1.5,14,2,0.08
+109_mission_received,109_mission_received,Filled,0,0,06_Audio/SFX/Events/event_start.wav,0.58,1,1,0,64,1,0,1.5,14,1,0.35
+110_amb_tutorial_loop,110_amb_tutorial_loop,Unchanged,1,0,06_Audio/Ambience/amb_space_loop_01.wav,0.05,1,1,1,200,0,0,1.5,14,1,-1
+,111_dialogue_comm_incoming,New explicit remote communication,0,0,06_Audio/SFX/Radar/radar_scan_pulse.wav,0.6,1,1,0,32,1,0,1.5,14,1,1

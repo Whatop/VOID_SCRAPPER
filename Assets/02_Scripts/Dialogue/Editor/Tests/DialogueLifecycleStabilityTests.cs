@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using NUnit.Framework;
+using PixelCrushers.DialogueSystem;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 public sealed class DialogueLifecycleStabilityTests
@@ -70,6 +73,121 @@ public sealed class DialogueLifecycleStabilityTests
     }
 
     [Test]
+    public void IncomingBoot_RejectionPrecedesLoadedSceneInitializationGate()
+    {
+        // EditMode cannot reproduce the native scene-loading Awake window. Guard
+        // its ordering explicitly; the typed deactivation behavior is tested below.
+        string source = File.ReadAllText(Path.Combine(
+            Application.dataPath, "02_Scripts/Core/Bootstrap/GameBootstrap.cs"));
+        int start = source.IndexOf("private bool TryInitializeRuntime()", System.StringComparison.Ordinal);
+        int end = source.IndexOf("private void ReportConfigurationError", System.StringComparison.Ordinal);
+        Assert.That(start, Is.GreaterThanOrEqualTo(0));
+        Assert.That(end, Is.GreaterThan(start));
+        string initialization = source.Substring(start, end - start);
+        int pruning = initialization.IndexOf(
+            "RemoveDialogueManagersCreatedByIncomingBootScene(owningScene)", System.StringComparison.Ordinal);
+        int loadedGate = initialization.IndexOf("if (IsTransientLifecycleState(", System.StringComparison.Ordinal);
+        int authority = initialization.IndexOf("Instance = this;", System.StringComparison.Ordinal);
+        Assert.That(pruning, Is.GreaterThanOrEqualTo(0));
+        Assert.That(loadedGate, Is.GreaterThan(pruning), "Duplicate rejection must happen during incoming Awake, not Start.");
+        Assert.That(authority, Is.GreaterThan(loadedGate), "Initial authority must still wait for a loaded scene.");
+        Assert.That(GameBootstrap.IsTransientLifecycleStateForEditorAndTests(true, false, true, false), Is.True);
+        Assert.That(GameBootstrap.ShouldRequestPersistenceForEditorAndTests(true, false, true, false, true, false), Is.False);
+    }
+
+    [Test]
+    public void IncomingBoot_PrunesOnlyIncomingRootBeforeLocalizationAwake()
+    {
+        bool previousApplicationIsQuitting = DialogueSystemController.applicationIsQuitting;
+        Scene incomingScene = EditorSceneManager.NewPreviewScene();
+        Scene canonicalScene = default;
+        try
+        {
+            canonicalScene = EditorSceneManager.NewPreviewScene();
+            LocalizationCatalog catalog = AssetDatabase.LoadAssetAtPath<LocalizationCatalog>(
+                LocalizationContentImporter.DefaultCatalogAssetPath);
+            Assert.That(catalog, Is.Not.Null);
+            GameObject canonicalRoot = CreateInactiveGameObject("CanonicalDialogueManager");
+            SceneManager.MoveGameObjectToScene(canonicalRoot, canonicalScene);
+            DialogueSystemController canonicalController = canonicalRoot.AddComponent<DialogueSystemController>();
+            VoidScrapperLocalizationService canonical = canonicalRoot.AddComponent<VoidScrapperLocalizationService>();
+            canonical.ConfigureForEditorAndTests(catalog);
+            canonicalRoot.SetActive(true);
+            Assert.That(localizationLifecycle.InitializeService(canonical), Is.True);
+
+            GameObject incomingRoot = CreateInactiveGameObject("PF_DialogueManager");
+            SceneManager.MoveGameObjectToScene(incomingRoot, incomingScene);
+            DialogueSystemController incomingController = incomingRoot.AddComponent<DialogueSystemController>();
+            VoidScrapperLocalizationService incoming = incomingRoot.AddComponent<VoidScrapperLocalizationService>();
+            incoming.ConfigureForEditorAndTests(catalog);
+            incomingRoot.SetActive(true);
+            MethodInfo deactivate = typeof(GameBootstrap).GetMethod(
+                "DeactivateIncomingDialogueManager", BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(deactivate, Is.Not.Null);
+
+            Assert.That((bool)deactivate.Invoke(null, new object[] { incomingScene, null, incomingController }), Is.False);
+            Assert.That((bool)deactivate.Invoke(null, new object[] { canonicalScene, canonicalController, incomingController }), Is.False);
+            Assert.That(incomingRoot.activeSelf, Is.True, "Absent authority or a foreign scene must not be pruned.");
+            for (int i = 0; i < 2; i++)
+            {
+                Assert.That((bool)deactivate.Invoke(null, new object[] { incomingScene, canonicalController, incomingController }), Is.True);
+                Assert.That(incomingRoot.activeSelf, Is.False);
+                Assert.That(incoming.didAwake, Is.False);
+                Assert.That(VoidScrapperLocalizationService.Instance, Is.SameAs(canonical));
+                Assert.That(canonicalRoot.activeSelf, Is.True);
+            }
+            Assert.That((bool)deactivate.Invoke(null, new object[] { canonicalScene, canonicalController, canonicalController }), Is.False);
+            Assert.That(canonicalRoot.activeSelf, Is.True, "Never deactivate the canonical manager, even in the selected scene.");
+            LogAssert.NoUnexpectedReceived();
+        }
+        finally
+        {
+            try
+            {
+                localizationLifecycle.ShutdownAll();
+            }
+            finally
+            {
+                try
+                {
+                    if (incomingScene.IsValid()) EditorSceneManager.ClosePreviewScene(incomingScene);
+                }
+                finally
+                {
+                    try
+                    {
+                        if (canonicalScene.IsValid()) EditorSceneManager.ClosePreviewScene(canonicalScene);
+                    }
+                    finally
+                    {
+                        // Pixel Crushers' OnDestroy can set this public shutdown
+                        // sentinel even though this fixture never invoked its Awake.
+                        DialogueSystemController.applicationIsQuitting = previousApplicationIsQuitting;
+                    }
+                }
+            }
+        }
+    }
+
+    [Test]
+    public void SettlementReturn_SavesAndClosesBeforeAuthoritativeBootTransition()
+    {
+        string source = File.ReadAllText(Path.Combine(Application.dataPath, "02_Scripts/EscSettingsMenuController.cs"));
+        int start = source.IndexOf("private void ReturnToMainMenu()", System.StringComparison.Ordinal);
+        int end = source.IndexOf("private void ConfigureCloseButtonSound", System.StringComparison.Ordinal);
+        Assert.That(start, Is.GreaterThanOrEqualTo(0));
+        Assert.That(end, Is.GreaterThan(start));
+        string returning = source.Substring(start, end - start);
+        int save = returning.IndexOf("SaveManager.Instance.Save(PermanentProgress.Instance);", System.StringComparison.Ordinal);
+        int close = returning.IndexOf("Close();", System.StringComparison.Ordinal);
+        int load = returning.IndexOf("flow.LoadBoot();", System.StringComparison.Ordinal);
+        Assert.That(save, Is.GreaterThanOrEqualTo(0));
+        Assert.That(close, Is.GreaterThan(save));
+        Assert.That(load, Is.GreaterThan(close));
+        Assert.That(returning, Does.Not.Contain("SceneManager.LoadScene"));
+    }
+
+    [Test]
     public void DefensiveLocalizationGuard_RemovesDuplicateRoot()
     {
         LocalizationCatalog catalog = AssetDatabase.LoadAssetAtPath<LocalizationCatalog>(
@@ -97,13 +215,14 @@ public sealed class DialogueLifecycleStabilityTests
 
         LogAssert.Expect(
             LogType.Error,
-            new Regex("second localization service.*duplicate Dialogue Manager root"));
+            "[VoidScrapperLocalizationService] A second localization service was created on " +
+            "'DuplicateDialogueManager'. Its duplicate Dialogue Manager root will be removed.");
         duplicateRoot.SetActive(true);
         Assert.That(localizationLifecycle.InitializeService(duplicate), Is.False);
 
         Assert.That(VoidScrapperLocalizationService.Instance, Is.SameAs(canonical));
         Assert.That(canonical.gameObject.activeSelf, Is.True);
-        Assert.That(duplicateRoot == null || !duplicateRoot.activeSelf, Is.True);
+        Assert.That(duplicateRoot == null, Is.True, "The duplicate root must be destroyed in EditMode.");
     }
 
     [Test]
