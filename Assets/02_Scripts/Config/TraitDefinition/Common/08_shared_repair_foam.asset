@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 08_shared_repair_foam
   m_EditorClassIdentifier: 
   traitId: shared_repair_foam
-  displayName: "정비 폼"
-  description: "회복 아이템과 회복 장비의 효율을 올린다."
+  displayName: "\uC815\uBE44 \uD3FC"
+  description: "\uAC19\uC740 \uD68C\uBCF5 \uC790\uC6D0\uC73C\uB85C \uB354 \uB9CE\uC740
+    \uCCB4\uB825\uC744 \uBCF5\uAD6C\uD55C\uB2E4."
   icon: {fileID: 21300000, guid: 722fe4f013c37014c46f366b0d665805, type: 3}
   rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -31,3 +36,11 @@ MonoBehaviour:
   - level: 3
     effectType: 7
     value: 15
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 1
+  developmentDisplayOrder: 2
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 18
+  manufacturingCoreCost: 0

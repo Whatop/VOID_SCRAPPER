@@ -37,6 +37,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     [SerializeField] private bool logApplyResult = true;
 
     private RuntimeStats runtimeStats;
+    private OperatingFrameProfile appliedOperatingFrame;
+    private bool hasOperatingFrame;
 
     private struct RuntimeStats
     {
@@ -77,6 +79,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
     private void OnDisable()
     {
+        ClearOperatingFrameMovement();
         PlayerPeriodicReflector2D.SetSourceEnabled(gameObject, this, false);
         PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, false);
         PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, false);
@@ -116,6 +119,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         }
 
         ApplyShip(selectedShip);
+        ApplyOperatingFrame(runContext);
 
         ApplySectorTechnologies(progress);
         ApplyPermanentTraits(progress, traitDefinitions, selectedWeaponTree);
@@ -232,6 +236,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
     private void ResetRuntimeModifiers()
     {
+        ClearOperatingFrameMovement();
+        hasOperatingFrame = false;
         PlayerPeriodicReflector2D.SetSourceEnabled(gameObject, this, false);
         PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, false);
         PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, false);
@@ -295,6 +301,37 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
         return null;
     }
+    private void ApplyOperatingFrame(RunContext run)
+    {
+        if (run == null || !run.IsActive) return;
+        appliedOperatingFrame = run.FrameProfile;
+        hasOperatingFrame = true;
+        runtimeStats.maxHp = Mathf.Max(1f, runtimeStats.maxHp + appliedOperatingFrame.MaxHpBonus);
+        runtimeStats.cargoCapacity = Mathf.Max(1, runtimeStats.cargoCapacity + appliedOperatingFrame.CargoBonus);
+        runtimeStats.dashDistance += appliedOperatingFrame.DashDistanceBonus;
+        weaponModifiers?.AddDamagePercent(appliedOperatingFrame.DamagePercent);
+        runtimeBonusState?.AddHarvestYieldPercent(appliedOperatingFrame.HarvestYieldPercent);
+        RestoreOperatingFrameMovement();
+    }
+
+    private void OnEnable()
+    {
+        RestoreOperatingFrameMovement();
+    }
+
+    private void RestoreOperatingFrameMovement()
+    {
+        if (!hasOperatingFrame) return;
+        playerController?.SetExternalMoveSpeedMultiplier(this, appliedOperatingFrame.MoveMultiplier);
+        playerDash?.SetExternalCooldownMultiplier(this, appliedOperatingFrame.DashCooldownMultiplier);
+    }
+
+    private void ClearOperatingFrameMovement()
+    {
+        playerController?.ClearExternalMoveSpeedMultiplier(this);
+        playerDash?.ClearExternalCooldownMultiplier(this);
+    }
+
     private void ApplyShip(ShipDefinition ship)
     {
         if (ship == null)
@@ -434,6 +471,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
     private void ApplyTraitEffect(TraitEffectType effectType, float value)
     {
+        if (weaponModifiers != null && weaponModifiers.TryApplyDevelopmentEffect(effectType, value)) return;
         switch (effectType)
         {
             case TraitEffectType.DamagePercent:

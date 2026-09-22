@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public class ShotgunWeapon : PlayerWeaponBase
+public partial class ShotgunWeapon : PlayerWeaponBase
 {
     [Header("Shotgun Fallback Values")]
     [SerializeField] private float fallbackDamage = 1.8f;
@@ -49,11 +49,14 @@ public class ShotgunWeapon : PlayerWeaponBase
 
     public override void OnEquip()
     {
+        equipmentDash = weaponController != null ? weaponController.GetComponent<PlayerDash>() : GetComponentInParent<PlayerDash>();
+        ForceCancel();
         nextFireTime = 0f;
     }
 
     public override void TickWeapon(WeaponFireInput input, float deltaTime)
     {
+        RefreshBreachOpportunity();
         if (!input.PressedThisFrame)
         {
             return;
@@ -81,10 +84,17 @@ public class ShotgunWeapon : PlayerWeaponBase
         int basePierce = GetProjectilePierceCount(fallbackPierceCount);
 
         bool firedAny = false;
+        int slugLevel = weaponModifiers != null ? weaponModifiers.ShotgunSlugCouplerLevel : 0;
+        bool convertSlug = slugLevel > 0 && projectileCount >= 2;
+        int center = (projectileCount - 1) / 2;
 
         for (int i = 0; i < projectileCount; i++)
         {
+            if (convertSlug && i == center + 1) continue;
+            firingSlug = convertSlug && i == center;
+            firingImpactCarrier = i == center;
             float currentAngle = ResolvePelletAngleOffset(i, projectileCount, spreadAngle);
+            if (firingSlug) currentAngle = 0f;
             Vector2 shotDirection = RotateVector(baseDirection, currentAngle);
             float speedMultiplier = Random.Range(
                 1f - projectileSpeedVariation,
@@ -97,14 +107,15 @@ public class ShotgunWeapon : PlayerWeaponBase
 
             bool fired = SpawnProjectile(
                 shotDirection,
-                baseDamage,
-                baseSpeed * speedMultiplier,
-                baseRange * rangeMultiplier,
-                basePierce
+                baseDamage * (firingSlug ? 2f : 1f),
+                baseSpeed * speedMultiplier * (firingSlug ? SlugSpeedMultiplier : 1f),
+                baseRange * rangeMultiplier * (firingSlug && slugLevel >= 3 ? 1.1f : 1f),
+                basePierce + (firingSlug ? (slugLevel >= 3 ? 2 : 1) : 0)
             );
 
             firedAny |= fired;
         }
+        firingSlug = firingImpactCarrier = false;
 
         if (!firedAny)
         {
@@ -127,7 +138,14 @@ public class ShotgunWeapon : PlayerWeaponBase
 
         RegisterAttack();
         NotifyFired();
-        nextFireTime = Time.time + GetFireInterval(fallbackFireInterval);
+        float interval = GetFireInterval(fallbackFireInterval);
+        int sequenceLevel = weaponModifiers != null ? weaponModifiers.ShotgunBreachSequenceLevel : 0;
+        if (sequenceLevel > 0 && Time.time <= breachArmedUntil)
+        {
+            interval = Mathf.Max(.12f, interval * (sequenceLevel >= 3 ? .6f : .75f));
+            breachArmedUntil = float.NegativeInfinity;
+        }
+        nextFireTime = Time.time + interval;
     }
 
     private float ResolveShotSpread(float aimChokeStrength)
@@ -264,6 +282,9 @@ public class ShotgunWeapon : PlayerWeaponBase
         {
             return;
         }
+
+        if (firingImpactCarrier) bullet.ConfigureFirstEnemyImpact(weaponModifiers.ShotgunImpactDisplacement);
+        if (firingSlug) bullet.ConfigureEquipmentWidth(1.5f);
 
         float maxBonusPercent = weaponModifiers.ShotgunCloseRangeDamagePercent;
 

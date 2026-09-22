@@ -708,6 +708,11 @@ public partial class ShipTraitTreePanel : MonoBehaviour
 
     public void SelectBranchTab(ShipTraitBranchKind branchKind)
     {
+        if (equipmentDevelopmentMode)
+        {
+            SelectEquipmentBranch(branchKind);
+            return;
+        }
         int unlockedShipCount = CountUnlockedShips();
 
         if (!IsBranchGateAvailable(branchKind, unlockedShipCount))

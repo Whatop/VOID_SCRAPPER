@@ -1,15 +1,15 @@
 # Trait and Reinforcement Content Audit
 
-Current audit: 2026-08-16, current working tree. `S/R/F` means normal Shop / random Reward / generated Field pickup eligibility. The 41 Reinforcement definitions and their catalog were re-scanned after the identity-completion passes. Static validation was performed; Play Mode validation was not available in this environment.
+Trait audit updated: 2026-09-21, current working tree. Reinforcement sections retain their 2026-08-16 audit scope. `S/R/F` means normal Shop / random Reward / generated Field pickup eligibility. The retained Reinforcement audit covered 41 definitions after its identity-completion passes and had static-only validation. Current equipment validation, including rendered Play Mode, is recorded in the Trait inventory below.
 
 ## Counts and release gate
 
 | Content | Authored | Normal obtainable | Direct/special only | Runtime-full | Partial identity | Disabled/deferred assets |
 |---|---:|---:|---:|---:|---:|---:|
-| Traits | 45 | 41 | 4 | 45 | 0 | 0 |
+| Traits | 50 | 46 | 4 | 50 | 0 | 0 |
 | Reinforcements | 41 | 40 | 1 | 41 | 0 | 0 |
 
-Trait split: Shared 25, Machine Gun 5, Shotgun 5, Sniper 6, hidden boss 3, persistent story/Curse 1. Reinforcement split: Any 26 (including Emergency Return), Machine Gun 5, Shotgun 5, Sniper 5. Every normal item is mechanically safe to obtain. Six currently unsupported Trait enum capabilities have no authored asset and therefore cannot enter acquisition pools.
+Trait split: Shared normal 26, Machine Gun 7, Shotgun 6, Sniper 7, hidden boss 3, persistent story/Curse 1. Reinforcement counts below are retained from their separate audit. Five unsupported Trait enum capabilities have no authored assets; all effects used by the current normal catalog have existing runtime consumers.
 
 ## TraitEffectType implementation matrix
 
@@ -37,7 +37,7 @@ Trait split: Shared 25, Machine Gun 5, Shotgun 5, Sniper 6, hidden boss 3, persi
 | CloseRangeSuppressionPercent | none | none | Unsupported; no asset |
 | ChargeSightBonusPercent | none | none | Unsupported; no asset |
 | ChargedProjectileSizePercent | none | none | Unsupported; no asset |
-| RemovePierceDamageFalloff | runtime appliers -> `PlayerWeaponModifiers` -> projectile snapshot | projectile pierce retention; no authored Trait asset | Supported hook; unused by authored Traits |
+| RemovePierceDamageFalloff | runtime appliers -> `PlayerWeaponModifiers` -> projectile snapshot | sn_piercing_amplifier Max2 | Full; authored Max payoff |
 | CargoCapacityBonus | runtime bonus -> `PlayerCargoController` | cargo | Full |
 | HarvestYieldPercent | runtime bonus -> `RewardPickup` | harvested currency | Full |
 | HarvestObjectDamagePercent | weapon setup -> `Bullet` -> `HarvestObjectHealth` | harvesting damage | Full |
@@ -50,58 +50,158 @@ Trait split: Shared 25, Machine Gun 5, Shotgun 5, Sniper 6, hidden boss 3, persi
 | MatterReconstructorProtocol | `BossPassiveRuntimeController` | hidden boss passive | Full |
 | PhaseAfterimageProtocol | `BossPassiveRuntimeController` | hidden boss passive | Full |
 | SniperSemiAutoMode | `SniperWeapon` | sniper alternate mode | Full |
+| ShotgunCloseRangeDamagePercent | `PlayerWeaponModifiers` -> `Bullet` | enemy-only distance scaling | Full |
+| MachineGunTerminalGuidance | MG projectile snapshot -> `Bullet` | terminal tracking | Full |
+| PeriodicReflectiveShield | `PlayerPeriodicReflector2D` | same-source recharge configuration | Full |
+| MachineGunDashMissileSalvo | `PlayerMachineGunDashMissileSalvo` | successful MG dash | Full |
+| SniperDashEchoShot | `PlayerSniperDashEchoShot` | next-shot snapshot echo | Full |
 
-## Trait inventory
+## Trait inventory — equipment audit, 2026-09-21
 
-All normal entries below are eligible for S/R/F, filtered by `TraitCategory` and `WeaponTree`. Every row is safe for acquisition. Effects are listed L1/L2/L3 unless otherwise stated.
+**Correction pass 1:** The global loadout-capacity and ordinary-Lv0 rules used by the earlier reward pacing analysis below are superseded.
+Development now uses per-branch blueprint research, one-time manufacture, unrestricted compatible fitting and ordinary Lv1 deployment.
+The catalog's roles, incremental combat values and rarity remain unchanged. See [development mapping](Docs/Design/EQUIPMENT_DEVELOPMENT_MAPPING.md)
+for all 32 implemented / 16 pending positions, fourteen retained legacy Shared definitions, exact recipe metadata and the conditional Terminal Guidance exception.
+The CSV now includes branch/tier/position, participation, one-time recipe and deployment fields. Earlier random averages below are historical, not validation of Lv1 deployment pacing.
 
-| Asset path | ID / display | Class | Rarity / max | Serialized level effects | Runtime path | Exposure | Icon | Status |
-|---|---|---|---|---|---|---|---|---|
-| `Assets/02_Scripts/Config/TraitDefinition/Common/01_shared_cargo_bay.asset` | `shared_cargo_bay` / 확장 적재실 | Shared | Common / 3 | Cargo +10/+10/+10 | Cargo controller | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/02_shared_salvage_protocol.asset` | `shared_salvage_protocol` / 회수 프로토콜 | Shared | Common / 3 | Harvest yield +8/+8/+8% | Reward pickup | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/03_shared_salvage_magnet.asset` | `shared_salvage_magnet` / 회수 자석 | Shared | Common / 3 | Pickup range +1.2/+1.2/+1.2 | Reward pickup | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/04_shared_reinforced_plating.asset` | `shared_reinforced_plating` / 강화 장갑 | Shared | Common / 3 | Max HP +2/+2/+2 | Player health | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/05_shared_engine_tuning.asset` | `shared_engine_tuning` / 엔진 튜닝 | Shared | Common / 3 | Move +5/+5/+5% | Player movement | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/06_shared_dash_capacitor.asset` | `shared_dash_capacitor` / 대쉬 캐패시터 | Shared | Common / 3 | Dash cooldown -0.08/-0.08/-0.08s | Player dash | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/07_shared_vector_thruster.asset` | `shared_vector_thruster` / 벡터 추진기 | Shared | Common / 3 | Dash distance +0.5/+0.5/+0.5 | Player dash | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/08_shared_repair_foam.asset` | `shared_repair_foam` / 정비 폼 | Shared | Common / 3 | Heal efficiency +15/+15/+15% | Runtime bonus/heals | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/09_shared_targeting_bus.asset` | `shared_targeting_bus` / 조준 버스 | Shared | Common / 3 | Damage +5/+5/+5% | Weapon modifiers | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/10_shared_accelerator_coil.asset` | `shared_accelerator_coil` / 가속 코일 | Shared | Common / 3 | Projectile speed +8/+8/+8% | Weapon/projectile | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/11_shared_range_focusing.asset` | `shared_range_focusing` / 사거리 초점화 | Shared | Common / 3 | Range +8/+8/+8% | Weapon/projectile | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/12_shared_rapid_feed.asset` | `shared_rapid_feed` / 급속 급탄 | Shared | Common / 3 | Fire rate +5/+5/+5% | Weapon cadence | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/13_shared_combat_gyro.asset` | `shared_combat_gyro` / 전투 자이로 | Shared | Common / 3 | Spread reduction +8/+8/+8% | Weapon spread | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/14_shared_scrap_sorter.asset` | `shared_scrap_sorter` / 고철 분류기 | Shared | Rare / 3 | Yield +5% and pickup +0.6 each level | Reward pickup | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/15_shared_return_container.asset` | `shared_return_container` / 복귀 보관함 | Shared | Rare / 3 | Emergency-return capacity +5/+5/+5% | Cargo/return | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/16_shared_radar_amplifier.asset` | `shared_radar_amplifier` / 레이더 증폭기 | Shared | Common / 3 | Radar radius +2/+2/+2 | Radar scanner | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/17_shared_active_cooler.asset` | `shared_active_cooler` / 액티브 냉각기 | Shared | Rare / 3 | Active cooldown -8/-8/-8% | Runtime bonus/recharge | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/18_shared_bulkhead_cargo_frame.asset` | `shared_bulkhead_cargo_frame` / 격벽 적재 프레임 | Shared | Rare / 3 | Max HP +1 and cargo +8 each level | Health/cargo | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/19_shared_collection_route.asset` | `shared_collection_route` / 회수 항로 계산기 | Shared | Common / 3 | Move +3% and pickup +0.8 each level | Movement/pickup | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/20_shared_cutting_ammo.asset` | `shared_cutting_ammo` / 절단 탄약 | Shared | Rare / 3 | Harvest damage +12%, damage +3% each | Bullet/harvest | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/21_shared_longshot_stabilizer.asset` | `shared_longshot_stabilizer` / 장거리 안정기 | Shared | Rare / 3 | Range +6%, speed +6% each | Weapon/projectile | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/22_shared_survival_protocol.asset` | `shared_survival_protocol` / 생존 프로토콜 | Shared | Rare / 3 | Max HP +2, heal +8% each | Health/heals | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/23_shared_lightweight_cargo.asset` | `shared_lightweight_cargo` / 경량 적재함 | Shared | Rare / 3 | Cargo +8, move +3% each | Cargo/movement | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/24_shared_return_protocol.asset` | `shared_return_protocol` / 복귀 프로토콜 | Shared | Rare / 3 | Return capacity +4%, dash cooldown -0.04s each | Return/dash | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Common/25_shared_standard_upgrade.asset` | `shared_standard_upgrade` / 표준 개수 키트 | Shared | Common / 3 | Damage +4%, Max HP +1 each | Weapon/health | S/R/F | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/MachineGun/26_mg_sustained_harvest_fire.asset` | `mg_sustained_harvest_fire` / 지속 수확 사격 | MG | Rare / 3 | Fire rate +8%, harvest damage +8% each | Weapon/harvest | S/R/F MG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/MachineGun/27_mg_guidance_control.asset` | `mg_guidance_control` / 유도 제어 | MG | Rare / 3 | Homing angle +8, range +1.5 each | Bullet homing | S/R/F MG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/MachineGun/28_mg_stable_feed.asset` | `mg_stable_feed` / 안정 급탄 | MG | Common / 3 | Spread -8%, fire rate +5% each | Weapon cadence/spread | S/R/F MG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/MachineGun/29_mg_salvage_sweep.asset` | `mg_salvage_sweep` / 수확 탄막 | MG | Rare / 3 | Speed +8%, pickup +0.6 each | Projectile/pickup | S/R/F MG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/MachineGun/30_mg_midrange_pressure.asset` | `mg_midrange_pressure` / 중거리 압박 | MG | Rare / 3 | Range +6%, damage +5% each | Weapon/projectile | S/R/F MG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Shotgun/31_sg_choke_barrel.asset` | `sg_choke_barrel` / 산탄 압축 | Shotgun | Rare / 3 | Spread reduction +12/+12/+12% | Shotgun spread | S/R/F SG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Shotgun/32_sg_extra_pellet.asset` | `sg_extra_pellet` / 추가 펠릿 | Shotgun | Special / 1 | Projectile count +1 | Shotgun pellet count | S/R/F SG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Shotgun/33_sg_breaching_drive.asset` | `sg_breaching_drive` / 돌입 구동계 | Shotgun | Rare / 3 | Dash distance +0.6, Max HP +1 each | Dash/health | S/R/F SG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Shotgun/34_sg_close_harvest_burst.asset` | `sg_close_harvest_burst` / 근접 수확 파쇄 | Shotgun | Rare / 3 | Harvest damage +12%, damage +4% each | Weapon/harvest | S/R/F SG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Shotgun/35_sg_taunt_resonator.asset` | `sg_taunt_resonator` / 도발 공진기 | Shotgun | Special / 3 | Radar taunt +1s, move +3% each | Radar enemy taunt/movement | S/R/F SG | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Sniper/36_sn_charge_accelerator.asset` | `sn_charge_accelerator` / 차징 가속 | Sniper | Rare / 3 | Charge time -10/-10/-10% | Sniper charge | S/R/F SN | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Sniper/37_sn_piercing_amplifier.asset` | `sn_piercing_amplifier` / 관통 증폭 | Sniper | Rare / 2 | Pierce +1/+1 | Projectile pierce | S/R/F SN | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Sniper/38_sn_focus_lens.asset` | `sn_focus_lens` / 집중 렌즈 | Sniper | Rare / 3 | Radar radius +2, charge damage +8% each | Radar/sniper charge | S/R/F SN | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Sniper/39_sn_high_output_core.asset` | `sn_high_output_core` / 고출력 탄심 | Sniper | Rare / 3 | Charge damage +15/+15/+15% | Sniper charge | S/R/F SN | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Sniper/40_sn_stealth_scan.asset` | `sn_stealth_scan` / 침투 프로토콜 | Sniper | Special / 3 | Radar stealth +1/+1/+1s | Stealth controller | S/R/F SN | Assigned | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Sniper/44_sn_semi_auto_laser.asset` | `sn_semi_auto_laser` / 레이저 반복기 | Sniper | Special / 1 | Semi-auto mode 1 | Sniper weapon | S/R/F SN | Placeholder (focus-lens icon) | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Boss/41_boss_sector_barrier.asset` | `boss_sector_barrier` / 구획 방벽 | Shared hidden | Special / 3 | Sector protocol 1/2/3 | Boss passive runtime | Campaign direct only | Null | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Boss/42_boss_matter_reconstructor.asset` | `boss_matter_reconstructor` / 물질 재구성로 | Shared hidden | Special / 3 | Cargo +20/+10/+10; protocol 1/2/3 | Cargo/boss passive | Campaign direct only | Null | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Boss/43_boss_phase_afterimage.asset` | `boss_phase_afterimage` / 위상 잔상핵 | Shared hidden | Special / 3 | Phase protocol 1/2/3 | Boss passive runtime | Campaign direct only | Null | Full |
-| `Assets/02_Scripts/Config/TraitDefinition/Story/45_pixel_curse.asset` | `pixel_curse` / Pixel Curse | Shared story | Curse / 1 | No balance effect | Permanent story ownership/visual/status | Story API only | Null allowed | Full foundation |
+
+The current catalog has **50 unique referenced definitions**: 46 normal prepared-run
+equipment (26 Shared, 7 Sweeper/MG, 6 Breacher/Shotgun, 7 Lancer/Sniper), plus three hidden
+campaign boss traits and Pixel Curse. Existing seventh MG/Sniper entries are the dash
+signatures; no item was removed to force the older six-per-family count. Rarity totals
+remain Common 17 / Rare 20 / Special 12 / Curse 1. No ID, GUID, name, rarity, exposure,
+prerequisite or serialized enum value changed.
+
+The complete per-definition inventory is [EQUIPMENT_CATALOG_AUDIT.csv](Docs/Design/EQUIPMENT_CATALOG_AUDIT.csv):
+46 rows with exact asset path, current display name, family, rarity, MaxLevel, each level's
+effects, role, overlap, eligibility and concise description. This replaces the stale
+45-entry table rather than maintaining two independent number lists.
+
+Primary roles: Salvage/Economy 13; Offense 8; Control/Accuracy 7; Signature 6;
+Tactical/Radar 5; Survival 4; Mobility 3. A primary role does not exclude a supporting role.
+
+### Overlap decisions
+
+- Cargo and plating specialists were being overtaken by dual-stat cargo/health items.
+  Their last levels now finish at +32 cargo / +8 HP; dual-stat packages retain their broader utility.
+- Pure damage, cadence and spread compete with standard upgrade, cutting ammo,
+  stable feed and sustained harvest. Strengthen their finishing step without removing
+  the distinct Rare/ship-specific packages. Sweeper's sustained-harvest package retains
+  a stronger rate bonus plus mining synergy; specialization/rarity remain relevant.
+- Guidance is acquisition/steering; terminal guidance is its prerequisite-gated behavior.
+  Stable feed is accuracy plus cadence; midrange pressure trades that for reach/damage.
+  Salvage sweep and sustained harvest serve pickup/projectile delivery and mining fire respectively.
+- Shotgun choke is pattern concentration; extra pellet adds one projectile then supports
+  that pattern. Overpressure scales enemy-only damage by distance; close harvest burst
+  improves mining. Breaching drive and taunt retain survival and control roles.
+- Sniper charge speed, output, pierce retention, radar/focus, stealth, semi-auto and dash
+  echo retain separate purposes. Stealth already stages its controller behavior over levels;
+  it did not need another mechanic or numeric buff.
+- Movement/pickup, range/projectile speed, healing/HP and emergency-return hybrids remain
+  for broad builds. Pure emergency preservation gains a modest stronger finish.
+- No definitions retired, new equipment added, or universal drawbacks introduced.
+
+### Incremental semantics and exact data changes
+
+`RunTraitEffectApplier` applies only the newly acquired level; reconstruction applies
+levels 1 through the saved run level once each. Damage/fire rate/range/projectile speed/
+charged damage compound. Spread and active-cooldown reductions multiply remaining values.
+Homing/counts/cargo and emergency-preservation percentage points add. Charge-speed bonuses
+divide charge time by `(1 + bonus/100)`; a +25% speed entry reduces time by 20%, not 25%.
+Reflector recharge is a replacement setting on one source, never a sum of seconds.
+
+All 46 normal descriptions now explain role without repeating the level table.
+19 definitions change level data; seven former Max1 definitions become Max3. Max2
+Sniper pierce remains Max2. Values below are serialized increments/settings, **not totals**.
+
+| Stable ID / exact asset | Before (newly acquired level entries) | After (newly acquired level entries) |
+|---|---|---|
+| [`shared_cargo_bay`](Assets/02_Scripts/Config/TraitDefinition/Common/01_shared_cargo_bay.asset) | L1: CargoCapacityBonus 10 / L2: CargoCapacityBonus 10 / L3: CargoCapacityBonus 10 | L1: CargoCapacityBonus 8 / L2: CargoCapacityBonus 10 / L3: CargoCapacityBonus 14 |
+| [`shared_reinforced_plating`](Assets/02_Scripts/Config/TraitDefinition/Common/04_shared_reinforced_plating.asset) | L1: MaxHpBonus 2 / L2: MaxHpBonus 2 / L3: MaxHpBonus 2 | L1: MaxHpBonus 2 / L2: MaxHpBonus 2 / L3: MaxHpBonus 4 |
+| [`shared_targeting_bus`](Assets/02_Scripts/Config/TraitDefinition/Common/09_shared_targeting_bus.asset) | L1: DamagePercent 5 / L2: DamagePercent 5 / L3: DamagePercent 5 | L1: DamagePercent 5 / L2: DamagePercent 6 / L3: DamagePercent 8 |
+| [`shared_rapid_feed`](Assets/02_Scripts/Config/TraitDefinition/Common/12_shared_rapid_feed.asset) | L1: FireRatePercent 5 / L2: FireRatePercent 5 / L3: FireRatePercent 5 | L1: FireRatePercent 5 / L2: FireRatePercent 6 / L3: FireRatePercent 8 |
+| [`shared_combat_gyro`](Assets/02_Scripts/Config/TraitDefinition/Common/13_shared_combat_gyro.asset) | L1: SpreadReductionPercent 8 / L2: SpreadReductionPercent 8 / L3: SpreadReductionPercent 8 | L1: SpreadReductionPercent 8 / L2: SpreadReductionPercent 10 / L3: SpreadReductionPercent 14 |
+| [`shared_return_container`](Assets/02_Scripts/Config/TraitDefinition/Common/15_shared_return_container.asset) | L1: EmergencyReturnCapacityRatioBonus 5 / L2: EmergencyReturnCapacityRatioBonus 5 / L3: EmergencyReturnCapacityRatioBonus 5 | L1: EmergencyReturnCapacityRatioBonus 4 / L2: EmergencyReturnCapacityRatioBonus 5 / L3: EmergencyReturnCapacityRatioBonus 7 |
+| [`mg_guidance_control`](Assets/02_Scripts/Config/TraitDefinition/MachineGun/27_mg_guidance_control.asset) | L1: HomingAngleBonus 8; HomingRangeBonus 1.5 / L2: HomingAngleBonus 8; HomingRangeBonus 1.5 / L3: HomingAngleBonus 8; HomingRangeBonus 1.5 | L1: HomingAngleBonus 6; HomingRangeBonus 1 / L2: HomingAngleBonus 8; HomingRangeBonus 1.5 / L3: HomingAngleBonus 10; HomingRangeBonus 2 |
+| [`mg_stable_feed`](Assets/02_Scripts/Config/TraitDefinition/MachineGun/28_mg_stable_feed.asset) | L1: SpreadReductionPercent 8; FireRatePercent 5 / L2: SpreadReductionPercent 8; FireRatePercent 5 / L3: SpreadReductionPercent 8; FireRatePercent 5 | L1: SpreadReductionPercent 6; FireRatePercent 4 / L2: SpreadReductionPercent 8; FireRatePercent 5 / L3: SpreadReductionPercent 10; FireRatePercent 6 |
+| [`sg_choke_barrel`](Assets/02_Scripts/Config/TraitDefinition/Shotgun/31_sg_choke_barrel.asset) | L1: SpreadReductionPercent 12 / L2: SpreadReductionPercent 12 / L3: SpreadReductionPercent 12 | L1: SpreadReductionPercent 10 / L2: SpreadReductionPercent 12 / L3: SpreadReductionPercent 16 |
+| [`sg_extra_pellet`](Assets/02_Scripts/Config/TraitDefinition/Shotgun/32_sg_extra_pellet.asset) | L1: ProjectileCountBonus 1 | L1: ProjectileCountBonus 1 / L2: SpreadReductionPercent 4 / L3: SpreadReductionPercent 6 |
+| [`sg_close_quarters_overpressure`](Assets/02_Scripts/Config/TraitDefinition/Shotgun/46_sg_close_quarters_overpressure.asset) | L1: ShotgunCloseRangeDamagePercent 60 | L1: ShotgunCloseRangeDamagePercent 18 / L2: ShotgunCloseRangeDamagePercent 18 / L3: ShotgunCloseRangeDamagePercent 24 |
+| [`sn_charge_accelerator`](Assets/02_Scripts/Config/TraitDefinition/Sniper/36_sn_charge_accelerator.asset) | L1: ChargeTimeReductionPercent 10 / L2: ChargeTimeReductionPercent 10 / L3: ChargeTimeReductionPercent 10 | L1: ChargeTimeReductionPercent 8 / L2: ChargeTimeReductionPercent 10 / L3: ChargeTimeReductionPercent 14 |
+| [`sn_piercing_amplifier`](Assets/02_Scripts/Config/TraitDefinition/Sniper/37_sn_piercing_amplifier.asset) | L1: PierceCountBonus 1 / L2: PierceCountBonus 1 | L1: PierceCountBonus 1 / L2: PierceCountBonus 1; RemovePierceDamageFalloff 1 |
+| [`sn_high_output_core`](Assets/02_Scripts/Config/TraitDefinition/Sniper/39_sn_high_output_core.asset) | L1: ChargeDamagePercent 15 / L2: ChargeDamagePercent 15 / L3: ChargeDamagePercent 15 | L1: ChargeDamagePercent 12 / L2: ChargeDamagePercent 15 / L3: ChargeDamagePercent 18 |
+| [`sn_semi_auto_laser`](Assets/02_Scripts/Config/TraitDefinition/Sniper/44_sn_semi_auto_laser.asset) | L1: SniperSemiAutoMode 1 | L1: SniperSemiAutoMode 1 / L2: FireRatePercent 6 / L3: FireRatePercent 9 |
+| [`mg_terminal_guidance`](Assets/02_Scripts/Config/TraitDefinition/MachineGun/47_mg_terminal_guidance.asset) | L1: MachineGunTerminalGuidance 1 | L1: MachineGunTerminalGuidance 1 / L2: HomingAngleBonus 6; HomingRangeBonus 0.5 / L3: HomingAngleBonus 10; HomingRangeBonus 0.75 |
+| [`shared_periodic_reflector`](Assets/02_Scripts/Config/TraitDefinition/Common/48_shared_periodic_reflector.asset) | L1: PeriodicReflectiveShield 15 | L1: PeriodicReflectiveShield 20 / L2: PeriodicReflectiveShield 17 / L3: PeriodicReflectiveShield 14 |
+| [`mg_dash_missile_salvo`](Assets/02_Scripts/Config/TraitDefinition/MachineGun/49_mg_dash_missile_salvo.asset) | L1: MachineGunDashMissileSalvo 1 | L1: MachineGunDashMissileSalvo 1 / L2: DamagePercent 4 / L3: DamagePercent 6 |
+| [`sn_dash_echo_shot`](Assets/02_Scripts/Config/TraitDefinition/Sniper/50_sn_dash_echo_shot.asset) | L1: SniperDashEchoShot 1 | L1: SniperDashEchoShot 1 / L2: ChargeDamagePercent 5 / L3: ChargeDamagePercent 8 |
+
+Examples of correct accumulated payoff: damage/cadence specialist 1.05×1.06×1.08 =
+1.20204 (previously 1.157625); guidance totals remain +24 degrees / +4.5 range;
+Overpressure still totals at most +60% at close range; high-output core is
+1.12×1.15×1.18 = 1.51984 (previously 1.520875). Supporting signature scalars reuse
+existing consumers: missile damage also improves the main gun, charged echo damage
+also improves the original shot. No unrelated Max perk or new gameplay executor was added.
+
+### Source-specific reward rules
+
+Production generation is unchanged. Ordinary candidates still require the captured
+prepared loadout, ship compatibility, existing prerequisites and room below Max.
+`RunRewardChoiceGenerator` chooses rarity tiers (65/30/5 Common/Rare/Special) then
+uniform candidates within a tier; field drops use `EffectiveRandomDropWeight`
+(100/45/8, Curse 0). Shop candidate sampling remains uniform over its permitted stock pool.
+Tuning only offers owned/upgradable prepared equipment. Containers retain their
+rare-first preference and permitted fallback. Boss Mixed rewards retain the strict
+Rare floor and may offer Reinforcements if the prepared trait pool has no eligible Rare.
+Persistent story and forced campaign rewards keep their separate authority.
+
+### Deterministic reward diagnostics
+
+The diagnostic uses the real `RunRewardChoiceGenerator`, prerequisite/loadout filter and
+`RunRuntimeTraitStore`, with 64 fixed seeds per case, up to 24 Trait-only reward opportunities
+and three offered cards. It measures random selection and a separate upgrade-first policy;
+the latter models deliberate specialization rather than a mandatory composition guarantee.
+Tuning offers are probed but not granted. Opportunities do not represent minutes or a natural run's reward frequency.
+
+| Prepared items | Random: first Max | Random: owned at opportunity 12 | Random: offer includes upgrade | Upgrade-first: first Max | Upgrade-first: owned at 12 | Upgrade-first: offer includes upgrade |
+|---:|---:|---:|---:|---:|---:|---:|
+| 3 | 5.141 | 3.000 | 85.4% | 3.000 | 3.000 | 66.7% |
+| 6 | 7.047 | 5.500 | 88.2% | 4.375 | 4.000 | 66.7% |
+| 9 | 9.250 | 6.719 | 87.2% | 5.750 | 4.938 | 66.7% |
+| 12 | 9.484 | 7.156 | 85.4% | 6.016 | 5.125 | 64.2% |
+
+Invalid/no-option offers while an eligible item remained: **zero** in all eight cases.
+All 3/6-item trials exhaust their fully upgraded pools within the 24-opportunity window
+(9/18 total acquisitions); this is expected completion, not a failed offer. No 9/12-item
+trial exhausts all equipment within that window. Before this pass, random first-Max means
+were 5.141 / 7.047 / 7.063 / 7.422; extending one-level signatures mainly affects the larger pools.
+These broad diagnostics do not establish combat balance or whether a natural run awards too many upgrades.
+
+The nested Sweeper pools are: cargo, stable feed, guidance; then plating, engine,
+salvage protocol; then sustained harvest, return container, reflector; then terminal
+guidance, radar amplifier, dash missiles. Terminal guidance remains unavailable until
+Guidance Lv3. An incompatible or prerequisite-incomplete loadout is not silently repaired by reward generation.
+
+### Executed validation and remaining balance questions
+
+Runtime and Editor/test static compilation: zero errors (52 / 4 existing warnings).
+Focused equipment/campaign/localization selection: 166/166. Full EditMode: 598/598.
+Normal Localization Import/Validate succeeded. Catalog checks cover references, IDs,
+roles, every normal level, all effect labels, actual incremental acquisition, Max clamp,
+shop/container/boss/tuning eligibility and dynamic authored UI rows. Existing save,
+campaign, F10, dialogue/archive and Route Core regressions remain green.
+
+Rendered 480x270 Boot -> Settlement -> Expedition checks used isolated QA save data:
+3-item and 12-item prepared pools started unowned, ordinary Guidance and Reflector
+acquired through the normal API to Max, and the same-source reflector settings were
+20/17/14 seconds. Across 64 sampled three-card draws, visible candidate variety was
+3 versus 11 (terminal guidance correctly prerequisite-gated). Stable Feed and Reflector
+detail screenshots were reviewed; no Upgrade action returned. Scenes/prefabs were not changed.
+
+Remaining human judgment: reward frequency over real run lengths; one-level signature
+entry strength versus supporting later increments; specialist/hybrid stacking; Max2
+pierce-retention power; reflector downtime under dense fire; 480x270 text comfort for
+all equipment/languages. Automated sampling and API-driven smoke are not deep combat playtesting.
 
 ## ReinforcementEffectType implementation matrix
 
@@ -223,3 +323,36 @@ Every entry starts with full charges, so initial charges equal maximum. “Activ
 - Do not author Traits using the six unsupported enum values until their existing-system consumers are implemented. Recommended exact next Trait additions after implementation: `sg_close_range_plating`, `sg_dash_guard`, `sg_suppression_wave`, `sn_charge_optics`, `sn_heavy_charge_core`, and `sn_pierce_stabilizer`—one for each unsupported effect, with final IDs confirmed before asset creation.
 - Recommended exact new Reinforcement additions for the immediate next task: **none**. The summoned-unit family is complete; next replace the proxy behavior of the remaining 12 partial-identity assets, beginning with the beacon/attraction family. Adding similarly named items now would duplicate content.
 - Performance debt observed but not changed in this scoped audit: `Bullet.FindNearestHomingTarget()` allocates through `Physics2D.OverlapCircleAll` while homing is active; the phase-afterimage boss passive uses repeated scene-wide discovery. Both deserve dedicated profiling-safe fixes rather than an arbitrary fixed-cap buffer here.
+
+## Final equipment roster implementation — 2026-09-22
+
+The approved development board now has 12 Shared / 12 Sweeper / 12 Breacher / 12 Lancer real blueprints. Sixteen new ship definitions complete the catalog: 66 total, 62 ordinary, fourteen Shared legacy items outside the board and four unchanged boss/story definitions. The earlier 32-position / sixteen-pending report is superseded. Old global loadout-capacity and ordinary Lv0-preparation interpretations remain superseded.
+
+Research -> manufacture once -> free fit/unfit -> fresh-run ordinary Lv1 -> expedition upgrades -> run reset. Completed-analysis authority, branch gates, immutable RunContext, no global fitting cap, Terminal Guidance's conditional prerequisite, nonrefundable deployment provenance and existing Active Reinforcement flow remain. Existing effects, rarity, IDs and GUIDs were preserved.
+
+New content uses five A data-only definitions and eleven B focused extensions. Twin Feed now supplies periodic paired cadence at MAX as explicitly approved. Typed modifiers, weapon/dash/health owners, projectile snapshots and pooling implement the effects; no new manager or per-module Update. Save v7 retains previous owners' earlier research availability and preserves displaced Shared use without currency migration. The existing authored Settlement board reads the final metadata without a scene/prefab rewrite.
+
+Values, new rarity and manufacturing recipes are provisional. All sixteen dedicated icons remain TODO; generic presentation is retained. Production reward weighting is unchanged. Frames, post-ending Curse content, universal debuffs and final economy remain unimplemented.
+
+Detailed roster, values, recipes, migration, diagnostic evidence and validation: [EQUIPMENT_FINAL_ROSTER.md](Docs/Design/EQUIPMENT_FINAL_ROSTER.md), [EQUIPMENT_DEVELOPMENT_MAPPING.md](Docs/Design/EQUIPMENT_DEVELOPMENT_MAPPING.md), [EQUIPMENT_CATALOG_AUDIT.csv](Docs/Design/EQUIPMENT_CATALOG_AUDIT.csv).
+### Validation and remaining tuning
+
+Static catalog inspection confirms 66 unique asset references/IDs/GUIDs: 62 ordinary + three boss + Pixel Curse. Final development positions are 12/12/12/12 with zero pending; fourteen Shared modules remain outside the board. All fifty previous definitions retain ID, GUID, name, category, rarity, MaxLevel, LevelEffects and prerequisites. No production scene or prefab is edited; the existing authored four-tab, twelve-card board resolves final metadata through the catalog.
+
+Runtime and Editor/test static compilation passed. Unity asset-only authoring and localization validation executed successfully. Existing recipes are preserved where valid, including original 1/1 and 1/3 unlock recipes; newly promoted entries without a recipe and all new definitions use the documented provisional tier convention. Dedicated icons remain unassigned for all sixteen new items; the existing generic equipment fallback is intentional.
+
+Latest full EditMode result: 641 passed / 641 total; 0 failed.
+
+Fixed-seed diagnostic, 64 trials per fitted size, three choices, random selection, starting at Lv1 (Terminal Guidance conditional). Each trial continues to exhaustion. These are upgrade-only opportunities, not a forecast of natural run pacing. Exhausted/no-offer counts below are intentional final empty pools; premature empty = 0. The 6/12-item samples contain no Special item, so specialMax=0 means not applicable. Production weighting is unchanged.
+
+```text
+FINAL_REWARD count=6 trials=64 firstMax=3.59 thirdMax=7.81 specialMax=0.00 upgradeOffers=768/832 exhausted=64/832 prematureEmpty=0
+FINAL_REWARD count=12 trials=64 firstMax=4.84 thirdMax=9.64 specialMax=0.00 upgradeOffers=1536/1600 exhausted=64/1600 prematureEmpty=0
+FINAL_REWARD count=18 trials=64 firstMax=6.20 thirdMax=12.02 specialMax=26.13 upgradeOffers=2304/2368 exhausted=64/2368 prematureEmpty=0
+FINAL_REWARD count=24 trials=64 firstMax=6.23 thirdMax=12.42 specialMax=42.28 upgradeOffers=3127/3200 exhausted=64/3200 prematureEmpty=0
+```
+
+Actual 480×270 Play Mode smoke completed through Boot, Settlement manufacture/fitting, all four researched boards, three ship deployments, new equipment upgrades to MAX, real weapon firing/pooling, portal handoffs with depleted vitals, and return/relaunch Lv1 reset. This automated smoke is not natural-play balance validation.
+Unity exited 0; 263 smoke assertions passed and 23 screenshots were captured at 480×270. No captured runtime errors/assertions. The temporary harness and its meta were removed after execution.
+
+Human tuning remains: sustained-fire/heat rhythm; displacement and slug readability in crowds; charge-reserve feel alongside Semi-Auto and Dash Echo; late Special MAX pacing; long-run resource pricing; dedicated icons. Operating frames, new post-ending Curse systems, universal debuffs and final economy are intentionally absent.

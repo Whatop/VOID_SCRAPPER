@@ -51,6 +51,11 @@ public class TraitPickup : MonoBehaviour, IInteractable
     private float dismantleTimer;
     private Collider2D pickupCollider;
     private GameObject currentInteractor;
+    private bool nonRefundableDeploymentGrant;
+
+    public int DismantleRewardAmount => nonRefundableDeploymentGrant ? 0 : Mathf.Max(1, dismantleScrapReward);
+    public bool IsNonRefundableDeploymentGrant => nonRefundableDeploymentGrant;
+    public void SetDeploymentGrantProvenance(bool nonRefundable) => nonRefundableDeploymentGrant = nonRefundable;
 
     public TraitDefinition TraitDefinition => traitDefinition;
     public bool CanDismantle =>
@@ -217,6 +222,7 @@ public class TraitPickup : MonoBehaviour, IInteractable
     {
         CacheReferences();
 
+        nonRefundableDeploymentGrant = false; // Every pooled initialization replaces the prior item's provenance.
         traitDefinition = definition;
         pickupBlockSeconds = Mathf.Max(0f, blockSeconds);
         blockTimer = pickupBlockSeconds;
@@ -267,9 +273,10 @@ public class TraitPickup : MonoBehaviour, IInteractable
             return;
         }
 
-        if (!RunTraitAcquisitionService.TryAcquire(
+        if (!RunTraitAcquisitionService.TryAcquireFieldPickup(
                 traitDefinition,
                 playerObject,
+                nonRefundableDeploymentGrant,
                 out int previousLevel,
                 out int newLevel))
         {
@@ -280,6 +287,7 @@ public class TraitPickup : MonoBehaviour, IInteractable
         }
 
         AudioManager.PlayAt(SoundEventIds.TraitSelect, transform.position);
+
 
         ExpeditionHUD acquireHud = FindFirstObjectByType<ExpeditionHUD>();
         if (acquireHud != null)
@@ -408,8 +416,8 @@ public class TraitPickup : MonoBehaviour, IInteractable
             return;
         }
 
-        int amount = Mathf.Max(1, dismantleScrapReward);
-        ShopRunBridge.AddCurrency(dismantleCurrency, amount);
+        int amount = DismantleRewardAmount;
+        if (amount > 0) ShopRunBridge.AddCurrency(dismantleCurrency, amount);
 
         AudioManager.PlayAt(SoundEventIds.ReinforcementDrop, transform.position);
 

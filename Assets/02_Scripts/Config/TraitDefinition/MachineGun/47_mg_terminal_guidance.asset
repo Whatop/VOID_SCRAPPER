@@ -11,10 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
   m_Name: 47_mg_terminal_guidance
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   traitId: mg_terminal_guidance
-  displayName: "종말 유도"
-  description: "유도 제어를 완성해 기관총 탄환이 넓은 범위에서 적을 재탐색하고 끝까지 집요하게 추적합니다."
+  displayName: "\uC885\uB9D0 \uC720\uB3C4"
+  description: "\uC720\uB3C4 \uC81C\uC5B4\uB97C \uC644\uC131\uD55C \uB4A4 \uC885\uB9D0
+    \uCD94\uC801\uC744 \uD65C\uC131\uD654\uD558\uACE0 \uC720\uB3C4 \uC131\uB2A5\uC744
+    \uB354 \uB192\uC778\uB2E4."
   icon: {fileID: 0}
   rarity: 2
   category: 1
@@ -24,12 +26,30 @@ MonoBehaviour:
   statusPolarity: 0
   preventFieldDrop: 0
   preventDismantle: 0
-  maxLevel: 1
+  maxLevel: 3
   levelEffects:
   - level: 1
     effectType: 36
     value: 1
+  - level: 2
+    effectType: 14
+    value: 6
+  - level: 2
+    effectType: 15
+    value: 0.5
+  - level: 3
+    effectType: 14
+    value: 10
+  - level: 3
+    effectType: 15
+    value: 0.75
   isCapstone: 1
   prerequisites:
   - trait: {fileID: 11400000, guid: e889f59f8abf4ec3ba2a18b034ffa30e, type: 2}
     requiredLevel: 3
+  developmentRoster: 1
+  developmentResearchTier: 3
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: 3
+  manufacturingScrapCost: 52
+  manufacturingCoreCost: 2

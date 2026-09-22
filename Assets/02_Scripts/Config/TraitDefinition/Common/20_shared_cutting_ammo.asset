@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 20_shared_cutting_ammo
   m_EditorClassIdentifier: 
   traitId: shared_cutting_ammo
-  displayName: "절단 탄약"
-  description: "수확 오브젝트에 주는 피해와 기본 화력을 높인다."
+  displayName: "\uC808\uB2E8 \uD0C4\uC57D"
+  description: "\uC794\uD574 \uC808\uB2E8\uC744 \uBE60\uB974\uAC8C \uD558\uACE0 \uC77C\uBC18
+    \uC804\uD22C \uD654\uB825\uB3C4 \uC870\uAE08 \uBCF4\uAC15\uD55C\uB2E4."
   icon: {fileID: 21300000, guid: 04e2bb347222cd9f35a7b3fed7795dff, type: 3}
   rarity: 1
   category: 0
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -40,3 +45,11 @@ MonoBehaviour:
   - level: 3
     effectType: 0
     value: 3
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 2
+  developmentDisplayOrder: 2
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 32
+  manufacturingCoreCost: 1

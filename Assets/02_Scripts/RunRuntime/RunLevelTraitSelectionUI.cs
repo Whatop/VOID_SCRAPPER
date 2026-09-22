@@ -658,7 +658,18 @@ public static class TraitEffectTextUtility
                 builder.AppendLine();
             }
 
-            builder.Append(FormatEffect(effect.EffectType, effect.Value));
+            float displayValue = effect.Value;
+            if (IsStagedEquipmentEffect(effect.EffectType))
+            {
+                displayValue = 0f;
+                for (int j = 0; j < trait.LevelEffects.Count; j++)
+                {
+                    TraitLevelEffect step = trait.LevelEffects[j];
+                    if (step != null && step.EffectType == effect.EffectType && step.Level <= level)
+                        displayValue += step.Value;
+                }
+            }
+            builder.Append(FormatEffect(effect.EffectType, displayValue));
         }
 
         return builder.ToString();
@@ -671,27 +682,28 @@ public static class TraitEffectTextUtility
             TraitEffectType.DamagePercent => $"공격력 +{value:0.#}%",
             TraitEffectType.ProjectileSpeedPercent => $"탄속 +{value:0.#}%",
             TraitEffectType.RangePercent => $"사거리 +{value:0.#}%",
-            TraitEffectType.MoveSpeedPercent => $"이동속도 +{value:0.#}%",
+            TraitEffectType.MoveSpeedPercent => $"이동 속도 +{value:0.#}%",
             TraitEffectType.DashCooldownReduction => $"대쉬 쿨다운 -{Mathf.Abs(value):0.##}초",
             TraitEffectType.DashDistanceBonus => $"대쉬 거리 +{value:0.##}",
             TraitEffectType.MaxHpBonus => $"최대 체력 +{value:0.#}",
             TraitEffectType.HealEfficiencyPercent => $"회복 자원 효과 +{value:0.#}%",
             TraitEffectType.PickupRangeBonus => $"아이템 흡수 범위 +{value:0.##}",
-            TraitEffectType.SpreadReductionPercent => $"탄 퍼짐 -{Mathf.Abs(value):0.#}%",
+            TraitEffectType.SpreadReductionPercent => $"탄 퍼짐 감소 {Mathf.Abs(value):0.#}%",
             TraitEffectType.ProjectileCountBonus => $"탄 수 +{Mathf.RoundToInt(value)}",
             TraitEffectType.PierceCountBonus => $"관통 횟수 +{Mathf.RoundToInt(value)}",
-            TraitEffectType.ChargeTimeReductionPercent => $"차징 시간 -{Mathf.Abs(value):0.#}%",
+            // Runtime divides charge time by (1 + bonus), rather than subtracting this percentage of time.
+            TraitEffectType.ChargeTimeReductionPercent => $"차징 시간 -{100f * (1f - 1f / (1f + Mathf.Abs(value) * .01f)):0.#}%",
             TraitEffectType.ChargeDamagePercent => $"차징 피해 +{value:0.#}%",
             TraitEffectType.HomingAngleBonus => $"유도 각도 +{value:0.#}도",
             TraitEffectType.HomingRangeBonus => $"유도 거리 +{value:0.##}",
             TraitEffectType.FireRatePercent => $"연사력 +{value:0.#}%",
             TraitEffectType.CloseRangeDamageReductionPercent => $"근거리 피해 감소 +{value:0.#}%",
-            TraitEffectType.DashDamageReductionPercent => $"대쉬 후 피해 감소 +{value:0.#}%",
+            TraitEffectType.DashDamageReductionPercent => $"대쉬 완료 후 0.6초간 피해 감소 +{value:0.#}%p",
             TraitEffectType.CloseRangeSuppressionPercent => $"근거리 제압 효과 +{value:0.#}%",
-            TraitEffectType.ChargeSightBonusPercent => $"차징 중 시야 +{value:0.#}%",
-            TraitEffectType.ChargedProjectileSizePercent => $"차징탄 크기 +{value:0.#}%",
+            TraitEffectType.ChargeSightBonusPercent => $"정지 차징 조준 시야 보정 +{value:0.#}%p",
+            TraitEffectType.ChargedProjectileSizePercent => $"완충 탄 폭 +{value:0.#}%p",
             TraitEffectType.RemovePierceDamageFalloff => "관통 후 피해 감쇠 제거",
-            TraitEffectType.CargoCapacityBonus => $"적재 한도 +{value:0.#}",
+            TraitEffectType.CargoCapacityBonus => $"적재량 +{value:0.#}",
             TraitEffectType.HarvestYieldPercent => $"수확량 +{value:0.#}%",
             TraitEffectType.HarvestObjectDamagePercent => $"수확 오브젝트 피해 +{value:0.#}%",
             TraitEffectType.EmergencyReturnCapacityRatioBonus => $"긴급복귀 보존 한도 +{value:0.#}%p",
@@ -699,13 +711,29 @@ public static class TraitEffectTextUtility
             TraitEffectType.ActiveCooldownReductionPercent => $"액티브 쿨다운 -{Mathf.Abs(value):0.#}%",
             TraitEffectType.RadarTauntDurationBonus => $"도발 지속시간 +{value:0.#}초",
             TraitEffectType.RadarStealthDurationBonus => $"은밀 표식 유지 +{value:0.#}초",
+            TraitEffectType.SectorBarrierProtocol => $"구획 방벽 프로토콜 {Mathf.RoundToInt(value)}단계",
+            TraitEffectType.MatterReconstructorProtocol => $"물질 재구성 프로토콜 {Mathf.RoundToInt(value)}단계",
+            TraitEffectType.PhaseAfterimageProtocol => $"위상 잔상 프로토콜 {Mathf.RoundToInt(value)}단계",
             TraitEffectType.SniperSemiAutoMode => "짧은 클릭으로 세미오토 레이저 발사",
             TraitEffectType.ShotgunCloseRangeDamagePercent => $"샷건 초근거리 피해 최대 +{value:0.#}%",
             TraitEffectType.MachineGunTerminalGuidance => "기관총 종말 유도 활성화",
             TraitEffectType.PeriodicReflectiveShield => $"반사 방벽 재충전 {value:0.#}초",
             TraitEffectType.MachineGunDashMissileSalvo => "대쉬 시 추격 미사일 3발 사출",
             TraitEffectType.SniperDashEchoShot => "대쉬 위치에서 다음 저격 사격을 40% 위력으로 복제",
-            _ => $"{effectType} {value:0.##}"
+            TraitEffectType.MachineGunCoolingRatePercent => $"기관총 방열 속도 +{value:0.#}%p",
+            TraitEffectType.MachineGunCoolingDelayReduction => $"방열 시작 대기 -{value:0.##}초",
+            TraitEffectType.MachineGunTargetDistribution => value < 2 ? "조준 방향 6도 내 표적 교대" : value < 3 ? "표적 교대 각도 9도" : "12도 내 최근 두 표적을 피해 교대",
+            TraitEffectType.MachineGunTwinFeed => value < 2 ? "기관총 탄 퍼짐 6% 감소" : value < 3 ? "4회 연속 사격 후 탄 퍼짐 14% 감소" : "6회 연속 사격마다 빠른 후속탄 · 연속 탄 퍼짐 18% 감소",
+            TraitEffectType.ShotgunImpactDisplacement => $"중앙탄 첫 적중 밀어내기 +{value:0.##}",
+            TraitEffectType.ShotgunSlugCoupler => value < 2 ? "중앙 펠릿 2발을 관통 단일탄으로 결합" : value < 3 ? "결합탄 탄속 15% 증가" : "결합탄 관통 +2 · 탄속 20% · 사거리 10% 증가",
+            TraitEffectType.ShotgunBreachSequence => value < 2 ? "대쉬 후 0.8초 내 첫 사격의 후속 대기 25% 감소" : value < 3 ? "돌입 사격 기회 1.25초" : "돌입 사격 후속 대기 40% 감소",
+            TraitEffectType.SniperMovingChargeBonus => $"이동 차징 속도 보정 +{value:0.#}%p",
+            TraitEffectType.SniperReserveCapacitor => $"완충 사격 후 다음 차징 예비량 +{value:0.#}%p · 연속 재충전 불가",
+            _ => "효과 정보 없음"
         };
     }
+
+    private static bool IsStagedEquipmentEffect(TraitEffectType effect) =>
+        effect == TraitEffectType.MachineGunTargetDistribution || effect == TraitEffectType.MachineGunTwinFeed ||
+        effect == TraitEffectType.ShotgunSlugCoupler || effect == TraitEffectType.ShotgunBreachSequence;
 }

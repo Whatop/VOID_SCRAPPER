@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 25_shared_standard_upgrade
   m_EditorClassIdentifier: 
   traitId: shared_standard_upgrade
-  displayName: "표준 개수 키트"
-  description: "공격과 생존을 균형 있게 올린다."
+  displayName: "\uD45C\uC900 \uAC1C\uC218 \uD0A4\uD2B8"
+  description: "\uACF5\uACA9\uB825\uACFC \uCD5C\uB300 \uCCB4\uB825\uC744 \uC870\uAE08\uC529
+    \uBCF4\uAC15\uD558\uB294 \uADE0\uD615\uD615 \uBAA8\uB4C8."
   icon: {fileID: 21300000, guid: c044efc6a141796e0807517c2c4c2911, type: 3}
   rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -40,3 +45,11 @@ MonoBehaviour:
   - level: 3
     effectType: 6
     value: 1
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 0
+  developmentResearchTier: 0
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 0
+  manufacturingCoreCost: 0

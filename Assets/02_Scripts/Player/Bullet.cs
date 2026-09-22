@@ -47,7 +47,7 @@ public readonly struct BulletReflectionSnapshot
 }
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class Bullet : MonoBehaviour
+public partial class Bullet : MonoBehaviour
 {
     [Header("Fallback Projectile Settings")]
     [SerializeField] private float fallbackSpeed = 12f;
@@ -274,6 +274,7 @@ public class Bullet : MonoBehaviour
 
     private void OnDisable()
     {
+        ResetEquipmentProjectileState();
         damagedTargets.Clear();
         homingTarget = null;
         RestoreProjectilePresentation();
@@ -388,6 +389,7 @@ public class Bullet : MonoBehaviour
         GameObject projectileSource = null,
         float pierceDamageRetentionOverride = -1f)
     {
+        ResetEquipmentProjectileState();
         owner = projectileOwner;
         reflectionClaimed = false;
         sourceRoot = projectileSource != null ? projectileSource.transform : null;
@@ -705,6 +707,7 @@ public class Bullet : MonoBehaviour
 
     private void ResetRuntimeState()
     {
+        ResetEquipmentProjectileState();
         moveDirection = Vector2.zero;
         spawnPosition = transform.position;
 
@@ -1817,7 +1820,10 @@ public class Bullet : MonoBehaviour
         }
 
         damagedTargets.Add(targetId);
+        EnemyHealth impactEnemy = targetComponent as EnemyHealth;
+        float impactEnemyHp = impactEnemy != null ? impactEnemy.CurrentHp : 0f;
         damageAction.Invoke(damage * Mathf.Max(0f, damageMultiplier));
+        ApplyEquipmentImpact(impactEnemy, impactEnemyHp);
         SpawnImpactEffect(impactScaleMultiplier);
 
         if (remainingPierceCount > 0)

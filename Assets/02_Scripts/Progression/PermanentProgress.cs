@@ -187,6 +187,7 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
         totalCommittedCoreShards = Mathf.Max(0, saveData.totalCommittedCoreShards);
         totalCommittedStabilizedAlloy = Mathf.Max(0, saveData.totalCommittedStabilizedAlloy);
         lastSelectedWeaponTree = saveData.lastSelectedWeaponTree;
+        selectedOperatingFrame = OperatingFrameProfile.Normalize(saveData.selectedOperatingFrame);
         selectedShipId = string.IsNullOrWhiteSpace(saveData.selectedShipId) ? "basic_ship" : saveData.selectedShipId;
 
         buildingLevels.Clear();
@@ -267,8 +268,7 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
         settlementDefenseCleared = saveData.settlementDefenseCleared;
         finalBossDefeated = saveData.finalBossDefeated;
 
-        equipmentLoadoutTraitIds = saveData.equipmentLoadoutTraitIds != null
-            ? new List<string>(saveData.equipmentLoadoutTraitIds) : new List<string>();
+        LoadEquipmentOwnership(saveData);
         RestoreCampaignProgressFromLegacyFlags();
         // Existing assembled saves already completed the old combined analysis/restoration handoff.
         if (HasAllRouteCoreParts && routeCoreState >= RouteCoreState.Assembled)
@@ -301,6 +301,7 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
             totalCommittedCoreShards = totalCommittedCoreShards,
             totalCommittedStabilizedAlloy = totalCommittedStabilizedAlloy,
             lastSelectedWeaponTree = lastSelectedWeaponTree,
+            selectedOperatingFrame = SelectedOperatingFrame,
             selectedShipId = SelectedShipId,
             highestUnlockedDepth = highestUnlockedDepth,
             routeCoreState = ResolveRouteCoreState(),
@@ -341,6 +342,10 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
         }
 
         saveData.equipmentLoadoutTraitIds.AddRange(equipmentLoadoutTraitIds);
+        saveData.manufacturedEquipmentIds.AddRange(manufacturedEquipmentIds);
+        saveData.equipmentOwnershipMigrationPending = equipmentOwnershipMigrationPending;
+        saveData.grandfatheredEquipmentResearchIds.AddRange(grandfatheredEquipmentResearchIds);
+        saveData.equipmentRosterMigrationPending = equipmentRosterMigrationPending;
         saveData.unlockFlags.AddRange(unlockFlags);
         saveData.defeatedCampaignBosses.AddRange(defeatedCampaignBosses);
         saveData.acquiredBossStoryParts.AddRange(acquiredBossStoryParts);
@@ -366,9 +371,14 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
         totalCommittedCoreShards = 0;
         totalCommittedStabilizedAlloy = 0;
         lastSelectedWeaponTree = WeaponTreeType.MachineGun;
+        selectedOperatingFrame = OperatingFrameType.Standard;
         selectedShipId = "basic_ship";
 
         equipmentLoadoutTraitIds.Clear();
+        manufacturedEquipmentIds.Clear();
+        equipmentOwnershipMigrationPending = false;
+        grandfatheredEquipmentResearchIds.Clear();
+        equipmentRosterMigrationPending = false;
         buildingLevels.Clear();
         traitLevels.Clear();
         sectorTechnologyLevels.Clear();
@@ -394,7 +404,6 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
         }
 
         lastSelectedWeaponTree = weaponTreeType;
-        ValidateEquipmentLoadout();
         Changed?.Invoke();
     }
 

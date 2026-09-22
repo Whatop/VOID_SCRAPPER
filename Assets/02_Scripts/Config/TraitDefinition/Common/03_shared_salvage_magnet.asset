@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 03_shared_salvage_magnet
   m_EditorClassIdentifier: 
   traitId: shared_salvage_magnet
-  displayName: "회수 자석"
-  description: "드랍된 자원 흡수 범위를 넓힌다."
+  displayName: "\uD68C\uC218 \uC790\uC11D"
+  description: "\uD769\uC5B4\uC9C4 \uC790\uC6D0\uC744 \uBA40\uB9AC\uC11C \uB04C\uC5B4\uB2F9\uACA8
+    \uD68C\uC218 \uB3D9\uC120\uC744 \uC904\uC778\uB2E4."
   icon: {fileID: 21300000, guid: 418521fe25047bb2e0e90e34bda87cd1, type: 3}
   rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -31,3 +36,11 @@ MonoBehaviour:
   - level: 3
     effectType: 8
     value: 1.2
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 0
+  developmentDisplayOrder: 1
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 10
+  manufacturingCoreCost: 0

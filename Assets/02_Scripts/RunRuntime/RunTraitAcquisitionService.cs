@@ -66,6 +66,15 @@ public static class RunTraitAcquisitionService
         );
     }
 
+    public static bool TryAcquireFieldPickup(TraitDefinition trait, GameObject playerObject, bool nonRefundableDeploymentGrant,
+        out int previousLevel, out int newLevel)
+    {
+        if (!TryAcquire(trait, playerObject, out previousLevel, out newLevel)) return false;
+        if (nonRefundableDeploymentGrant && !trait.IsPersistentStoryTrait)
+            RunRuntimeTraitStore.Instance.MarkLevelNonRefundable(trait.TraitId, newLevel);
+        return true;
+    }
+
     public static bool TryAcquireForDebug(
         TraitDefinition trait,
         GameObject playerObject,

@@ -13,21 +13,26 @@ MonoBehaviour:
   m_Name: 27_mg_guidance_control
   m_EditorClassIdentifier: 
   traitId: mg_guidance_control
-  displayName: "유도 제어"
-  description: "기관총 탄환의 유도 각도와 유도 거리를 늘린다."
+  displayName: "\uC720\uB3C4 \uC81C\uC5B4"
+  description: "\uC720\uB3C4 \uAC01\uB3C4\uC640 \uD0D0\uC0C9 \uAC70\uB9AC\uB97C \uB113\uD600
+    \uC6C0\uC9C1\uC774\uB294 \uBAA9\uD45C\uB97C \uCD94\uC801\uD55C\uB2E4."
   icon: {fileID: 21300000, guid: f3e9a0631c8c4d2831663d8cdbd191a4, type: 3}
   rarity: 1
   category: 1
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
     effectType: 14
-    value: 8
+    value: 6
   - level: 1
     effectType: 15
-    value: 1.5
+    value: 1
   - level: 2
     effectType: 14
     value: 8
@@ -36,7 +41,15 @@ MonoBehaviour:
     value: 1.5
   - level: 3
     effectType: 14
-    value: 8
+    value: 10
   - level: 3
     effectType: 15
-    value: 1.5
+    value: 2
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 0
+  developmentDisplayOrder: 1
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 14
+  manufacturingCoreCost: 0

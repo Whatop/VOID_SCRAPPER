@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 17_shared_active_cooler
   m_EditorClassIdentifier: 
   traitId: shared_active_cooler
-  displayName: "액티브 냉각기"
-  description: "액티브 Reinforcement의 충전 대기시간을 줄인다."
+  displayName: "\uC561\uD2F0\uBE0C \uB0C9\uAC01\uAE30"
+  description: "\uB9AC\uC778\uD3EC\uC2A4\uBA3C\uD2B8 \uC7AC\uCDA9\uC804 \uC2DC\uAC04\uC744
+    \uC904\uC5EC \uC804\uC220 \uC7A5\uBE44\uB97C \uC790\uC8FC \uC0AC\uC6A9\uD55C\uB2E4."
   icon: {fileID: 21300000, guid: fd40911f4f3c1e4a768591b64efb42af, type: 3}
   rarity: 1
   category: 0
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -31,3 +36,11 @@ MonoBehaviour:
   - level: 3
     effectType: 28
     value: 8
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 3
+  developmentDisplayOrder: 1
+  previousDevelopmentResearchTier: 3
+  manufacturingScrapCost: 46
+  manufacturingCoreCost: 1

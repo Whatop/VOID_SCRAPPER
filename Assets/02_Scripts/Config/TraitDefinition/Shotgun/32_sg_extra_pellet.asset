@@ -13,15 +13,34 @@ MonoBehaviour:
   m_Name: 32_sg_extra_pellet
   m_EditorClassIdentifier: 
   traitId: sg_extra_pellet
-  displayName: "추가 펠릿"
-  description: "샷건 발사체 수를 늘린다."
+  displayName: "\uCD94\uAC00 \uD3A0\uB9BF"
+  description: "\uC0B0\uD0C4\uC744 \uCD94\uAC00\uD55C\uB2E4. \uC774\uD6C4 \uAC15\uD654\uB294
+    \uB298\uC5B4\uB09C \uC0B0\uD0C4\uC758 \uD37C\uC9D0\uC744 \uC815\uB3C8\uD55C\uB2E4."
   icon: {fileID: 21300000, guid: 6f77279e5b9417bec4eb2b264232ab54, type: 3}
   rarity: 2
   category: 1
   weaponTreeType: 0
   shopItemType: 0
-  maxLevel: 1
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
+  maxLevel: 3
   levelEffects:
   - level: 1
     effectType: 10
     value: 1
+  - level: 2
+    effectType: 9
+    value: 4
+  - level: 3
+    effectType: 9
+    value: 6
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 0
+  developmentDisplayOrder: 1
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 14
+  manufacturingCoreCost: 0

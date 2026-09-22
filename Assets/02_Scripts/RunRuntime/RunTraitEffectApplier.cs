@@ -147,7 +147,14 @@ public class RunTraitEffectApplier : MonoBehaviour
                 continue;
             }
 
-            RemoveEffect(effect.EffectType, effect.Value);
+            if (effect.EffectType == TraitEffectType.PeriodicReflectiveShield && level > 1)
+            {
+                // Recharge is a same-source setting, not an additive bonus. Restore the preceding level.
+                foreach (TraitLevelEffect prior in trait.LevelEffects)
+                    if (prior != null && prior.Level == level - 1 && prior.EffectType == effect.EffectType)
+                        ApplyEffect(prior.EffectType, prior.Value);
+            }
+            else RemoveEffect(effect.EffectType, effect.Value);
         }
 
         if (logAppliedTraits)
@@ -158,6 +165,7 @@ public class RunTraitEffectApplier : MonoBehaviour
 
     private void ApplyEffect(TraitEffectType effectType, float value)
     {
+        if (weaponModifiers != null && weaponModifiers.TryApplyDevelopmentEffect(effectType, value)) return;
         switch (effectType)
         {
             case TraitEffectType.DamagePercent:
@@ -396,6 +404,7 @@ public class RunTraitEffectApplier : MonoBehaviour
 
     private void RemoveEffect(TraitEffectType effectType, float value)
     {
+        if (weaponModifiers != null && weaponModifiers.TryApplyDevelopmentEffect(effectType, -value)) return;
         switch (effectType)
         {
             case TraitEffectType.DamagePercent:

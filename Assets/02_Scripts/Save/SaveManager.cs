@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 5;
+    private const int CurrentSaveVersion = 7;
 
     public static SaveManager Instance { get; private set; }
 
@@ -233,7 +233,8 @@ public class SaveManager : MonoBehaviour
             return true;
         }
 
-        return HasValues(saveData.disabledPermanentTraitIds) ||
+        return HasValues(saveData.manufacturedEquipmentIds) || HasValues(saveData.equipmentLoadoutTraitIds) ||
+               HasValues(saveData.disabledPermanentTraitIds) ||
                HasValues(saveData.unlockFlags) ||
                HasValues(saveData.defeatedCampaignBosses) ||
                HasValues(saveData.acquiredBossStoryParts);
@@ -447,6 +448,18 @@ public class SaveManager : MonoBehaviour
                     saveData.version = 5;
                     break;
 
+                case 5:
+                    // Catalog identity is resolved by PermanentProgress after load, not by the file layer.
+                    saveData.manufacturedEquipmentIds ??= new List<string>();
+                    saveData.equipmentOwnershipMigrationPending = true;
+                    saveData.version = 6;
+                    break;
+                case 6:
+                    saveData.grandfatheredEquipmentResearchIds ??= new List<string>();
+                    saveData.equipmentRosterMigrationPending = true;
+                    saveData.version = 7;
+                    break;
+
                 default:
                     error = $"no migration exists for save version {saveData.version}";
                     return false;
@@ -489,8 +502,11 @@ public class SaveManager : MonoBehaviour
     private void SanitizeSaveData(SaveData saveData)
     {
         saveData.version = CurrentSaveVersion;
-        // ID/catalog/capacity validation belongs to PermanentProgress after campaign migration.
-        saveData.equipmentLoadoutTraitIds ??= new List<string>();
+        saveData.selectedOperatingFrame = OperatingFrameProfile.Normalize(saveData.selectedOperatingFrame);
+        // Preserve cross-branch preferences and unknown IDs; progression validates usable definitions.
+        saveData.equipmentLoadoutTraitIds = NormalizeUniqueStrings(saveData.equipmentLoadoutTraitIds);
+        saveData.manufacturedEquipmentIds = NormalizeUniqueStrings(saveData.manufacturedEquipmentIds);
+        saveData.grandfatheredEquipmentResearchIds = NormalizeUniqueStrings(saveData.grandfatheredEquipmentResearchIds);
         saveData.scrapParts = Mathf.Max(0, saveData.scrapParts);
         saveData.coreShards = Mathf.Max(0, saveData.coreShards);
         saveData.stabilizedAlloy = Mathf.Max(0, saveData.stabilizedAlloy);

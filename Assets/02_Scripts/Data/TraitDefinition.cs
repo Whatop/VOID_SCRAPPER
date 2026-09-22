@@ -94,7 +94,18 @@ public enum TraitEffectType
     MachineGunDashMissileSalvo,
 
     // Sniper dash-triggered high-tier mechanic. Appended to preserve serialized enum values.
-    SniperDashEchoShot
+    SniperDashEchoShot,
+
+    // Final development roster. Append only: existing serialized values are stable.
+    MachineGunCoolingRatePercent,
+    MachineGunCoolingDelayReduction,
+    MachineGunTargetDistribution,
+    MachineGunTwinFeed,
+    ShotgunImpactDisplacement,
+    ShotgunSlugCoupler,
+    ShotgunBreachSequence,
+    SniperMovingChargeBonus,
+    SniperReserveCapacitor
 }
 
 [Serializable]
@@ -158,6 +169,30 @@ public class TraitDefinition : ScriptableObject
     [Header("Evolution")]
     [SerializeField] private bool isCapstone;
     [SerializeField] private List<TraitPrerequisite> prerequisites = new List<TraitPrerequisite>();
+
+    [Header("Settlement Development Blueprint")]
+    [SerializeField] private bool developmentRoster;
+    [SerializeField] private int developmentResearchTier = -1;
+    [SerializeField] private int developmentDisplayOrder;
+    [SerializeField] private int previousDevelopmentResearchTier = -1;
+    [SerializeField] private int manufacturingScrapCost;
+    [SerializeField] private int manufacturingCoreCost;
+
+    // Reuse the stable category/weapon identity; branch placement never comes from scene order.
+    public ShipTraitBranchKind DevelopmentBranch => category == TraitCategory.Shared ? ShipTraitBranchKind.Shared :
+        weaponTreeType == WeaponTreeType.MachineGun ? ShipTraitBranchKind.MachineGun :
+        weaponTreeType == WeaponTreeType.Shotgun ? ShipTraitBranchKind.Shotgun : ShipTraitBranchKind.Sniper;
+    public bool IsDevelopmentRoster => developmentRoster;
+    public int DevelopmentResearchTier => developmentResearchTier;
+    public int DevelopmentDisplayOrder => developmentDisplayOrder;
+    public int PreviousDevelopmentResearchTier => previousDevelopmentResearchTier;
+    public int ManufacturingScrapCost => manufacturingScrapCost;
+    public int ManufacturingCoreCost => manufacturingCoreCost;
+    public bool HasValidDevelopmentMetadata => CanAppearAsRandomDropTrait && developmentResearchTier >= 0 &&
+        developmentResearchTier <= 3 && developmentDisplayOrder >= 0 && developmentDisplayOrder < 3;
+    public bool HasValidManufacturingRecipe => manufacturingScrapCost >= 0 && manufacturingCoreCost >= 0 &&
+        ((long)manufacturingScrapCost + manufacturingCoreCost) > 0;
+    public bool HasRuntimePrerequisites => prerequisites != null && prerequisites.Count > 0;
 
     public string TraitId => string.IsNullOrWhiteSpace(traitId) ? name : traitId;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? TraitId : displayName;

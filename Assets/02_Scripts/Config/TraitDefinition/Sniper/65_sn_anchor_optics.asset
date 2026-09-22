@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
+  m_Name: 65_sn_anchor_optics
+  m_EditorClassIdentifier: 
+  traitId: sn_anchor_optics
+  displayName: "\uC815\uC704 \uC870\uC900\uACBD"
+  description: "\uCC28\uC9D5 \uC911 \uC870\uC900 \uBC29\uD5A5\uC758 \uCE74\uBA54\uB77C
+    \uC2DC\uC57C\uB97C \uD655\uC7A5\uD569\uB2C8\uB2E4. \uD0D0\uC9C0 \uBC94\uC704\uB294
+    \uBC14\uB00C\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  rarity: 1
+  category: 1
+  weaponTreeType: 1
+  shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
+  maxLevel: 3
+  levelEffects:
+  - level: 1
+    effectType: 20
+    value: 10
+  - level: 2
+    effectType: 20
+    value: 10
+  - level: 3
+    effectType: 20
+    value: 15
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 2
+  developmentDisplayOrder: 2
+  previousDevelopmentResearchTier: -1
+  manufacturingScrapCost: 32
+  manufacturingCoreCost: 1

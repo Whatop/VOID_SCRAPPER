@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PlayerWeaponModifiers : MonoBehaviour
+public partial class PlayerWeaponModifiers : MonoBehaviour
 {
     [Header("Runtime Multipliers")]
     [SerializeField] private float damageMultiplier = 1f;
@@ -47,6 +47,7 @@ public class PlayerWeaponModifiers : MonoBehaviour
 
     public void ResetModifiers()
     {
+        ResetDevelopmentEquipment();
         damageMultiplier = 1f;
         projectileSpeedMultiplier = 1f;
         rangeMultiplier = 1f;

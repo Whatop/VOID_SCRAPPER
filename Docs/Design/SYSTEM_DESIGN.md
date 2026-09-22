@@ -1,43 +1,130 @@
 # VOID SCRAPPER System Design
 
-## Equipment Development inspection and preparation (2026-09-21)
+## Equipment manufacturing economy (2026-09-23)
 
-Settlement researches, inspects and prepares equipment. Expeditions acquire, upgrade
-and max out equipment through RunRuntimeTraitStore and RunTraitAcquisitionService.
-Prepared IDs remain a persistent candidate pool, not granted levels. Legacy permanent
-ordinary levels remain save-compatible but neither apply run effects nor have a
-Settlement purchase action. Persistent story traits retain their separate authority.
+The 48 manufacturing recipes are finalized in TraitDefinition metadata; UI and transactions read that one source. See EQUIPMENT_ECONOMY.md for all prices and the production-map estimate. Row1 10-14 Scrap/0 Core; Row2 18-24/0-1; Row3 28-36/0-1; Row4 44-54/0-2. No world reward, combat effect, rarity or Operating Frame changes.
 
-ShipTraitTreePanel's authored Equipment Development view separates catalog inspection
-from free Activate/Deactivate. Activation fills an empty unlocked slot; a full pool
-never silently replaces another item. Deactivation only removes the prepared ID.
-The active run keeps its captured pool. Selected is yellow and hover/focus is blue.
-The compact capacity count allows empty slots in the existing four-by-three layout.
+The initial six cost 74 Scrap. PermanentProgress grants 86 Scrap/0 Core once after Tutorial and natural first Settlement introduction completion. Resource addition and equipment_starter_materials_granted receipt use the existing save-first transaction; Settlement entry recovers old eligible/failed-save states. Panel opening never grants it. Existing Settlement notification appears only after a successful durable grant. No automatic manufacture/fitting, new save version or manager.
 
-The detail area has an icon/name, small compatibility tag, starts-unowned/MaxLv label,
-description, scrollable authored growth rows, candidate status and one activation
-button. Each visible row uses TraitEffectTextUtility.BuildEffectText for that exact
-level. RunTraitEffectApplier applies entries incrementally at each acquisition,
-including when reconstructing stored levels. Rows explicitly describe added effects;
-they do not invent cumulative totals for multiplicative, capped or mechanical effects.
-Only actual LevelEffects appear. Mechanical entries use the same formatter as run
-rewards. The installer authors reusable rows to the catalog maximum; runtime creates
-no UI hierarchy. Missing rows fail authored-reference validation.
+Settlement cost rows are authored with existing currency sprites, cost/current funds, insufficient state and hidden zero/owned prices. Research/ship gates, free unlimited fitting, Lv1 deployment, conditional evolutions and run-level reset are unchanged.
 
-Equipment for a research-locked ship remains inspectable, with its actual component
-analysis/ship unlock condition replacing growth rows and activation. An unlocked but
-incompatible record asks the player to select its ship. No price is shown: preparation
-is free, and this pass adds no research economy, debuffs or balance changes.
+Baseline Normal safe income is about 33 Scrap/1.2 Core in Region1, 34/2.3 for first Region2 (repeat about 34/1.3), and 34/1.3 on repeat Region3. First Region3 is a sparse boss map, about 4 Scrap/0 Core; it is not treated as a farming route. Models include actual cargo and loss policies, not full-map collection. Baseline Heavy advantage is small, with no hidden reward penalty; frame values remain provisional. The 60-80% ownership target assumes optional return trips, not only three boss clears. Natural trip count, facility competition and Core droughts remain human balance questions.
 
-Capacity remains 3/6/9/12. The first two analyzed components use saved DeepZone1 and
-DeepZone2 authorization. The third uses campaign_phase_navigation_lens_analyzed in
-PermanentProgress's existing unlock flag store, committed by SettlementController's
-natural analysis completion/save transaction. Merely recovering the third part grants
-no row; successful analysis grants 12 while the Core remains ReadyToAssemble.
-Assembly, activation, defense and final launch stay under their existing authorities.
-Old assembled saves migrate that analysis flag to preserve valid last-row selections.
-F10 appends preset 11 for third analysis before assembly, preserves preset indices
-0-10, and clears the flag on backward checkpoint replacement.
+## Operating Frames ? separate pre-run archetypes (2026-09-22)
+
+PermanentProgress owns a free, mutually exclusive Lightweight / Standard / Heavy preference; SaveData persists it.
+Standard is enum zero, so absent pre-frame fields default safely without changing save version 7 or repeating equipment migration.
+Invalid saved values normalize to Standard. Selection uses the existing save-first equipment transaction policy in safe Settlement state.
+It never changes manufacturing, fitting, resources, research or equipment levels.
+
+RunContext.Begin snapshots the chosen frame and the count of its already-resolved immutable ordinary equipment IDs.
+Count includes effective Shared, matching ship equipment, valid legacy ownership and fitted conditional evolutions;
+it excludes story/boss traits, Reinforcement, other ship branches, unfitted and research-locked equipment.
+The count does not change on upgrades, dismantling, conditional activation or portal travel. More than 24 legacy-compatible modules
+remain legal: only the profile band saturates. The 48 blueprint positions and unrestricted fitting are unchanged.
+
+All values below are provisional. Multipliers compose through existing modifier owners; flat HP/cargo/distance contributions add.
+
+| Fitted ordinary count | Lightweight move / dash cooldown / distance | Lightweight HP / cargo | Heavy HP / cargo | Heavy move / dash cooldown |
+|---|---|---|---|---|
+| 0?6 | +12% / -15% / +0.60 | -3 / -20 | +2 / +10 | -10% / +15% |
+| 7?12 | +8% / -10% / +0.40 | -3 / -20 | +4 / +20 | -10% / +15% |
+| 13?18 | +4% / -5% / +0.20 | -3 / -20 | +6 / +30 | -10% / +15% |
+| 19+ | none | -3 / -20 | +8 / +40 | -10% / +15% |
+
+Standard always grants damage +5%, harvest yield +5% and cargo +10. It has no count tier or penalty.
+OperatingFrameProfile is a fixed value resolver, not a Trait, asset catalog, manager, manufacturing item or reward candidate.
+
+PlayerRuntimeStatApplier resets/rebuilds base ship modifiers, applies the immutable frame, then existing technology/story effects.
+ExpeditionBootstrap retains reinforcement restoration, region modifiers, current RunRuntimeTraitStore effects and final carried-vital restoration.
+Frame movement and dash cooldown use the applier as their external source; replacement/disable removes only that source.
+HP/cargo/distance use the existing stat commit path; damage and harvest use PlayerWeaponModifiers/PlayerRuntimeBonusState.
+Portal reconstruction rebuilds once on the new player without granting levels or refilling depleted HP/Armor/active charges.
+Cargo capacity changes do not discard the wallet; existing overload movement/dash penalties remain independent.
+
+Settlement has three authored frame controls above the four equipment branch tabs. Blue hover/focus and yellow selection are retained.
+The existing detail pane displays current compatible fitted count, projected band (except Standard), bonuses and penalties.
+The existing inventory/build header opens an authored read-only frame detail panel; it uses the run snapshot, never the Settlement preview.
+Tutorial inherits the shared inventory prefab; Expedition currently has an unpacked copy, so both bindings are validated.
+F10's existing campaign section reports the projected frame, and checkpoint replacement preserves preference.
+
+No dash charges, starting armor bonus, post-ending Curse system, universal equipment debuffs or economy changes are included.
+Possible follow-up: review a small Heavy armor contribution only if its existing source/reconstruction contract remains safe.
+Natural-play tuning remains necessary, particularly Heavy plus overload slowdown, large-pool Lightweight usefulness,
+and Standard harvest/damage stacking with equipment. No combat values were auto-rebalanced from diagnostics.
+
+## Equipment Development correction — research, manufacture, fit, deploy (2026-09-21)
+
+This contract supersedes global 3/6/9/12 loadout capacity and ordinary Lv0 preparation.
+Settlement researches, inspects, manufactures once and freely fits equipment. Expeditions deploy ordinary fitted equipment at Lv1,
+then upgrade through the existing runtime store/acquisition/effect owners. There is no Settlement equipment Upgrade action.
+
+| Completed analysis | Shared positions | Sweeper positions | Breacher positions | Lancer positions |
+|---|---:|---:|---:|---:|
+| None | 3 | 3 | locked | locked |
+| First | 6 | 6 | 6 | locked |
+| Second | 9 | 9 | 9 | 9 |
+| Third | 12 | 12 | 12 | 12 |
+
+PermanentProgress.AnalyzedEquipmentComponentCount retains completed Settlement analysis authority: first/second part plus
+DeepZone1/DeepZone2 authorization; third uses campaign_phase_navigation_lens_analyzed. Raw part possession, optional facilities,
+tab inspection and crafting never complete analysis. Third analysis opens every final row before Route Core assembly.
+Existing ship definitions/unlock flags retain Sweeper default, Breacher first-analysis and Lancer second-analysis availability.
+
+TraitDefinition stores explicit development participation, tier, position and one-time recipe. See the
+[provisional mapping](EQUIPMENT_DEVELOPMENT_MAPPING.md) and [per-item audit](EQUIPMENT_CATALOG_AUDIT.csv).
+Only 32 of 48 branch positions are implemented; 16 say Development pending. Fourteen surplus Shared definitions remain visible to prior owners.
+
+PermanentProgress owns manufactured IDs and fitted preferences independently. Its manufacturing transaction validates research,
+ship prerequisites, recipe, funds and safe Settlement state, saves a deducted snapshot through SaveManager, and commits memory only
+after successful atomic save. Repeated requests cannot charge twice; failures change neither resources nor ownership. Manufacturing does not fit.
+Fit/unfit costs nothing and keeps ownership. Ship changes preserve all branches' preferences. Effective deployment is enabled Shared
+plus enabled compatible ship equipment; no global twelve-item cap, mandatory fill count or capacity penalty exists.
+
+The authored ShipTraitTreePanel retains four branch tabs, twelve blueprint cards, dynamic effect rows and existing sidebar/launch bindings.
+Tabs inspect content without selecting the actual ship. Locked content shows analysis requirements; pending positions are inert.
+Researched blueprints show one-time costs and insufficient funds; owned content shows Fit/Unfit and a separate green fitted marker.
+Selection remains yellow, hover/focus blue. Counts describe Shared + current ship + total, never used/maximum sockets.
+Per-level text still reads authoritative incremental LevelEffects through TraitEffectTextUtility; no combat data is duplicated in UI.
+
+RunContext snapshots effective IDs at accepted new-run creation. After RunStarted clears the runtime store, InitializeDeployment
+seeds each ordinary non-conditional item exactly once at Lv1 for that run. ExpeditionBootstrap initializes base/ship/story stats,
+restores active equipment, applies region effects and reconstructs stored trait levels once per player; carried HP/Armor restores last.
+Portal travel retains the same context, later upgrades and depleted vitals/active charges. It neither reseeds discarded traits nor reads live fitting.
+Normal RunEnded and explicit abandon clear runtime levels/provenance, not manufacturing or preferences. The next new run starts at Lv1 again.
+
+Terminal Guidance remains conditional until Guidance Lv3 and normal acquisition; the UI explains the exception and missing prepared prerequisites.
+Rewards, shops, containers and tuning retain immutable-run filtering, compatibility, prerequisites and MaxLevel checks. Empty/maxed pools do not
+reopen the master catalog. Field drops carry non-refundable deployment-level provenance through pickup/re-pick, while earned upgrades retain refunds.
+Removing a higher reflector level restores its remaining same-source recharge setting rather than disabling the retained lower level.
+
+Save version 6 migrates once: valid old fitted IDs and demonstrably purchased ordinary legacy levels become manufactured, with no retroactive charge
+or permanent runtime bonus. IDs are deduplicated without truncation; unknown IDs are diagnosed and retained for recovery but cannot deploy.
+F10 checkpoint replacement preserves manufacturing/preferences while research rollback temporarily gates their use; restoring analysis restores access.
+Existing story traits, boss parts, Route Core transactions, dialogue and Active Reinforcement authority remain separate.
+
+Historical correction scope: Operating Frames were deferred here; the separate 2026-09-22 foundation above supersedes that exclusion. Post-ending Curse remains deferred.
+The existing incremental combat values and rarities are unchanged. Recipe prices and the final roster require human economy/content review.
+
+## Equipment catalog roles and incremental payoff (2026-09-21)
+
+The catalog contains 46 normal equipment plus four story/boss definitions. Primary roles
+are Salvage 13, Offense 8, Control 7, Signature 6, Tactical 5, Survival 4 and Mobility 3.
+The [content audit](../../CONTENT_PIPELINE_AUDIT.md#trait-inventory--equipment-audit-2026-09-21)
+and [per-item inventory](EQUIPMENT_CATALOG_AUDIT.csv) record exact data and overlap decisions.
+Retain broad Shared utility alongside stronger finishing steps for narrow specialists.
+Seven former one-level equipment now develop their identity through existing effects;
+no universal drawbacks, new equipment, new stat framework or rarity changes were added.
+
+LevelEffects apply once per acquired level. Percentage composition follows its consumer:
+some multiply, flat bonuses add, and reflector recharge replaces a same-source setting.
+The shared effect formatter accurately converts charge speed into time reduction and
+provides readable mechanic labels. Settlement and run UI share that formatter; descriptions
+state purpose and dynamic rows show exact effects. No Settlement Upgrade action exists.
+
+The earlier global-capacity/Lv0 interpretation and its reward pacing diagnostics are superseded by the correction above.
+Save IDs, compatibility, source-specific reward rules, weights and the immutable run snapshot remain stable; deployed ordinary modules now start Lv1.
+Natural run pacing, specialist/hybrid stacking and signature finishing value still require playtesting.
 
 ## Tutorial focus, Purple Core and Radar presentation (2026-09-20)
 
@@ -2319,3 +2406,15 @@ current glyphs and generate a manual populated-stage check warning. Overlay and
 camera UI are projected to common screen coordinates; unprovable projections
 warn without inventing overlap. Reports list contributing Graphics and canvases.
 The prompt, canvas configuration, stage visibility and runtime logic are unchanged.
+
+## Final equipment roster implementation — 2026-09-22
+
+The approved development board now has 12 Shared / 12 Sweeper / 12 Breacher / 12 Lancer real blueprints. Sixteen new ship definitions complete the catalog: 66 total, 62 ordinary, fourteen Shared legacy items outside the board and four unchanged boss/story definitions. The earlier 32-position / sixteen-pending report is superseded. Old global loadout-capacity and ordinary Lv0-preparation interpretations remain superseded.
+
+Research -> manufacture once -> free fit/unfit -> fresh-run ordinary Lv1 -> expedition upgrades -> run reset. Completed-analysis authority, branch gates, immutable RunContext, no global fitting cap, Terminal Guidance's conditional prerequisite, nonrefundable deployment provenance and existing Active Reinforcement flow remain. Existing effects, rarity, IDs and GUIDs were preserved.
+
+New content uses five A data-only definitions and eleven B focused extensions. Twin Feed now supplies periodic paired cadence at MAX as explicitly approved. Typed modifiers, weapon/dash/health owners, projectile snapshots and pooling implement the effects; no new manager or per-module Update. Save v7 retains previous owners' earlier research availability and preserves displaced Shared use without currency migration. The existing authored Settlement board reads the final metadata without a scene/prefab rewrite.
+
+Values, new rarity and manufacturing recipes are provisional. All sixteen dedicated icons remain TODO; generic presentation is retained. Production reward weighting is unchanged. Frames, post-ending Curse content, universal debuffs and final economy remain unimplemented.
+
+Detailed roster, values, recipes, migration, diagnostic evidence and validation: [EQUIPMENT_FINAL_ROSTER.md](EQUIPMENT_FINAL_ROSTER.md), [EQUIPMENT_DEVELOPMENT_MAPPING.md](EQUIPMENT_DEVELOPMENT_MAPPING.md), [EQUIPMENT_CATALOG_AUDIT.csv](EQUIPMENT_CATALOG_AUDIT.csv).

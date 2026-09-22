@@ -13,21 +13,34 @@ MonoBehaviour:
   m_Name: 01_shared_cargo_bay
   m_EditorClassIdentifier: 
   traitId: shared_cargo_bay
-  displayName: "확장 적재실"
-  description: "기체 적재 한도를 늘린다. 더 오래 수확하고 더 많은 자원을 싣고 돌아올 수 있다."
+  displayName: "\uD655\uC7A5 \uC801\uC7AC\uC2E4"
+  description: "\uC804\uD22C \uBCF4\uC870 \uB300\uC2E0 \uC801\uC7AC\uB7C9\uC5D0 \uC9D1\uC911\uD574
+    \uD55C \uBC88\uC5D0 \uB354 \uB9CE\uC740 \uC790\uC6D0\uC744 \uC6B4\uBC18\uD55C\uB2E4."
   icon: {fileID: 21300000, guid: 3af841ac026668dbe7ef29b0cff283ed, type: 3}
   rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
     effectType: 23
-    value: 10
+    value: 8
   - level: 2
     effectType: 23
     value: 10
   - level: 3
     effectType: 23
-    value: 10
+    value: 14
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 0
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 12
+  manufacturingCoreCost: 0

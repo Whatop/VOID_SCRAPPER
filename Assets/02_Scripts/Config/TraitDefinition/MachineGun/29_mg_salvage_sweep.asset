@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 29_mg_salvage_sweep
   m_EditorClassIdentifier: 
   traitId: mg_salvage_sweep
-  displayName: "수확 탄막"
-  description: "탄속과 회수 범위를 올려 수확 동선을 줄인다."
+  displayName: "\uC218\uD655 \uD0C4\uB9C9"
+  description: "\uBE60\uB978 \uD0C4\uC73C\uB85C \uC794\uD574\uB97C \uC4F8\uACE0 \uD769\uC5B4\uC9C4
+    \uC790\uC6D0\uC744 \uB113\uAC8C \uD68C\uC218\uD55C\uB2E4."
   icon: {fileID: 21300000, guid: 8ac392456e5257a7d24228599f93f8fa, type: 3}
   rarity: 1
   category: 1
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -40,3 +45,11 @@ MonoBehaviour:
   - level: 3
     effectType: 8
     value: 0.6
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 1
+  developmentDisplayOrder: 1
+  previousDevelopmentResearchTier: 1
+  manufacturingScrapCost: 18
+  manufacturingCoreCost: 1

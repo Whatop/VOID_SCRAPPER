@@ -112,6 +112,8 @@ public class RunManager : MonoBehaviour
         }
 
         RunStarted?.Invoke(currentRun);
+        // RunStarted resets the existing store first. Ownership is seeded independently of player reconstruction.
+        RunRuntimeTraitStore.Instance.InitializeDeployment(currentRun, PermanentProgress.Instance?.EquipmentCatalog);
         WalletChanged?.Invoke(currentRun.Wallet);
 
         Debug.Log(
@@ -553,6 +555,8 @@ public class RunManager : MonoBehaviour
         currentRun.End();
         currentRun = null;
         currentPlayerStatApplier = null;
+        // Abandon intentionally skips RunEnded/result rewards, but still ends equipment ownership for this run.
+        RunRuntimeTraitStore.Instance.Clear();
         return true;
     }
 

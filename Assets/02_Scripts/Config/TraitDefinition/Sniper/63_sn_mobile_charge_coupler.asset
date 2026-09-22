@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
+  m_Name: 63_sn_mobile_charge_coupler
+  m_EditorClassIdentifier: 
+  traitId: sn_mobile_charge_coupler
+  displayName: "\uAE30\uB3D9 \uCC28\uC9D5\uAE30"
+  description: "\uC774\uB3D9 \uC911 \uCC28\uC9D5 \uC190\uC2E4\uC744 \uC904\uC5EC
+    \uC7AC\uBC30\uCE58\uD558\uBA74\uC11C \uC0AC\uACA9\uC744 \uC900\uBE44\uD569\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  rarity: 1
+  category: 1
+  weaponTreeType: 1
+  shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
+  maxLevel: 3
+  levelEffects:
+  - level: 1
+    effectType: 47
+    value: 10
+  - level: 2
+    effectType: 47
+    value: 10
+  - level: 3
+    effectType: 47
+    value: 20
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 1
+  developmentDisplayOrder: 2
+  previousDevelopmentResearchTier: -1
+  manufacturingScrapCost: 22
+  manufacturingCoreCost: 1

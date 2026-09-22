@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 38_sn_focus_lens
   m_EditorClassIdentifier: 
   traitId: sn_focus_lens
-  displayName: "집중 렌즈"
-  description: "레이더 탐색 범위와 차징 피해를 함께 올린다."
+  displayName: "\uC9D1\uC911 \uB80C\uC988"
+  description: "\uB113\uC740 \uB808\uC774\uB354 \uD0D0\uC0C9\uACFC \uCC28\uC9D5 \uD53C\uD574\uB85C
+    \uAD50\uC804\uC744 \uC900\uBE44\uD55C\uB2E4."
   icon: {fileID: 21300000, guid: bdb2abc639bb6a6e4e18eba3d5d1c830, type: 3}
   rarity: 1
   category: 1
   weaponTreeType: 1
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -40,3 +45,11 @@ MonoBehaviour:
   - level: 3
     effectType: 13
     value: 8
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 1
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: 1
+  manufacturingScrapCost: 20
+  manufacturingCoreCost: 0

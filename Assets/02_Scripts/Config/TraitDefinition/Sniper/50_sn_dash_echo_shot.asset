@@ -11,10 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
   m_Name: 50_sn_dash_echo_shot
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   traitId: sn_dash_echo_shot
-  displayName: "위상 잔상 사격"
-  description: "저격총으로 대쉬하면 시작 위치에 2.5초 동안 잔상을 남깁니다. 그동안 발사한 저격탄을 잔상이 40% 위력으로 복제합니다."
+  displayName: "\uC704\uC0C1 \uC794\uC0C1 \uC0AC\uACA9"
+  description: "\uB300\uC26C \uC704\uCE58\uC5D0\uC11C \uB2E4\uC74C \uC800\uACA9\uC744
+    \uBCF5\uC81C\uD55C\uB2E4. \uC774\uD6C4 \uAC15\uD654\uB294 \uCC28\uC9D5 \uC6D0\uBCF8\uACFC
+    \uBCF5\uC81C \uC0AC\uACA9\uC744 \uBCF4\uAC15\uD55C\uB2E4."
   icon: {fileID: 0}
   rarity: 2
   category: 1
@@ -24,10 +26,22 @@ MonoBehaviour:
   statusPolarity: 0
   preventFieldDrop: 0
   preventDismantle: 0
-  maxLevel: 1
+  maxLevel: 3
   levelEffects:
   - level: 1
     effectType: 39
     value: 1
+  - level: 2
+    effectType: 13
+    value: 5
+  - level: 3
+    effectType: 13
+    value: 8
   isCapstone: 0
   prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 3
+  developmentDisplayOrder: 1
+  previousDevelopmentResearchTier: 2
+  manufacturingScrapCost: 52
+  manufacturingCoreCost: 2

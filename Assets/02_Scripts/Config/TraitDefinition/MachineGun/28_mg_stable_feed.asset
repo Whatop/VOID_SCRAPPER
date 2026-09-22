@@ -13,21 +13,26 @@ MonoBehaviour:
   m_Name: 28_mg_stable_feed
   m_EditorClassIdentifier: 
   traitId: mg_stable_feed
-  displayName: "안정 급탄"
-  description: "기관총의 탄 퍼짐을 줄이고 연사력을 올린다."
+  displayName: "\uC548\uC815 \uAE09\uD0C4"
+  description: "\uD0C4 \uD37C\uC9D0\uC744 \uC904\uC774\uACE0 \uC5F0\uC0AC\uB97C \uBCF4\uC870\uD558\uB294
+    \uC548\uC815\uD615 \uAE09\uD0C4 \uC7A5\uCE58."
   icon: {fileID: 21300000, guid: 3e33b3719121341a2ba7658028f4d237, type: 3}
   rarity: 0
   category: 1
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
     effectType: 9
-    value: 8
+    value: 6
   - level: 1
     effectType: 16
-    value: 5
+    value: 4
   - level: 2
     effectType: 9
     value: 8
@@ -36,7 +41,15 @@ MonoBehaviour:
     value: 5
   - level: 3
     effectType: 9
-    value: 8
+    value: 10
   - level: 3
     effectType: 16
-    value: 5
+    value: 6
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 0
+  developmentDisplayOrder: 2
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 14
+  manufacturingCoreCost: 0

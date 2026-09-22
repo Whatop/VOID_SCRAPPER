@@ -251,6 +251,7 @@ public class PlayerSniperDashEchoShot : MonoBehaviour
             projectileSnapshot.PierceDamageRetention
         );
         bullet.ConfigureStandaloneHoming(null, 0f, 0f, false);
+        bullet.ConfigureEquipmentWidth(projectileSnapshot.WidthMultiplier);
         bullet.ConfigureProjectileColor(echoProjectileColor);
     }
 

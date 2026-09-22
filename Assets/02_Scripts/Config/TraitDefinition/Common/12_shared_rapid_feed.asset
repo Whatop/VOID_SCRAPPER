@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 12_shared_rapid_feed
   m_EditorClassIdentifier: 
   traitId: shared_rapid_feed
-  displayName: "급속 급탄"
-  description: "연사력을 올려 지속 화력을 강화한다."
+  displayName: "\uAE09\uC18D \uAE09\uD0C4"
+  description: "\uC5F0\uC0AC\uB825\uC5D0 \uC9D1\uC911\uD55C\uB2E4. \uCD5C\uB300 \uB2E8\uACC4\uC5D0\uC11C
+    \uC9C0\uC18D \uC0AC\uACA9\uC774 \uD55C\uCE35 \uBE68\uB77C\uC9C4\uB2E4."
   icon: {fileID: 21300000, guid: 192e8c22323166f372cd01582414ccc7, type: 3}
   rarity: 0
   category: 0
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -27,7 +32,15 @@ MonoBehaviour:
     value: 5
   - level: 2
     effectType: 16
-    value: 5
+    value: 6
   - level: 3
     effectType: 16
-    value: 5
+    value: 8
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 0
+  developmentResearchTier: 0
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: 1
+  manufacturingScrapCost: 20
+  manufacturingCoreCost: 1

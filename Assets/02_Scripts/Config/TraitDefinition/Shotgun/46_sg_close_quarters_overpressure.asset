@@ -13,8 +13,10 @@ MonoBehaviour:
   m_Name: 46_sg_close_quarters_overpressure
   m_EditorClassIdentifier: 
   traitId: sg_close_quarters_overpressure
-  displayName: "근접 과압"
-  description: "샷건 탄환이 가까운 거리에서 적중할수록 더 큰 피해를 줍니다. 초근거리에서 최대 +60% 피해."
+  displayName: "\uADFC\uC811 \uACFC\uC555"
+  description: "\uC801\uC5D0\uAC8C \uAC00\uAE4C\uC774\uC11C \uB9DE\uD790\uC218\uB85D
+    \uC0B0\uD0C4 \uD53C\uD574\uAC00 \uC99D\uAC00\uD55C\uB2E4. \uC794\uD574\uC5D0\uB294
+    \uC801\uC6A9\uB418\uC9C0 \uC54A\uB294\uB2E4."
   icon: {fileID: 0}
   rarity: 2
   category: 1
@@ -24,8 +26,22 @@ MonoBehaviour:
   statusPolarity: 0
   preventFieldDrop: 0
   preventDismantle: 0
-  maxLevel: 1
+  maxLevel: 3
   levelEffects:
   - level: 1
     effectType: 35
-    value: 60
+    value: 18
+  - level: 2
+    effectType: 35
+    value: 18
+  - level: 3
+    effectType: 35
+    value: 24
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 3
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: 2
+  manufacturingScrapCost: 50
+  manufacturingCoreCost: 2

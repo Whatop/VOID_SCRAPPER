@@ -4,8 +4,15 @@ using System.Collections.Generic;
 [Serializable]
 public class SaveData
 {
-    public int version = 5;
+    public int version = 7;
+    // Additive v7 field: missing JSON/zero is Standard. No equipment migration is repeated.
+    public OperatingFrameType selectedOperatingFrame = OperatingFrameType.Standard;
+    // Stable fitting preferences across all branches; no slot padding or global capacity.
     public List<string> equipmentLoadoutTraitIds = new List<string>();
+    public List<string> manufacturedEquipmentIds = new List<string>();
+    public bool equipmentOwnershipMigrationPending;
+    public List<string> grandfatheredEquipmentResearchIds = new List<string>();
+    public bool equipmentRosterMigrationPending;
 
     public int scrapParts;
     public int coreShards;

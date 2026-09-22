@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 37_sn_piercing_amplifier
   m_EditorClassIdentifier: 
   traitId: sn_piercing_amplifier
-  displayName: "관통 증폭"
-  description: "스나이퍼 탄환의 관통 횟수를 늘린다."
+  displayName: "\uAD00\uD1B5 \uC99D\uD3ED"
+  description: "\uAD00\uD1B5\uC744 \uB298\uB9B0\uB2E4. \uCD5C\uB300 \uB2E8\uACC4\uC5D0\uC11C\uB294
+    \uAD00\uD1B5 \uD6C4 \uD53C\uD574 \uAC10\uC1E0\uB97C \uC81C\uAC70\uD55C\uB2E4."
   icon: {fileID: 21300000, guid: 8a10ce5784f4f039b76bd354738e76bd, type: 3}
   rarity: 1
   category: 1
   weaponTreeType: 1
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 2
   levelEffects:
   - level: 1
@@ -28,3 +33,14 @@ MonoBehaviour:
   - level: 2
     effectType: 11
     value: 1
+  - level: 2
+    effectType: 22
+    value: 1
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 0
+  developmentDisplayOrder: 1
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 14
+  manufacturingCoreCost: 0

@@ -203,6 +203,8 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
 
         LoadSelectionFromProgress();
         NotifyChanged();
+        // Recovery for older eligible saves or an interrupted/failed post-introduction save.
+        TryGrantEquipmentStarterMaterials();
     }
 
     private void OnDisable()
@@ -358,10 +360,17 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
                 : "system.campaign.route_authorized.region_3");
         }
 
+        TryGrantEquipmentStarterMaterials();
         return progress.DamagedAccessKeyQuestState !=
                    MainDamagedAccessKeyQuestState.NotStarted &&
                progress.HasUnlockFlag(
                    StoryProgressionIds.FirstSettlementCompleteFlag);
+    }
+
+    private void TryGrantEquipmentStarterMaterials()
+    {
+        if (PermanentProgress.Instance != null && PermanentProgress.Instance.TryGrantEquipmentStarterMaterials())
+            ShowLocalizedMessage("system.settlement.equipment.starter_materials");
     }
 
     public bool CanRestoreDamagedAccessKey()
@@ -1618,66 +1627,7 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
             return "미해금 상태. 효과 없음.";
         }
 
-        StringBuilder builder = new StringBuilder();
-        bool wroteAny = false;
-
-        foreach (TraitLevelEffect effect in trait.LevelEffects)
-        {
-            if (effect == null || effect.Level != level)
-            {
-                continue;
-            }
-
-            if (wroteAny)
-            {
-                builder.Append(", ");
-            }
-
-            builder.Append(FormatTraitEffect(effect));
-            wroteAny = true;
-        }
-
-        return wroteAny ? builder.ToString() : $"Lv {level} 효과 데이터 없음";
-    }
-
-    private string FormatTraitEffect(TraitLevelEffect effect)
-    {
-        string value = FormatEffectValue(effect.EffectType, effect.Value);
-
-        return effect.EffectType switch
-        {
-            TraitEffectType.DamagePercent => $"공격력 {value}",
-            TraitEffectType.ProjectileSpeedPercent => $"탄속 {value}",
-            TraitEffectType.RangePercent => $"사거리 {value}",
-            TraitEffectType.MoveSpeedPercent => $"이동속도 {value}",
-            TraitEffectType.DashCooldownReduction => $"대쉬 쿨다운 -{effect.Value:0.##}초",
-            TraitEffectType.DashDistanceBonus => $"대쉬 거리 +{effect.Value:0.##}",
-            TraitEffectType.MaxHpBonus => $"최대 체력 +{effect.Value:0.#}",
-            TraitEffectType.HealEfficiencyPercent => $"회복 효율 {value}",
-            TraitEffectType.PickupRangeBonus => $"흡수 범위 +{effect.Value:0.##}",
-            TraitEffectType.SpreadReductionPercent => $"탄 퍼짐 -{Mathf.Abs(effect.Value):0.#}%",
-            TraitEffectType.ProjectileCountBonus => $"탄환 수 +{effect.Value:0}",
-            TraitEffectType.PierceCountBonus => $"관통 +{effect.Value:0}",
-            TraitEffectType.ChargeTimeReductionPercent => $"차징 시간 -{Mathf.Abs(effect.Value):0.#}%",
-            TraitEffectType.ChargeDamagePercent => $"차징 피해 {value}",
-            TraitEffectType.HomingAngleBonus => $"유도 각도 +{effect.Value:0.#}°",
-            TraitEffectType.HomingRangeBonus => $"유도 거리 +{effect.Value:0.##}",
-            TraitEffectType.FireRatePercent => $"연사력 {value}",
-            TraitEffectType.SniperSemiAutoMode => "세미오토 레이저 모드 해금",
-            TraitEffectType.ShotgunCloseRangeDamagePercent => $"샷건 초근거리 피해 최대 +{effect.Value:0.#}%",
-            TraitEffectType.MachineGunTerminalGuidance => "기관총 종말 유도 활성화",
-            TraitEffectType.PeriodicReflectiveShield => $"반사 방벽 재충전 {effect.Value:0.#}초",
-            TraitEffectType.MachineGunDashMissileSalvo => "대쉬 시 추격 미사일 3발 사출",
-            TraitEffectType.SniperDashEchoShot => "대쉬 위치에서 다음 저격 사격을 40% 위력으로 복제",
-            _ => $"{effect.EffectType} {effect.Value:0.##}"
-        };
-    }
-
-    private string FormatEffectValue(TraitEffectType effectType, float rawValue)
-    {
-        float absolute = Mathf.Abs(rawValue);
-        string sign = rawValue >= 0f ? "+" : "-";
-        return $"{sign}{absolute:0.#}%";
+        return TraitEffectTextUtility.BuildEffectText(trait, level).Replace("\n", ", ");
     }
 
     private string FormatCost(int scrapCost, int coreCost)

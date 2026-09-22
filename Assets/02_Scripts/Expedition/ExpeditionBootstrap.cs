@@ -90,6 +90,9 @@ public class ExpeditionBootstrap : MonoBehaviour
                                        out carriedPlayerArmor
                                    );
 
+        // Also covers a directly authored/debug RunContext. The store owns the per-run guard.
+        RunRuntimeTraitStore.Instance.InitializeDeployment(runContext, traitCatalog);
+
         statApplier.Apply(
             runContext,
             progress,

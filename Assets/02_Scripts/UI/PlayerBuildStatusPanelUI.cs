@@ -146,7 +146,7 @@ public sealed class CargoManifestRowUI
 }
 
 [DisallowMultipleComponent]
-public class PlayerBuildStatusPanelUI : MonoBehaviour
+public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 {
     [Serializable]
     public sealed class StoryRecoverySlot
@@ -580,6 +580,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void OnEnable()
     {
+        BindOperatingFrameInspection();
         BindFieldDropInput();
 
         if (closeButton != null)
@@ -606,6 +607,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void OnDisable()
     {
+        UnbindOperatingFrameInspection();
         StopStoryRecoveryFeedback();
         UnbindRuntimeEvents();
         if (closeButton != null)
@@ -808,6 +810,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
     public void RefreshShipSection()
     {
         RunContext run = ResolveRunContext();
+        RefreshOperatingFrameInspection(run);
         ShipDefinition ship = FindShip(run != null ? run.SelectedShipId : null);
         WeaponTreeType weaponTree = ResolveWeaponTree(run, ship);
 
@@ -815,7 +818,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         Sprite shipSprite = ship != null ? ship.PreviewSprite : null;
 
         SetImage(shipPreviewImage, shipSprite != null ? shipSprite : fallbackShipIcon);
-        SetText(shipNameText, "탐사 인벤토리");
+        SetText(shipNameText, run != null && run.IsActive ? OperatingFrameText.Summary(run.FrameProfile, operatingFrameLocalization) : "탐사 인벤토리");
         SetText(shipWeaponText, string.Empty);
         SetText(shipDescriptionText, ship != null ? ship.Description : fallbackShipDescription);
         SetText(shipPassiveText, ship != null ? ship.PassiveDescription : string.Empty);
@@ -1429,6 +1432,10 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private string FormatTraitEffect(TraitEffectType effectType, float value)
     {
+        if (effectType >= TraitEffectType.MachineGunCoolingRatePercent ||
+            effectType == TraitEffectType.DashDamageReductionPercent || effectType == TraitEffectType.ChargeSightBonusPercent ||
+            effectType == TraitEffectType.ChargedProjectileSizePercent)
+            return TraitEffectTextUtility.FormatEffect(effectType, value);
         return effectType switch
         {
             TraitEffectType.DamagePercent => $"공격력 +{value:0.#}%",
@@ -1933,13 +1940,15 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
         int previousLevel = 0;
         int remainingLevel = 0;
         bool removed = false;
+        bool nonRefundable = false;
 
         if (store != null)
         {
             removed = store.TryRemoveLevel(
                 entry.trait.TraitId,
                 out previousLevel,
-                out remainingLevel
+                out remainingLevel,
+                out nonRefundable
             );
         }
         if (!removed)
@@ -1956,6 +1965,8 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
             RunManager.Instance.CurrentRun.RemoveTrait(entry.trait.TraitId);
         }
 
+        spawnedPickup.SetDeploymentGrantProvenance(nonRefundable);
+
         AudioManager.PlayAt(SoundEventIds.ReinforcementDrop, ResolveFieldDropPosition());
         ShowFieldDropWarning($"필드 드랍: {entry.trait.DisplayName} Lv.{previousLevel}");
         RebuildPassiveSection();
@@ -1963,6 +1974,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void HandleFieldDropInput()
     {
+        if (operatingFrameInspectionRoot != null && operatingFrameInspectionRoot.activeSelf) return;
         if (selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo)
         {
             HandleCargoJettisonInput();
@@ -3002,6 +3014,7 @@ public class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void CloseInternal(bool playSound, bool restoreCursor)
     {
+        CloseOperatingFrameInspection();
         if (!isOpen)
         {
             return;

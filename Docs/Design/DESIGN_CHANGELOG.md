@@ -1,5 +1,46 @@
 # VOID SCRAPPER 설계 변경 원장
 
+## 2026-09-23 - Equipment manufacturing economy calibration
+
+- Finalize all 48 Scrap/Core recipes from actual generated-map supply and cargo/return-risk estimates; no reward inflation or combat/rarity changes.
+- Add exact-once saved 86-Scrap starter materials after first Settlement introduction, derived from the six initial recipes plus a rounded 15% buffer.
+- Extend existing authored inspection with cost/current-funds icon rows, zero-cost hiding and insufficient-funds state.
+- Add Editor-only captured-map diagnostics and focused starter/recipe/return/save/UI tests; preserve ownership, unlimited fitting, Lv1 deployment, frames and campaign authorities.
+- Document the first Region3 arena/repeat-route distinction, limited non-boss Core, and optional-trip assumptions in EQUIPMENT_ECONOMY.md. Operating Frame numerical balance and Special upgrade frequency remain separate follow-ups.
+
+## 2026-09-22 - Operating Frame foundation
+
+- Add free saved Lightweight/Standard/Heavy selection separate from the 48-position equipment roster.
+- Snapshot frame and effective ordinary fitted count once per run; conditional/legacy equipment counts without bypassing acquisition prerequisites.
+- Apply the specified provisional profiles through existing player stat/modifier owners, with portal-safe vital and upgrade reconstruction.
+- Author three frame controls above Settlement branch tabs and a read-only inventory inspection; update the unpacked Expedition copy in place.
+- Add named-placeholder localization, F10 projection and 30 regression/diagnostic cases in the existing Equipment Development suite.
+- Preserve version-7 saves via default Standard, equipment ownership/fitting and campaign checkpoints. No dash charges, Curse or economy work.
+
+## 2026-09-21 - Equipment Development correction, pass 1
+
+- Supersede global capacity and ordinary Lv0 preparation with four research branches, one-time manufacturing and unrestricted fitting.
+- Author 32 real blueprint positions / 16 pending positions; retain 14 surplus Shared definitions for existing owners. Keep IDs, combat values and rarities.
+- Save manufacture/fitting separately in version 6; migrate valid old fitting/purchased ownership once, preserving backward F10 research gating.
+- Seed ordinary deployment Lv1 after run reset; reconstruct effects once per player, preserve portal upgrades/vitals, and clear runtime levels on abandon as well as RunEnded.
+- Preserve Terminal Guidance prerequisites, immutable reward filtering and earned refunds; free starting levels carry zero-refund field-drop provenance.
+- Reuse the authored Settlement panel/tabs/detail controls, localized manufacture/Fit/Unfit states and separate fitted indicators. No new manager or Settlement Upgrade action.
+- Validation and remaining content/economy decisions are recorded in IMPLEMENTATION_STATUS and EQUIPMENT_DEVELOPMENT_MAPPING.
+
+## 2026-09-21 - Equipment catalog role and balance polish
+
+- Audit the actual 50-entry catalog: 46 normal, three hidden boss, one Pixel Curse.
+  Preserve the existing seventh MG/Sniper dash signatures, stable IDs/GUIDs and rarity.
+- Rewrite 46 purpose descriptions; adjust 19 incremental curves/level packages, including
+  seven former Max1 equipment with supported Max3 progression. Retain distinct specialists,
+  hybrids, salvage, tactical and signature roles; add no universal debuffs.
+- Correct charge-speed effect text, unify Settlement/run effect formatting and describe
+  per-level application rather than falsely summing mechanical configuration.
+- Add catalog/consumer/UI/source eligibility regressions and deterministic 3/6/9/12
+  reward diagnostics. Keep production reward generation and prepared-loadout authority unchanged.
+- Exact before/after values and playtesting questions are in CONTENT_PIPELINE_AUDIT.md
+  and Docs/Design/EQUIPMENT_CATALOG_AUDIT.csv. No scene or prefab changes.
+
 ## 2026-09-21 - Equipment Development UI refinement
 
 - Retire the remaining legacy Upgrade action display and old paragraph/clear-slot
@@ -2022,3 +2063,15 @@ Status: Implemented; manual scene installation and Unity verification pending.
   Expedition baseline, ordinary installation, prompt presentation and runtime
   ownership remain unchanged. Added test-owned projection/relocation/rollback
   fixtures; Unity execution and visual verification remain manual.
+
+## Final equipment roster implementation — 2026-09-22
+
+The approved development board now has 12 Shared / 12 Sweeper / 12 Breacher / 12 Lancer real blueprints. Sixteen new ship definitions complete the catalog: 66 total, 62 ordinary, fourteen Shared legacy items outside the board and four unchanged boss/story definitions. The earlier 32-position / sixteen-pending report is superseded. Old global loadout-capacity and ordinary Lv0-preparation interpretations remain superseded.
+
+Research -> manufacture once -> free fit/unfit -> fresh-run ordinary Lv1 -> expedition upgrades -> run reset. Completed-analysis authority, branch gates, immutable RunContext, no global fitting cap, Terminal Guidance's conditional prerequisite, nonrefundable deployment provenance and existing Active Reinforcement flow remain. Existing effects, rarity, IDs and GUIDs were preserved.
+
+New content uses five A data-only definitions and eleven B focused extensions. Twin Feed now supplies periodic paired cadence at MAX as explicitly approved. Typed modifiers, weapon/dash/health owners, projectile snapshots and pooling implement the effects; no new manager or per-module Update. Save v7 retains previous owners' earlier research availability and preserves displaced Shared use without currency migration. The existing authored Settlement board reads the final metadata without a scene/prefab rewrite.
+
+Values, new rarity and manufacturing recipes are provisional. All sixteen dedicated icons remain TODO; generic presentation is retained. Production reward weighting is unchanged. Frames, post-ending Curse content, universal debuffs and final economy remain unimplemented.
+
+Detailed roster, values, recipes, migration, diagnostic evidence and validation: [EQUIPMENT_FINAL_ROSTER.md](EQUIPMENT_FINAL_ROSTER.md), [EQUIPMENT_DEVELOPMENT_MAPPING.md](EQUIPMENT_DEVELOPMENT_MAPPING.md), [EQUIPMENT_CATALOG_AUDIT.csv](EQUIPMENT_CATALOG_AUDIT.csv).

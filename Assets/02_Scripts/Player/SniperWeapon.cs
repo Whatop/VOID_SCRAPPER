@@ -15,7 +15,7 @@ public readonly struct SniperSuccessfulShotSnapshot
     public Vector2 AimWorldPosition { get; }
 }
 
-public class SniperWeapon : PlayerWeaponBase
+public partial class SniperWeapon : PlayerWeaponBase
 {
     private static Material sharedRuntimeChargeLineMaterial;
 
@@ -139,6 +139,7 @@ public class SniperWeapon : PlayerWeaponBase
 
     private void OnDisable()
     {
+        ClearReservedCharge();
         if (isCharging)
         {
             CancelCharge();
@@ -168,6 +169,7 @@ public class SniperWeapon : PlayerWeaponBase
 
     public override void OnEquip()
     {
+        ClearReservedCharge();
         ResolvePresentationReferences();
         ResetChargeState();
     }
@@ -206,10 +208,11 @@ public class SniperWeapon : PlayerWeaponBase
 
         if (isMoving)
         {
-            effectiveDeltaTime *= Mathf.Clamp(movingChargeSpeedMultiplier, 0.1f, 1f);
+            effectiveDeltaTime *= EffectiveMovingChargeMultiplier;
         }
 
         chargeTimer += effectiveDeltaTime;
+        inputChargeTime += effectiveDeltaTime;
         TryStartChargePresentation();
 
         if (chargePresentationStarted)
@@ -243,7 +246,10 @@ public class SniperWeapon : PlayerWeaponBase
         ResolvePresentationReferences();
 
         isCharging = true;
-        chargeTimer = 0f;
+        inputChargeTime = 0f;
+        assistedCharge = HasReservedCharge;
+        chargeTimer = assistedCharge ? reservedChargeFraction * GetMaxChargeTime() : 0f;
+        ClearReservedCharge();
         chargeAudioStarted = false;
         chargePresentationStarted = false;
 
@@ -258,7 +264,7 @@ public class SniperWeapon : PlayerWeaponBase
             return;
         }
 
-        if (ShouldDelayChargePresentation() && chargeTimer < Mathf.Max(0f, minimumChargeTime))
+        if (ShouldDelayChargePresentation() && inputChargeTime < Mathf.Max(0f, minimumChargeTime))
         {
             return;
         }
@@ -285,7 +291,7 @@ public class SniperWeapon : PlayerWeaponBase
             return;
         }
 
-        if (chargeTimer < Mathf.Max(0f, minimumChargeTime))
+        if (inputChargeTime < Mathf.Max(0f, minimumChargeTime))
         {
             if (IsSemiAutoModeEnabled())
             {
@@ -318,6 +324,7 @@ public class SniperWeapon : PlayerWeaponBase
         }
 
         Vector2 aimWorldPosition = ResolveShotAimWorldPosition(direction, baseRange);
+        firingChargeWidthRatio = finalChargeRatio;
         bool fired = SpawnProjectile(
             direction,
             damage,
@@ -326,11 +333,17 @@ public class SniperWeapon : PlayerWeaponBase
             basePierce,
             out PlayerProjectileFireSnapshot projectileSnapshot
         );
+        firingChargeWidthRatio = 0f;
 
         StopChargeLoop();
 
         if (fired)
         {
+            if (finalChargeRatio >= .999f && !assistedCharge && weaponModifiers != null && weaponModifiers.SniperReserveChargeFraction > 0f)
+            {
+                reservedChargeFraction = weaponModifiers.SniperReserveChargeFraction;
+                reserveExpiresAt = Time.time + 3f;
+            }
             SpawnMuzzleEffect(direction);
             AudioManager.PlayAt(SoundEventIds.SniperFire, transform.position);
             PlaySuccessfulFireFeedback(
@@ -498,6 +511,7 @@ public class SniperWeapon : PlayerWeaponBase
 
     private void CancelCharge(bool silent = false)
     {
+        ClearReservedCharge();
         if (!isCharging)
         {
             StopChargeLoop();
@@ -531,6 +545,9 @@ public class SniperWeapon : PlayerWeaponBase
         chargePresentationStarted = false;
         isCharging = false;
         chargeTimer = 0f;
+        inputChargeTime = 0f;
+        assistedCharge = false;
+        firingChargeWidthRatio = 0f;
         SetChargeLineVisible(false);
 
         if (cameraZoomController != null)
@@ -796,8 +813,9 @@ public class SniperWeapon : PlayerWeaponBase
             ? Mathf.Clamp01(stationaryAimAssistByCharge.Evaluate(ratio))
             : ratio;
 
-        float aimOffsetMultiplier = Mathf.Lerp(1f, Mathf.Max(1f, stationaryAimOffsetMultiplier), curveValue);
-        float mouseDistanceMultiplier = Mathf.Lerp(1f, Mathf.Max(1f, stationaryMouseDistanceMultiplier), curveValue);
+        float sight = weaponModifiers != null ? weaponModifiers.SniperChargeSightMultiplier : 1f;
+        float aimOffsetMultiplier = Mathf.Lerp(1f, Mathf.Clamp(1f + (stationaryAimOffsetMultiplier - 1f) * sight, 1f, 2.5f), curveValue);
+        float mouseDistanceMultiplier = Mathf.Lerp(1f, Mathf.Clamp(1f + (stationaryMouseDistanceMultiplier - 1f) * sight, 1f, 2.5f), curveValue);
 
         gungeonStyleCamera.SetAimOffsetAssist(aimOffsetMultiplier, mouseDistanceMultiplier);
     }

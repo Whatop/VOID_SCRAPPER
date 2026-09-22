@@ -8,7 +8,7 @@ public enum MachineGunShotSide
     Right
 }
 
-public class MachineGunWeapon : PlayerWeaponBase
+public partial class MachineGunWeapon : PlayerWeaponBase
 {
     [Header("Machine Gun Fallback Values")]
     [SerializeField] private float fallbackDamage = 1f;
@@ -68,6 +68,8 @@ public class MachineGunWeapon : PlayerWeaponBase
 
     public override void OnEquip()
     {
+        ForceCancel();
+        distributionCamera = Camera.main;
         fireTimer = 0f;
         nextFireSoundTime = 0f;
         ResetFirePointSide();
@@ -84,6 +86,7 @@ public class MachineGunWeapon : PlayerWeaponBase
 
     public override void OnUnequip()
     {
+        ForceCancel();
         fireTimer = 0f;
         nextFireSoundTime = 0f;
         ResetFirePointSide();
@@ -97,10 +100,23 @@ public class MachineGunWeapon : PlayerWeaponBase
         if (!input.Held || IsOverheated)
         {
             fireTimer = 0f;
+            ForceCancel();
             return;
         }
 
         fireTimer -= deltaTime;
+
+        if (pairedFeedPending)
+        {
+            pairedFeedDelay -= deltaTime;
+            if (pairedFeedDelay <= 0f)
+            {
+                pairedFeedPending = false;
+                if (weaponModifiers != null && weaponModifiers.MachineGunTwinFeedLevel >= 3 && TryFire(true))
+                    AddHeat(heatPerShot);
+                return;
+            }
+        }
 
         if (fireTimer > 0f)
         {
@@ -110,6 +126,12 @@ public class MachineGunWeapon : PlayerWeaponBase
         if (TryFire())
         {
             AddHeat(heatPerShot);
+            sustainedShots++;
+            if (!IsOverheated && weaponModifiers != null && weaponModifiers.MachineGunTwinFeedLevel >= 3 && sustainedShots % 6 == 0)
+            {
+                pairedFeedPending = true;
+                pairedFeedDelay = Mathf.Max(.025f, GetFireInterval(fallbackFireInterval) * .25f);
+            }
         }
 
         fireTimer = GetFireInterval(fallbackFireInterval);
@@ -123,12 +145,18 @@ public class MachineGunWeapon : PlayerWeaponBase
         NotifyHeatChanged();
     }
 
-    private bool TryFire()
+    private bool TryFire(bool paired = false)
     {
         Vector2 baseDirection = GetAimDirection();
+        firingDistributionTarget = paired ? lastFiredDistributionTarget : ResolveDistributionTarget(baseDirection);
+        if (firingDistributionTarget != null && firingDistributionTarget.gameObject.activeInHierarchy)
+        {
+            Vector2 origin = firePoint != null ? firePoint.position : transform.position;
+            baseDirection = ((Vector2)firingDistributionTarget.position - origin).normalized;
+        }
 
         int projectileCount = GetProjectileCount(fallbackProjectileCount);
-        float spreadAngle = GetSpreadAngle(fallbackSpreadAngle);
+        float spreadAngle = GetSpreadAngle(fallbackSpreadAngle) * TwinFeedSpreadMultiplier;
 
         float baseDamage = GetProjectileDamage(fallbackDamage);
         float baseSpeed = GetProjectileSpeed(fallbackSpeed);
@@ -179,6 +207,12 @@ public class MachineGunWeapon : PlayerWeaponBase
         lastShotSide = shotSide;
         AdvanceFirePointSide();
         lastShotTime = Time.time;
+        if (!paired)
+        {
+            previousDistributionTarget = recentDistributionTarget;
+            recentDistributionTarget = firingDistributionTarget;
+            lastFiredDistributionTarget = firingDistributionTarget;
+        }
 
         RegisterAttack();
         NotifyFired();
@@ -187,19 +221,14 @@ public class MachineGunWeapon : PlayerWeaponBase
 
     protected override void ConfigureSpawnedProjectile(Bullet bullet)
     {
-        if (bullet == null ||
-            weaponModifiers == null ||
-            !weaponModifiers.MachineGunTerminalGuidanceEnabled)
-        {
-            return;
-        }
-
-        bullet.ConfigureTerminalGuidance(
+        if (bullet == null || weaponModifiers == null) return;
+        if (weaponModifiers.MachineGunTerminalGuidanceEnabled) bullet.ConfigureTerminalGuidance(
             terminalGuidanceTurnRateBonus,
             terminalGuidanceAcquisitionRangeBonus,
             terminalGuidanceRetentionRangeMultiplier,
             terminalGuidanceCloseSteeringDistance
         );
+        bullet.SetInitialHomingTarget(firingDistributionTarget);
     }
 
     private void UpdateHeat(float deltaTime)
@@ -209,13 +238,13 @@ public class MachineGunWeapon : PlayerWeaponBase
             return;
         }
 
-        if (Time.time - lastShotTime < Mathf.Max(0f, coolingStartDelay))
+        if (Time.time - lastShotTime < EffectiveCoolingDelay)
         {
             return;
         }
 
         float previous = currentHeat;
-        currentHeat = Mathf.Max(0f, currentHeat - Mathf.Max(0f, coolingPerSecond) * Mathf.Max(0f, deltaTime));
+        currentHeat = Mathf.Max(0f, currentHeat - EffectiveCoolingRate * Mathf.Max(0f, deltaTime));
 
         if (overheated && currentHeat <= MaxHeat * Mathf.Clamp01(overheatRecoveryRatio))
         {

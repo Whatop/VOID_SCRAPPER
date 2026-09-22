@@ -1,15 +1,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum EquipmentDevelopmentResult
+{
+    Success, InvalidDefinition, ResearchLocked, AlreadyManufactured, InvalidRecipe,
+    InsufficientResources, UnsafeState, SaveFailed, NotManufactured
+}
+
 public partial class PermanentProgress
 {
-    [Header("Prepared Expedition Equipment")]
+    [Header("Manufactured Expedition Equipment")]
     [SerializeField] private TraitCatalog equipmentCatalog;
     [SerializeField] private List<ShipDefinition> equipmentShips = new List<ShipDefinition>();
     [SerializeField] private List<string> equipmentLoadoutTraitIds = new List<string>();
+    [SerializeField] private List<string> manufacturedEquipmentIds = new List<string>();
+    private List<string> grandfatheredEquipmentResearchIds = new List<string>();
+    private bool equipmentRosterMigrationPending;
+    private bool equipmentTransactionInProgress;
 
     public TraitCatalog EquipmentCatalog => equipmentCatalog;
     public IReadOnlyList<string> EquipmentLoadoutTraitIds => equipmentLoadoutTraitIds.AsReadOnly();
+    public IReadOnlyList<string> ManufacturedEquipmentIds => manufacturedEquipmentIds.AsReadOnly();
 
     // Depth is granted by the completed Settlement analysis transaction, not by part pickup.
     public const string FinalComponentAnalyzedFlag = "campaign_phase_navigation_lens_analyzed";
@@ -26,7 +37,13 @@ public partial class PermanentProgress
         }
     }
 
-    public int EquipmentLoadoutCapacity => 3 * (1 + AnalyzedEquipmentComponentCount);
+    public int GetEquipmentResearchPositionCount(ShipTraitBranchKind branch)
+    {
+        int required = branch == ShipTraitBranchKind.Shotgun ? 1 : branch == ShipTraitBranchKind.Sniper ? 2 : 0;
+        if (branch < ShipTraitBranchKind.Shared || branch > ShipTraitBranchKind.Shotgun ||
+            AnalyzedEquipmentComponentCount < required) return 0;
+        return 3 * (1 + AnalyzedEquipmentComponentCount);
+    }
 
     // Called by the same natural Settlement analysis completion transaction as route authorization.
     public bool TryCompleteFinalComponentAnalysis()
@@ -49,42 +66,171 @@ public partial class PermanentProgress
 
     public bool IsEquipmentPrepared(string traitId)
     {
-        return !string.IsNullOrWhiteSpace(traitId) && equipmentLoadoutTraitIds.Contains(traitId);
+        TraitDefinition trait = equipmentCatalog != null ? equipmentCatalog.FindById(traitId) : null;
+        return IsEquipmentFitted(traitId) && IsEquipmentUsable(trait, lastSelectedWeaponTree);
     }
 
-    public bool CanPrepareEquipment(TraitDefinition trait)
+    public bool IsEquipmentFitted(string id) => !string.IsNullOrWhiteSpace(id) && equipmentLoadoutTraitIds.Contains(id);
+    public bool IsEquipmentManufactured(string id) => !string.IsNullOrWhiteSpace(id) && manufacturedEquipmentIds.Contains(id);
+
+    public bool IsKnownDevelopmentEquipment(TraitDefinition trait)
     {
         return trait != null && equipmentCatalog != null && equipmentCatalog.FindById(trait.TraitId) == trait &&
-            trait.CanAppearAsRandomDropTrait && trait.IsAvailableFor(lastSelectedWeaponTree);
+            trait.HasValidDevelopmentMetadata;
     }
 
-    public bool TryPrepareEquipment(int slot, TraitDefinition trait)
+    public bool IsEquipmentResearched(TraitDefinition trait)
     {
-        if (slot < 0 || slot >= EquipmentLoadoutCapacity || (trait != null && !CanPrepareEquipment(trait))) return false;
-        string id = trait != null ? trait.TraitId : string.Empty;
-        if (!string.IsNullOrEmpty(id))
-            for (int i = 0; i < equipmentLoadoutTraitIds.Count; i++)
-                if (i != slot && equipmentLoadoutTraitIds[i] == id) return false;
-        ValidateEquipmentLoadout();
-        if (equipmentLoadoutTraitIds[slot] == id) return true;
-        equipmentLoadoutTraitIds[slot] = id;
-        Changed?.Invoke();
-        return true;
+        if (!IsKnownDevelopmentEquipment(trait)) return false;
+        // Displaced Shared modules remain usable by existing owners; they have no sale position.
+        if (!trait.IsDevelopmentRoster && trait.Category == TraitCategory.Shared && IsEquipmentManufactured(trait.TraitId)) return true;
+        int tier = trait.DevelopmentResearchTier;
+        if (trait.PreviousDevelopmentResearchTier >= 0 && grandfatheredEquipmentResearchIds.Contains(trait.TraitId))
+            tier = Mathf.Min(tier, trait.PreviousDevelopmentResearchTier);
+        if (GetEquipmentResearchPositionCount(trait.DevelopmentBranch) <= tier * 3) return false;
+        ShipDefinition ship = GetEquipmentShip(trait);
+        return trait.Category == TraitCategory.Shared || (ship != null && (ship.UnlockedByDefault ||
+            (AnalyzedEquipmentComponentCount >= ship.RequiredAnalyzedComponents && HasUnlockFlag(ship.UnlockFlag))));
     }
 
-    private void ValidateEquipmentLoadout()
+    public bool IsEquipmentUsable(TraitDefinition trait, WeaponTreeType weapon)
     {
-        equipmentLoadoutTraitIds ??= new List<string>();
-        int capacity = EquipmentLoadoutCapacity;
-        if (equipmentLoadoutTraitIds.Count > capacity) equipmentLoadoutTraitIds.RemoveRange(capacity, equipmentLoadoutTraitIds.Count - capacity);
-        while (equipmentLoadoutTraitIds.Count < capacity) equipmentLoadoutTraitIds.Add(string.Empty);
-        var seen = new HashSet<string>(System.StringComparer.Ordinal);
-        for (int i = 0; i < equipmentLoadoutTraitIds.Count; i++)
+        return IsEquipmentResearched(trait) && IsEquipmentManufactured(trait.TraitId) && trait.IsAvailableFor(weapon);
+    }
+
+    public void AppendEffectiveEquipment(List<string> target, WeaponTreeType weapon)
+    {
+        if (target == null || equipmentCatalog == null) return;
+        foreach (string id in equipmentLoadoutTraitIds)
         {
-            string id = equipmentLoadoutTraitIds[i];
-            TraitDefinition trait = equipmentCatalog != null ? equipmentCatalog.FindById(id) : null;
-            if (!CanPrepareEquipment(trait) || !seen.Add(id)) equipmentLoadoutTraitIds[i] = string.Empty;
+            TraitDefinition trait = equipmentCatalog.FindById(id);
+            if (IsEquipmentUsable(trait, weapon) && !target.Contains(id)) target.Add(id);
         }
+    }
+
+    public bool CanEditEquipment => !equipmentTransactionInProgress && GameStateManager.Instance != null &&
+        GameStateManager.Instance.CurrentState == GameState.Settlement &&
+        !(RunManager.Instance != null && RunManager.Instance.HasActiveRun) &&
+        !(SceneFlowManager.Instance != null && SceneFlowManager.Instance.IsLoading) &&
+        !SettlementExpeditionLaunchGuard.IsDialogueActive && !GameplayPauseManager.IsPaused;
+
+    public EquipmentDevelopmentResult GetManufacturingAvailability(TraitDefinition trait)
+    {
+        if (!IsKnownDevelopmentEquipment(trait) || !trait.IsDevelopmentRoster) return EquipmentDevelopmentResult.InvalidDefinition;
+        if (!IsEquipmentResearched(trait)) return EquipmentDevelopmentResult.ResearchLocked;
+        if (IsEquipmentManufactured(trait.TraitId)) return EquipmentDevelopmentResult.AlreadyManufactured;
+        if (!trait.HasValidManufacturingRecipe) return EquipmentDevelopmentResult.InvalidRecipe;
+        return CanSpend(trait.ManufacturingScrapCost, trait.ManufacturingCoreCost) ? EquipmentDevelopmentResult.Success : EquipmentDevelopmentResult.InsufficientResources;
+    }
+
+    public EquipmentDevelopmentResult TryManufactureEquipment(TraitDefinition trait)
+    {
+        if (!CanEditEquipment) return EquipmentDevelopmentResult.UnsafeState;
+        EquipmentDevelopmentResult availability = GetManufacturingAvailability(trait);
+        if (availability != EquipmentDevelopmentResult.Success) return availability;
+        equipmentTransactionInProgress = true;
+        try
+        {
+            SaveData snapshot = CreateSaveData();
+            snapshot.scrapParts -= trait.ManufacturingScrapCost;
+            snapshot.coreShards -= trait.ManufacturingCoreCost;
+            snapshot.manufacturedEquipmentIds.Add(trait.TraitId);
+            if (!SaveEquipmentTransaction(snapshot)) return EquipmentDevelopmentResult.SaveFailed;
+            scrapParts = snapshot.scrapParts;
+            coreShards = snapshot.coreShards;
+            manufacturedEquipmentIds = snapshot.manufacturedEquipmentIds;
+        }
+        finally { equipmentTransactionInProgress = false; }
+        Changed?.Invoke();
+        return EquipmentDevelopmentResult.Success;
+    }
+
+    public EquipmentDevelopmentResult TrySetEquipmentFitted(TraitDefinition trait, bool fitted)
+    {
+        if (!CanEditEquipment) return EquipmentDevelopmentResult.UnsafeState;
+        if (!IsKnownDevelopmentEquipment(trait)) return EquipmentDevelopmentResult.InvalidDefinition;
+        if (!IsEquipmentManufactured(trait.TraitId)) return EquipmentDevelopmentResult.NotManufactured;
+        if (fitted && !IsEquipmentResearched(trait)) return EquipmentDevelopmentResult.ResearchLocked;
+        if (IsEquipmentFitted(trait.TraitId) == fitted) return EquipmentDevelopmentResult.Success;
+        equipmentTransactionInProgress = true;
+        try
+        {
+            SaveData snapshot = CreateSaveData();
+            if (fitted) snapshot.equipmentLoadoutTraitIds.Add(trait.TraitId);
+            else snapshot.equipmentLoadoutTraitIds.Remove(trait.TraitId);
+            if (!SaveEquipmentTransaction(snapshot)) return EquipmentDevelopmentResult.SaveFailed;
+            equipmentLoadoutTraitIds = snapshot.equipmentLoadoutTraitIds;
+        }
+        finally { equipmentTransactionInProgress = false; }
+        Changed?.Invoke();
+        return EquipmentDevelopmentResult.Success;
+    }
+
+    private bool SaveEquipmentTransaction(SaveData snapshot)
+    {
+        if (SaveManager.Instance == null)
+        {
+            Debug.LogError("Equipment transaction requires the authored CoreRoot/SaveManager. Resources and ownership were not changed.", this);
+            return false;
+        }
+        SaveManager.Instance.Save(snapshot);
+        return ReferenceEquals(SaveManager.Instance.CurrentSaveData, snapshot);
+    }
+
+    private void LoadEquipmentOwnership(SaveData data)
+    {
+        equipmentLoadoutTraitIds = CopyEquipmentIds(data.equipmentLoadoutTraitIds);
+        manufacturedEquipmentIds = CopyEquipmentIds(data.manufacturedEquipmentIds);
+        grandfatheredEquipmentResearchIds = CopyEquipmentIds(data.grandfatheredEquipmentResearchIds);
+        bool migrate = data.version < 6 || data.equipmentOwnershipMigrationPending;
+        if (migrate && equipmentCatalog != null)
+        {
+            foreach (string id in equipmentLoadoutTraitIds)
+            {
+                TraitDefinition trait = equipmentCatalog.FindById(id);
+                if (trait != null && trait.CanAppearAsRandomDropTrait) AddUniqueString(manufacturedEquipmentIds, id);
+            }
+            if (data.traitLevels != null)
+                foreach (TraitLevelSaveData state in data.traitLevels)
+                {
+                    TraitDefinition trait = state != null ? equipmentCatalog.FindById(state.traitId) : null;
+                    if (trait != null && trait.CanAppearAsRandomDropTrait && state.level > 0)
+                        AddUniqueString(manufacturedEquipmentIds, trait.TraitId);
+                }
+        }
+        equipmentOwnershipMigrationPending = migrate && equipmentCatalog == null;
+        bool migrateRoster = data.version < 7 || data.equipmentRosterMigrationPending;
+        if (migrateRoster && equipmentCatalog != null)
+            foreach (string id in manufacturedEquipmentIds)
+            {
+                TraitDefinition trait = equipmentCatalog.FindById(id);
+                if (trait != null && trait.CanAppearAsRandomDropTrait && trait.PreviousDevelopmentResearchTier >= 0)
+                    AddUniqueString(grandfatheredEquipmentResearchIds, id);
+            }
+        equipmentRosterMigrationPending = migrateRoster && equipmentCatalog == null;
+        if (equipmentOwnershipMigrationPending)
+            Debug.LogError("PermanentProgress.equipmentCatalog is missing; equipment migration is deferred and saved IDs retained.", this);
+        if (equipmentCatalog != null)
+        {
+            var checkedIds = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (string id in equipmentLoadoutTraitIds)
+                if (checkedIds.Add(id) && equipmentCatalog.FindById(id) == null) ReportUnknownEquipment(id);
+            foreach (string id in manufacturedEquipmentIds)
+                if (checkedIds.Add(id) && equipmentCatalog.FindById(id) == null) ReportUnknownEquipment(id);
+        }
+    }
+
+    private bool equipmentOwnershipMigrationPending;
+
+    private void ReportUnknownEquipment(string id) => Debug.LogWarning(
+        "Saved equipment ID '" + id + "' is absent from PermanentProgress.equipmentCatalog. Retained for recovery, excluded from deployment.", this);
+
+    private static List<string> CopyEquipmentIds(List<string> source)
+    {
+        var result = new List<string>();
+        if (source != null)
+            foreach (string id in source) if (!string.IsNullOrWhiteSpace(id) && !result.Contains(id)) result.Add(id);
+        return result;
     }
 
     private void RefreshEquipmentResearch()
@@ -97,7 +243,6 @@ public partial class PermanentProgress
             if (AnalyzedEquipmentComponentCount >= ship.RequiredAnalyzedComponents) AddUniqueString(unlockFlags, ship.UnlockFlag);
             else unlockFlags.Remove(ship.UnlockFlag);
         }
-        ValidateEquipmentLoadout();
     }
 
     private void ValidateEquipmentShipSelection()
@@ -116,6 +261,5 @@ public partial class PermanentProgress
                 lastSelectedWeaponTree = equipmentShips[i].DefaultWeaponTree;
                 break;
             }
-        ValidateEquipmentLoadout();
     }
 }

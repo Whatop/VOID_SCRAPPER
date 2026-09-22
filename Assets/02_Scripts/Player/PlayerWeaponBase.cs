@@ -26,7 +26,8 @@ public readonly struct PlayerProjectileFireSnapshot
         float speed,
         float range,
         int pierceCount,
-        float pierceDamageRetention)
+        float pierceDamageRetention,
+        float widthMultiplier = 1f)
     {
         ProjectilePrefab = projectilePrefab;
         ProjectileDefinition = projectileDefinition;
@@ -37,6 +38,7 @@ public readonly struct PlayerProjectileFireSnapshot
         Range = range;
         PierceCount = pierceCount;
         PierceDamageRetention = pierceDamageRetention;
+        WidthMultiplier = widthMultiplier;
     }
 
     public GameObject ProjectilePrefab { get; }
@@ -48,6 +50,7 @@ public readonly struct PlayerProjectileFireSnapshot
     public float Range { get; }
     public int PierceCount { get; }
     public float PierceDamageRetention { get; }
+    public float WidthMultiplier { get; }
 }
 
 public abstract class PlayerWeaponBase : MonoBehaviour
@@ -95,13 +98,20 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         firePoint = firePointReference;
         playerController = controller;
         combatState = state;
+        if (weaponModifiers != null) weaponModifiers.DevelopmentEquipmentReset -= ForceCancel;
         weaponModifiers = modifiers;
+        if (weaponModifiers != null) weaponModifiers.DevelopmentEquipmentReset += ForceCancel;
         runtimeBonusState = owner != null ? owner.GetComponent<PlayerRuntimeBonusState>() : null;
         visualStateController = owner != null ? owner.GetComponent<PlayerVisualStateController>() : null;
     }
 
     public virtual void OnEquip()
     {
+    }
+
+    protected virtual void OnDestroy()
+    {
+        if (weaponModifiers != null) weaponModifiers.DevelopmentEquipmentReset -= ForceCancel;
     }
 
     public virtual void OnUnequip()
@@ -451,7 +461,8 @@ public abstract class PlayerWeaponBase : MonoBehaviour
             finalSpeed,
             finalRange,
             Mathf.Max(0, finalPierceCount),
-            pierceDamageRetention
+            pierceDamageRetention,
+            bullet.EquipmentWidthMultiplier
         );
 
         return true;

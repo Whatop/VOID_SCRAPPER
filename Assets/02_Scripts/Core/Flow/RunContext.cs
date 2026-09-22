@@ -72,6 +72,12 @@ public class RunContext
     public bool ShopHostileThisRun => shopHostileThisRun;
     public IReadOnlyList<string> SelectedTraitIds => selectedTraitIds;
     [SerializeField] private List<string> preparedEquipmentIds = new List<string>();
+    [SerializeField] private OperatingFrameType operatingFrame = OperatingFrameType.Standard;
+    [SerializeField] private int fittedOrdinaryEquipmentCount;
+    public OperatingFrameType OperatingFrame => operatingFrame;
+    public int FittedOrdinaryEquipmentCount => fittedOrdinaryEquipmentCount;
+    public OperatingFrameProfile FrameProfile => new OperatingFrameProfile(operatingFrame, fittedOrdinaryEquipmentCount);
+    public IReadOnlyList<string> PreparedEquipmentIds => preparedEquipmentIds.AsReadOnly();
     public bool HasPreparedEquipment(string id) => !string.IsNullOrWhiteSpace(id) && preparedEquipmentIds.Contains(id);
 
     public IReadOnlyList<string> CompletedObjectiveIds => completedObjectiveIds;
@@ -141,12 +147,9 @@ public class RunContext
     {
         preparedEquipmentIds.Clear();
         PermanentProgress preparation = PermanentProgress.Instance;
-        if (preparation != null)
-            foreach (string id in preparation.EquipmentLoadoutTraitIds)
-            {
-                TraitDefinition trait = preparation.EquipmentCatalog != null ? preparation.EquipmentCatalog.FindById(id) : null;
-                if (trait != null && trait.IsAvailableFor(weaponTreeType)) preparedEquipmentIds.Add(id);
-            }
+        preparation?.AppendEffectiveEquipment(preparedEquipmentIds, weaponTreeType);
+        operatingFrame = preparation != null ? preparation.SelectedOperatingFrame : OperatingFrameType.Standard;
+        fittedOrdinaryEquipmentCount = preparedEquipmentIds.Count;
         isActive = true;
         selectedWeaponTree = weaponTreeType;
         selectedShipId = string.IsNullOrWhiteSpace(shipId) ? "basic_ship" : shipId;

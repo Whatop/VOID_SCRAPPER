@@ -11,10 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
   m_Name: 49_mg_dash_missile_salvo
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   traitId: mg_dash_missile_salvo
-  displayName: "추격 미사일 사출"
-  description: "기관총 장착 중 대쉬하면 조준 방향으로 추격 미사일 3발을 사출합니다."
+  displayName: "\uCD94\uACA9 \uBBF8\uC0AC\uC77C \uC0AC\uCD9C"
+  description: "\uB300\uC26C \uB54C \uCD94\uACA9 \uBBF8\uC0AC\uC77C\uC744 \uBC1C\uC0AC\uD55C\uB2E4.
+    \uC774\uD6C4 \uAC15\uD654\uB294 \uBBF8\uC0AC\uC77C\uACFC \uC8FC\uD3EC \uD53C\uD574\uB97C
+    \uB192\uC778\uB2E4."
   icon: {fileID: 0}
   rarity: 2
   category: 1
@@ -24,10 +26,22 @@ MonoBehaviour:
   statusPolarity: 0
   preventFieldDrop: 0
   preventDismantle: 0
-  maxLevel: 1
+  maxLevel: 3
   levelEffects:
   - level: 1
     effectType: 38
     value: 1
+  - level: 2
+    effectType: 0
+    value: 4
+  - level: 3
+    effectType: 0
+    value: 6
   isCapstone: 0
   prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 3
+  developmentDisplayOrder: 1
+  previousDevelopmentResearchTier: 2
+  manufacturingScrapCost: 50
+  manufacturingCoreCost: 2

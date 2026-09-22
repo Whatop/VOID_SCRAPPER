@@ -30,10 +30,45 @@ public class RunRuntimeTraitStore : MonoBehaviour
     [SerializeField] private List<TraitLevelState> traitLevels = new List<TraitLevelState>();
 
     private RunManager subscribedRunManager;
+    private RunContext deploymentRun;
+    private readonly List<TraitLevelState> nonRefundableLevels = new List<TraitLevelState>();
 
     public IReadOnlyList<TraitLevelState> TraitLevels => traitLevels;
 
     public event Action Changed;
+
+    public void InitializeDeployment(RunContext run, TraitCatalog catalog)
+    {
+        if (run == null || !run.IsActive || ReferenceEquals(deploymentRun, run)) return;
+        if (catalog == null && run.PreparedEquipmentIds.Count > 0)
+        {
+            Debug.LogError("Run equipment initialization requires PermanentProgress.equipmentCatalog. No starting levels were granted.", this);
+            return;
+        }
+        deploymentRun = run;
+        foreach (string id in run.PreparedEquipmentIds)
+        {
+            TraitDefinition trait = catalog != null ? catalog.FindById(id) : null;
+            if (trait == null || !trait.CanAppearAsRandomDropTrait || !trait.IsAvailableFor(run.SelectedWeaponTree) ||
+                trait.HasRuntimePrerequisites || GetLevel(id) > 0) continue;
+            AddOrUpgrade(trait);
+            MarkLevelNonRefundable(id, 1);
+            run.AddTrait(id);
+        }
+    }
+
+    public bool IsLevelNonRefundable(string id, int level)
+    {
+        for (int i = 0; i < nonRefundableLevels.Count; i++)
+            if (nonRefundableLevels[i].traitId == id && nonRefundableLevels[i].level == level) return true;
+        return false;
+    }
+
+    public void MarkLevelNonRefundable(string id, int level)
+    {
+        if (level > 0 && GetLevel(id) >= level && !IsLevelNonRefundable(id, level))
+            nonRefundableLevels.Add(new TraitLevelState(id, level));
+    }
 
     private void Awake()
     {
@@ -97,8 +132,14 @@ public class RunRuntimeTraitStore : MonoBehaviour
 
     public bool TryRemoveLevel(string traitId, out int previousLevel, out int remainingLevel)
     {
+        return TryRemoveLevel(traitId, out previousLevel, out remainingLevel, out _);
+    }
+
+    public bool TryRemoveLevel(string traitId, out int previousLevel, out int remainingLevel, out bool nonRefundable)
+    {
         previousLevel = 0;
         remainingLevel = 0;
+        nonRefundable = false;
 
         TraitLevelState state = FindState(traitId);
 
@@ -108,6 +149,10 @@ public class RunRuntimeTraitStore : MonoBehaviour
         }
 
         previousLevel = state.level;
+        nonRefundable = IsLevelNonRefundable(traitId, previousLevel);
+        for (int i = nonRefundableLevels.Count - 1; i >= 0; i--)
+            if (nonRefundableLevels[i].traitId == traitId && nonRefundableLevels[i].level == previousLevel)
+                nonRefundableLevels.RemoveAt(i);
         state.level = Mathf.Max(0, state.level - 1);
         remainingLevel = state.level;
 
@@ -157,6 +202,8 @@ public class RunRuntimeTraitStore : MonoBehaviour
 
     public void Clear()
     {
+        deploymentRun = null;
+        nonRefundableLevels.Clear();
         if (traitLevels.Count <= 0)
         {
             return;

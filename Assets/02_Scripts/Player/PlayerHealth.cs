@@ -44,6 +44,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private Rigidbody2D rb;
     private Collider2D playerCollider;
     private PlayerCombatState combatState;
+    private PlayerDash equipmentDash;
+    private PlayerWeaponModifiers equipmentModifiers;
 
     private float currentHp;
     private float invincibleTimer;
@@ -69,6 +71,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         rb = GetComponent<Rigidbody2D>();
         playerCollider = GetComponent<Collider2D>();
         combatState = GetComponent<PlayerCombatState>();
+        equipmentDash = GetComponent<PlayerDash>();
+        equipmentModifiers = GetComponent<PlayerWeaponModifiers>();
 
         if (armor == null)
         {
@@ -258,6 +262,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             return;
         }
 
+        // Reduction belongs to the completed dash window, before Armor consumes damage.
+        if (equipmentDash != null && equipmentModifiers != null && equipmentDash.HasRecentShotgunDash)
+            damage *= equipmentModifiers.PostDashDamageMultiplier;
         float remainingDamage = damage;
 
         if (armor != null)

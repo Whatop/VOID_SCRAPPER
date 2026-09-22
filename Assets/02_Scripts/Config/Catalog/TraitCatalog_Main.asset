@@ -63,5 +63,21 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c71e967e039c45a8a57e45a05bc76288, type: 2}
   - {fileID: 11400000, guid: ad0bc609aa514cce9576a52a4a3d1c86, type: 2}
   - {fileID: 11400000, guid: 3e7675688b934daea049bb2866af6c88, type: 2}
+  - {fileID: 11400000, guid: 22f11948afd545d4ea18175b08a50744, type: 2}
+  - {fileID: 11400000, guid: a2a12b4f0a359db44ab2c2a04046ec65, type: 2}
+  - {fileID: 11400000, guid: 9e63cdd3784998242b15fb0957528f2f, type: 2}
+  - {fileID: 11400000, guid: 842b5d51dfff7cd47beac5f36b16aec8, type: 2}
+  - {fileID: 11400000, guid: d8dd027581a63124cb0b2d16054081dd, type: 2}
+  - {fileID: 11400000, guid: 0d1fc1523316e634d857c52e452a7dd8, type: 2}
+  - {fileID: 11400000, guid: 738d3739ea2ba3b418faa927b5399787, type: 2}
+  - {fileID: 11400000, guid: bf4e4914635a33848b6aef8ddd5381c9, type: 2}
+  - {fileID: 11400000, guid: e021db1331c7eb447a7bfff591ea9790, type: 2}
+  - {fileID: 11400000, guid: 8014670683d43a44188a2a4c4449cd52, type: 2}
+  - {fileID: 11400000, guid: 1c2d8ca5d5485c44db75edc1fdcc8be8, type: 2}
+  - {fileID: 11400000, guid: 98dde1036a0b4c34b96b1c044878c395, type: 2}
+  - {fileID: 11400000, guid: 09f15d52fbd87b04a8b8142259eac29e, type: 2}
+  - {fileID: 11400000, guid: 441f177bd50463d44b4d2f5673047ced, type: 2}
+  - {fileID: 11400000, guid: 658baacbd60159c4081782805626c699, type: 2}
+  - {fileID: 11400000, guid: d34ffa8c0e03ea24f84902846799efb9, type: 2}
   includeResourcesTraits: 0
   resourcesPath: TraitDefinition

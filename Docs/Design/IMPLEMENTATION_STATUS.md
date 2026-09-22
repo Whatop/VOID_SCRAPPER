@@ -1,5 +1,93 @@
 # VOID SCRAPPER 구현 상태 매트릭스
 
+## 2026-09-23 - Equipment manufacturing economy calibration
+
+Implemented: all 48 calibrated recipes; exact-once natural starter materials; authored Scrap/Core cost/current-funds rows; Editor-only production-map economy diagnostic. No world rewards, combat effects, rarity weights, frames or campaign rules changed.
+
+Validation actually executed:
+
+- Runtime / Editor-test static compilation: 0 errors (52 / 4 existing warnings).
+- Full EditMode: 693/693 passed, 0 failed.
+- Twelve rendered generated-map inventories, 512 deterministic trials per scenario, actual production settlement rules. Localization import/validation and authored cost references checked.
+- Isolated rendered 480x270 smoke: natural introduction -> grant -> six purchases/fittings -> real Lv1 effects -> actual hull/reactor drops -> 22 Scrap/1 Core collected -> SafeReturn commit -> next module purchase -> disk reload. 49 assertions, seven transaction captures. Research-only checkpoint opened the next recipe; no resource top-up. Temporary probe removed.
+- Emergency/death transaction integration executed; no rendered emergency/death claim. Capture-harness repeated-load timeouts and zero-Core smoke rolls were diagnosed rather than reported as successful full campaign runs.
+
+See EQUIPMENT_ECONOMY.md for exact prices, supply/cargo tables, before-after values, total path costs and test scope. Remaining: natural campaign return frequency, optional facility competition, boss-avoiding Core income, enhanced cargo/yield builds and translated layout review. 60-80% ownership is conditional on optional returns; a three-boss rush cannot afford it under the requested price bands. No deep balance claim, commit or push.
+
+## 2026-09-22 - Operating Frame foundation
+
+Implemented: free saved Lightweight / Standard / Heavy preference, immutable run frame/count, specified provisional bonuses/penalties,
+source-owned runtime application, authored Settlement controls, existing inventory inspection and F10 projection.
+The earlier "Operating Frames out of scope" notes describe previous passes; this foundation supersedes that exclusion only.
+The 48 equipment positions, manufacturing, unlimited fitting, conditional evolutions, Lv1 deployment and reward filtering remain intact.
+
+Validation actually executed:
+
+- Runtime static compilation: 0 errors, 52 existing warnings. Editor/test static compilation: 0 errors, 4 existing warnings.
+- Full EditMode suite: 671/671 passed, including all 111 Equipment Development tests (30 frame cases) and save/runtime/campaign/dialogue regressions.
+- Normal localization import/validation and frame bindings in Settlement, Tutorial/shared inventory prefab and Expedition's unpacked copy passed.
+- Deterministic diagnostics for 6/12/18/24 fitted modules across all three authored ships passed: Light HP17/cargo80 minimum;
+  Heavy base movement5.40 and HP22/24/26/28, cargo110/120/130/140 before equipment/region modifiers; Standard constant.
+- Rendered 480x270 automated Play Mode smoke: Boot -> Settlement -> Expedition -> portal -> SafeReturn -> Settlement,
+  repeated for Light6, Standard12, Heavy24 and Light6 again. Unity exited 0, 274 assertions passed, 20 screenshots captured,
+  no captured runtime error/assertion. Separate temporary save; temporary probe removed afterward.
+- Exercised real manufacturing/fitting and free frame selection; all four branch boards; frame preview and read-only build details;
+  actual movement/dash/HP/cargo/damage/harvest consumers; normal Guidance Lv1 -> Lv2 -> Max; four portals retaining depleted HP3/Armor0,
+  zero Shield Cell charges and upgrades; run end clears levels, fresh launch restores Lv1 and the newly selected frame.
+- First test attempts found fixture/layout follow-ups (unpacked Expedition bindings, cargo-overload expectations, authored 2-unit dash baseline);
+  these were resolved before the passing full suite/rendered run. No production frame value was changed to satisfy a fixture.
+
+Remaining subjective QA: keyboard/controller navigation comfort, English and longer translated layouts, natural movement/dash feel,
+Heavy with full cargo and dense combat, and Standard yield value over a complete expedition. Rendered API-driven smoke is not deep balance validation.
+Frame values are provisional; no dash charges, starting armor bonus, post-ending Curse or economy balancing was implemented.
+
+## 2026-09-21 - Equipment Development correction, pass 1
+
+Implemented the corrected branch/manufacture/fitting/Lv1 contract. Earlier global-capacity and ordinary-Lv0 notes below are historical and superseded.
+The mapping has 12 Shared / 7 Sweeper / 6 Breacher / 7 Lancer implemented positions, 16 honest pending positions and 14 retained legacy Shared definitions.
+Recipes are provisional except the two retained original first-unlock costs. No LevelEffects, rarity, combat values, IDs or GUIDs changed.
+
+Validation for this correction:
+
+- Runtime and Editor/test static compilation: passed.
+- Full EditMode suite: 604/604 passed, including focused equipment, save, runtime, campaign, F10, dialogue, Route Core and Settlement checks.
+- Localization import/validation and changed Equipment Development authored/serialized-reference checks: passed.
+- Rendered 480×270 Boot -> Settlement -> Expedition -> portal -> SafeReturn -> Settlement -> relaunch smoke: passed using an isolated temporary save.
+  Checked branch research/pending states, unaffordable and one-time crafting, six initial Shared+Sweeper fitted modules, real Lv1 effects,
+  normal upgrades through MAX, unchanged portal HP/Armor/active charges, Lv1 reset next run, F10 third analysis before assembly, and nineteen real fitted modules.
+- Twenty-four compatible modules use transient test definitions only; production content was not fabricated.
+- Preservation checks confirm four story/boss assets and all trait combat data/GUIDs unchanged. Only Settlement scene ownership was edited.
+- The broader scene scan found unchanged pre-existing missing sprites on Canvas/SettlementHUD/Repair_HUD/line/PreViewImage
+  and Canvas/SettlementHUD/MainPanel/PreViewImage. Their baseline references are preserved; unrelated preview repair remains separate.
+
+Remaining: author sixteen branch positions and approve final roster/legacy transition; playtest provisional recipes and Lv1-rich build pacing;
+review long descriptions and both languages at 480×270 across the complete catalog. Automated checks are not deep balance validation.
+Operating frames, count-based modifiers, new joker content and post-ending Pixel Curse systems remain explicitly out of scope.
+
+## 2026-09-21 - Equipment catalog role and balance polish
+
+Completed local catalog/data/presentation pass: 50 referenced definitions, 46 normal
+audited equipment, 46 role descriptions and 19 targeted level-data adjustments. Seven
+former one-level equipment now have Max3 progression. No changes to IDs, GUIDs, rarity,
+prepared-loadout/save authority, production reward generation or four story/boss assets.
+See CONTENT_PIPELINE_AUDIT.md and EQUIPMENT_CATALOG_AUDIT.csv for exact values and all roles.
+
+Executed validation:
+- Runtime and Editor/test static compilation: zero errors (52 / 4 existing warnings).
+- Focused equipment/campaign/localization EditMode selection: 166/166 passed.
+- Full EditMode: 598/598 passed, including save/runtime/campaign/UI regressions.
+- Eight fixed-seed reward diagnostics (64 trials each), plus four source-specific
+  shop/container/boss/tuning cases. No invalid empty eligible offers.
+- Normal Localization Import/Validate; catalog references, ID uniqueness and all
+  normal effect rows validated. No scene/prefab authored changes.
+- Rendered 480x270 Boot/Settlement/Expedition smoke with isolated QA save: 3/12-item
+  preparation, starts-unowned, actual Guidance/Reflector acquisition to Max, reflector
+  recharge settings and detail screenshots. Sampled candidate variety: 3 versus 11.
+
+Remaining: natural run reward density, signature Lv1/Max value, specialist/hybrid
+stacking, pierce-retention impact, reflector downtime and all-language text comfort.
+Deterministic sampling and API-driven smoke do not establish deep combat balance.
+
 ## 2026-09-21 - Equipment Development UI refinement
 
 Implemented against the current working tree; no commit or push. Settlement now
@@ -1577,3 +1665,15 @@ from non-rendering/uncertain cases. Added inactive/nested/transparent-container,
 different-scaler/camera-viewport, genuine-overlap, no-space rollback and Undo tests.
 Run Tutorial Validate Status UI, inspect populated
 guidance stages, then manually save/reload. No production scene changes were made.
+
+## Final equipment roster implementation — 2026-09-22
+
+The approved development board now has 12 Shared / 12 Sweeper / 12 Breacher / 12 Lancer real blueprints. Sixteen new ship definitions complete the catalog: 66 total, 62 ordinary, fourteen Shared legacy items outside the board and four unchanged boss/story definitions. The earlier 32-position / sixteen-pending report is superseded. Old global loadout-capacity and ordinary Lv0-preparation interpretations remain superseded.
+
+Research -> manufacture once -> free fit/unfit -> fresh-run ordinary Lv1 -> expedition upgrades -> run reset. Completed-analysis authority, branch gates, immutable RunContext, no global fitting cap, Terminal Guidance's conditional prerequisite, nonrefundable deployment provenance and existing Active Reinforcement flow remain. Existing effects, rarity, IDs and GUIDs were preserved.
+
+New content uses five A data-only definitions and eleven B focused extensions. Twin Feed now supplies periodic paired cadence at MAX as explicitly approved. Typed modifiers, weapon/dash/health owners, projectile snapshots and pooling implement the effects; no new manager or per-module Update. Save v7 retains previous owners' earlier research availability and preserves displaced Shared use without currency migration. The existing authored Settlement board reads the final metadata without a scene/prefab rewrite.
+
+Values, new rarity and manufacturing recipes are provisional. All sixteen dedicated icons remain TODO; generic presentation is retained. Production reward weighting is unchanged. Frames, post-ending Curse content, universal debuffs and final economy remain unimplemented.
+
+Detailed roster, values, recipes, migration, diagnostic evidence and validation: [EQUIPMENT_FINAL_ROSTER.md](EQUIPMENT_FINAL_ROSTER.md), [EQUIPMENT_DEVELOPMENT_MAPPING.md](EQUIPMENT_DEVELOPMENT_MAPPING.md), [EQUIPMENT_CATALOG_AUDIT.csv](EQUIPMENT_CATALOG_AUDIT.csv).

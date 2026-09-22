@@ -13,13 +13,19 @@ MonoBehaviour:
   m_Name: 40_sn_stealth_scan
   m_EditorClassIdentifier: 
   traitId: sn_stealth_scan
-  displayName: "침투 프로토콜"
-  description: "Lv1: 적 근접 레이더 탐지 차단 및 레이더 패널 활성화 중 모든 적의 ?/! 상태 표시\nLv2: 레이더 패널 활성화 중 모든 적의 부채꼴 시야 표시\nLv3: 적의 시각 탐지 완료 시간 35% 증가"
+  displayName: "\uCE68\uD22C \uD504\uB85C\uD1A0\uCF5C"
+  description: "\uB808\uC774\uB354 \uC740\uD3D0\uC640 \uC804\uC220 \uC815\uBCF4\uB97C
+    \uC5BB\uB294\uB2E4. \uAC15\uD654\uB85C \uC2DC\uC57C \uD45C\uC2DC\uC640 \uC2DC\uAC01
+    \uD0D0\uC9C0 \uC9C0\uC5F0\uC774 \uC5F4\uB9B0\uB2E4."
   icon: {fileID: 21300000, guid: acb8911b0f289aad39da499bbc3f64dc, type: 3}
   rarity: 2
   category: 1
   weaponTreeType: 1
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -31,3 +37,11 @@ MonoBehaviour:
   - level: 3
     effectType: 30
     value: 1
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 2
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 28
+  manufacturingCoreCost: 0

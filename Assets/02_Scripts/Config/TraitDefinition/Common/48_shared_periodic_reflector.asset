@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
   m_Name: 48_shared_periodic_reflector
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   traitId: shared_periodic_reflector
-  displayName: "반사 방벽"
-  description: "15초마다 적 탄환을 반사하는 방벽이 충전됩니다. 첫 반사 후 1.25초 동안 적 탄환을 계속 반사합니다."
+  displayName: "\uBC18\uC0AC \uBC29\uBCBD"
+  description: "\uC801 \uD0C4\uD658\uC744 \uB9CC\uB098\uBA74 \uC9E7\uAC8C \uBC18\uC0AC\uD55C\uB2E4.
+    \uAC15\uD654\uD560\uC218\uB85D \uC7AC\uCDA9\uC804\uC774 \uBE68\uB77C\uC9C4\uB2E4."
   icon: {fileID: 0}
   rarity: 2
   category: 0
@@ -24,10 +25,22 @@ MonoBehaviour:
   statusPolarity: 0
   preventFieldDrop: 0
   preventDismantle: 0
-  maxLevel: 1
+  maxLevel: 3
   levelEffects:
   - level: 1
     effectType: 37
-    value: 15
+    value: 20
+  - level: 2
+    effectType: 37
+    value: 17
+  - level: 3
+    effectType: 37
+    value: 14
   isCapstone: 0
   prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 3
+  developmentDisplayOrder: 2
+  previousDevelopmentResearchTier: 3
+  manufacturingScrapCost: 52
+  manufacturingCoreCost: 2

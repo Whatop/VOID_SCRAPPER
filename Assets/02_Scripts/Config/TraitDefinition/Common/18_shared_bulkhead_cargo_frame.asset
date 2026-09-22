@@ -13,13 +13,18 @@ MonoBehaviour:
   m_Name: 18_shared_bulkhead_cargo_frame
   m_EditorClassIdentifier: 
   traitId: shared_bulkhead_cargo_frame
-  displayName: "격벽 적재 프레임"
-  description: "최대 체력과 적재 한도를 같이 늘린다."
+  displayName: "\uACA9\uBCBD \uC801\uC7AC \uD504\uB808\uC784"
+  description: "\uC801\uC7AC\uB7C9\uACFC \uCD5C\uB300 \uCCB4\uB825\uC744 \uD568\uAED8
+    \uBCF4\uAC15\uD558\uB294 \uC6B4\uC1A1\uC6A9 \uD504\uB808\uC784."
   icon: {fileID: 21300000, guid: 6defbfd7d8cc2c126312a650611f41c4, type: 3}
   rarity: 1
   category: 0
   weaponTreeType: 2
   shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -40,3 +45,11 @@ MonoBehaviour:
   - level: 3
     effectType: 23
     value: 8
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 0
+  developmentResearchTier: 0
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: 0
+  manufacturingScrapCost: 0
+  manufacturingCoreCost: 0

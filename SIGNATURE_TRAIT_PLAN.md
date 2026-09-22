@@ -1,65 +1,37 @@
 # Signature Trait Plan
 
-Audit date: 2026-08-16
-Scope: design integration against the current working tree. The first Signature batch (P6, P3, and P8) was implemented on 2026-08-16; the remaining entries are planning only.
+Audit date: 2026-09-21 (catalog refresh; original concept plan 2026-08-16)
+Scope: design integration against the current working tree. The first Signature batch (P6, P3, and P8) was implemented on 2026-08-16; unimplemented concepts below remain planning only. Existing MG dash missiles and Sniper dash echo are also present in the current catalog.
 
-## 1. Current Trait library summary
+## 1. Current Trait library summary (2026-09-21)
 
-### Catalog and content counts
+The current catalog has 50 distinct references/IDs: 46 normal prepared-run equipment
+(26 Shared, 7 MG/Sweeper, 6 Shotgun/Breacher, 7 Sniper/Lancer), three hidden campaign boss
+traits and Pixel Curse. Category totals are Shared 30 / WeaponSpecific 20. Rarity totals
+are Common 17 / Rare 20 / Special 12 / Curse 1; rarity and weighting were preserved.
+The older six-MG/six-Sniper count predates the existing dash signatures. No extra item
+was added or removed in this balance pass.
 
-`Assets/02_Scripts/Config/Catalog/TraitCatalog_Main.asset` contains 48 references to 48 distinct `TraitDefinition` assets. All 48 authored IDs are unique, every authored asset is referenced once, and the catalog has no null or unknown references.
+See [the current content audit](CONTENT_PIPELINE_AUDIT.md#trait-inventory--equipment-audit-2026-09-21)
+and its [46-row inventory](Docs/Design/EQUIPMENT_CATALOG_AUDIT.csv) for role, exact
+incremental data, prerequisite/eligibility, overlap decisions and measured reward diagnostics.
 
-The mutually exclusive content buckets are:
+`TraitDefinition` remains data authority. Settlement prepares persistent IDs, never
+ordinary equipment levels. `RunRuntimeTraitStore` and `RunTraitAcquisitionService`
+own acquisition/upgrades; only each newly gained level is applied. Legacy permanent
+ordinary levels do not pre-level prepared equipment. Persistent story traits remain separate.
+`ShipTraitTreePanel` uses the authored 4x3 prepared-loadout layout and dynamic growth rows.
 
-| Bucket | Count | Notes |
-|---|---:|---|
-| Shared, normal | 26 | Common run/economy/combat efficiency Traits plus Periodic Reflective Shield |
-| Machine Gun | 6 | Four numeric packages, one homing enhancement, and Terminal Guidance Evolution |
-| Shotgun | 6 | Three numeric packages, extra pellet, Radar taunt enhancement, close-range Overpressure |
-| Sniper | 6 | Three numeric packages, pierce, stealth protocol, semi-auto mode |
-| Boss/Hidden | 3 | Direct campaign rewards; excluded from ordinary acquisition |
-| Curse/story | 1 | Persistent `pixel_curse`; excluded from ordinary acquisition |
-| **Total** | **48** | 44 normal obtainable, 4 direct/story only |
+The 40 existing enum values are unchanged. Five unused capabilities still lack authored
+equipment/consumers; the supported `RemovePierceDamageFalloff` hook is now used by
+Sniper pierce at Max2. No runtime mechanic or universal equipment drawback was introduced.
 
-Serialized metadata totals:
-
-| Dimension | Count |
-|---|---:|
-| `TraitCategory.Shared` | 30 (26 normal + 3 Boss + 1 Curse) |
-| `TraitCategory.WeaponSpecific` | 18 (MG 6, Shotgun 6, Sniper 6) |
-| Common / Rare / Special / Curse | 17 / 20 / 10 / 1 |
-| Non-null icons | 41 |
-| Known reused placeholder icon | 1 (`sn_semi_auto_laser`, currently reuses the focus-lens icon) |
-| Null icons | 7 (Overpressure, Terminal Guidance, Periodic Reflective Shield, three Boss Traits, and Pixel Curse) |
-
-### Current architecture
-
-- `TraitDefinition` owns identity, description, icon, rarity, Shared/weapon metadata, exposure, story polarity, max level, and level effects.
-- `RunRuntimeTraitStore` owns current-run levels. `AddOrUpgrade` clamps to `MaxLevel`; `CanUpgrade` currently checks only the current level against the maximum.
-- `RunTraitAcquisitionService` is the common acquisition path. Ordinary Traits update the run store and `RunTraitEffectApplier`; persistent story Traits use `PermanentProgress` and save through `SaveManager`.
-- `RunTraitEffectApplier` applies one newly acquired level. `PlayerRuntimeStatApplier` applies active permanent Trait levels during Expedition bootstrap. The two sources are intentionally separate and can both contribute.
-- `PlayerWeaponModifiers` is the shared scalar/projectile snapshot path for damage, cadence, spread, projectile count, pierce, homing, charge, semi-auto Sniper mode, and pierce-retention removal.
-- `TraitDefinition` now supports a capstone flag and a simple all-of prerequisite list. Shop, reward, level-up, generated field-drop, Settlement, and final normal acquisition paths share `RunTraitAcquisitionService.MeetsOfferPrerequisites`; exact-ID debug grants deliberately bypass only this offer gate.
-- `ShipTraitTreePanel` already supports persistent-tree `prerequisiteNodeIds` and general unlock conditions. That support is local to the authored Settlement tree; it does not constrain run/shop/reward acquisition.
-- The legacy `SettlementController.traitDefinitions` list is empty in the current Settlement scene. The active permanent tree explicitly references 12 current Traits, so adding a definition to the master catalog does not automatically add a Settlement node.
-
-### Numeric versus mechanical versus playstyle-changing
-
-Classification is by the Trait's primary player-facing effect, not by rarity.
-
-| Class | Count | Current Traits |
-|---|---:|---|
-| A. Numeric efficiency | **35** | All 25 normal Shared Traits; `mg_sustained_harvest_fire`, `mg_stable_feed`, `mg_salvage_sweep`, `mg_midrange_pressure`; `sg_choke_barrel`, `sg_breaching_drive`, `sg_close_harvest_burst`; `sn_charge_accelerator`, `sn_focus_lens`, `sn_high_output_core` |
-| B. Mechanical enhancement | **4** | `mg_guidance_control`, `sg_extra_pellet`, `sg_taunt_resonator`, `sn_piercing_amplifier` |
-| C. True playstyle/system change | **9** | `mg_terminal_guidance`, `sg_close_quarters_overpressure`, `shared_periodic_reflector`, `sn_stealth_scan`, `sn_semi_auto_laser`, `boss_sector_barrier`, `boss_matter_reconstructor`, `boss_phase_afterimage`, `pixel_curse` |
-
-Five of the 44 normally obtainable Traits are now true playstyle changes: `mg_terminal_guidance`, `sg_close_quarters_overpressure`, `shared_periodic_reflector`, `sn_stealth_scan`, and `sn_semi_auto_laser`. The three Boss Traits are direct/hidden rewards, and Pixel Curse is a persistent story state rather than a positive build choice. This remains the strongest reason to add a small signature layer instead of another large numeric batch.
-
-### Existing effect-type boundary
-
-The current enum has 38 values. All effect types used by authored Traits have a runtime consumer. Five unused enum values remain unsupported: `CloseRangeDamageReductionPercent`, `DashDamageReductionPercent`, `CloseRangeSuppressionPercent`, `ChargeSightBonusPercent`, and `ChargedProjectileSizePercent`. `RemovePierceDamageFalloff` has a working projectile-snapshot path but no authored Trait currently uses it.
-
-Complex signature mechanics should not be represented as arbitrary float values. Existing scalar effects should configure existing weapon math; lifecycle mechanics should enable focused player/weapon components.
+Signature progression now enables the core behavior at Lv1 and develops it through
+existing scalars/configuration to Max3, except distance-based Overpressure which accrues
+18/18/24 percentage points to its unchanged +60% cap. Reflector recharge is 20/17/14
+seconds, replacing one source setting. Terminal guidance, semi-auto, dash missiles,
+dash echo and extra pellet retain their original activation/count behavior at Lv1.
+Future concepts below remain proposals, not additional implemented equipment.
 
 ## 2. Proposed content hierarchy
 
@@ -68,8 +40,8 @@ No new rarity enum is needed.
 | Content layer | Current representation | Recommended rule |
 |---|---|---|
 | Ordinary Trait | Common or Rare; normal exposure | Numeric or moderate mechanical improvement; repeatable levels are appropriate |
-| High-tier Trait | Usually Special; normal exposure | One strong decision-changing mechanic; usually max level 1, occasionally 2 if each level changes behavior |
-| Weapon Evolution | Special + capstone metadata + weapon-specific category | Rare transformation earned from an existing build path; max level 1 |
+| High-tier Trait | Usually Special; normal exposure | One strong decision-changing mechanic; Lv1 establishes the mechanic; later supported scalars complete its Max payoff |
+| Weapon Evolution | Special + capstone metadata + weapon-specific category | Transformation earned from a runtime prerequisite; subsequent levels reinforce its behavior |
 | Boss Trait | Special + Hidden | Granted only by the campaign/boss reward path; may be systemic and thematic |
 | Curse | Curse rarity + Hidden + persistent story metadata | Existing persistent negative/story path only |
 
@@ -80,7 +52,7 @@ Minimum Evolution metadata now implemented:
 
 `mutuallyExclusiveGroup` remains deferred until Friendly Fusion exists; Terminal Guidance documents the future `mg_evolution` conflict without changing current candidates for nonexistent content. No manager was added. The same prerequisite check is used by shop, rewards, level-up choices, generated field drops, Settlement, and final normal acquisition validation. Debug exact-ID grant is an explicit development bypass.
 
-For prerequisite level checks, use the highest active level from the current-run store and active permanent progression, not their sum. That mirrors the existing `PlayerStealthController` resolution and prevents a permanent level plus a run level from manufacturing a prerequisite level above `MaxLevel`.
+Ordinary equipment prerequisites use current-run levels. Persistent story prerequisites retain their separate permanent authority. Preparing an item never grants its level or satisfies a runtime prerequisite.
 
 ## 3. Passive concept classification (P1-P11)
 
@@ -88,12 +60,12 @@ For prerequisite level checks, use the highest active level from the current-run
 |---|---|---|---|
 | **P1. Stealth-oriented build** | **Sniper High-tier** | `sn_stealth_scan` already establishes Radar cloak, enemy state/vision information, and slower visual detection. A new Trait should extend that lineage with a decision mechanic, not duplicate Hunter Jammer or timed invulnerability. | Medium. `PlayerStealthController`, `EnemyVisionSensor`, `EnemyBaseAI`, `PlayerGunshotNoiseEmitter`, Radar presentation. Prefer store/progress events over adding another ID poll. |
 | **P2. Friendly ship fusion** | **Machine Gun Evolution** | A major weapon identity built around persistent allied units and the compact `Px_Player` form. It overlaps support drones only visually; the retained limited abilities and follower chain make it a distinct evolution. | Very high. Player visuals/movement, explicit fusion eligibility, friendly NPC/shop relationship, follower chain, `IPlayerOwnedAlly`, projectile ownership, target filtering, cleanup. Defer. |
-| **P3. Maximum homing evolution — IMPLEMENTED** | **Machine Gun Evolution** | `mg_terminal_guidance`, Special, max level 1, gated by `mg_guidance_control` level 3. It permanently transforms Machine Gun targeting without copying the temporary Lock-on Array identity. | Implemented through capstone/prerequisite metadata, shared offer filtering, `PlayerWeaponModifiers`, a Machine-Gun-only projectile snapshot, and the existing fixed-buffer `Bullet` homing query. |
+| **P3. Maximum homing evolution — IMPLEMENTED** | **Machine Gun Evolution** | `mg_terminal_guidance`, Special, Max3, gated by `mg_guidance_control` runtime Lv3. Lv1 enables terminal tracking; Lv2/3 add homing angle 6/10 and range 0.5/0.75. It transforms current-run Machine Gun targeting without copying the temporary Lock-on Array identity. | Implemented through capstone/prerequisite metadata, shared offer filtering, `PlayerWeaponModifiers`, a Machine-Gun-only projectile snapshot, and the existing fixed-buffer `Bullet` homing query. |
 | **P4. Friendly pet / Lock Shot** | **Future / Defer** | “Pet,” “lock shot,” guidance drone, fusion follower, and maximum homing currently overlap too much. Select one core loop before authoring data. | Medium-high once clarified. Likely player-owned ally, target selection, weapon-fire event, pooling, and cleanup. |
 | **P5. Mine-laying while moving** | **Better as Reinforcement instead** | Automatic passive mine trails overlap the completed `rf_gravity_mine` and can become background damage with little decision cost. It fits a future Gravity Mine upgrade/evolution or alternate active behavior better than a new Trait. | Medium. Existing area-control field/pooling plus movement-distance cadence; must cap active mines and avoid one Update per mine. |
-| **P6. Shotgun close-range scaling — IMPLEMENTED** | **Shotgun High-tier** | `sg_close_quarters_overpressure`, Special, max level 1. Player Shotgun pellets snapshot a +60% maximum enemy-damage bonus at spawn; full bonus applies through 1.25 world units and falls linearly to zero at 4 units. Harvest targets remain unaffected. | Implemented through `ShotgunCloseRangeDamagePercent`, `PlayerWeaponModifiers`, a Shotgun-only projectile configuration hook, and pooled `Bullet` spawn-origin/hit-point calculation. Enhanced pooled impact VFX begins at +25% bonus. |
+| **P6. Shotgun close-range scaling — IMPLEMENTED** | **Shotgun High-tier** | `sg_close_quarters_overpressure`, Special, Max3. Incremental 18/18/24% reaches +60% maximum enemy-damage bonus at Max; full bonus applies through 1.25 world units and falls linearly to zero at 4 units. Harvest targets remain unaffected. | Implemented through `ShotgunCloseRangeDamagePercent`, `PlayerWeaponModifiers`, a Shotgun-only projectile configuration hook, and pooled `Bullet` spawn-origin/hit-point calculation. Enhanced pooled impact VFX begins at +25% bonus. |
 | **P7. Energy projectile -> laser -> lock-on laser** | **Sniper Evolution** | A staged transformation with a clear final capstone. `sn_semi_auto_laser` is already an authored mode change and should be part of the lineage. | Very high for the final stage. Sniper charge/mode logic, cursor targeting, stable target list, pooled mark UI/VFX, and a new player-owned laser executor. Defer final lock-on stage. |
-| **P8. Periodic reflective shield — IMPLEMENTED** | **High-tier Shared Trait** | `shared_periodic_reflector`, Special, max level 1. Ready is held until the first eligible enemy Bullet arrives; that hit starts a 1.25-second reflection window followed by a 15-second gameplay-time recharge. It remains distinct from Guard Drone and future directional/laser shields. | Implemented with one source-owned player reflector, an outer trigger, `Bullet` reflection snapshots/claims, `ForceRelease(false)`, and a clean pooled neutral Player projectile. Ordinary Bullets only; lasers remain unsupported. |
+| **P8. Periodic reflective shield — IMPLEMENTED** | **High-tier Shared Trait** | `shared_periodic_reflector`, Special, Max3. Ready is held until the first eligible enemy Bullet arrives; that hit starts a 1.25-second reflection window followed by a 20/17/14-second gameplay-time recharge at Lv1/2/3. It remains distinct from Guard Drone and future directional/laser shields. | Implemented with one source-owned player reflector, an outer trigger, `Bullet` reflection snapshots/claims, `ForceRelease(false)`, and a clean pooled neutral Player projectile. Ordinary Bullets only; lasers remain unsupported. |
 | **P9. Graze economy** | **High-tier Shared Trait** | A true risk/economy loop with no current Trait equivalent. It should not become a simple pickup radius or currency multiplier. | High. Player graze trigger, pooled Bullet one-award state, Dash-state exclusion, run-wallet API, and careful hit/exit ordering. Defer until bullet-heavy encounters are stable. |
 | **P10. Galactic Service Center revival** | **High-tier Shared Trait** | A one-time run-saving decision. It overlaps defensive passives in outcome but is distinct because it triggers only on lethal damage and permanently changes the remainder of that run. | Medium-high. A pre-death `PlayerHealth` interception hook, one-use run state, 50% heal, temporary invulnerability, and a one-time +10% weapon modifier. Do not resurrect after `Died`. |
 | **P11. Part-stealing projectile, lifesteal, +10% incoming damage** | **Boss Trait** | Strong thematic risk/reward and suitable for a specific boss reward rather than ordinary random availability. It does not overlap plain heal efficiency because it converts dealt damage while increasing vulnerability. | Medium-high. Applied-damage reporting from player attacks, heal-efficiency policy, source ownership, and a source-owned incoming-damage multiplier in `PlayerHealth`. |
@@ -194,7 +166,7 @@ Paying on exit prevents a later direct hit from counting as a successful graze. 
 
 Changing an Enemy Bullet in place is riskier because `Bullet.Initialize` controls owner layer, source, homing, pierce history, damage snapshot, special motion, impact VFX, and lifetime. A focused reflector can reuse the interceptor trigger pattern, call `ForceRelease(false)`, then get a serialized reflection projectile prefab/definition from PoolManager and initialize it as `ProjectileOwner.Player` in the reversed incoming direction. This avoids carrying enemy-only special motion or stale `damagedTargets` into a reflected shot.
 
-The implemented state flow is Ready (held indefinitely) -> first reflection -> Reflecting for 1.25 seconds -> Cooldown for 15 seconds -> Ready. The focused player component is source-owned so run and permanent application cannot create independent shields. It uses a 0.42-world-unit trigger around the Player, copies the incoming Bullet's current damage and velocity magnitude, aims at a still-valid hostile firing source or reverses incoming travel, and emits a clean Player-owned projectile with no homing, pierce, split, or weapon-Trait configuration. Pending radial-split carriers are excluded; ordinary split children are eligible. Boss and field lasers are bespoke LineRenderer/hazard components, not Bullets, and remain unsupported.
+The implemented state flow is Ready (held indefinitely) -> first reflection -> Reflecting for 1.25 seconds -> Cooldown for the current level setting (20/17/14 seconds) -> Ready. The focused player component is source-owned so run and permanent application cannot create independent shields. It uses a 0.42-world-unit trigger around the Player, copies the incoming Bullet's current damage and velocity magnitude, aims at a still-valid hostile firing source or reverses incoming travel, and emits a clean Player-owned projectile with no homing, pierce, split, or weapon-Trait configuration. Pending radial-split carriers are excluded; ordinary split children are eligible. Boss and field lasers are bespoke LineRenderer/hazard components, not Bullets, and remain unsupported.
 
 ### Sniper lock-on laser
 
@@ -240,11 +212,11 @@ A focused future revival runtime component should expose a one-shot `TryConsumeL
 
 Implement in this order, one focused task at a time:
 
-1. **P6 Shotgun Close-Quarters Overpressure — IMPLEMENTED.** ID `sg_close_quarters_overpressure`; Special, Shotgun-only, max level 1; +60% through 1.25 units, linear falloff to normal damage at 4 units. Implemented with a Shotgun-only modifier snapshot and pooled Bullet spawn-origin/hit-point damage scaling.
-2. **P3 Terminal Guidance — IMPLEMENTED.** ID `mg_terminal_guidance`; Special, Machine Gun-only, max level 1; requires `mg_guidance_control` level 3. Uses shared prerequisite filtering and a pooled projectile snapshot with +150 steering, +1.5 acquisition range, 1.5x retention range, and close steering within 0.75 units.
-3. **P8 Periodic Reflective Shield — IMPLEMENTED.** ID `shared_periodic_reflector`; Special, Shared, max level 1. Ready is held until the first eligible Bullet, the 1.25-second reflection window returns every entering ordinary Enemy Bullet, then a 15-second scaled-gameplay cooldown begins. The implementation releases the original safely and spawns a clean pooled Player projectile; laser reflection is deferred.
+1. **P6 Shotgun Close-Quarters Overpressure — IMPLEMENTED.** ID `sg_close_quarters_overpressure`; Special, Shotgun-only, Max3; incremental 18/18/24% reaches +60% at Max through 1.25 units, linear falloff to normal damage at 4 units. Implemented with a Shotgun-only modifier snapshot and pooled Bullet spawn-origin/hit-point damage scaling.
+2. **P3 Terminal Guidance — IMPLEMENTED.** ID `mg_terminal_guidance`; Special, Machine Gun-only, Max3; requires `mg_guidance_control` level 3. Uses shared prerequisite filtering and a pooled projectile snapshot with +150 steering, +1.5 acquisition range, 1.5x retention range, and close steering within 0.75 units.
+3. **P8 Periodic Reflective Shield — IMPLEMENTED.** ID `shared_periodic_reflector`; Special, Shared, Max3. Ready is held until the first eligible Bullet, the 1.25-second reflection window returns every entering ordinary Enemy Bullet, then the level-configured 20/17/14-second scaled-gameplay cooldown begins. The implementation releases the original safely and spawns a clean pooled Player projectile; laser reflection is deferred.
 
-Weapon-specific Dash experiment: `mg_dash_missile_salvo` is a Machine Gun Special high-tier Trait (not a capstone) that launches three independently guided micro-missiles on each successful MG Dash. Shotgun and Sniper Dash mechanics remain separate future candidates.
+Weapon-specific Dash experiment: `mg_dash_missile_salvo` is a Machine Gun Special high-tier Trait (not a capstone) that launches three independently guided micro-missiles on each successful MG Dash. The existing `sn_dash_echo_shot` is the separate Sniper next-shot echo signature. Both have Max3 supporting scalars; a Shotgun dash signature remains outside this pass.
 
 This batch covers one positional weapon mechanic, one prerequisite-driven Evolution, and one systemic Shared passive without requiring final art, friendly-NPC policy, death-sequence changes, or a full laser framework.
 
@@ -271,7 +243,7 @@ Do not create another 40-Trait batch. Plan an initial **eight-slot Signature exp
 - 2 Shotgun slots: one High-tier and one later alternate/evolution slot.
 - 2 Sniper slots: one High-tier continuation and one staged Evolution.
 
-The first three candidates above fill one Shared, one MG, and one Shotgun slot. Leave the other five as design slots until those mechanics are proven. P11 can become a ninth, separately sourced Boss Trait when its boss/reward context is known; it should not inflate the ordinary random pool.
+This expansion count is the historical concept budget, not an instruction to add equipment. Current implementations also include both weapon dash signatures; re-audit actual content before allocating future slots. P11 can become a ninth, separately sourced Boss Trait when its boss/reward context is known; it should not inflate the ordinary random pool.
 
 Quality gate for every future signature asset:
 

@@ -838,6 +838,15 @@ MonoBehaviour:
     context: Pixel Curse level-up notification
     notes: Shown only when derived authoritative level changes
     maxLengthHint: 48
+  - textKey: system.settlement.equipment.starter_materials
+    korean: "\uC7A5\uBE44 \uAC1C\uBC1C\uC6A9 \uAE30\uCD08 \uC790\uC7AC\uAC00 \uC9C0\uAE09\uB418\uC5C8\uC2B5\uB2C8\uB2E4."
+    english: Starter manufacturing materials received.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment economy
+    notes: Only after durable first allowance receipt
+    maxLengthHint: 0
   - textKey: system.settlement.expedition.dialogue_active
     korean: "\uD1B5\uC2E0\uC774 \uB05D\uB09C \uD6C4 \uD0D0\uC0AC\uB97C \uC2DC\uC791\uD560
       \uC218 \uC788\uC2B5\uB2C8\uB2E4."
@@ -932,6 +941,284 @@ MonoBehaviour:
     context: Tutorial optional route objective detail
     notes: Route placement is optional and target approach remains authoritative
     maxLengthHint: 72
+  - textKey: ui.operating_frame.bonuses
+    korean: "\uBCF4\uB108\uC2A4"
+    english: Bonuses
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.cargo
+    korean: "\uC801\uC7AC\uB7C9 {value}"
+    english: Cargo capacity {value}
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.close
+    korean: "\uB2EB\uAE30"
+    english: Close
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.count
+    korean: "\uD604\uC7AC \uC7A5\uCC29: {count}\uC885"
+    english: 'Fitted modules: {count}'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.damage
+    korean: "\uACF5\uACA9\uB825 {value}%"
+    english: Damage {value}%
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.dash_cooldown
+    korean: "\uB300\uC26C \uCFE8\uB2E4\uC6B4 {value}%"
+    english: Dash cooldown {value}%
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.dash_distance
+    korean: "\uB300\uC26C \uAC70\uB9AC {value}"
+    english: Dash distance {value}
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.fixed_at_launch
+    korean: "\uCD9C\uACA9 \uC2DC \uACE0\uC815 \xB7 \uD0D0\uC0AC \uC911 \uBCC0\uACBD
+      \uBD88\uAC00"
+    english: Fixed at launch for this expedition
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.free_selection
+    korean: "\uBB34\uB8CC \uC120\uD0DD \xB7 \uC7A5\uBE44 \uC81C\uC791\uACFC \uBCC4\uAC1C"
+    english: "Free selection \xB7 Separate from crafting"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.harvest
+    korean: "\uC218\uD655\uB7C9 {value}%"
+    english: Harvest yield {value}%
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.heavy
+    korean: "\uC911\uAC11\uD615"
+    english: Heavy
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.heavy.description
+    korean: "\uC7A5\uBE44\uB97C \uB9CE\uC774 \uD0D1\uC7AC\uD560\uC218\uB85D \uB0B4\uAD6C\uC131\uACFC
+      \uC801\uC7AC \uC131\uB2A5\uC774 \uD5A5\uC0C1\uB41C\uB2E4. \uAE30\uB3D9\uC131\uC740
+      \uAC10\uC18C\uD55C\uB2E4."
+    english: More modules improve durability and cargo capacity. Mobility is reduced.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.heavy.tier0
+    korean: "\uB0B4\uAD6C\xB7\uC801\uC7AC I \xB7 0\u20136\uC885"
+    english: "Durability/cargo I \xB7 0\u20136 modules"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.heavy.tier1
+    korean: "\uB0B4\uAD6C\xB7\uC801\uC7AC II \xB7 7\u201312\uC885"
+    english: "Durability/cargo II \xB7 7\u201312 modules"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.heavy.tier2
+    korean: "\uB0B4\uAD6C\xB7\uC801\uC7AC III \xB7 13\u201318\uC885"
+    english: "Durability/cargo III \xB7 13\u201318 modules"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.heavy.tier3
+    korean: "\uB0B4\uAD6C\xB7\uC801\uC7AC MAX \xB7 19\uC885 \uC774\uC0C1"
+    english: "Maximum durability/cargo \xB7 19+ modules"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.hp
+    korean: "\uCD5C\uB300 \uCCB4\uB825 {value}"
+    english: Maximum HP {value}
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.lightweight
+    korean: "\uACBD\uB7C9\uD615"
+    english: Lightweight
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.lightweight.description
+    korean: "\uC7A5\uBE44 \uC218\uB97C \uC904\uC5EC \uAE30\uB3D9 \uD6A8\uC728\uC744
+      \uB192\uC778\uB2E4. \uCCB4\uB825\uACFC \uC801\uC7AC \uC131\uB2A5\uC740 \uAC10\uC18C\uD55C\uB2E4."
+    english: Fewer modules improve mobility. Health and cargo capacity are reduced.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.lightweight.tier0
+    korean: "\uACBD\uB7C9 \uD6A8\uC728 MAX \xB7 0\u20136\uC885"
+    english: "Maximum mobility \xB7 0\u20136 modules"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.lightweight.tier1
+    korean: "\uACBD\uB7C9 \uD6A8\uC728 II \xB7 7\u201312\uC885"
+    english: "Mobility II \xB7 7\u201312 modules"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.lightweight.tier2
+    korean: "\uACBD\uB7C9 \uD6A8\uC728 I \xB7 13\u201318\uC885"
+    english: "Mobility I \xB7 13\u201318 modules"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.lightweight.tier3
+    korean: "\uAE30\uB3D9 \uBCF4\uB108\uC2A4 \uC5C6\uC74C \xB7 19\uC885 \uC774\uC0C1"
+    english: "No mobility bonus \xB7 19+ modules"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.move
+    korean: "\uC774\uB3D9 \uC18D\uB3C4 {value}%"
+    english: Movement speed {value}%
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.penalties
+    korean: "\uD398\uB110\uD2F0"
+    english: Penalties
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.projection
+    korean: "\uC608\uC0C1 \uD6A8\uACFC"
+    english: Projected effects
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.standard
+    korean: "\uD45C\uC900\uD615"
+    english: Standard
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.standard.description
+    korean: "\uC7A5\uBE44 \uC218\uC5D0 \uAD6C\uC560\uBC1B\uC9C0 \uC54A\uACE0 \uC804\uD22C\uC640
+      \uD68C\uC218 \uC131\uB2A5\uC744 \uC548\uC815\uC801\uC73C\uB85C \uBCF4\uC870\uD55C\uB2E4."
+    english: Reliable combat and salvage support, regardless of module count.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.summary
+    korean: "\uC6B4\uC6A9 \uD504\uB808\uC784: {frame}\n\uC7A5\uCC29 \uC7A5\uBE44:
+      {count}\uC885"
+    english: 'Frame: {frame}
+
+      Fitted modules: {count}'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
+  - textKey: ui.operating_frame.title
+    korean: "\uC6B4\uC6A9 \uD504\uB808\uC784"
+    english: Operating Frame
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Operating Frame
+    notes: Provisional profile; named placeholders
+    maxLengthHint: 100
   - textKey: ui.settings.language
     korean: "\uC5B8\uC5B4"
     english: 
@@ -1159,8 +1446,8 @@ MonoBehaviour:
     notes: No conversation execution
     maxLengthHint: 24
   - textKey: ui.settlement.equipment.activate
-    korean: "\uD65C\uC131\uD654"
-    english: Activate
+    korean: "\uC7A5\uCC29"
+    english: Fit
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1168,8 +1455,8 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.active
-    korean: "\uCD9C\uACA9 \uD6C4\uBCF4\uAD70\uC5D0 \uD3EC\uD568\uB428"
-    english: Included in expedition candidates
+    korean: "\uC7A5\uCC29\uB428 \xB7 \uD0D0\uC0AC \uC911 \uAC15\uD654"
+    english: "Fitted \xB7 upgrades during expeditions"
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1177,12 +1464,21 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.active_short
-    korean: "\uD65C\uC131"
-    english: Active
+    korean: "\uC7A5\uCC29"
+    english: Fitted
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
     context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.blueprints
+    korean: "\uC5F0\uAD6C \uB3C4\uBA74\uC73C\uB85C"
+    english: Research blueprints
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.breacher
@@ -1194,55 +1490,82 @@ MonoBehaviour:
     context: Equipment Development
     notes: 
     maxLengthHint: 0
-  - textKey: ui.settlement.equipment.capacity
-    korean: "\uCD9C\uACA9 \uD6C4\uBCF4 {used} / {capacity} \xB7 \uBE48 \uC2AC\uB86F
-      \uD5C8\uC6A9"
-    english: "Candidates {used} / {capacity} \xB7 empty slots allowed"
+  - textKey: ui.settlement.equipment.conditional
+    korean: "\uC120\uD589 \uC870\uAC74 \uCDA9\uC871 \uD6C4 \uD0D0\uC0AC \uC911 \uD68D\uB4DD"
+    english: Acquire during the expedition after meeting prerequisites
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
-    context: Equipment Development
+    context: Equipment Development Correction
     notes: 
     maxLengthHint: 0
-  - textKey: ui.settlement.equipment.clear
-    korean: "\uC2AC\uB86F \uBE44\uC6B0\uAE30"
-    english: Clear slot
+  - textKey: ui.settlement.equipment.conditional_fitted
+    korean: "\uC870\uAC74\uBD80 \uC7A5\uCC29 \xB7 \uCD9C\uACA9 \uC2DC \uBBF8\uD68D\uB4DD"
+    english: "Conditionally fitted \xB7 not granted at deployment"
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
-    context: Equipment Development
+    context: Equipment Development Correction
     notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.conditional_level
+    korean: "\uC870\uAC74\uBD80 \uD68D\uB4DD \xB7 \uCD5C\uB300 Lv.{max}"
+    english: "Conditional acquisition \xB7 Max Lv.{max}"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.cost_heading
+    korean: "\uC81C\uC791 \uBE44\uC6A9"
+    english: Manufacturing cost
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment economy
+    notes: One-time permanent cost
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.cost_owned
+    korean: "{cost} \xB7 \uBCF4\uC720 {owned}"
+    english: "{cost} \xB7 owned {owned}"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment economy
+    notes: Currency icon precedes this row
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.deactivate
-    korean: "\uBE44\uD65C\uC131\uD654"
-    english: Deactivate
+    korean: "\uD574\uC81C"
+    english: Unfit
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
     context: Equipment Development
     notes: 
     maxLengthHint: 0
-  - textKey: ui.settlement.equipment.empty
-    korean: "\uBE44\uC5B4 \uC788\uC74C"
-    english: Empty
+  - textKey: ui.settlement.equipment.fitted_count
+    korean: "\uACF5\uC6A9 \uC7A5\uCC29 {shared}\uC885 \xB7 {ship} {specific}\uC885
+      \xB7 \uCD1D {total}\uC885"
+    english: "Shared {shared} \xB7 {ship} {specific} \xB7 total {total} fitted"
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
-    context: Equipment Development
+    context: Equipment Development Correction
     notes: 
     maxLengthHint: 0
-  - textKey: ui.settlement.equipment.full
-    korean: "\uC2AC\uB86F\uC774 \uAC00\uB4DD \uCC38"
-    english: Slots full
+  - textKey: ui.settlement.equipment.fitted_mark
+    korean: "\uC7A5\uCC29"
+    english: FIT
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
-    context: Equipment Development
+    context: Equipment Development Correction
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.growth
-    korean: "\uC131\uC7A5 \uD6A8\uACFC \xB7 \uB2E8\uACC4 \uD68D\uB4DD \uC2DC \uCD94\uAC00"
-    english: "Growth \xB7 added per acquisition"
+    korean: "\uC131\uC7A5 \uD6A8\uACFC \xB7 \uD0D0\uC0AC \uC911 \uAC15\uD654"
+    english: "Growth \xB7 upgrade during expeditions"
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1250,9 +1573,9 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.hint
-    korean: "\uC7A5\uBE44\uB97C \uC0B4\uD3B4\uBCF4\uACE0 \uCD9C\uACA9 \uD6C4\uBCF4\uB97C
-      \uC900\uBE44\uD558\uC138\uC694."
-    english: Inspect equipment and prepare expedition candidates.
+    korean: "\uBD84\uC11D\uC73C\uB85C \uB3C4\uBA74 \uAC1C\uBC29 \xB7 \uC81C\uC791
+      \uD6C4 \uC790\uC720 \uC7A5\uCC29"
+    english: Research blueprints, manufacture once, then fit freely.
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1260,8 +1583,8 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.inactive
-    korean: "\uCD9C\uACA9 \uD6C4\uBCF4\uAD70\uC5D0\uC11C \uC81C\uC678\uB428"
-    english: Excluded from expedition candidates
+    korean: "\uBBF8\uC7A5\uCC29"
+    english: Not fitted
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1269,8 +1592,8 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.inactive_short
-    korean: "\uBE44\uD65C\uC131"
-    english: Inactive
+    korean: "\uBBF8\uC7A5\uCC29"
+    english: Not fitted
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1287,14 +1610,31 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.instructions
-    korean: "\uBAA9\uB85D\uC5D0\uC11C \uC7A5\uBE44\uB97C \uC0B4\uD3B4\uBCF4\uC138\uC694.
-      \uD65C\uC131\uD654\uB294 \uBB34\uB8CC\uC774\uBA70 \uBE48 \uC2AC\uB86F\uB3C4
-      \uC720\uD6A8\uD569\uB2C8\uB2E4."
-    english: Inspect a record. Activation is free and empty slots are valid.
+    korean: "\uB3C4\uBA74\uC744 \uC0B4\uD3B4\uBCF4\uACE0 \uC81C\uC791\uD558\uC138\uC694.
+      \uC7A5\uCC29\uACFC \uD574\uC81C\uB294 \uBB34\uB8CC\uC785\uB2C8\uB2E4."
+    english: Inspect and manufacture a blueprint. Fitting and unfitting are free.
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
     context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.insufficient
+    korean: "\uC81C\uC791 \uC790\uC6D0 \uBD80\uC871"
+    english: Insufficient manufacturing resources
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.invalid_recipe
+    korean: "\uC124\uACC4 \uB370\uC774\uD130 \uD655\uC778 \uD544\uC694"
+    english: Blueprint data needs repair
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.lancer
@@ -1306,6 +1646,15 @@ MonoBehaviour:
     context: Equipment Development
     notes: 
     maxLengthHint: 0
+  - textKey: ui.settlement.equipment.legacy_owned
+    korean: "\uAE30\uC874 \uC81C\uC791 \uC7A5\uBE44 {count}\uC885"
+    english: "Legacy manufactured \xB7 {count}"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
+    notes: 
+    maxLengthHint: 0
   - textKey: ui.settlement.equipment.locked
     korean: "\uBD84\uC11D \uD544\uC694"
     english: Research needed
@@ -1315,13 +1664,68 @@ MonoBehaviour:
     context: Equipment Development
     notes: 
     maxLengthHint: 0
+  - textKey: ui.settlement.equipment.locked_short
+    korean: "\uC7A0\uAE40"
+    english: Locked
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.manufacture
+    korean: "\uC81C\uC791"
+    english: Manufacture
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.manufactured
+    korean: "\uC81C\uC791 \uC644\uB8CC \xB7 \uC7A5\uCC29 \uAC00\uB2A5"
+    english: "Manufactured \xB7 ready to fit"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.manufacturing_cost
+    korean: "1\uD68C \uC81C\uC791 \xB7 \uC2A4\uD06C\uB7A9 {scrap} / \uCF54\uC5B4
+      {core}"
+    english: "One-time cost \xB7 Scrap {scrap} / Core {core}"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
+    notes: 
+    maxLengthHint: 0
   - textKey: ui.settlement.equipment.max_level
-    korean: "\uCD9C\uACA9 \uC2DC Lv.0 \xB7 \uCD5C\uB300 Lv.{max}"
-    english: "Start unowned \xB7 Max Lv.{max}"
+    korean: "\uCD9C\uACA9 \uC2DC Lv.1 \xB7 \uCD5C\uB300 Lv.{max}"
+    english: "Deploy Lv.1 \xB7 Max Lv.{max}"
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
     context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.pending
+    korean: "\uAC1C\uBC1C \uC608\uC815"
+    english: Development pending
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.prerequisite_missing
+    korean: "\uC120\uD589 \uC7A5\uBE44 \uC7A5\uCC29 \uD544\uC694"
+    english: Fit the prerequisite equipment
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.prerequisites
@@ -1334,8 +1738,8 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.research0
-    korean: "\uAE30\uBCF8 \uAE30\uCCB4 \uD574\uAE08 \uD544\uC694"
-    english: Default ship unlock required
+    korean: "\uAE30\uBCF8 \uC5F0\uAD6C \uB3C4\uBA74"
+    english: Initial research blueprint
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1343,9 +1747,8 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.research1
-    korean: "\uAD6C\uD68D \uC548\uC815\uAE30 \uBD84\uC11D \u2192 \uBE0C\uB9AC\uCC98
-      \uD574\uAE08"
-    english: Analyze Sector Stabilizer to unlock Breacher
+    korean: "\uAD6C\uD68D \uC548\uC815\uAE30 \uBD84\uC11D \uD544\uC694"
+    english: Analyze Sector Stabilizer
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1353,8 +1756,8 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.research2
-    korean: "\uBB3C\uC9C8 \uC555\uCD95\uB85C \uBD84\uC11D \u2192 \uB79C\uC11C \uD574\uAE08"
-    english: Analyze Matter Compressor to unlock Lancer
+    korean: "\uBB3C\uC9C8 \uC555\uCD95\uB85C \uBD84\uC11D \uD544\uC694"
+    english: Analyze Matter Compressor
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1371,8 +1774,8 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.row0
-    korean: "\uAE30\uBCF8 \xB7 3 \uC2AC\uB86F"
-    english: "Base \xB7 3 slots"
+    korean: "\uAE30\uBCF8 \xB7 \uB3C4\uBA74 1\u20133"
+    english: "Base \xB7 blueprints 1\u20133"
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1380,8 +1783,8 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.row1
-    korean: "1\uCC28 \uBD84\uC11D \xB7 6 \uC2AC\uB86F"
-    english: "Research I \xB7 6 slots"
+    korean: "1\uCC28 \uBD84\uC11D \xB7 \uB3C4\uBA74 4\u20136"
+    english: "Analysis I \xB7 blueprints 4\u20136"
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1389,8 +1792,8 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.row2
-    korean: "2\uCC28 \uBD84\uC11D \xB7 9 \uC2AC\uB86F"
-    english: "Research II \xB7 9 slots"
+    korean: "2\uCC28 \uBD84\uC11D \xB7 \uB3C4\uBA74 7\u20139"
+    english: "Analysis II \xB7 blueprints 7\u20139"
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1398,17 +1801,27 @@ MonoBehaviour:
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.equipment.row3
-    korean: "3\uCC28 \uBD84\uC11D \xB7 12 \uC2AC\uB86F"
-    english: "Research III \xB7 12 slots"
+    korean: "3\uCC28 \uBD84\uC11D \xB7 \uB3C4\uBA74 10\u201312"
+    english: "Analysis III \xB7 blueprints 10\u201312"
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
     context: Equipment Development
     notes: 
     maxLengthHint: 0
+  - textKey: ui.settlement.equipment.save_failed
+    korean: "\uC800\uC7A5 \uC2E4\uD328 \xB7 \uBCC0\uACBD\uD558\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4"
+    english: "Save failed \xB7 no changes applied"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
+    notes: 
+    maxLengthHint: 0
   - textKey: ui.settlement.equipment.select_ship
-    korean: "{ship} \uAE30\uCCB4 \uC120\uD0DD \uD544\uC694"
-    english: Select {ship} to prepare
+    korean: "{ship} \uCD9C\uACA9 \uC2DC \uC801\uC6A9 \xB7 \uD604\uC7AC \uAE30\uCCB4\uB294
+      \uC720\uC9C0\uB429\uB2C8\uB2E4"
+    english: Applies when deploying {ship}; current ship is unchanged
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1440,6 +1853,15 @@ MonoBehaviour:
     simplifiedChinese: 
     traditionalChinese: 
     context: Equipment Development
+    notes: 
+    maxLengthHint: 0
+  - textKey: ui.settlement.equipment.unmanufactured
+    korean: "\uBBF8\uC81C\uC791 \xB7 1\uD68C \uC81C\uC791 \uD544\uC694"
+    english: "Not manufactured \xB7 one-time cost"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development Correction
     notes: 
     maxLengthHint: 0
   - textKey: ui.settlement.nav.recovery
@@ -1808,4 +2230,4 @@ MonoBehaviour:
     notes: Read-only permanent story recovery inventory
     maxLengthHint: 8
   sourceAssetPath: Assets/02_Scripts/Config/Localization/Source/Localization.csv
-  contentHash: 5b1580bd56f6675020dba6775464f4464340818b93c1e4d464a21eccdd4a0665
+  contentHash: f807acec3097ba9a98580a1ab44fcfd9d054f66d999e05591c56d01b64bb6998

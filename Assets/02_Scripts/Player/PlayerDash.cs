@@ -91,6 +91,13 @@ public class PlayerDash : MonoBehaviour
 
     public event Action<Vector2> DashStarted;
     public event Action DashEnded;
+    public void ClearEquipmentDashWindow() => LastCompletedDashTime = float.NegativeInfinity;
+    public int CompletedDashSerial { get; private set; }
+    public float LastCompletedDashTime { get; private set; } = float.NegativeInfinity;
+    public WeaponTreeType LastCompletedDashWeapon { get; private set; }
+    public bool HasRecentShotgunDash => LastCompletedDashWeapon == WeaponTreeType.Shotgun &&
+        ResolveCurrentWeaponTree() == WeaponTreeType.Shotgun && Time.time - LastCompletedDashTime <= .6f &&
+        isActiveAndEnabled && health != null && !health.IsDead;
 
     private struct DashEffectProfile
     {
@@ -119,6 +126,7 @@ public class PlayerDash : MonoBehaviour
 
     private void OnDisable()
     {
+        ClearEquipmentDashWindow();
         if (dashAction != null)
         {
             dashAction.Disable();
@@ -300,7 +308,7 @@ public class PlayerDash : MonoBehaviour
 
         if (isDashing)
         {
-            EndDashState();
+            EndDashState(true);
         }
     }
 
@@ -319,8 +327,18 @@ public class PlayerDash : MonoBehaviour
         }
     }
 
-    private void EndDashState()
+    private void EndDashState(bool completed = false)
     {
+        if (completed && health != null && !health.IsDead)
+        {
+            CompletedDashSerial++;
+            LastCompletedDashTime = Time.time;
+            LastCompletedDashWeapon = ResolveCurrentWeaponTree();
+        }
+        else
+        {
+            LastCompletedDashTime = float.NegativeInfinity;
+        }
         if (controller != null)
         {
             controller.ClearMovementVelocityOverride();

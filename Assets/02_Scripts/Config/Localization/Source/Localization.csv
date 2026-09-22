@@ -1,4 +1,4 @@
-﻿TextKey,ko,en,ja,zh-Hans,zh-Hant,Context,Notes,MaxLengthHint
+TextKey,ko,en,ja,zh-Hans,zh-Hant,Context,Notes,MaxLengthHint
 ui.settlement.nav.recovery,정착지 복구,Recovery,,,,Settlement recovery hub,Stable primary slot before assembled,16
 ui.settlement.nav.route_core,항로 코어,Route Core,,,,Settlement recovery hub,Stable primary slot at assembled and activated,16
 ui.settlement.route_core.status.assembled,조립 완료 · 활성화 필요,Assembled · Activation needed,,,,Settlement recovery hub,Authoritative assembled state,40
@@ -158,33 +158,81 @@ ui.settlement.archive.ending,중앙 물류망 종료,Network termination,,,,Sett
 ui.settlement.archive.ready,세 부품 복원 안내,Three-part restoration,,,,Settlement read-only archive,No conversation execution,24
 ui.settlement.archive.restored,접속키 복원 완료,Access key restored,,,,Settlement read-only archive,No conversation execution,24
 ui.settlement.equipment.title,장비 개발,Equipment Development,,,,Equipment Development,,
-ui.settlement.equipment.hint,장비를 살펴보고 출격 후보를 준비하세요.,Inspect equipment and prepare expedition candidates.,,,,Equipment Development,,
-ui.settlement.equipment.clear,슬롯 비우기,Clear slot,,,,Equipment Development,,
-ui.settlement.equipment.empty,비어 있음,Empty,,,,Equipment Development,,
+ui.settlement.equipment.hint,분석으로 도면 개방 · 제작 후 자유 장착,"Research blueprints, manufacture once, then fit freely.",,,,Equipment Development,,
 ui.settlement.equipment.locked,분석 필요,Research needed,,,,Equipment Development,,
-ui.settlement.equipment.row0,기본 · 3 슬롯,Base · 3 slots,,,,Equipment Development,,
-ui.settlement.equipment.row1,1차 분석 · 6 슬롯,Research I · 6 slots,,,,Equipment Development,,
-ui.settlement.equipment.row2,2차 분석 · 9 슬롯,Research II · 9 slots,,,,Equipment Development,,
-ui.settlement.equipment.row3,3차 분석 · 12 슬롯,Research III · 12 slots,,,,Equipment Development,,
-ui.settlement.equipment.instructions,목록에서 장비를 살펴보세요. 활성화는 무료이며 빈 슬롯도 유효합니다.,Inspect a record. Activation is free and empty slots are valid.,,,,Equipment Development,,
+ui.settlement.equipment.row0,기본 · 도면 1–3,Base · blueprints 1–3,,,,Equipment Development,,
+ui.settlement.equipment.row1,1차 분석 · 도면 4–6,Analysis I · blueprints 4–6,,,,Equipment Development,,
+ui.settlement.equipment.row2,2차 분석 · 도면 7–9,Analysis II · blueprints 7–9,,,,Equipment Development,,
+ui.settlement.equipment.row3,3차 분석 · 도면 10–12,Analysis III · blueprints 10–12,,,,Equipment Development,,
+ui.settlement.equipment.instructions,도면을 살펴보고 제작하세요. 장착과 해제는 무료입니다.,Inspect and manufacture a blueprint. Fitting and unfitting are free.,,,,Equipment Development,,
 ui.settlement.equipment.shared,공용,Shared,,,,Equipment Development,,
 ui.settlement.equipment.prerequisites,탐사 내 선행 조건,Prerequisites within the expedition,,,,Equipment Development,,
-ui.settlement.equipment.capacity,출격 후보 {used} / {capacity} · 빈 슬롯 허용,Candidates {used} / {capacity} · empty slots allowed,,,,Equipment Development,,
 ui.settlement.equipment.inspect,장비 정보,Equipment,,,,Equipment Development,,
-ui.settlement.equipment.max_level,출격 시 Lv.0 · 최대 Lv.{max},Start unowned · Max Lv.{max},,,,Equipment Development,,
-ui.settlement.equipment.growth,성장 효과 · 단계 획득 시 추가,Growth · added per acquisition,,,,Equipment Development,,
-ui.settlement.equipment.active,출격 후보군에 포함됨,Included in expedition candidates,,,,Equipment Development,,
-ui.settlement.equipment.inactive,출격 후보군에서 제외됨,Excluded from expedition candidates,,,,Equipment Development,,
-ui.settlement.equipment.active_short,활성,Active,,,,Equipment Development,,
-ui.settlement.equipment.inactive_short,비활성,Inactive,,,,Equipment Development,,
-ui.settlement.equipment.activate,활성화,Activate,,,,Equipment Development,,
-ui.settlement.equipment.deactivate,비활성화,Deactivate,,,,Equipment Development,,
-ui.settlement.equipment.full,슬롯이 가득 참,Slots full,,,,Equipment Development,,
-ui.settlement.equipment.research0,기본 기체 해금 필요,Default ship unlock required,,,,Equipment Development,,
-ui.settlement.equipment.research1,구획 안정기 분석 → 브리처 해금,Analyze Sector Stabilizer to unlock Breacher,,,,Equipment Development,,
-ui.settlement.equipment.research2,물질 압축로 분석 → 랜서 해금,Analyze Matter Compressor to unlock Lancer,,,,Equipment Development,,
+ui.settlement.equipment.max_level,출격 시 Lv.1 · 최대 Lv.{max},Deploy Lv.1 · Max Lv.{max},,,,Equipment Development,,
+ui.settlement.equipment.growth,성장 효과 · 탐사 중 강화,Growth · upgrade during expeditions,,,,Equipment Development,,
+ui.settlement.equipment.active,장착됨 · 탐사 중 강화,Fitted · upgrades during expeditions,,,,Equipment Development,,
+ui.settlement.equipment.inactive,미장착,Not fitted,,,,Equipment Development,,
+ui.settlement.equipment.active_short,장착,Fitted,,,,Equipment Development,,
+ui.settlement.equipment.inactive_short,미장착,Not fitted,,,,Equipment Development,,
+ui.settlement.equipment.activate,장착,Fit,,,,Equipment Development,,
+ui.settlement.equipment.deactivate,해제,Unfit,,,,Equipment Development,,
+ui.settlement.equipment.research0,기본 연구 도면,Initial research blueprint,,,,Equipment Development,,
+ui.settlement.equipment.research1,구획 안정기 분석 필요,Analyze Sector Stabilizer,,,,Equipment Development,,
+ui.settlement.equipment.research2,물질 압축로 분석 필요,Analyze Matter Compressor,,,,Equipment Development,,
 ui.settlement.equipment.research3,위상 항법 렌즈 분석 필요,Analyze Phase Navigation Lens,,,,Equipment Development,,
-ui.settlement.equipment.select_ship,{ship} 기체 선택 필요,Select {ship} to prepare,,,,Equipment Development,,
+ui.settlement.equipment.select_ship,{ship} 출격 시 적용 · 현재 기체는 유지됩니다,Applies when deploying {ship}; current ship is unchanged,,,,Equipment Development,,
 ui.settlement.equipment.sweeper,스위퍼,Sweeper,,,,Equipment Development,,
 ui.settlement.equipment.breacher,브리처,Breacher,,,,Equipment Development,,
 ui.settlement.equipment.lancer,랜서,Lancer,,,,Equipment Development,,
+ui.settlement.equipment.fitted_count,공용 장착 {shared}종 · {ship} {specific}종 · 총 {total}종,Shared {shared} · {ship} {specific} · total {total} fitted,,,,Equipment Development Correction,,
+ui.settlement.equipment.pending,개발 예정,Development pending,,,,Equipment Development Correction,,
+ui.settlement.equipment.locked_short,잠김,Locked,,,,Equipment Development Correction,,
+ui.settlement.equipment.fitted_mark,장착,FIT,,,,Equipment Development Correction,,
+ui.settlement.equipment.blueprints,연구 도면으로,Research blueprints,,,,Equipment Development Correction,,
+ui.settlement.equipment.legacy_owned,기존 제작 장비 {count}종,Legacy manufactured · {count},,,,Equipment Development Correction,,
+ui.settlement.equipment.manufacture,제작,Manufacture,,,,Equipment Development Correction,,
+ui.settlement.equipment.manufacturing_cost,1회 제작 · 스크랩 {scrap} / 코어 {core},One-time cost · Scrap {scrap} / Core {core},,,,Equipment Development Correction,,
+ui.settlement.equipment.insufficient,제작 자원 부족,Insufficient manufacturing resources,,,,Equipment Development Correction,,
+ui.settlement.equipment.manufactured,제작 완료 · 장착 가능,Manufactured · ready to fit,,,,Equipment Development Correction,,
+ui.settlement.equipment.unmanufactured,미제작 · 1회 제작 필요,Not manufactured · one-time cost,,,,Equipment Development Correction,,
+ui.settlement.equipment.conditional,선행 조건 충족 후 탐사 중 획득,Acquire during the expedition after meeting prerequisites,,,,Equipment Development Correction,,
+ui.settlement.equipment.conditional_level,조건부 획득 · 최대 Lv.{max},Conditional acquisition · Max Lv.{max},,,,Equipment Development Correction,,
+ui.settlement.equipment.conditional_fitted,조건부 장착 · 출격 시 미획득,Conditionally fitted · not granted at deployment,,,,Equipment Development Correction,,
+ui.settlement.equipment.prerequisite_missing,선행 장비 장착 필요,Fit the prerequisite equipment,,,,Equipment Development Correction,,
+ui.settlement.equipment.invalid_recipe,설계 데이터 확인 필요,Blueprint data needs repair,,,,Equipment Development Correction,,
+ui.settlement.equipment.save_failed,저장 실패 · 변경하지 않았습니다,Save failed · no changes applied,,,,Equipment Development Correction,,
+ui.operating_frame.title,운용 프레임,Operating Frame,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.lightweight,경량형,Lightweight,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.standard,표준형,Standard,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.heavy,중갑형,Heavy,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.lightweight.description,장비 수를 줄여 기동 효율을 높인다. 체력과 적재 성능은 감소한다.,Fewer modules improve mobility. Health and cargo capacity are reduced.,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.standard.description,장비 수에 구애받지 않고 전투와 회수 성능을 안정적으로 보조한다.,"Reliable combat and salvage support, regardless of module count.",,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.heavy.description,장비를 많이 탑재할수록 내구성과 적재 성능이 향상된다. 기동성은 감소한다.,More modules improve durability and cargo capacity. Mobility is reduced.,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.count,현재 장착: {count}종,Fitted modules: {count},,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.summary,"운용 프레임: {frame}
+장착 장비: {count}종","Frame: {frame}
+Fitted modules: {count}",,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.lightweight.tier0,경량 효율 MAX · 0–6종,Maximum mobility · 0–6 modules,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.lightweight.tier1,경량 효율 II · 7–12종,Mobility II · 7–12 modules,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.lightweight.tier2,경량 효율 I · 13–18종,Mobility I · 13–18 modules,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.lightweight.tier3,기동 보너스 없음 · 19종 이상,No mobility bonus · 19+ modules,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.heavy.tier0,내구·적재 I · 0–6종,Durability/cargo I · 0–6 modules,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.heavy.tier1,내구·적재 II · 7–12종,Durability/cargo II · 7–12 modules,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.heavy.tier2,내구·적재 III · 13–18종,Durability/cargo III · 13–18 modules,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.heavy.tier3,내구·적재 MAX · 19종 이상,Maximum durability/cargo · 19+ modules,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.fixed_at_launch,출격 시 고정 · 탐사 중 변경 불가,Fixed at launch for this expedition,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.projection,예상 효과,Projected effects,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.bonuses,보너스,Bonuses,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.penalties,페널티,Penalties,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.free_selection,무료 선택 · 장비 제작과 별개,Free selection · Separate from crafting,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.move,이동 속도 {value}%,Movement speed {value}%,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.dash_cooldown,대쉬 쿨다운 {value}%,Dash cooldown {value}%,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.dash_distance,대쉬 거리 {value},Dash distance {value},,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.hp,최대 체력 {value},Maximum HP {value},,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.cargo,적재량 {value},Cargo capacity {value},,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.damage,공격력 {value}%,Damage {value}%,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.harvest,수확량 {value}%,Harvest yield {value}%,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.operating_frame.close,닫기,Close,,,,Operating Frame,Provisional profile; named placeholders,100
+ui.settlement.equipment.cost_heading,제작 비용,Manufacturing cost,,,,Equipment economy,One-time permanent cost,
+ui.settlement.equipment.cost_owned,{cost} · 보유 {owned},{cost} · owned {owned},,,,Equipment economy,Currency icon precedes this row,
+system.settlement.equipment.starter_materials,장비 개발용 기초 자재가 지급되었습니다.,Starter manufacturing materials received.,,,,Equipment economy,Only after durable first allowance receipt,
