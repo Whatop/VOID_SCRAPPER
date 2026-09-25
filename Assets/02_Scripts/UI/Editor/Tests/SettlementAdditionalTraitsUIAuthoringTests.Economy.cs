@@ -148,8 +148,8 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         Assert.That(panel.TryExecuteEquipmentAction(), Is.EqualTo(EquipmentDevelopmentResult.Success));
         Assert.That(core.root.activeSelf, Is.False); Assert.That(scrap.root.activeSelf, Is.False);
         Assert.That(heading.gameObject.activeSelf, Is.False);
-        panel.SelectOperatingFrame(OperatingFrameType.Heavy);
-        Assert.That(heading.gameObject.activeSelf, Is.False, "Frames have no price.");
+        panel.InspectEquipment(catalog.FindById(StructuralFrameProfile.HeavyId));
+        Assert.That(heading.gameObject.activeSelf, Is.True, "Structural frames use normal manufacturing prices.");
     }
 
     [TestCase(0)] [TestCase(1)] [TestCase(3)]
@@ -158,7 +158,7 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         var samples = JsonUtility.FromJson<EquipmentEconomyDiagnostics.Samples>(File.ReadAllText(EquipmentEconomyDiagnostics.SamplesPath));
         var maps = samples.maps.Where(m => m.sample / 3 == stage).ToArray();
         Assert.That(maps.Length, Is.EqualTo(3));
-        var standard = maps.Select(m => EquipmentEconomyDiagnostics.EstimateMap(m, OperatingFrameType.Standard, .65f, "Normal", 64)).ToArray();
+        var standard = maps.Select(m => EquipmentEconomyDiagnostics.EstimateMap(m, StructuralFrameModules.Standard, .65f, "Normal", 64)).ToArray();
         double scrap = standard.Average(r => r.safeScrap), core = standard.Average(r => r.safeCore);
         Assert.That(scrap, Is.GreaterThan(20)); Assert.That(core, Is.GreaterThan(.5));
         foreach (var result in standard)
@@ -186,8 +186,8 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         Assert.That(samples.maps.Where(m => m.repeat).All(m => m.sources.Count > 50 && m.bossCore > 0), Is.True);
     }
 
-    [TestCase(OperatingFrameType.Lightweight, 88)] [TestCase(OperatingFrameType.Standard, 118)] [TestCase(OperatingFrameType.Heavy, 148)]
-    public void EconomyUsesActualFrameCargoAndReportsHeavyRatherThanPenalizingIt(OperatingFrameType frame, int cargo)
+    [TestCase(StructuralFrameModules.Lightweight, 88)] [TestCase(StructuralFrameModules.Standard, 118)] [TestCase(StructuralFrameModules.Heavy, 138)]
+    public void EconomyUsesActualFrameCargoAndReportsHeavyRatherThanPenalizingIt(StructuralFrameModules frame, int cargo)
     {
         var samples = JsonUtility.FromJson<EquipmentEconomyDiagnostics.Samples>(File.ReadAllText(EquipmentEconomyDiagnostics.SamplesPath));
         var map = samples.maps.Single(m => m.sample == 9);
@@ -203,7 +203,7 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         var samples = JsonUtility.FromJson<EquipmentEconomyDiagnostics.Samples>(File.ReadAllText(EquipmentEconomyDiagnostics.SamplesPath));
         foreach (int sample in new[] { 0, 3, 9 })
         {
-            var result = EquipmentEconomyDiagnostics.EstimateMap(samples.maps.Single(m => m.sample == sample), OperatingFrameType.Standard, .65f, "No boss", 128, false);
+            var result = EquipmentEconomyDiagnostics.EstimateMap(samples.maps.Single(m => m.sample == sample), StructuralFrameModules.Standard, .65f, "No boss", 128, false);
             Assert.That(result.safeCore, Is.GreaterThan(0), "Repeatable reactor currency must not be confused with story parts.");
             Assert.That(result.deathCore, Is.Zero, "Do not extend the Salvage Devourer guarantee to ordinary Core.");
         }

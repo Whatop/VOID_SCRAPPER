@@ -49,18 +49,20 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         { "sn_mobile_charge_coupler", "Mobility" },
         { "sn_charge_aperture", "Control" },
         { "sn_anchor_optics", "Tactical" },
-        { "sn_reserve_capacitor", "Signature" }
+        { "sn_reserve_capacitor", "Signature" },
+        { "shared_lightweight_frame", "Structural" }, { "shared_standard_frame", "Structural" }, { "shared_heavy_frame", "Structural" },
+        { "special_sector_stabilization", "Research" }, { "special_matter_compression", "Research" }, { "special_phase_navigation", "Research" }
     };
 
     [Test]
     public void CatalogReferencesRolesAndFamiliesMatchCurrentAuthoredContent()
     {
-        Assert.That(catalog.TraitDefinitions, Has.Count.EqualTo(66));
+        Assert.That(catalog.TraitDefinitions, Has.Count.EqualTo(72));
         Assert.That(catalog.TraitDefinitions.All(t => t != null), Is.True);
-        Assert.That(catalog.TraitDefinitions.Select(t => t.TraitId).Distinct().Count(), Is.EqualTo(66));
+        Assert.That(catalog.TraitDefinitions.Select(t => t.TraitId).Distinct().Count(), Is.EqualTo(72));
         var normal = catalog.TraitDefinitions.Where(t => t.CanAppearAsRandomDropTrait).ToArray();
         Assert.That(normal.Select(t => t.TraitId), Is.EquivalentTo(CatalogRoles.Keys));
-        Assert.That(normal.Count(t => t.Category == TraitCategory.Shared), Is.EqualTo(26));
+        Assert.That(normal.Count(t => t.Category == TraitCategory.Shared), Is.EqualTo(32));
         Assert.That(normal.Count(t => t.Category == TraitCategory.WeaponSpecific && t.WeaponTreeType == WeaponTreeType.MachineGun), Is.EqualTo(12));
         Assert.That(normal.Count(t => t.Category == TraitCategory.WeaponSpecific && t.WeaponTreeType == WeaponTreeType.Shotgun), Is.EqualTo(12));
         Assert.That(normal.Count(t => t.Category == TraitCategory.WeaponSpecific && t.WeaponTreeType == WeaponTreeType.Sniper), Is.EqualTo(12));
@@ -69,6 +71,11 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
             var data = new UnityEditor.SerializedObject(trait);
             Assert.That(data.FindProperty("description").stringValue, Is.Not.Empty, trait.TraitId);
             Assert.That(data.FindProperty("maxLevel").intValue, Is.InRange(1, 3), trait.TraitId);
+            if (StructuralFrameProfile.ModuleFor(trait.TraitId) != StructuralFrameModules.None)
+            {
+                Assert.That(trait.LevelEffects, Is.Empty); Assert.That(trait.MaxLevel, Is.EqualTo(1));
+                continue;
+            }
             for (int level = 1; level <= trait.MaxLevel; level++)
             {
                 var effects = trait.LevelEffects.Where(e => e != null && e.Level == level).ToArray();
@@ -147,12 +154,19 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         {
             if (trait.Category == TraitCategory.WeaponSpecific)
                 progress.SetSelectedShipId(ships.First(s => s.DefaultWeaponTree == trait.WeaponTreeType).ShipId);
+            if (!trait.IsDevelopmentRoster) PrepareFixture(trait);
             panel.InspectEquipment(trait);
             Assert.That(Get<TMP_Text>(panel, "equipmentDetails").text, Is.EqualTo(trait.Description));
             var rows = Get<EquipmentGrowthRow[]>(panel, "equipmentGrowthRows");
+            if (StructuralFrameProfile.ModuleFor(trait.TraitId) != StructuralFrameModules.None)
+            {
+                Assert.That(rows.Count(r => r.root.activeSelf), Is.EqualTo(3));
+                Assert.That(rows[0].effects.text, Is.Not.Empty);
+                continue;
+            }
             Assert.That(rows.Count(r => r.root.activeSelf), Is.EqualTo(trait.MaxLevel));
             for (int i = 0; i < trait.MaxLevel; i++)
-                Assert.That(rows[i].effects.text, Is.EqualTo(TraitEffectTextUtility.BuildEffectText(trait, i + 1)));
+                Assert.That(rows[i].effects.text, Is.EqualTo(TraitEffectTextUtility.BuildRichEffectText(trait, i + 1)));
             Assert.That(Get<Button>(ui, "traitActionButton").gameObject.activeSelf, Is.False);
             Assert.That(panel.TryUnlockSelectedTrait(), Is.False);
         }

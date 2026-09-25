@@ -1,5 +1,51 @@
 # VOID SCRAPPER System Design
 
+## Research-derived Special equipment (2026-09-25)
+
+Sector Stabilizer, Matter Compressor and Phase Navigation Lens remain campaign recovery state in PermanentProgress. Boss recovery, route authorization, assembly and world recovery feedback are unchanged. Original parts are never Trait equipment, cargo or field-drop targets.
+
+Each completed analysis exposes one paid Special blueprint in the Shared branch's compact Special research subsection. TraitDefinition.requiredStoryPartAnalysis identifies the existing campaign milestone; PermanentProgress.HasCompletedStoryPartAnalysis derives eligibility from the established analysis count and actual part ownership. Pickup alone is insufficient. Existing analyzed saves expose the same blueprints without new migration receipts, grants, currency changes or auto-fitting. Save version remains 8.
+
+| Equipment ID / English name | Required analysis | Accent | Scrap / Core | Increment at each of Lv1, Lv2, Lv3 |
+|---|---|---|---:|---|
+| special_sector_stabilization / Stabilized Return Module | Sector Stabilizer | Orange | 24 / 1 | Max HP +1; healing efficiency +5%; Emergency Return capacity ratio +5 percentage points |
+| special_matter_compression / Matter Compression Module | Matter Compressor | Green | 32 / 2 | Cargo +6; harvest yield +3%; pickup range +0.20 |
+| special_phase_navigation / Phase Navigation Module | Phase Navigation Lens | Blue | 40 / 3 | Radar radius +1; range +5%; spread reduction +3% |
+
+These are Shared-compatible TraitDefinition equipment with Special rarity and MaxLevel 3. They use ordinary manufacturing, unrestricted fitting, immutable deployment snapshots, Lv1 deployment, upgrade candidates, field drops and reconstruction. No extra Active Reinforcement slot or artificial fitting cap is introduced. Existing multiplicative stat semantics remain authoritative; the table lists per-level increments, not additive percentage totals. Normal stat lines use StatPresentation; the three identity accents affect rarity presentation only. Existing icons are reused pending dedicated art.
+
+The 48-position final board and seventeen legacy Shared modules are unchanged. The catalog now has 72 definitions: 48 final-board + 17 legacy + 3 research Special equipment, plus the three hidden boss protocols and existing story Curse. No post-ending Curse is implemented.
+
+The large always-visible Story Recovery strip is superseded by an authored, closed-by-default Recovery log overlay. A compact button shows acquired count; the overlay shows the original read-only part slots and analyzed count. PlayerBuildStatusPanelUI still owns this presentation. It never opens automatically on acquisition, blocks equipment/cargo actions while open, contains keyboard navigation and closes on inventory/tab changes. The equipment/cargo body grows from 418 × 164 to 418 × 196 in both saved copies; Tutorial retains its prefab reference.
+
+New Korean/English keys belong to Localization.csv and are consumed through the existing localization service/catalog. The generated catalog must be refreshed with the established Import Catalog command; batch import is currently blocked by Unity licensing. No generated localization YAML was edited during this pass. Validation limits and follow-up checks are recorded in [the Special equipment report](RESEARCH_SPECIAL_EQUIPMENT_REPORT.md).
+
+## Inventory tabs and stat presentation (2026-09-25)
+
+PlayerBuildStatusPanelUI remains the owner of Story Recovery, Active Reinforcement, runtime equipment storage/details, field drops, Cargo management, jettison and auto-pickup UI. Its InventoryTabs partial contains presentation state only: Equipment is the initial tab; a switch is remembered for this UI instance, never saved. ExpeditionMenuController still owns the outer Map/Inventory menu, pause, cursor and ESC.
+
+EquipmentTabButton and CargoTabButton share the header row with a compact Recovery log button. StoryRecoverySection is inside the optional read-only overlay described above. EquipmentContentRoot and CargoContentRoot each fill the same 418 × 196 lower body. Equipment contains the separate Active slot, scrollable storage and scrollable selected detail. Active charges, state, effects and drop buttons have explicit saved bindings. Owned cards show Lv and MAX. Structural modules remain normal Lv1/MAX entries; their detail reports the immutable resolved run profile. Cargo contains its gauge, Scrap/Core/Alloy manifest, quantity/weight/contribution/auto-pickup data and selected resource actions. Credits and Tuning Chips use the separate compact run-resource header. Emergency Return projection reads PlayerCargoController.CurrentLoad and EmergencyReturnCapacityLimit; no second return calculator exists.
+
+Both the shared PF_ExpeditionMapInventoryMenu prefab and Expedition's unpacked copy are authored. Tutorial continues inheriting the prefab. No runtime hierarchy fallback was added. Tab changes close the frame overlay, stop scrolling, clear hold progress, resolve the visible field-drop target and select a visible control. Cargo G requires a fresh hold after switching/opening. Both keyboard dispatch and direct button callbacks reject hidden-tab operations. Existing pickup spawning, jettison, removal, rollback and repickup rules remain in their original owners.
+
+StatPresentation is a static UI utility with explicit mappings for all 49 TraitEffectType and 25 ReinforcementEffectType values. It owns categories, palette, rich wrappers and stable summary ordering; it owns no stats. TraitEffectTextUtility retains plain BuildEffectText/FormatEffect and adds BuildRichEffectText. Reinforcement text and StructuralFrameText similarly retain plain paths and add rich paths. The inventory's duplicate Trait formatter delegates to the shared formatter. Current cumulative equipment effects sort Survival, Combat, Mobility, Salvage, Utility, Special without empty headings.
+
+| Semantic category | Color | Semantic category | Color |
+|---|---|---|---|
+| Health / Max HP | #FF6B6B | Defense / Shield | #55D6BE |
+| Damage | #FF9F43 | Fire Rate | #FFD166 |
+| Movement | #9BE564 | Dash | #46E6C8 |
+| Cargo | #D7A75E | Harvest | #6FD08C |
+| Projectile Speed | #6CCBFF | Range | #5B8CFF |
+| Accuracy / Spread | #7EE7F2 | Homing | #B58CFF |
+| Pierce | #D77BFF | Charge | #FF82C8 |
+| Radar / Detection | #44DDE7 | Active / Cooldown | #7AA8FF |
+| Healing / Recovery | #70E08F | Special Mechanics | #FFD76A |
+
+Color is secondary: explicit names, signs, values, units and mechanic descriptions remain. Penalties retain their semantic color. Resource identity colors are separate and unchanged. Rich formatting is applied to Settlement growth rows, reward/upgrade choices, inventory detail/current effect summaries, all resolved frame profiles and Active effects. No balance, ownership, economy, cargo-rule, campaign, enemy-base, boss or post-ending Curse implementation changes belong to this pass.
+
+Validation status and remaining actual 480 × 270 Play Mode checks are recorded in [the inventory presentation report](INVENTORY_PRESENTATION_REPORT.md). Serialized layout checks do not substitute for rendered validation.
+
 ## Equipment manufacturing economy (2026-09-23)
 
 The 48 manufacturing recipes are finalized in TraitDefinition metadata; UI and transactions read that one source. See EQUIPMENT_ECONOMY.md for all prices and the production-map estimate. Row1 10-14 Scrap/0 Core; Row2 18-24/0-1; Row3 28-36/0-1; Row4 44-54/0-2. No world reward, combat effect, rarity or Operating Frame changes.
@@ -10,48 +56,38 @@ Settlement cost rows are authored with existing currency sprites, cost/current f
 
 Baseline Normal safe income is about 33 Scrap/1.2 Core in Region1, 34/2.3 for first Region2 (repeat about 34/1.3), and 34/1.3 on repeat Region3. First Region3 is a sparse boss map, about 4 Scrap/0 Core; it is not treated as a farming route. Models include actual cargo and loss policies, not full-map collection. Baseline Heavy advantage is small, with no hidden reward penalty; frame values remain provisional. The 60-80% ownership target assumes optional return trips, not only three boss clears. Natural trip count, facility competition and Core droughts remain human balance questions.
 
-## Operating Frames ? separate pre-run archetypes (2026-09-22)
+## Structural frame equipment conversion (2026-09-25)
 
-PermanentProgress owns a free, mutually exclusive Lightweight / Standard / Heavy preference; SaveData persists it.
-Standard is enum zero, so absent pre-frame fields default safely without changing save version 7 or repeating equipment migration.
-Invalid saved values normalize to Standard. Selection uses the existing save-first equipment transaction policy in safe Settlement state.
-It never changes manufacturing, fitting, resources, research or equipment levels.
+This supersedes the separate Operating Frame system from 2026-09-22. There is no saved frame preference, selector, count tier or independent frame runtime authority. The old numeric selection survives only as a consumed migration tombstone in SaveData.
 
-RunContext.Begin snapshots the chosen frame and the count of its already-resolved immutable ordinary equipment IDs.
-Count includes effective Shared, matching ship equipment, valid legacy ownership and fitted conditional evolutions;
-it excludes story/boss traits, Reinforcement, other ship branches, unfitted and research-locked equipment.
-The count does not change on upgrades, dismantling, conditional activation or portal travel. More than 24 legacy-compatible modules
-remain legal: only the profile band saturates. The 48 blueprint positions and unrestricted fitting are unchanged.
+Equipment Development exposes Shared and the branch from PermanentProgress's current selected ship/WeaponTree. Existing Hangar changes refresh the panel through its existing change subscription. Unrelated authored tabs stay present but inactive. An invalid inspected branch falls back to Shared; inspecting content never selects a ship. All branches' ownership/fitting preferences remain stored; deployment still resolves only Shared plus the selected ship.
 
-All values below are provisional. Multipliers compose through existing modifier owners; flat HP/cargo/distance contributions add.
+Shared Row 2 is exactly: `shared_lightweight_frame`, `shared_standard_frame`, `shared_heavy_frame`. All three unlock after the first completed boss-component analysis. They are normal manufactured Shared equipment: pay once, fit/unfit freely, and fit none, one, any pair or all three. All are Common, MaxLevel 1, deploy at Lv1/MAX, and use existing upgrade eligibility. They have empty individual LevelEffects: no single-frame effects can stack under a fusion. The shared RunRuntimeTraitStore.CanUpgrade check retains the active structural deployment Lv1 floor after runtime removal, so no wasted re-upgrade is offered. Ordinary fitting and reward callers are unchanged.
 
-| Fitted ordinary count | Lightweight move / dash cooldown / distance | Lightweight HP / cargo | Heavy HP / cargo | Heavy move / dash cooldown |
-|---|---|---|---|---|
-| 0?6 | +12% / -15% / +0.60 | -3 / -20 | +2 / +10 | -10% / +15% |
-| 7?12 | +8% / -10% / +0.40 | -3 / -20 | +4 / +20 | -10% / +15% |
-| 13?18 | +4% / -5% / +0.20 | -3 / -20 | +6 / +30 | -10% / +15% |
-| 19+ | none | -3 / -20 | +8 / +40 | -10% / +15% |
+The following exact profiles are provisional; each row completely replaces the singles. Values of zero mean no modifier. Total ordinary equipment count never enters resolution.
 
-Standard always grants damage +5%, harvest yield +5% and cargo +10. It has no count tier or penalty.
-OperatingFrameProfile is a fixed value resolver, not a Trait, asset catalog, manager, manufacturing item or reward candidate.
+| Fitted frames | Move speed | Dash cooldown | Dash distance | Max HP | Cargo | Damage | Harvest yield |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| None | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Lightweight | +12% | -15% | +0.60 | -3 | -20 | 0 | 0 |
+| Standard | 0 | 0 | 0 | 0 | +10 | +5% | +5% |
+| Heavy | -10% | +15% | 0 | +6 | +30 | 0 | 0 |
+| Lightweight + Standard | +8% | -10% | 0 | -2 | -5 | +3% | +3% |
+| Lightweight + Heavy | +4% | 0 | +0.30 | +2 | +10 | 0 | 0 |
+| Standard + Heavy | -6% | +8% | 0 | +4 | +25 | +3% | +3% |
+| Lightweight + Standard + Heavy (Integrated) | +3% | 0 | +0.15 | +3 | +15 | +3% | +3% |
 
-PlayerRuntimeStatApplier resets/rebuilds base ship modifiers, applies the immutable frame, then existing technology/story effects.
-ExpeditionBootstrap retains reinforcement restoration, region modifiers, current RunRuntimeTraitStore effects and final carried-vital restoration.
-Frame movement and dash cooldown use the applier as their external source; replacement/disable removes only that source.
-HP/cargo/distance use the existing stat commit path; damage and harvest use PlayerWeaponModifiers/PlayerRuntimeBonusState.
-Portal reconstruction rebuilds once on the new player without granting levels or refilling depleted HP/Armor/active charges.
-Cargo capacity changes do not discard the wallet; existing overload movement/dash penalties remain independent.
+RunContext.Begin resolves the three equipment IDs from the immutable effective fitting, records the bit set and exposes one StructuralFrameProfile. Runtime Trait levels, dismantling, live Settlement preferences and portal travel cannot change that profile. PlayerRuntimeStatApplier remains the single owner: reset/base ship stats -> structural profile -> technology/story effects -> stat commit. ExpeditionBootstrap then restores Reinforcement, region effects and current runtime Trait levels; depleted carried HP/Armor restore last on portals. Fresh runs initialize fresh vitals. Movement and cooldown use source-owned external multipliers; distance, HP and cargo use the existing rebuild/commit paths; damage and yield use existing modifier components. No authored ship data changes, manager or Update loop were added. Run end removes player/run effects through the existing lifecycle.
 
-Settlement has three authored frame controls above the four equipment branch tabs. Blue hover/focus and yellow selection are retained.
-The existing detail pane displays current compatible fitted count, projected band (except Standard), bonuses and penalties.
-The existing inventory/build header opens an authored read-only frame detail panel; it uses the run snapshot, never the Settlement preview.
-Tutorial inherits the shared inventory prefab; Expedition currently has an unpacked copy, so both bindings are validated.
-F10's existing campaign section reports the projected frame, and checkpoint replacement preserves preference.
+Manufacturing recipes (Scrap / Core): Lightweight **20 / 0**, Standard **18 / 0**, Heavy **18 / 1**. Row-2 total remains 56 / 1. Other 45 board definitions and recipes are unchanged. Initial six remain 74 Scrap; starter allowance remains 86 Scrap / 0 Core and includes no frames.
 
-No dash charges, starting armor bonus, post-ending Curse system, universal equipment debuffs or economy changes are included.
-Possible follow-up: review a small Heavy armor contribution only if its existing source/reconstruction contract remains safe.
-Natural-play tuning remains necessary, particularly Heavy plus overload slowdown, large-pool Lightweight usefulness,
-and Standard harvest/damage stacking with equipment. No combat values were auto-rebalanced from diagnostics.
+`shared_salvage_protocol`, `shared_reinforced_plating`, `shared_repair_foam` are retired from the normal board, not deleted. Their IDs, GUIDs, recipes, effects and existing ownership/fitting remain intact. They appear only in the existing legacy-owner section, with no new-player research/manufacture and no refund or automatic replacement. Catalog totals are 69 definitions: 65 ordinary (48 board + 17 Shared legacy), three boss and the unchanged existing story Curse trait.
+
+Save version 8 consumes version-7 `selectedOperatingFrame` (0 Standard, 1 Lightweight, 2 Heavy). A valid recorded selection plus Sector Stabilizer ownership and unlocked DeepZone1 grants only the corresponding manufactured + fitted module without payment. Before Row 2, absent fields and invalid values grant nothing. Explicit DTO defaults during JSON overwrite distinguish an absent pre-frame field from recorded Standard. The tombstone resets to -1; v8 cannot regrant/refit on reload. Currency, campaign, roster ownership, fitting and prior migration receipts are preserved. Older version-5/6 ownership migrations still run normally.
+
+Settlement's selector objects/listeners are removed. Structural equipment details show the Shared structural tag, Max Lv.1, single effects, fusion explanation, current profile and projected profile after fitting. Blue hover/focus, yellow inspection and the separate fitted indicator remain. TAB inspection uses the active immutable profile and actual modifiers; F10 reports structural manufacture/fitting and effective combination without a separate setter. Shared inventory prefab and Expedition's unpacked copy are both updated.
+
+The integrated profile trades specialist peaks for breadth. Natural testing is still needed for Lightweight with depleted HP, Heavy plus existing cargo overload, all-three versus specialist opportunity cost, and unrestricted fitting alongside legacy stat modules. Historical count-based economy simulations are not validation of these profiles. The post-ending Curse system is not implemented.
 
 ## Equipment Development correction — research, manufacture, fit, deploy (2026-09-21)
 
@@ -573,6 +609,8 @@ they are not a playable final encounter. These missing assets/connections preven
 complete playable final handoff; this pass does not auto-clear defense or invent combat.
 
 ## Story Recovery Inventory Presentation (2026-09-09)
+
+Historical strip layout: superseded by the 2026-09-25 Recovery log overlay above. The original part state and world-flight behavior described here remain; the inventory pulse runs only when the read-only recovery overlay is already open.
 
 This supersedes the missing-art behavior in the previous hotfix. A null
 BossCampaignDefinition.StoryPartSprite keeps the shared recovery prefab's authored

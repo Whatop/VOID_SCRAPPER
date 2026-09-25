@@ -38,7 +38,7 @@ MonoBehaviour:
     value: 8
   isCapstone: 0
   prerequisites: []
-  developmentRoster: 1
+  developmentRoster: 0
   developmentResearchTier: 1
   developmentDisplayOrder: 0
   previousDevelopmentResearchTier: 0

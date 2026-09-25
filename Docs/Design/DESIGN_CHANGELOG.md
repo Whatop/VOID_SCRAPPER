@@ -1,5 +1,35 @@
 # VOID SCRAPPER 설계 변경 원장
 
+## 2026-09-25 - Recovery progression and research-derived Special equipment
+
+- Retain the three original recovery parts exclusively in existing campaign state. Each corresponding completed analysis exposes one Special blueprint; acquisition alone does not unlock it.
+- Add Stabilized Return, Matter Compression and Phase Navigation modules with supported effects, Special rarity, Shared compatibility, three levels, normal paid manufacture and unrestricted fitting. No auto-manufacture or auto-fit; existing ownership and save schema remain unchanged.
+- Add a compact Special research subsection under Shared without changing the 48-position board or selected-ship branch authority.
+- Replace the permanent inventory recovery strip with an optional read-only Recovery log; enlarge both tab bodies to 418 × 196. Author both prefab and Expedition copy, preserving Tutorial inheritance and existing slot IDs.
+- Reuse semantic stat colors and existing icons; add Korean/English localization source keys. Generated-catalog import and Unity execution/rendered validation are blocked by licensing. Static compilation, production content/presentation checks and serialized audits pass; see [report](RESEARCH_SPECIAL_EQUIPMENT_REPORT.md).
+- Preserve existing equipment recipes/effects, structural profiles, cargo rules, Active Reinforcement, bosses and enemy bases. No post-ending Curse, commit or push.
+
+## 2026-09-25 - Inventory tabs and unified stat presentation
+
+- Keep Story Recovery fixed above authored Equipment / Cargo Resources tabs in the shared prefab and Expedition's unpacked copy. Tutorial inherits the shared prefab.
+- Keep all gameplay operations in PlayerBuildStatusPanelUI and existing cargo/equipment authorities. Tab state is instance-only; hidden controls and stale field-drop targets cannot dispatch actions across tabs.
+- Give both tabs the full lower body; restore missing Active effect/charge/state/drop bindings, add scrollable selected effects, and mark maximum-level cards MAX.
+- Restrict the Cargo manifest to Scrap/Core/Alloy. Display Credits/Tuning Chips in a compact separate readout; read return capacity from the existing cargo controller.
+- Add one static semantic palette covering every current Trait and Reinforcement effect. Preserve plain-text APIs, special mechanic descriptions, explicit negative signs, resource colors and all structural profile values.
+- Runtime and Editor compilation passed. Standalone production-formatter and serialized-preservation audits passed. Full Unity tests, rendered 480 × 270 checks and requested screenshots remain blocked by licensing initialization; see [report](INVENTORY_PRESENTATION_REPORT.md).
+- No combat balance, enemy-base, boss, economy, fitting, cargo-rule or post-ending Curse changes. No commit or push.
+
+## 2026-09-25 - Structural frame modules supersede Operating Frames
+
+- Filter Equipment Development to Shared + the Hangar-selected ship; preserve hidden branches/fitting and fall back to Shared when the selected tab becomes invalid.
+- Replace exactly Shared Row 2 with Lightweight, Standard and Heavy frame equipment; all unlock after first analysis, cost normal Row-2 materials, deploy at MaxLevel 1 and permit every fitting combination.
+- Resolve exactly one immutable launch profile from the three equipment IDs. Remove total-equipment count scaling, the separate preference/setter and selector controls; reuse existing player/bootstrap stat owners.
+- Retain Salvage Protocol, Reinforced Plating and Repair Foam as legacy-owner assets with stable IDs/GUIDs and no refund or forced replacement.
+- Migrate v7 recorded selections to one manufactured/fitted module only after first analysis; consume the old value in v8 without currency/progress changes.
+- Update structural card previews, TAB inspection, F10 status, localization, authored assets and focused tests. Other 45 board entries and starter economy stay unchanged.
+- Static compilation, 349 production-data assertions and 418 asset audit checks passed. Unity test execution/rendered checks remain blocked by licensing initialization; see [report](STRUCTURAL_FRAME_CONVERSION_REPORT.md).
+- No post-ending Curse, commit or push.
+
 ## 2026-09-23 - Equipment manufacturing economy calibration
 
 - Finalize all 48 Scrap/Core recipes from actual generated-map supply and cargo/return-risk estimates; no reward inflation or combat/rarity changes.

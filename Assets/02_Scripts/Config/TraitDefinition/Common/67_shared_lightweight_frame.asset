@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
+  m_Name: 67_shared_lightweight_frame
+  m_EditorClassIdentifier: 
+  traitId: shared_lightweight_frame
+  displayName: "경량 프레임"
+  description: "내구성과 적재량을 줄여 기동성을 극대화합니다."
+  icon: {fileID: 21300000, guid: a907b7badba57997ee1b326e921e20e9, type: 3}
+  rarity: 0
+  category: 0
+  weaponTreeType: 2
+  shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
+  maxLevel: 1
+  levelEffects: []
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 1
+  developmentResearchTier: 1
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: -1
+  manufacturingScrapCost: 20
+  manufacturingCoreCost: 0

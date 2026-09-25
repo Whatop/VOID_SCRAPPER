@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1e00849f55fc8944b462137e1c1e2ae, type: 3}
+  m_Name: 70_special_sector_stabilization
+  m_EditorClassIdentifier: 
+  traitId: special_sector_stabilization
+  displayName: "안정화 회수 모듈"
+  description: "구획 안정기 분석으로 개발한 특수 장비. 체력과 회복 효율을 높이고 긴급복귀 시 화물 보존 한도를 늘립니다."
+  localizationCatalog: {fileID: 11400000, guid: 72f3724e1a6c4694831c6dc6fdb2fcf8, type: 2}
+  displayNameKey: equipment.special_sector_stabilization.name
+  descriptionKey: equipment.special_sector_stabilization.description
+  requiredStoryPartAnalysis: 1
+  icon: {fileID: 21300000, guid: 4a0a01f292ff35c613e6cc6a7822a8e5, type: 3}
+  rarity: 2
+  category: 0
+  weaponTreeType: 2
+  shopItemType: 0
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
+  maxLevel: 3
+  levelEffects:
+  - level: 1
+    effectType: 6
+    value: 1
+  - level: 1
+    effectType: 7
+    value: 5
+  - level: 1
+    effectType: 26
+    value: 5
+  - level: 2
+    effectType: 6
+    value: 1
+  - level: 2
+    effectType: 7
+    value: 5
+  - level: 2
+    effectType: 26
+    value: 5
+  - level: 3
+    effectType: 6
+    value: 1
+  - level: 3
+    effectType: 7
+    value: 5
+  - level: 3
+    effectType: 26
+    value: 5
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 0
+  developmentResearchTier: 1
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: -1
+  manufacturingScrapCost: 24
+  manufacturingCoreCost: 1

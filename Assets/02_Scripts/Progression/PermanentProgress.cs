@@ -187,7 +187,6 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
         totalCommittedCoreShards = Mathf.Max(0, saveData.totalCommittedCoreShards);
         totalCommittedStabilizedAlloy = Mathf.Max(0, saveData.totalCommittedStabilizedAlloy);
         lastSelectedWeaponTree = saveData.lastSelectedWeaponTree;
-        selectedOperatingFrame = OperatingFrameProfile.Normalize(saveData.selectedOperatingFrame);
         selectedShipId = string.IsNullOrWhiteSpace(saveData.selectedShipId) ? "basic_ship" : saveData.selectedShipId;
 
         buildingLevels.Clear();
@@ -268,6 +267,7 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
         settlementDefenseCleared = saveData.settlementDefenseCleared;
         finalBossDefeated = saveData.finalBossDefeated;
 
+        saveData.RetireLegacyOperatingFrame();
         LoadEquipmentOwnership(saveData);
         RestoreCampaignProgressFromLegacyFlags();
         // Existing assembled saves already completed the old combined analysis/restoration handoff.
@@ -301,7 +301,6 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
             totalCommittedCoreShards = totalCommittedCoreShards,
             totalCommittedStabilizedAlloy = totalCommittedStabilizedAlloy,
             lastSelectedWeaponTree = lastSelectedWeaponTree,
-            selectedOperatingFrame = SelectedOperatingFrame,
             selectedShipId = SelectedShipId,
             highestUnlockedDepth = highestUnlockedDepth,
             routeCoreState = ResolveRouteCoreState(),
@@ -371,7 +370,6 @@ public partial class PermanentProgress : MonoBehaviour, IMainDamagedAccessKeyQue
         totalCommittedCoreShards = 0;
         totalCommittedStabilizedAlloy = 0;
         lastSelectedWeaponTree = WeaponTreeType.MachineGun;
-        selectedOperatingFrame = OperatingFrameType.Standard;
         selectedShipId = "basic_ship";
 
         equipmentLoadoutTraitIds.Clear();

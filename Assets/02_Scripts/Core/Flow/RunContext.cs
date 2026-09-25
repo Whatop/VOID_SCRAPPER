@@ -72,11 +72,8 @@ public class RunContext
     public bool ShopHostileThisRun => shopHostileThisRun;
     public IReadOnlyList<string> SelectedTraitIds => selectedTraitIds;
     [SerializeField] private List<string> preparedEquipmentIds = new List<string>();
-    [SerializeField] private OperatingFrameType operatingFrame = OperatingFrameType.Standard;
-    [SerializeField] private int fittedOrdinaryEquipmentCount;
-    public OperatingFrameType OperatingFrame => operatingFrame;
-    public int FittedOrdinaryEquipmentCount => fittedOrdinaryEquipmentCount;
-    public OperatingFrameProfile FrameProfile => new OperatingFrameProfile(operatingFrame, fittedOrdinaryEquipmentCount);
+    [SerializeField] private StructuralFrameModules structuralFrames;
+    public StructuralFrameProfile FrameProfile => new StructuralFrameProfile(structuralFrames);
     public IReadOnlyList<string> PreparedEquipmentIds => preparedEquipmentIds.AsReadOnly();
     public bool HasPreparedEquipment(string id) => !string.IsNullOrWhiteSpace(id) && preparedEquipmentIds.Contains(id);
 
@@ -148,8 +145,7 @@ public class RunContext
         preparedEquipmentIds.Clear();
         PermanentProgress preparation = PermanentProgress.Instance;
         preparation?.AppendEffectiveEquipment(preparedEquipmentIds, weaponTreeType);
-        operatingFrame = preparation != null ? preparation.SelectedOperatingFrame : OperatingFrameType.Standard;
-        fittedOrdinaryEquipmentCount = preparedEquipmentIds.Count;
+        structuralFrames = StructuralFrameProfile.ResolveModules(preparedEquipmentIds);
         isActive = true;
         selectedWeaponTree = weaponTreeType;
         selectedShipId = string.IsNullOrWhiteSpace(shipId) ? "basic_ship" : shipId;

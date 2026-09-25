@@ -141,6 +141,14 @@ public class TraitDefinition : ScriptableObject
     [TextArea]
     [SerializeField] private string description;
 
+    [Header("Optional Localized Identity")]
+    [SerializeField] private LocalizationCatalog localizationCatalog;
+    [SerializeField] private string displayNameKey;
+    [SerializeField] private string descriptionKey;
+
+    [Header("Research-derived Special Equipment")]
+    [SerializeField] private BossStoryPart requiredStoryPartAnalysis;
+
     [Header("Visual")]
     [SerializeField] private Sprite icon;
 
@@ -183,20 +191,26 @@ public class TraitDefinition : ScriptableObject
         weaponTreeType == WeaponTreeType.MachineGun ? ShipTraitBranchKind.MachineGun :
         weaponTreeType == WeaponTreeType.Shotgun ? ShipTraitBranchKind.Shotgun : ShipTraitBranchKind.Sniper;
     public bool IsDevelopmentRoster => developmentRoster;
+    public BossStoryPart RequiredStoryPartAnalysis => requiredStoryPartAnalysis;
+    public bool IsResearchSpecialEquipment => requiredStoryPartAnalysis != BossStoryPart.None;
+    public bool IsManufacturableBlueprint => developmentRoster || IsResearchSpecialEquipment;
+    public bool HasValidResearchSpecialMetadata => !IsResearchSpecialEquipment ||
+        (category == TraitCategory.Shared && rarity == TraitRarity.Special && !persistentStoryTrait &&
+         requiredStoryPartAnalysis >= BossStoryPart.SectorStabilizer && requiredStoryPartAnalysis <= BossStoryPart.PhaseNavigationLens);
     public int DevelopmentResearchTier => developmentResearchTier;
     public int DevelopmentDisplayOrder => developmentDisplayOrder;
     public int PreviousDevelopmentResearchTier => previousDevelopmentResearchTier;
     public int ManufacturingScrapCost => manufacturingScrapCost;
     public int ManufacturingCoreCost => manufacturingCoreCost;
-    public bool HasValidDevelopmentMetadata => CanAppearAsRandomDropTrait && developmentResearchTier >= 0 &&
+    public bool HasValidDevelopmentMetadata => CanAppearAsRandomDropTrait && HasValidResearchSpecialMetadata && developmentResearchTier >= 0 &&
         developmentResearchTier <= 3 && developmentDisplayOrder >= 0 && developmentDisplayOrder < 3;
     public bool HasValidManufacturingRecipe => manufacturingScrapCost >= 0 && manufacturingCoreCost >= 0 &&
         ((long)manufacturingScrapCost + manufacturingCoreCost) > 0;
     public bool HasRuntimePrerequisites => prerequisites != null && prerequisites.Count > 0;
 
     public string TraitId => string.IsNullOrWhiteSpace(traitId) ? name : traitId;
-    public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? TraitId : displayName;
-    public string Description => string.IsNullOrWhiteSpace(description) ? "특성 설명이 없습니다." : description;
+    public string DisplayName => LocalizedIdentity(displayNameKey, string.IsNullOrWhiteSpace(displayName) ? TraitId : displayName);
+    public string Description => LocalizedIdentity(descriptionKey, string.IsNullOrWhiteSpace(description) ? "특성 설명이 없습니다." : description);
 
     public Sprite Icon => icon;
     public TraitRarity Rarity => rarity;
@@ -225,8 +239,18 @@ public class TraitDefinition : ScriptableObject
         shopItemType == TraitShopItemType.LegacyBoth;
 
 
+    private string LocalizedIdentity(string key, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return fallback;
+        LocalizationCatalog catalog = VoidScrapperLocalizationService.HasInstance
+            ? VoidScrapperLocalizationService.Instance.Catalog : localizationCatalog;
+        return catalog != null && catalog.TryGetText(key, GameSettingsRuntime.LanguageCode, out string text, out _)
+            ? text : fallback;
+    }
+
     public string GetRarityText()
     {
+        if (IsResearchSpecialEquipment) return GameSettingsRuntime.LanguageCode == "en" ? "Special" : "특수";
         if (rarity == TraitRarity.Curse)
         {
             return "저주";
@@ -243,6 +267,14 @@ public class TraitDefinition : ScriptableObject
 
     public Color GetRarityColor()
     {
+        if (IsResearchSpecialEquipment)
+            return requiredStoryPartAnalysis switch
+            {
+                BossStoryPart.SectorStabilizer => new Color(1f, .624f, .263f),
+                BossStoryPart.MatterCompressor => new Color(.435f, .816f, .549f),
+                BossStoryPart.PhaseNavigationLens => new Color(.361f, .549f, 1f),
+                _ => new Color(1f, .55f, .12f)
+            };
         if (rarity == TraitRarity.Curse)
         {
             return new Color(0.65f, 0.2f, 1f, 1f);
@@ -278,6 +310,7 @@ public class TraitDefinition : ScriptableObject
 
     public string GetCategoryText()
     {
+        if (IsResearchSpecialEquipment) return GameSettingsRuntime.LanguageCode == "en" ? "Special equipment · Shared" : "특수 장비 · 공용";
         if (category == TraitCategory.Shared)
         {
             return "공용 특성";

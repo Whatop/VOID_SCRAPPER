@@ -4,9 +4,27 @@ using System.Collections.Generic;
 [Serializable]
 public class SaveData
 {
-    public int version = 7;
-    // Additive v7 field: missing JSON/zero is Standard. No equipment migration is repeated.
-    public OperatingFrameType selectedOperatingFrame = OperatingFrameType.Standard;
+    public int version = 8;
+    // Migration-only tombstone for v7 JSON (0 Standard, 1 Lightweight, 2 Heavy).
+    // -1 means absent/retired. No runtime or preference authority reads this field.
+    public int selectedOperatingFrame = -1;
+
+    public void RetireLegacyOperatingFrame()
+    {
+        if (version == 7 && selectedOperatingFrame >= 0 && selectedOperatingFrame <= 2 &&
+            acquiredBossStoryParts != null && acquiredBossStoryParts.Contains(BossStoryPart.SectorStabilizer) &&
+            highestUnlockedDepth >= ExpeditionDepth.DeepZone1)
+        {
+            string id = selectedOperatingFrame == 1 ? StructuralFrameProfile.LightweightId :
+                selectedOperatingFrame == 2 ? StructuralFrameProfile.HeavyId : StructuralFrameProfile.StandardId;
+            manufacturedEquipmentIds ??= new List<string>();
+            equipmentLoadoutTraitIds ??= new List<string>();
+            if (!manufacturedEquipmentIds.Contains(id)) manufacturedEquipmentIds.Add(id);
+            if (!equipmentLoadoutTraitIds.Contains(id)) equipmentLoadoutTraitIds.Add(id);
+        }
+        selectedOperatingFrame = -1;
+    }
+
     // Stable fitting preferences across all branches; no slot padding or global capacity.
     public List<string> equipmentLoadoutTraitIds = new List<string>();
     public List<string> manufacturedEquipmentIds = new List<string>();

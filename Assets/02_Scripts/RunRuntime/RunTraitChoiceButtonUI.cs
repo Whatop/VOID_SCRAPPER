@@ -70,9 +70,9 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
 
         if (effectText != null)
         {
-            effectText.text = string.IsNullOrWhiteSpace(nextEffectText)
-                ? "효과 정보 없음"
-                : nextEffectText;
+            effectText.richText = true;
+            string richEffects = TraitEffectTextUtility.BuildRichEffectText(targetTrait, nextLevel);
+            effectText.text = string.IsNullOrWhiteSpace(richEffects) ? nextEffectText : richEffects;
         }
 
         if (button != null)
@@ -90,6 +90,7 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
 
         trait = null;
         selectedCallback = null;
+        if (effectText != null) effectText.richText = true;
         rewardOption = option;
         rewardSelectedCallback = onSelected;
 
@@ -122,7 +123,7 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
 
             if (effectText != null)
             {
-                string text = TraitEffectTextUtility.BuildEffectText(option.Trait, nextLevel);
+                string text = TraitEffectTextUtility.BuildRichEffectText(option.Trait, nextLevel);
                 effectText.text = string.IsNullOrWhiteSpace(text) ? "효과 정보 없음" : text;
             }
         }
@@ -135,7 +136,7 @@ public class RunTraitChoiceButtonUI : MonoBehaviour
 
             if (effectText != null)
             {
-                effectText.text = option.Reinforcement.BuildEffectSummary();
+                effectText.text = option.Reinforcement.BuildRichEffectSummary();
             }
         }
 

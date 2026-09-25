@@ -79,5 +79,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 441f177bd50463d44b4d2f5673047ced, type: 2}
   - {fileID: 11400000, guid: 658baacbd60159c4081782805626c699, type: 2}
   - {fileID: 11400000, guid: d34ffa8c0e03ea24f84902846799efb9, type: 2}
+  - {fileID: 11400000, guid: 786d98261cc4c017f200a001f7fb9826, type: 2}
+  - {fileID: 11400000, guid: b7642b5e7fd2b98d411eda800d7140b5, type: 2}
+  - {fileID: 11400000, guid: ed495b8838f36f702d2b3f30458bf4eb, type: 2}
+  - {fileID: 11400000, guid: 690a61d59ae4451f9d707d0502b85a61, type: 2}
+  - {fileID: 11400000, guid: 6a7b4c5d3e25461798209c100b6a1e4f, type: 2}
+  - {fileID: 11400000, guid: 7358e43272b84c30a463276f1ba4e982, type: 2}
   includeResourcesTraits: 0
   resourcesPath: TraitDefinition

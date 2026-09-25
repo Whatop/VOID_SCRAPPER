@@ -55,7 +55,8 @@ public sealed class ExpeditionUIAuthoringTests
         TMP_Text title = (TMP_Text)data.FindProperty("storyRecoveryTitle").objectReferenceValue;
         Assert.That(title, Is.Not.Null);
         Assert.That(title.transform.parent.name, Is.EqualTo("StoryRecoverySection"));
-        Assert.That(title.transform.parent.parent.name, Is.EqualTo("InventoryRoot"));
+        Assert.That(title.transform.parent.parent.name, Is.EqualTo("StoryProgressInspectionRoot"));
+        Assert.That(title.transform.parent.parent.gameObject.activeSelf, Is.False);
         Assert.That(title.transform.parent.GetComponentsInChildren<Selectable>(true), Is.Empty);
         for (int i = 0; i < slots.arraySize; i++)
         {

@@ -98,7 +98,7 @@ public sealed class CargoManifestRowUI
         iconImage.enabled = icon != null;
         primaryText.text = displayName;
         secondaryText.text = usesCargo
-            ? $"{amount}개\n<size=4.2>적재 {totalContribution} · 자동 회수 {(autoPickupEnabled ? "켬" : "끔")}</size>"
+            ? $"{amount} · {PlayerBuildStatusPanelUI.InventoryText("개당", "unit")} {unitWeight} · {PlayerBuildStatusPanelUI.InventoryText("적재", "load")} {totalContribution}\n{PlayerBuildStatusPanelUI.InventoryText("자동 회수", "Auto pickup")} {(autoPickupEnabled ? "ON" : "OFF")}"
             : $"{amount}개\n<size=4.2>임시 자원</size>";
         bool hasAmount = amount > 0;
         backgroundImage.color = isSelected
@@ -187,9 +187,11 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
             }
             if (statusText != null)
             {
-                statusText.text = acquired
-                    ? ResolveStoryText("ui.story_recovery.acquired", "획득")
-                    : ResolveStoryText("ui.story_recovery.unacquired", "미획득");
+                statusText.text = progress != null && progress.HasCompletedStoryPartAnalysis(part)
+                    ? ResolveStoryText("ui.story_recovery.analyzed", InventoryText("분석 완료", "Analyzed"))
+                    : acquired
+                        ? ResolveStoryText("ui.story_recovery.acquired", InventoryText("획득", "Acquired"))
+                        : ResolveStoryText("ui.story_recovery.unacquired", InventoryText("미획득", "Not acquired"));
             }
             if (canvasGroup != null)
             {
@@ -568,6 +570,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         ConfigureInventoryTypography();
         ConfigureCargoTypography();
         ConfigurePassiveScrollView();
+        ApplyInventoryTabPresentation();
         SetPanelVisible(false);
     }
 
@@ -580,7 +583,9 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void OnEnable()
     {
-        BindOperatingFrameInspection();
+        BindInventoryTabs();
+        BindStoryProgressInspection();
+        BindStructuralFrameInspection();
         BindFieldDropInput();
 
         if (closeButton != null)
@@ -607,7 +612,9 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void OnDisable()
     {
-        UnbindOperatingFrameInspection();
+        UnbindInventoryTabs();
+        UnbindStoryProgressInspection();
+        UnbindStructuralFrameInspection();
         StopStoryRecoveryFeedback();
         UnbindRuntimeEvents();
         if (closeButton != null)
@@ -730,7 +737,12 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         }
 
         SetPanelVisible(true);
+        ApplyInventoryTabPresentation();
+        ResolveVisibleFieldDropTarget();
+        cargoJettisonHoldTimer = 0f;
+        cargoJettisonConsumedUntilRelease = true;
         RefreshAll();
+        FocusInventoryTab();
 
         if (!externalMenuControlsLifecycle)
         {
@@ -764,6 +776,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     public void RefreshStoryRecovery()
     {
+        RefreshStoryProgressSummary();
         SetText(storyRecoveryTitle, ResolveStoryText("ui.story_recovery.title", "스토리 회수품"));
         for (int i = 0; i < storyRecoverySlots.Length; i++)
         {
@@ -775,7 +788,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
     // world flight; this method never opens the menu or changes progression.
     public void PresentStoryPartAcquired(BossStoryPart part)
     {
-        if (!isOpen || !isActiveAndEnabled || PermanentProgress.Instance == null ||
+        if (!isOpen || !IsStoryProgressOpen || !isActiveAndEnabled || PermanentProgress.Instance == null ||
             !PermanentProgress.Instance.HasBossStoryPart(part))
         {
             return;
@@ -810,7 +823,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
     public void RefreshShipSection()
     {
         RunContext run = ResolveRunContext();
-        RefreshOperatingFrameInspection(run);
+        RefreshStructuralFrameInspection(run);
         ShipDefinition ship = FindShip(run != null ? run.SelectedShipId : null);
         WeaponTreeType weaponTree = ResolveWeaponTree(run, ship);
 
@@ -818,7 +831,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         Sprite shipSprite = ship != null ? ship.PreviewSprite : null;
 
         SetImage(shipPreviewImage, shipSprite != null ? shipSprite : fallbackShipIcon);
-        SetText(shipNameText, run != null && run.IsActive ? OperatingFrameText.Summary(run.FrameProfile, operatingFrameLocalization) : "탐사 인벤토리");
+        SetText(shipNameText, run != null && run.IsActive ? StructuralFrameText.Summary(run.FrameProfile, structuralFrameLocalization) : "탐사 인벤토리");
         SetText(shipWeaponText, string.Empty);
         SetText(shipDescriptionText, ship != null ? ship.Description : fallbackShipDescription);
         SetText(shipPassiveText, ship != null ? ship.PassiveDescription : string.Empty);
@@ -903,6 +916,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         SetText(shipTipText, selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo
             ? BuildCargoManifestText()
             : tip);
+        RefreshInventoryResourceReadouts();
         RefreshCargoHeader(cargoCurrent, cargoMax);
         RefreshCargoManagement();
     }
@@ -920,12 +934,12 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         if (!hasEquipment)
         {
             SetImage(activeIconImage, fallbackReinforcementIcon);
-            SetText(activeNameText, "장비 없음");
+            SetText(activeNameText, InventoryText("장비 없음", "No active equipment"));
             SetText(activeDescriptionText, "상점에서 액티브 장비를 장착할 수 있습니다.");
             SetText(activeEffectText, string.Empty);
             SetText(activeCooldownText, "재사용 -");
-            SetText(activeChargeText, "보유 : 0개");
-            SetText(activeStateText, "미장착");
+            SetText(activeChargeText, "0 / 0");
+            SetText(activeStateText, InventoryText("미장착", "Not fitted"));
             SetColor(activeStateText, activeUnavailableColor);
             SetActiveChargeRatio(0f, activeUnavailableColor);
             RefreshFieldDropSelectionVisual();
@@ -935,14 +949,14 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         SetImage(activeIconImage, definition.Icon != null ? definition.Icon : fallbackReinforcementIcon);
         SetText(activeNameText, definition.DisplayName);
         SetText(activeDescriptionText, definition.Description);
-        SetText(activeEffectText, definition.BuildEffectSummary());
+        SetText(activeEffectText, definition.BuildRichEffectSummary());
 
         string cooldownText = definition.RechargeSeconds > 0f
-            ? $"재사용 {definition.RechargeSeconds:0.#}초"
-            : "재사용 없음";
+            ? $"{InventoryText("재사용", "Recharge")} {definition.RechargeSeconds:0.#}s"
+            : InventoryText("재사용 없음", "No recharge");
 
-        SetText(activeCooldownText, cooldownText);
-        SetText(activeChargeText, $"보유 : {Mathf.Max(0, state.currentCharges)}/{Mathf.Max(1, state.maxCharges)}");
+        SetText(activeCooldownText, StatPresentation.Rich(StatCategory.Active, cooldownText));
+        SetText(activeChargeText, $"{InventoryText("충전", "Charges")} {Mathf.Max(0, state.currentCharges)}/{Mathf.Max(1, state.maxCharges)}");
 
         bool ready = state.currentCharges > 0;
         Color stateColor;
@@ -950,17 +964,17 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
         if (ready)
         {
-            stateText = "사용 가능";
+            stateText = InventoryText("사용 가능", "Ready");
             stateColor = activeReadyColor;
         }
         else if (state.isRecharging)
         {
-            stateText = $"충전 중 {state.remainingSeconds:0.0}초";
+            stateText = $"{InventoryText("충전", "Charge")} {state.remainingSeconds:0.0}s";
             stateColor = activeChargingColor;
         }
         else
         {
-            stateText = "사용 불가";
+            stateText = InventoryText("사용 불가", "Unavailable");
             stateColor = activeUnavailableColor;
         }
 
@@ -998,7 +1012,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
             int capturedIndex = i;
             BuildStatusSlotButtonUI slot = Instantiate(passiveSlotPrefab, passiveContentRoot);
             string amountLabel = entry.IsOwned
-                ? string.Format(ownedSlotLabelFormat, Mathf.Max(1, entry.DisplayLevel))
+                ? entry.DisplayLevel >= entry.trait.MaxLevel ? $"Lv.{entry.DisplayLevel} MAX" : string.Format(ownedSlotLabelFormat, Mathf.Max(1, entry.DisplayLevel))
                 : unownedSlotLabel;
 
             slot.Bind(
@@ -1052,6 +1066,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void SelectPassive(int index)
     {
+        if (!CanUseEquipmentActions) return;
         SelectPassiveInternal(index, true);
     }
 
@@ -1097,6 +1112,8 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
             return;
         }
 
+        equipmentDetailScrollRect?.StopMovement();
+        if (equipmentDetailScrollRect != null) equipmentDetailScrollRect.verticalNormalizedPosition = 1f;
         TraitDefinition trait = entry.trait;
         Color rarityColor = trait.GetRarityColor();
 
@@ -1113,7 +1130,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         }
 
         SetText(selectedPassiveOwnedText, $"보유 수량 : {entry.OwnedAmount}개");
-        SetText(selectedPassiveLevelText, BuildTraitLevelText(entry));
+        SetText(selectedPassiveLevelText, BuildTraitLevelText(entry) + (entry.DisplayLevel >= trait.MaxLevel ? " · MAX" : ""));
         SetText(selectedPassiveDescriptionText, trait.Description);
         SetText(selectedPassiveEffectText, BuildTraitEffectText(entry));
 
@@ -1347,6 +1364,15 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
             return string.Empty;
         }
 
+        if (StructuralFrameProfile.ModuleFor(entry.trait.TraitId) != StructuralFrameModules.None)
+        {
+            RunContext run = ResolveRunContext();
+            return run != null && run.IsActive
+                ? StructuralFrameText.RichDetails(run.FrameProfile, structuralFrameLocalization) + "\n" +
+                    StructuralFrameText.Get("fixed_at_launch", structuralFrameLocalization)
+                : StructuralFrameText.RichModifiers(new StructuralFrameProfile(StructuralFrameProfile.ModuleFor(entry.trait.TraitId)), structuralFrameLocalization);
+        }
+
         int permanentLevel = entry.IsOwned ? Mathf.Max(0, entry.permanentLevel) : 1;
         int runtimeLevel = entry.IsOwned ? Mathf.Max(0, entry.runtimeLevel) : 0;
 
@@ -1357,7 +1383,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
     {
         if (trait == null || trait.LevelEffects == null || trait.LevelEffects.Count == 0)
         {
-            return "효과 정보 없음";
+            return trait == null ? string.Empty : StatPresentation.Rich(StatCategory.Special, trait.Description);
         }
 
         TraitEffectSummary summary = new TraitEffectSummary();
@@ -1372,6 +1398,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
         StringBuilder builder = new StringBuilder();
 
+        summary.order.Sort((a, b) => StatPresentation.SortKey(a).CompareTo(StatPresentation.SortKey(b)));
         for (int i = 0; i < summary.order.Count; i++)
         {
             TraitEffectType effectType = summary.order[i];
@@ -1430,54 +1457,8 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         return Mathf.Approximately(value, 0f);
     }
 
-    private string FormatTraitEffect(TraitEffectType effectType, float value)
-    {
-        if (effectType >= TraitEffectType.MachineGunCoolingRatePercent ||
-            effectType == TraitEffectType.DashDamageReductionPercent || effectType == TraitEffectType.ChargeSightBonusPercent ||
-            effectType == TraitEffectType.ChargedProjectileSizePercent)
-            return TraitEffectTextUtility.FormatEffect(effectType, value);
-        return effectType switch
-        {
-            TraitEffectType.DamagePercent => $"공격력 +{value:0.#}%",
-            TraitEffectType.ProjectileSpeedPercent => $"탄속 +{value:0.#}%",
-            TraitEffectType.RangePercent => $"사거리 +{value:0.#}%",
-            TraitEffectType.MoveSpeedPercent => $"이동속도 +{value:0.#}%",
-            TraitEffectType.DashCooldownReduction => $"대쉬 쿨다운 -{Mathf.Abs(value):0.##}초",
-            TraitEffectType.DashDistanceBonus => $"대쉬 거리 +{value:0.#}",
-            TraitEffectType.MaxHpBonus => $"최대 체력 +{value:0.#}",
-            TraitEffectType.HealEfficiencyPercent => $"회복 효율 +{value:0.#}%",
-            TraitEffectType.PickupRangeBonus => $"흡수 범위 +{value:0.#}",
-            TraitEffectType.SpreadReductionPercent => $"탄 퍼짐 -{Mathf.Abs(value):0.#}%",
-            TraitEffectType.ProjectileCountBonus => $"발사체 수 +{Mathf.RoundToInt(value)}",
-            TraitEffectType.PierceCountBonus => $"관통 횟수 +{Mathf.RoundToInt(value)}",
-            TraitEffectType.ChargeTimeReductionPercent => $"차징 시간 -{Mathf.Abs(value):0.#}%",
-            TraitEffectType.ChargeDamagePercent => $"차징 피해 +{value:0.#}%",
-            TraitEffectType.HomingAngleBonus => $"유도 각도 +{value:0.#}°",
-            TraitEffectType.HomingRangeBonus => $"유도 거리 +{value:0.#}",
-            TraitEffectType.FireRatePercent => $"연사력 +{value:0.#}%",
-            TraitEffectType.CloseRangeDamageReductionPercent => $"근거리 피해 감소 +{value:0.#}%",
-            TraitEffectType.DashDamageReductionPercent => $"대쉬 후 피해 감소 +{value:0.#}%",
-            TraitEffectType.CloseRangeSuppressionPercent => $"근접 제압 +{value:0.#}%",
-            TraitEffectType.ChargeSightBonusPercent => $"차징 시야 +{value:0.#}%",
-            TraitEffectType.ChargedProjectileSizePercent => $"차징 탄 크기 +{value:0.#}%",
-            TraitEffectType.RemovePierceDamageFalloff => "관통 피해 감쇠 제거",
-            TraitEffectType.CargoCapacityBonus => $"기체용량 +{value:0.#}",
-            TraitEffectType.HarvestYieldPercent => $"수확량 +{value:0.#}%",
-            TraitEffectType.HarvestObjectDamagePercent => $"수확 오브젝트 피해 +{value:0.#}%",
-            TraitEffectType.EmergencyReturnCapacityRatioBonus => $"긴급복귀 보존 한도 +{value:0.#}%",
-            TraitEffectType.RadarScanRadiusBonus => $"레이더 반경 +{value:0.#}",
-            TraitEffectType.ActiveCooldownReductionPercent => $"액티브 쿨다운 -{Mathf.Abs(value):0.#}%",
-            TraitEffectType.RadarTauntDurationBonus => $"레이더 도발 시간 +{value:0.#}초",
-            TraitEffectType.RadarStealthDurationBonus => $"은밀 탐지 유지 +{value:0.#}초",
-            TraitEffectType.SniperSemiAutoMode => "짧은 클릭으로 세미오토 레이저 발사",
-            TraitEffectType.ShotgunCloseRangeDamagePercent => $"샷건 초근거리 피해 최대 +{value:0.#}%",
-            TraitEffectType.MachineGunTerminalGuidance => "기관총 종말 유도 활성화",
-            TraitEffectType.PeriodicReflectiveShield => $"반사 방벽 재충전 {value:0.#}초",
-            TraitEffectType.MachineGunDashMissileSalvo => "대쉬 시 추격 미사일 3발 사출",
-            TraitEffectType.SniperDashEchoShot => "대쉬 위치에서 다음 저격 사격을 40% 위력으로 복제",
-            _ => $"{effectType} {value:0.##}"
-        };
-    }
+    private string FormatTraitEffect(TraitEffectType effectType, float value) =>
+        StatPresentation.Trait(effectType, value);
 
     private void ResolveReferences()
     {
@@ -1819,12 +1800,14 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     public void SelectActiveForFieldDrop()
     {
+        if (!CanUseEquipmentActions) return;
         selectedFieldDropTarget = BuildStatusFieldDropTarget.Active;
         RefreshFieldDropSelectionVisual();
     }
 
     public void TryDropSelectedFieldItem()
     {
+        if (!CanUseEquipmentActions) return;
         if (selectedFieldDropTarget == BuildStatusFieldDropTarget.Active)
         {
             TryDropActiveFieldItem();
@@ -1837,6 +1820,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     public void TryDropActiveFieldItem()
     {
+        if (!CanUseEquipmentActions) return;
         SelectActiveForFieldDrop();
 
         if (reinforcementController == null || !reinforcementController.HasEquipment)
@@ -1863,6 +1847,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     public void TryDropSelectedPassiveFieldItem()
     {
+        if (!CanUseEquipmentActions) return;
         selectedFieldDropTarget = BuildStatusFieldDropTarget.Passive;
         RefreshFieldDropSelectionVisual();
 
@@ -1974,13 +1959,14 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void HandleFieldDropInput()
     {
-        if (operatingFrameInspectionRoot != null && operatingFrameInspectionRoot.activeSelf) return;
-        if (selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo)
+        if (IsStoryProgressOpen || (structuralFrameInspectionRoot != null && structuralFrameInspectionRoot.activeSelf)) return;
+        if (inventoryTab == InventoryContentTab.Cargo)
         {
             HandleCargoJettisonInput();
             return;
         }
 
+        if (!CanUseEquipmentActions) return;
         bool pressed;
 
         if (fieldDropAction != null)
@@ -2001,6 +1987,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void HandleCargoJettisonInput()
     {
+        if (!CanUseCargoActions || !hasSelectedCargo) return;
         if (cargoController == null ||
             !cargoController.CanJettison(selectedCargoType) ||
             GetCargoAmount(selectedCargoType) <= 0)
@@ -2056,6 +2043,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void TryJettisonSelectedCargo()
     {
+        if (!CanUseCargoActions || !hasSelectedCargo) return;
         if (cargoController == null || !cargoController.CanJettison(selectedCargoType))
         {
             return;
@@ -2191,11 +2179,11 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
     {
         return currencyType switch
         {
-            CurrencyType.Credits => "재화",
-            CurrencyType.ScrapParts => "스크랩",
-            CurrencyType.CoreShards => "코어",
-            CurrencyType.TuningChips => "튜닝 칩",
-            CurrencyType.StabilizedAlloy => "안정화 합금",
+            CurrencyType.Credits => InventoryText("크레딧", "Credits"),
+            CurrencyType.ScrapParts => InventoryText("스크랩", "Scrap"),
+            CurrencyType.CoreShards => InventoryText("코어", "Core"),
+            CurrencyType.TuningChips => InventoryText("튜닝 칩", "Tuning Chips"),
+            CurrencyType.StabilizedAlloy => InventoryText("안정화 합금", "Stabilized Alloy"),
             _ => currencyType.ToString()
         };
     }
@@ -2203,7 +2191,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
     private void RefreshCargoHeader(int currentCargo, int maximumCargo)
     {
         int safeMaximum = Mathf.Max(1, maximumCargo);
-        SetText(cargoLoadText, $"적재량 {currentCargo} / {maximumCargo}");
+        SetText(cargoLoadText, StatPresentation.Rich(StatCategory.Cargo, $"{InventoryText("적재량", "Cargo load")} {currentCargo} / {maximumCargo}"));
 
         if (cargoLoadSlider != null)
         {
@@ -2217,7 +2205,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void RefreshCargoManagement()
     {
-        if (cargoManagementRoot == null || cargoController == null)
+        if (inventoryTab != InventoryContentTab.Cargo || cargoManagementRoot == null || cargoController == null)
         {
             return;
         }
@@ -2239,7 +2227,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
                 CurrencyType currencyType = row.CurrencyType;
                 int amount = cargoController.GetCargoAmount(currencyType);
-                bool visible = amount > 0 || showAllCargoResources;
+                bool visible = cargoController.UsesCargo(currencyType) && (amount > 0 || showAllCargoResources);
                 row.SetVisible(visible);
 
                 if (!visible)
@@ -2270,7 +2258,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
             else
             {
                 selectedCargoJettisonAmount = 0;
-                selectedFieldDropTarget = BuildStatusFieldDropTarget.Active;
+                selectedFieldDropTarget = BuildStatusFieldDropTarget.Cargo;
             }
         }
 
@@ -2306,8 +2294,8 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         }
 
         SetText(cargoShowAllText, showAllCargoResources
-            ? "[0개 숨기기]"
-            : "[전체 보기]");
+            ? InventoryText("[0개 숨기기]", "[Hide empty]")
+            : InventoryText("[전체 보기]", "[Show all]"));
         SetColor(
             cargoShowAllText,
             showAllCargoResources
@@ -2348,16 +2336,16 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
         SetText(
             selectedCargoStatsText,
             selectedUsesCargo
-                ? $"보유 {selectedAmount} · 개당 {selectedUnitWeight} · 적재 {selectedContribution}"
+                ? $"{InventoryText("보유", "Qty")} {selectedAmount} · {InventoryText("개당", "Unit")} {selectedUnitWeight} · {InventoryText("적재", "Load")} {selectedContribution}"
                 : selectedCanJettison
                     ? $"보유 {selectedAmount} · 임시 자원"
                     : $"보유 {selectedAmount} · 버릴 수 없는 임시 자원"
         );
-        SetText(selectedCargoQuantityText, selectedCanJettison && selectedAmount > 0 ? $"{selectedCargoJettisonAmount}개" : "-");
+        SetText(selectedCargoQuantityText, selectedCanJettison && selectedAmount > 0 ? $"{selectedCargoJettisonAmount}" : "-");
         SetText(
             selectedCargoAutoPickupText,
             selectedUsesCargo
-                ? autoPickupEnabled ? "자동 회수 켬" : "자동 회수 끔"
+                ? autoPickupEnabled ? InventoryText("자동 회수 켬", "Auto pickup ON") : InventoryText("자동 회수 끔", "Auto pickup OFF")
                 : "화물 관리 제외"
         );
         SetActive(selectedCargoAutoPickupText != null ? selectedCargoAutoPickupText.gameObject : null, selectedUsesCargo);
@@ -2390,6 +2378,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void ToggleCargoShowAll()
     {
+        if (!CanUseCargoActions) return;
         showAllCargoResources = !showAllCargoResources;
         RefreshCargoManagement();
     }
@@ -2461,6 +2450,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void SelectCargoManifestType(CurrencyType currencyType)
     {
+        if (!CanUseCargoActions || cargoController == null || !cargoController.UsesCargo(currencyType)) return;
         selectedCargoType = currencyType;
         hasSelectedCargo = true;
         selectedFieldDropTarget = BuildStatusFieldDropTarget.Cargo;
@@ -2473,7 +2463,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void RepairCargoEventSystemSelection()
     {
-        if (!isOpen || EventSystem.current == null)
+        if (!CanUseCargoActions || EventSystem.current == null)
         {
             return;
         }
@@ -2495,13 +2485,14 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void HandleCargoQuantityChanged(float value)
     {
+        if (!CanUseCargoActions) return;
         int ownedAmount = GetCargoAmount(selectedCargoType);
         selectedCargoJettisonAmount = ownedAmount > 0
             ? Mathf.Clamp(Mathf.RoundToInt(value), 1, ownedAmount)
             : 0;
         SetText(selectedCargoQuantityText, selectedCargoJettisonAmount > 0
-            ? $"{selectedCargoJettisonAmount}개"
-            : "0개");
+            ? $"{selectedCargoJettisonAmount}"
+            : "0");
     }
 
     private void SetCargoQuantityOne()
@@ -2522,6 +2513,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void SetSelectedCargoQuantity(int amount)
     {
+        if (!CanUseCargoActions) return;
         int ownedAmount = GetCargoAmount(selectedCargoType);
         selectedCargoJettisonAmount = ownedAmount > 0
             ? Mathf.Clamp(amount, 1, ownedAmount)
@@ -2534,6 +2526,7 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void ToggleSelectedCargoAutoPickup()
     {
+        if (!CanUseCargoActions || !hasSelectedCargo) return;
         if (cargoController == null || !cargoController.UsesCargo(selectedCargoType))
         {
             return;
@@ -2767,25 +2760,19 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
         if (selectedFieldDropTarget == BuildStatusFieldDropTarget.Cargo)
         {
-            fieldDropHintText.text = cargoController != null && cargoController.CanJettison(selectedCargoType)
-                ? $"[{ResolveFieldDropKeyText()}] 길게 눌러 버리기 : {GetCargoDisplayName(selectedCargoType)}"
-                : $"버릴 수 없는 자원 : {GetCargoDisplayName(selectedCargoType)}";
+            fieldDropHintText.text = hasSelectedCargo && cargoController != null && cargoController.CanJettison(selectedCargoType)
+                ? $"[{ResolveFieldDropKeyText()}] {InventoryText("길게 눌러 버리기", "Hold to jettison")}"
+                : InventoryText("버릴 화물 없음", "No cargo selected");
             return;
         }
 
         if (activeSelected)
         {
-            string activeName = reinforcementController != null && reinforcementController.EquippedDefinition != null
-                ? reinforcementController.EquippedDefinition.DisplayName
-                : "장비 없음";
-            fieldDropHintText.text = $"[{ResolveFieldDropKeyText()}] 액티브 필드 드랍 : {activeName}";
+            fieldDropHintText.text = $"[{ResolveFieldDropKeyText()}] {InventoryText("액티브 필드 드랍", "Drop active")}";
             return;
         }
 
-        string passiveName = selectedPassiveIndex >= 0 && selectedPassiveIndex < passiveEntries.Count && passiveEntries[selectedPassiveIndex]?.trait != null
-            ? passiveEntries[selectedPassiveIndex].trait.DisplayName
-            : "패시브 미선택";
-        fieldDropHintText.text = $"[{ResolveFieldDropKeyText()}] 패시브 필드 드랍 : {passiveName}";
+        fieldDropHintText.text = $"[{ResolveFieldDropKeyText()}] {InventoryText("선택 장비 필드 드랍", "Drop selected equipment")}";
     }
 
     private void ShowFieldDropWarning(string message)
@@ -2937,7 +2924,8 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void HandleStoryRecoveryLanguageChanged(string _)
     {
-        RefreshStoryRecovery();
+        ApplyInventoryTabPresentation();
+        RefreshAll();
     }
 
     private void HandleHealthChanged(float current, float max)
@@ -3014,7 +3002,11 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
     private void CloseInternal(bool playSound, bool restoreCursor)
     {
-        CloseOperatingFrameInspection();
+        CloseStoryProgressInspection();
+        CloseStructuralFrameInspection();
+        StopInventoryScrolling();
+        cargoJettisonHoldTimer = 0f;
+        cargoJettisonConsumedUntilRelease = true;
         if (!isOpen)
         {
             return;
@@ -3231,6 +3223,10 @@ public partial class PlayerBuildStatusPanelUI : MonoBehaviour
 
             text.raycastTarget = false;
         }
+
+        // This authored text is also the Structural Frame inspection button's target.
+        if (structuralFrameInspectButton != null && structuralFrameInspectButton.targetGraphic != null)
+            structuralFrameInspectButton.targetGraphic.raycastTarget = true;
     }
 
     private void SetText(TextMeshProUGUI target, string text)

@@ -1,5 +1,17 @@
 # Equipment manufacturing economy — calibrated recipes (2026-09-23)
 
+## Research Special equipment addendum (2026-09-25)
+
+Three additional blueprints use the existing Scrap/Core transaction: Stabilized Return Module 24 / 1 after Sector Stabilizer analysis; Matter Compression Module 32 / 2 after Matter Compressor analysis; Phase Navigation Module 40 / 3 after Phase Navigation Lens analysis. They are optional progression rewards outside the 48-board budget, not free equipment grants. They do not enter the starter allowance. Existing 48 recipes, totals, world supply and legacy ownership remain unchanged. Their effects and additional purchase pacing require natural playtesting; no new economy simulation is claimed for these modules.
+
+## Structural conversion addendum (2026-09-25)
+
+The separate Operating Frame system is superseded. Row-2 manufacturing now offers Lightweight 20 Scrap / 0 Core, Standard 18 / 0, Heavy 18 / 1. Each is MaxLevel 1 and uses normal one-time manufacture/free fitting; none is in the starter grant. Row total 56 / 1, Shared total 322 / 6 and all-48 total 1364 / 34 remain unchanged. The other 45 recipes and six-item starter allowance are unchanged.
+
+The exact seven nonempty fusion profiles (plus none) are in [Final Roster](EQUIPMENT_FINAL_ROSTER.md#structural-frame-equipment-conversion-2026-09-25). There is no count scaling. A researched version-7 selection converts to one module once at no cost; this migration does not spend/refund currency. Retired Salvage Protocol, Reinforced Plating and Repair Foam remain legacy equipment for existing owners.
+
+**Historical simulation boundary:** the 2026-09-23 capture/results below measured the superseded free count-based frames. These are historical supply measurements, not executed natural-play or income validation of the new frames. Early pre-analysis saves now have no structural bonus. Heavy cargo is always +30 rather than the old +10 to +40; fusion profiles need new playtesting. Diagnostics now accept exact combinations. No reward tables or currency system changed.
+
 The 48 live `TraitDefinition` manufacturing Scrap/Core fields are the sole runtime price authority. The transaction and UI read those fields. The tables here document them; they are not another runtime price list. Research, one-time manufacture, free unlimited fitting, immutable run loadout, Lv1 deployment and in-run upgrades are unchanged. All 66 definitions/62 ordinary definitions remain: 48 board positions and 14 legacy Shared modules. No combat effects, rarity weights, frames or world rewards were changed.
 
 ## Measurement method and limits
@@ -120,7 +132,7 @@ The first Region-2 2-Core guarantee is not a repeat farming stipend. Replacing o
 
 Reactor Core is a sustainable non-boss path, but only roughly 0.2–0.33 per Normal trip in these samples. A boss-avoiding player can need several returns per Core. No-boss early purchases therefore retain Scrap-only alternatives in each unlock burst, including the Row-4 return container. Basic ship trials never need Core. Core-heavy signatures intentionally encourage successful boss/repeat routes; ordinary Core is not protected on death.
 
-### Frame tradeoff
+### Historical count-based frame tradeoff (superseded)
 
 | Stage | Heavy vs Standard Normal safe Scrap | Heavy vs Standard Thorough safe Scrap |
 |---|---:|---:|
@@ -140,7 +152,7 @@ Receipt `equipment_starter_materials_granted` and resources are persisted atomic
 
 ## Final 48 recipes
 
-Scrap is the main material. Core specializes later manufacture; no Alloy, Credits, Tuning Chips, XP or boss components are consumed. Fit/unfit and frames remain free. Prices are finalized for this pass; combat values, rarities, frame values and natural-play pacing are not declared finally balanced.
+Scrap is the main material. Core specializes later manufacture; no Alloy, Credits, Tuning Chips, XP or boss components are consumed. Fit/unfit remains free; structural frame manufacture uses the Row-2 prices above. Prices are finalized for this pass; combat values, rarities, frame values and natural-play pacing are not declared finally balanced.
 
 | Manufacturing row | Scrap band | Core band | Intent |
 |---|---:|---:|---|
@@ -156,9 +168,9 @@ Per-item estimates use max(Scrap price / Scrap income, Core price / Core income)
 | `shared_cargo_bay` | Shared | 1 / A | 12 | 0 | 0.37 |
 | `shared_salvage_magnet` | Shared | 1 / A | 10 | 0 | 0.31 |
 | `shared_engine_tuning` | Shared | 1 / A | 12 | 0 | 0.37 |
-| `shared_salvage_protocol` | Shared | 2 / B | 20 | 0 | 0.61 |
-| `shared_reinforced_plating` | Shared | 2 / B | 18 | 1 | 0.83 |
-| `shared_repair_foam` | Shared | 2 / B | 18 | 0 | 0.55 |
+| `shared_lightweight_frame` | Shared | 2 / B | 20 | 0 | 0.61 |
+| `shared_standard_frame` | Shared | 2 / B | 18 | 0 | 0.55 |
+| `shared_heavy_frame` | Shared | 2 / B | 18 | 1 | 0.83 |
 | `shared_radar_amplifier` | Shared | 3 / C | 28 | 1 | 0.83 |
 | `shared_dash_capacitor` | Shared | 3 / C | 30 | 0 | 0.89 |
 | `shared_cutting_ammo` | Shared | 3 / C | 32 | 1 | 0.95 |
@@ -286,7 +298,7 @@ All 48 board recipes were calibrated: 46 asset prices changed; shared_salvage_ma
 
 ## UI and executed validation
 
-Two authored currency rows reuse the existing Scrap/Core sprites under Settlement EquipmentDevelopment/Inspection/Growth/Content. Each shows cost and current permanent amount, insufficient funds in warning color, and a disabled manufacturing action. Zero Core rows disappear; owned/fitted/locked equipment and Operating Frames show no manufacturing price. No runtime UI generation or Settlement Upgrade action.
+Two authored currency rows reuse the existing Scrap/Core sprites under Settlement EquipmentDevelopment/Inspection/Growth/Content. Each shows cost and current permanent amount, insufficient funds in warning color, and a disabled manufacturing action. Zero Core rows disappear; owned/fitted/locked equipment shows no manufacturing price. Researched unmanufactured structural modules show the normal price. No runtime UI generation or Settlement Upgrade action.
 
 - Runtime static compile: 0 errors, 52 existing warnings. Editor/test static compile: 0 errors, 4 existing warnings.
 - Full EditMode: 693/693 passed, 0 failed. This includes 133 Equipment Development cases, 22 new economy cases. The pre-change 671-test result is not used as evidence for this pass.

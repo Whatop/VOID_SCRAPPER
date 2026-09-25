@@ -37,8 +37,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     [SerializeField] private bool logApplyResult = true;
 
     private RuntimeStats runtimeStats;
-    private OperatingFrameProfile appliedOperatingFrame;
-    private bool hasOperatingFrame;
+    private StructuralFrameProfile appliedStructuralFrame;
+    private bool hasStructuralFrame;
 
     private struct RuntimeStats
     {
@@ -79,7 +79,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
     private void OnDisable()
     {
-        ClearOperatingFrameMovement();
+        ClearStructuralFrameMovement();
         PlayerPeriodicReflector2D.SetSourceEnabled(gameObject, this, false);
         PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, false);
         PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, false);
@@ -119,7 +119,7 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
         }
 
         ApplyShip(selectedShip);
-        ApplyOperatingFrame(runContext);
+        ApplyStructuralFrame(runContext);
 
         ApplySectorTechnologies(progress);
         ApplyPermanentTraits(progress, traitDefinitions, selectedWeaponTree);
@@ -236,8 +236,8 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
     private void ResetRuntimeModifiers()
     {
-        ClearOperatingFrameMovement();
-        hasOperatingFrame = false;
+        ClearStructuralFrameMovement();
+        hasStructuralFrame = false;
         PlayerPeriodicReflector2D.SetSourceEnabled(gameObject, this, false);
         PlayerMachineGunDashMissileSalvo.SetSourceEnabled(gameObject, this, false);
         PlayerSniperDashEchoShot.SetSourceEnabled(gameObject, this, false);
@@ -301,32 +301,32 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
 
         return null;
     }
-    private void ApplyOperatingFrame(RunContext run)
+    private void ApplyStructuralFrame(RunContext run)
     {
         if (run == null || !run.IsActive) return;
-        appliedOperatingFrame = run.FrameProfile;
-        hasOperatingFrame = true;
-        runtimeStats.maxHp = Mathf.Max(1f, runtimeStats.maxHp + appliedOperatingFrame.MaxHpBonus);
-        runtimeStats.cargoCapacity = Mathf.Max(1, runtimeStats.cargoCapacity + appliedOperatingFrame.CargoBonus);
-        runtimeStats.dashDistance += appliedOperatingFrame.DashDistanceBonus;
-        weaponModifiers?.AddDamagePercent(appliedOperatingFrame.DamagePercent);
-        runtimeBonusState?.AddHarvestYieldPercent(appliedOperatingFrame.HarvestYieldPercent);
-        RestoreOperatingFrameMovement();
+        appliedStructuralFrame = run.FrameProfile;
+        hasStructuralFrame = true;
+        runtimeStats.maxHp = Mathf.Max(1f, runtimeStats.maxHp + appliedStructuralFrame.MaxHpBonus);
+        runtimeStats.cargoCapacity = Mathf.Max(1, runtimeStats.cargoCapacity + appliedStructuralFrame.CargoBonus);
+        runtimeStats.dashDistance += appliedStructuralFrame.DashDistanceBonus;
+        weaponModifiers?.AddDamagePercent(appliedStructuralFrame.DamagePercent);
+        runtimeBonusState?.AddHarvestYieldPercent(appliedStructuralFrame.HarvestYieldPercent);
+        RestoreStructuralFrameMovement();
     }
 
     private void OnEnable()
     {
-        RestoreOperatingFrameMovement();
+        RestoreStructuralFrameMovement();
     }
 
-    private void RestoreOperatingFrameMovement()
+    private void RestoreStructuralFrameMovement()
     {
-        if (!hasOperatingFrame) return;
-        playerController?.SetExternalMoveSpeedMultiplier(this, appliedOperatingFrame.MoveMultiplier);
-        playerDash?.SetExternalCooldownMultiplier(this, appliedOperatingFrame.DashCooldownMultiplier);
+        if (!hasStructuralFrame) return;
+        playerController?.SetExternalMoveSpeedMultiplier(this, appliedStructuralFrame.MoveMultiplier);
+        playerDash?.SetExternalCooldownMultiplier(this, appliedStructuralFrame.DashCooldownMultiplier);
     }
 
-    private void ClearOperatingFrameMovement()
+    private void ClearStructuralFrameMovement()
     {
         playerController?.ClearExternalMoveSpeedMultiplier(this);
         playerDash?.ClearExternalCooldownMultiplier(this);

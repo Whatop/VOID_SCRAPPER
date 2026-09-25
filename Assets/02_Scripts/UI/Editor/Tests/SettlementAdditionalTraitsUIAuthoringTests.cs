@@ -327,7 +327,7 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         System.IO.File.WriteAllText(savePath, "{\"version\":5,\"scrapParts\":73,\"equipmentLoadoutTraitIds\":[\"mg_stable_feed\"],\"traitLevels\":[{\"traitId\":\"shared_lightweight_cargo\",\"level\":2}]}");
         progress.LoadFromSave(save.LoadOrCreate()); save.Save(progress);
         SaveData loaded = save.LoadOrCreate();
-        Assert.That(loaded.version, Is.EqualTo(7)); Assert.That(loaded.equipmentOwnershipMigrationPending, Is.False);
+        Assert.That(loaded.version, Is.EqualTo(8)); Assert.That(loaded.equipmentOwnershipMigrationPending, Is.False);
         Assert.That(loaded.manufacturedEquipmentIds, Is.EquivalentTo(new[] { "mg_stable_feed", "shared_lightweight_cargo" }));
         Assert.That(loaded.equipmentLoadoutTraitIds, Is.EqualTo(new[] { "mg_stable_feed" }));
         Assert.That(loaded.scrapParts, Is.EqualTo(73));
@@ -398,7 +398,7 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
     {
         ResearchAndResources();
         var guidance = catalog.FindById("mg_guidance_control");
-        ManufactureAndFit(guidance); ManufactureAndFit(catalog.FindById("shared_reinforced_plating"));
+        ManufactureAndFit(guidance); PrepareFixture(catalog.FindById("shared_reinforced_plating"));
         RunManager manager = StartRunFixture(); RunContext run = manager.CurrentRun;
         Assert.That(store.GetLevel(guidance.TraitId), Is.EqualTo(1));
         Assert.That(store.GetLevel("mg_stable_feed"), Is.Zero);
@@ -488,7 +488,12 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
             { ShipTraitBranchKind.Shotgun, 12 }, { ShipTraitBranchKind.Sniper, 12 } };
         foreach (var pair in counts)
         {
+            if (pair.Key != ShipTraitBranchKind.Shared)
+                progress.SetSelectedShipId(ships.Single(s => s.DefaultWeaponTree == (pair.Key == ShipTraitBranchKind.MachineGun ? WeaponTreeType.MachineGun :
+                    pair.Key == ShipTraitBranchKind.Shotgun ? WeaponTreeType.Shotgun : WeaponTreeType.Sniper)).ShipId);
+            string beforeInspection = progress.SelectedShipId;
             panel.SelectEquipmentBranch(pair.Key);
+            Assert.That(progress.SelectedShipId, Is.EqualTo(beforeInspection));
             var views = Get<PreparedEquipmentView[]>(panel, "equipmentSlots");
             Assert.That(views.Count(v => v.definition != null), Is.EqualTo(pair.Value));
             Assert.That(views.All(v => v.definition != null && !v.label.text.Contains("개발 예정")), Is.True);
@@ -497,10 +502,10 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
                 var rect = (RectTransform)views[i].button.transform;
                 Assert.That(rect.sizeDelta.x, Is.GreaterThan(40));
                 Assert.That(rect.anchoredPosition.x, Is.EqualTo(-166 + i % 3 * 73));
-                Assert.That(rect.anchoredPosition.y, Is.EqualTo(19 - i / 3 * 31));
+                Assert.That(rect.anchoredPosition.y, Is.EqualTo(36 - i / 3 * 36));
             }
         }
-        Assert.That(progress.SelectedShipId, Is.EqualTo(savedShip));
+        progress.SetSelectedShipId(savedShip);
         Assert.That(progress.ManufacturedEquipmentIds, Is.Empty);
         Assert.That(panel.GetComponentsInChildren<Transform>(true).Select(t => t.GetInstanceID()), Is.EqualTo(before));
         Assert.That(panel.TryUnlockSelectedTrait(), Is.False);
@@ -537,15 +542,16 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
     [Test]
     public void LockedBlueprintShowsRequirementAndConditionalBlueprintWarnsMissingPrerequisite()
     {
-        OpenEquipment(); panel.InspectEquipment(catalog.FindById("sg_choke_barrel"));
-        Assert.That(Get<TMP_Text>(panel, "equipmentRequirements").text, Does.Contain("구획 안정기 분석"));
+        OpenEquipment(); panel.InspectEquipment(catalog.FindById("shared_radar_amplifier"));
+        Assert.That(Get<TMP_Text>(panel, "equipmentRequirements").text, Does.Contain("분석"));
         Assert.That(Get<EquipmentGrowthRow[]>(panel, "equipmentGrowthRows").All(r => !r.root.activeSelf), Is.True);
         Assert.That(Get<Button>(panel, "equipmentActivationButton").gameObject.activeSelf, Is.False);
         ResearchAndResources(); panel.InspectEquipment(catalog.FindById("mg_terminal_guidance"));
         Assert.That(Get<TMP_Text>(panel, "equipmentRequirements").text, Does.Contain("선행 장비 장착 필요"));
         Assert.That(Get<TMP_Text>(panel, "equipmentMaxLevel").text, Does.Not.Contain("Lv.1"));
+        var inspected = panel.InspectedEquipment;
         panel.InspectEquipment(catalog.FindById("sg_choke_barrel"));
-        Assert.That(Get<TMP_Text>(panel, "equipmentRequirements").text, Does.Contain("브리처 출격 시 적용"));
+        Assert.That(panel.InspectedEquipment, Is.EqualTo(inspected));
         Assert.That(progress.LastSelectedWeaponTree, Is.EqualTo(WeaponTreeType.MachineGun));
     }
 
@@ -558,7 +564,7 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         Assert.That(rows.Count(r => r.root.activeSelf), Is.EqualTo(trait.MaxLevel));
         for (int i = 0; i < trait.MaxLevel; i++)
         {
-            Assert.That(rows[i].effects.text, Is.EqualTo(TraitEffectTextUtility.BuildEffectText(trait, i + 1)));
+            Assert.That(rows[i].effects.text, Is.EqualTo(TraitEffectTextUtility.BuildRichEffectText(trait, i + 1)));
             Assert.That(rows[i].effects.text, Does.Contain(first).And.Contain(second).And.Not.Contain("최대 체력"));
             Assert.That(rows[i].heading.text.Contains("MAX"), Is.EqualTo(i + 1 == trait.MaxLevel));
         }

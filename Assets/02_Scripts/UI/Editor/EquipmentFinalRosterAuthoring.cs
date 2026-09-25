@@ -9,7 +9,7 @@ public static class EquipmentFinalRosterAuthoring
     private const string CatalogPath = "Assets/02_Scripts/Config/Catalog/TraitCatalog_Main.asset";
     public static readonly string[][] Roster =
     {
-        new[] { "shared_cargo_bay", "shared_salvage_magnet", "shared_engine_tuning", "shared_salvage_protocol", "shared_reinforced_plating", "shared_repair_foam", "shared_radar_amplifier", "shared_dash_capacitor", "shared_cutting_ammo", "shared_return_container", "shared_active_cooler", "shared_periodic_reflector" },
+        new[] { "shared_cargo_bay", "shared_salvage_magnet", "shared_engine_tuning", "shared_lightweight_frame", "shared_standard_frame", "shared_heavy_frame", "shared_radar_amplifier", "shared_dash_capacitor", "shared_cutting_ammo", "shared_return_container", "shared_active_cooler", "shared_periodic_reflector" },
         new[] { "mg_traverse_servo", "mg_guidance_control", "mg_stable_feed", "mg_sustained_harvest_fire", "mg_salvage_sweep", "mg_midrange_pressure", "mg_heat_exchanger", "mg_line_penetrator", "mg_target_distributor", "mg_terminal_guidance", "mg_dash_missile_salvo", "mg_twin_feed" },
         new[] { "sg_choke_barrel", "sg_extra_pellet", "sg_breaching_drive", "sg_close_harvest_burst", "sg_taunt_resonator", "sg_cycle_actuator", "sg_pellet_penetrator", "sg_impact_ejector", "sg_breach_compensator", "sg_close_quarters_overpressure", "sg_slug_coupler", "sg_breach_sequencer" },
         new[] { "sn_charge_accelerator", "sn_piercing_amplifier", "sn_ballistic_alignment", "sn_focus_lens", "sn_high_output_core", "sn_mobile_charge_coupler", "sn_stealth_scan", "sn_charge_aperture", "sn_anchor_optics", "sn_semi_auto_laser", "sn_dash_echo_shot", "sn_reserve_capacitor" },
@@ -67,7 +67,7 @@ public static class EquipmentFinalRosterAuthoring
     {
         Apply();
         LocalizationContentImporter.ValidateDefaultCatalogFromMenu();
-        Debug.Log("FINAL_EQUIPMENT_AUTHORED: 48 development positions, 14 preserved legacy modules, 16 new definitions.");
+        Debug.Log("FINAL_EQUIPMENT_AUTHORED: 48 development positions, 17 preserved legacy modules, 16 new definitions.");
     }
 
     public static void Apply()
@@ -91,6 +91,7 @@ public static class EquipmentFinalRosterAuthoring
         Ensure(catalog, "Assets/02_Scripts/Config/TraitDefinition/Sniper/64_sn_charge_aperture.asset", "sn_charge_aperture", "차징 확장기", "차징할수록 탄의 폭을 넓혀 정밀 사격의 명중 여유를 확보합니다.", WeaponTreeType.Sniper, TraitRarity.Rare, new[] { new Effect(1, TraitEffectType.ChargedProjectileSizePercent, 15f), new Effect(2, TraitEffectType.ChargedProjectileSizePercent, 10f), new Effect(3, TraitEffectType.ChargedProjectileSizePercent, 15f) });
         Ensure(catalog, "Assets/02_Scripts/Config/TraitDefinition/Sniper/65_sn_anchor_optics.asset", "sn_anchor_optics", "정위 조준경", "차징 중 조준 방향의 카메라 시야를 확장합니다. 탐지 범위는 바뀌지 않습니다.", WeaponTreeType.Sniper, TraitRarity.Rare, new[] { new Effect(1, TraitEffectType.ChargeSightBonusPercent, 10f), new Effect(2, TraitEffectType.ChargeSightBonusPercent, 10f), new Effect(3, TraitEffectType.ChargeSightBonusPercent, 15f) });
         Ensure(catalog, "Assets/02_Scripts/Config/TraitDefinition/Sniper/66_sn_reserve_capacitor.asset", "sn_reserve_capacitor", "잔류 축전기", "완충 사격 후 잠시 다음 차징의 일부를 보존합니다. 보조받은 사격은 예비량을 다시 만들지 않습니다.", WeaponTreeType.Sniper, TraitRarity.Special, new[] { new Effect(1, TraitEffectType.SniperReserveCapacitor, 10f), new Effect(2, TraitEffectType.SniperReserveCapacitor, 5f), new Effect(3, TraitEffectType.SniperReserveCapacitor, 10f) });
+        StructuralFrameAuthoring.AuthorModules();
         ApplyMetadata(catalog);
         AssetDatabase.SaveAssets();
         var positions = new HashSet<string>();
@@ -98,20 +99,20 @@ public static class EquipmentFinalRosterAuthoring
         foreach (TraitDefinition trait in catalog.TraitDefinitions)
         {
             if (trait == null) throw new InvalidOperationException("Null catalog reference");
-            if (!trait.CanAppearAsRandomDropTrait) continue;
+            if (!trait.CanAppearAsRandomDropTrait || trait.IsResearchSpecialEquipment) continue;
             ordinary++;
             if (!trait.IsDevelopmentRoster) { legacy++; continue; }
             string key = trait.DevelopmentBranch + ":" + trait.DevelopmentResearchTier + ":" + trait.DevelopmentDisplayOrder;
             if (!positions.Add(key) || !trait.HasValidManufacturingRecipe) throw new InvalidOperationException("Invalid final blueprint: " + trait.TraitId);
         }
-        if (positions.Count != 48 || ordinary != 62 || legacy != 14) throw new InvalidOperationException("Final equipment roster count mismatch.");
+        if (positions.Count != 48 || ordinary != 65 || legacy != 17) throw new InvalidOperationException("Final equipment roster count mismatch.");
     }
 
     public static void ApplyMetadata(TraitCatalog catalog)
     {
         foreach (TraitDefinition trait in catalog.TraitDefinitions)
         {
-            if (trait == null || !trait.CanAppearAsRandomDropTrait) continue;
+            if (trait == null || !trait.CanAppearAsRandomDropTrait || trait.IsResearchSpecialEquipment) continue;
             int branch = trait.Category == TraitCategory.Shared ? 0 : trait.WeaponTreeType == WeaponTreeType.MachineGun ? 1 : trait.WeaponTreeType == WeaponTreeType.Shotgun ? 2 : 3;
             int position = Array.IndexOf(Roster[branch], trait.TraitId);
             var data = new SerializedObject(trait);

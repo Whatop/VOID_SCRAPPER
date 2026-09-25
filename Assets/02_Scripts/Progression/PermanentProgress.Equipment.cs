@@ -37,6 +37,15 @@ public partial class PermanentProgress
         }
     }
 
+    // Derived from the existing completed analysis authority; pickup alone never unlocks a blueprint.
+    public bool HasCompletedStoryPartAnalysis(BossStoryPart part) => HasBossStoryPart(part) && (part switch
+    {
+        BossStoryPart.SectorStabilizer => AnalyzedEquipmentComponentCount >= 1,
+        BossStoryPart.MatterCompressor => AnalyzedEquipmentComponentCount >= 2,
+        BossStoryPart.PhaseNavigationLens => AnalyzedEquipmentComponentCount >= 3,
+        _ => false
+    });
+
     public int GetEquipmentResearchPositionCount(ShipTraitBranchKind branch)
     {
         int required = branch == ShipTraitBranchKind.Shotgun ? 1 : branch == ShipTraitBranchKind.Sniper ? 2 : 0;
@@ -82,8 +91,9 @@ public partial class PermanentProgress
     public bool IsEquipmentResearched(TraitDefinition trait)
     {
         if (!IsKnownDevelopmentEquipment(trait)) return false;
+        if (trait.IsResearchSpecialEquipment) return HasCompletedStoryPartAnalysis(trait.RequiredStoryPartAnalysis);
         // Displaced Shared modules remain usable by existing owners; they have no sale position.
-        if (!trait.IsDevelopmentRoster && trait.Category == TraitCategory.Shared && IsEquipmentManufactured(trait.TraitId)) return true;
+        if (!trait.IsDevelopmentRoster && trait.Category == TraitCategory.Shared) return IsEquipmentManufactured(trait.TraitId);
         int tier = trait.DevelopmentResearchTier;
         if (trait.PreviousDevelopmentResearchTier >= 0 && grandfatheredEquipmentResearchIds.Contains(trait.TraitId))
             tier = Mathf.Min(tier, trait.PreviousDevelopmentResearchTier);
@@ -116,7 +126,7 @@ public partial class PermanentProgress
 
     public EquipmentDevelopmentResult GetManufacturingAvailability(TraitDefinition trait)
     {
-        if (!IsKnownDevelopmentEquipment(trait) || !trait.IsDevelopmentRoster) return EquipmentDevelopmentResult.InvalidDefinition;
+        if (!IsKnownDevelopmentEquipment(trait) || !trait.IsManufacturableBlueprint) return EquipmentDevelopmentResult.InvalidDefinition;
         if (!IsEquipmentResearched(trait)) return EquipmentDevelopmentResult.ResearchLocked;
         if (IsEquipmentManufactured(trait.TraitId)) return EquipmentDevelopmentResult.AlreadyManufactured;
         if (!trait.HasValidManufacturingRecipe) return EquipmentDevelopmentResult.InvalidRecipe;

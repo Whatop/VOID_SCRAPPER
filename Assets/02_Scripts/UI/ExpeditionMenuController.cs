@@ -587,7 +587,7 @@ public sealed class ExpeditionMenuController : MonoBehaviour
         }
 
         Selectable preferred = tab == ExpeditionMenuTab.Inventory
-            ? inventoryPanel?.FirstCargoSelectable
+            ? inventoryPanel?.FirstInventorySelectable
             : inventoryTabButton;
 
         if (preferred == null || !preferred.IsActive() || !preferred.IsInteractable())

@@ -635,7 +635,11 @@ public class RunLevelTraitSelectionUI : MonoBehaviour
 
 public static class TraitEffectTextUtility
 {
-    public static string BuildEffectText(TraitDefinition trait, int level)
+    public static string BuildEffectText(TraitDefinition trait, int level) => BuildEffectText(trait, level, false);
+
+    public static string BuildRichEffectText(TraitDefinition trait, int level) => BuildEffectText(trait, level, true);
+
+    private static string BuildEffectText(TraitDefinition trait, int level, bool rich)
     {
         if (trait == null || trait.LevelEffects == null)
         {
@@ -669,7 +673,7 @@ public static class TraitEffectTextUtility
                         displayValue += step.Value;
                 }
             }
-            builder.Append(FormatEffect(effect.EffectType, displayValue));
+            builder.Append(rich ? StatPresentation.Trait(effect.EffectType, displayValue) : FormatEffect(effect.EffectType, displayValue));
         }
 
         return builder.ToString();

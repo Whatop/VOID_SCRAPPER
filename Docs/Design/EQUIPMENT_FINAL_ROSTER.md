@@ -1,10 +1,55 @@
 # Final Equipment Development Roster — implemented foundation
 
+## Additional research Special blueprints (2026-09-25)
+
+Shared includes a compact Special research subsection with three additional equipment blueprints outside the 48 positions. The original story parts remain campaign state; each corresponding completed analysis unlocks its blueprint without auto-manufacturing or auto-fitting. All three are Shared-compatible, Special rarity, MaxLevel 3, with ordinary paid manufacturing, free unrestricted fitting and Lv1 deployment.
+
+| ID | English name | Identity accent | Scrap / Core | Each level's increments |
+|---|---|---|---:|---|
+| `special_sector_stabilization` | Stabilized Return Module | Orange | 24 / 1 | HP +1; healing efficiency +5%; Emergency Return capacity ratio +5 percentage points |
+| `special_matter_compression` | Matter Compression Module | Green | 32 / 2 | Cargo +6; harvest yield +3%; pickup range +0.20 |
+| `special_phase_navigation` | Phase Navigation Module | Blue | 40 / 3 | Radar radius +1; range +5%; spread reduction +3% |
+
+Existing multiplicative percentage semantics apply. Icons reuse Reinforced Plating, Cargo Bay and Radar Amplifier assets. The three hidden boss protocol definitions remain unchanged and distinct. See [implementation and validation report](RESEARCH_SPECIAL_EQUIPMENT_REPORT.md).
+
+## Structural frame equipment conversion (2026-09-25)
+
+This supersedes the separate Operating Frame system from 2026-09-22. There is no saved frame preference, selector, count tier or independent frame runtime authority. The old numeric selection survives only as a consumed migration tombstone in SaveData.
+
+Equipment Development exposes Shared and the branch from PermanentProgress's current selected ship/WeaponTree. Existing Hangar changes refresh the panel through its existing change subscription. Unrelated authored tabs stay present but inactive. An invalid inspected branch falls back to Shared; inspecting content never selects a ship. All branches' ownership/fitting preferences remain stored; deployment still resolves only Shared plus the selected ship.
+
+Shared Row 2 is exactly: `shared_lightweight_frame`, `shared_standard_frame`, `shared_heavy_frame`. All three unlock after the first completed boss-component analysis. They are normal manufactured Shared equipment: pay once, fit/unfit freely, and fit none, one, any pair or all three. All are Common, MaxLevel 1, deploy at Lv1/MAX, and use existing upgrade eligibility. They have empty individual LevelEffects: no single-frame effects can stack under a fusion. The common CanUpgrade check retains their active deployment Lv1 floor even after a runtime level is removed, so dismantling cannot reopen structural upgrade offers. Ordinary fitting and reward callers are unchanged.
+
+The following exact profiles are provisional; each row completely replaces the singles. Values of zero mean no modifier. Total ordinary equipment count never enters resolution.
+
+| Fitted frames | Move speed | Dash cooldown | Dash distance | Max HP | Cargo | Damage | Harvest yield |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| None | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Lightweight | +12% | -15% | +0.60 | -3 | -20 | 0 | 0 |
+| Standard | 0 | 0 | 0 | 0 | +10 | +5% | +5% |
+| Heavy | -10% | +15% | 0 | +6 | +30 | 0 | 0 |
+| Lightweight + Standard | +8% | -10% | 0 | -2 | -5 | +3% | +3% |
+| Lightweight + Heavy | +4% | 0 | +0.30 | +2 | +10 | 0 | 0 |
+| Standard + Heavy | -6% | +8% | 0 | +4 | +25 | +3% | +3% |
+| Lightweight + Standard + Heavy (Integrated) | +3% | 0 | +0.15 | +3 | +15 | +3% | +3% |
+
+RunContext.Begin resolves the three equipment IDs from the immutable effective fitting, records the bit set and exposes one StructuralFrameProfile. Runtime Trait levels, dismantling, live Settlement preferences and portal travel cannot change that profile. PlayerRuntimeStatApplier remains the single owner: reset/base ship stats -> structural profile -> technology/story effects -> stat commit. ExpeditionBootstrap then restores Reinforcement, region effects and current runtime Trait levels; depleted carried HP/Armor restore last on portals. Fresh runs initialize fresh vitals. Movement and cooldown use source-owned external multipliers; distance, HP and cargo use the existing rebuild/commit paths; damage and yield use existing modifier components. No authored ship data changes, manager or Update loop were added. Run end removes player/run effects through the existing lifecycle.
+
+Manufacturing recipes (Scrap / Core): Lightweight **20 / 0**, Standard **18 / 0**, Heavy **18 / 1**. Row-2 total remains 56 / 1. Other 45 board definitions and recipes are unchanged. Initial six remain 74 Scrap; starter allowance remains 86 Scrap / 0 Core and includes no frames.
+
+`shared_salvage_protocol`, `shared_reinforced_plating`, `shared_repair_foam` are retired from the normal board, not deleted. Their IDs, GUIDs, recipes, effects and existing ownership/fitting remain intact. They appear only in the existing legacy-owner section, with no new-player research/manufacture and no refund or automatic replacement. Catalog totals are now 72 definitions: 68 ordinary-flow equipment (48 board + 17 Shared legacy + 3 research Special), three boss and the unchanged existing story Curse trait.
+
+Save version 8 consumes version-7 `selectedOperatingFrame` (0 Standard, 1 Lightweight, 2 Heavy). A valid recorded selection plus Sector Stabilizer ownership and unlocked DeepZone1 grants only the corresponding manufactured + fitted module without payment. Before Row 2, absent fields and invalid values grant nothing. Explicit DTO defaults during JSON overwrite distinguish an absent pre-frame field from recorded Standard. The tombstone resets to -1; v8 cannot regrant/refit on reload. Currency, campaign, roster ownership, fitting and prior migration receipts are preserved. Older version-5/6 ownership migrations still run normally.
+
+Settlement's selector objects/listeners are removed. Structural equipment details show the Shared structural tag, Max Lv.1, single effects, fusion explanation, current profile and projected profile after fitting. Blue hover/focus, yellow inspection and the separate fitted indicator remain. TAB inspection uses the active immutable profile and actual modifiers; F10 reports structural manufacture/fitting and effective combination without a separate setter. Shared inventory prefab and Expedition's unpacked copy are both updated.
+
+The integrated profile trades specialist peaks for breadth. Natural testing is still needed for Lightweight with depleted HP, Heavy plus existing cargo overload, all-three versus specialist opportunity cost, and unrestricted fitting alongside legacy stat modules. Historical count-based economy simulations are not validation of these profiles. The post-ending Curse system is not implemented.
+
 Implementation date: 2026-09-22. This implements the approved 48-position plan, with the explicitly approved Twin Feed A-to-B cadence adjustment. Existing data was retained; sixteen ship modules were added. Combat values and rarity remain provisional. Manufacturing prices were calibrated on 2026-09-23; see EQUIPMENT_ECONOMY.md.
 
-| Branch | Ordinary definitions | Final board | Pending | Legacy outside board |
+| Branch | Ordinary-flow definitions | Final board | Research Special | Legacy outside board |
 |---|---:|---:|---:|---:|
-| Shared | 26 | 12 | 0 | 14 |
+| Shared | 32 | 12 | 3 | 17 |
 | Sweeper | 12 | 12 | 0 | 0 |
 | Breacher | 12 | 12 | 0 | 0 |
 | Lancer | 12 | 12 | 0 | 0 |
@@ -22,9 +67,9 @@ Each branch table has four rows of three positions. Tier letters describe manufa
 | 1 | 1 | `shared_cargo_bay` / 확장 적재실 (retained) | Salvage — Carry more on each expedition. | Lv1 cargo reserve; Lv2 more; Lv3 largest increment. MAX: Largest dedicated cargo reserve. | A / Common / A | None | salvage_protocol; return_container | Bulkhead/lightweight cargo hybrids remain legacy alternatives. |
 | 1 | 2 | `shared_salvage_magnet` / 회수 자석 (retained) | Salvage — Collect loose rewards with less detouring. | Pickup reach increases at all three levels. MAX: Maximum dedicated pickup reach. | A / Common / A | None | cargo_bay; moving combat | Not harvest yield; overlaps legacy scrap_sorter/collection_route. |
 | 1 | 3 | `shared_engine_tuning` / 엔진 튜닝 (retained) | Mobility — Traverse and sidestep reliably on any ship. | Three unchanged movement-speed increments. MAX: Full sustained movement benefit. | A / Common / A | None | salvage_magnet; deliberate positioning | No dash benefit; legacy movement/cargo hybrids remain recognized. |
-| 2 | 1 | `shared_salvage_protocol` / 수확 프로토콜 (retained) | Salvage — Extract more from the same deposit. | Three unchanged harvest-yield increments. MAX: Full dedicated yield multiplier. | A / Common / B | None | cargo_bay; cutting_ammo | No faster breakage or pickup reach; scrap_sorter is a legacy hybrid. |
-| 2 | 2 | `shared_reinforced_plating` / 강화 장갑 (retained) | Survival — Increase the damage reserve available between heals. | Lv1 HP; Lv2 HP; Lv3 larger HP increment. MAX: Largest dedicated flat HP reserve. | A / Common / B | None | repair_foam; close-range commitments | Does not grant Armor or reduction; survival_protocol is a legacy hybrid. |
-| 2 | 3 | `shared_repair_foam` / 정비 폼 (retained) | Survival — Get more recovery from actual healing resources. | Heal efficiency improves at each level. MAX: Full recovery efficiency; no passive regeneration. | A / Common / B | None | reinforced_plating; healing Reinforcements | Different from HP capacity and reflector; legacy survival_protocol overlaps. |
+| 2 | 1 | `shared_lightweight_frame` / 경량 프레임 | Structural — mobility specialist | Max Lv1 at deployment; exact fusion table above | B / Common / B | First analysis | Other structural modules resolve a different profile | Low HP/cargo; no individual-effect stacking |
+| 2 | 2 | `shared_standard_frame` / 표준 프레임 | Structural — stable work frame | Max Lv1 at deployment; exact fusion table above | B / Common / B | First analysis | Other structural modules resolve a different profile | Best structural damage/yield; no penalty |
+| 2 | 3 | `shared_heavy_frame` / 중갑 프레임 | Structural — durable expedition frame | Max Lv1 at deployment; exact fusion table above | B / Common / B | First analysis | Other structural modules resolve a different profile | Mobility tradeoff; no count scaling |
 | 3 | 1 | `shared_radar_amplifier` / 레이더 증폭기 (retained) | Tactical — Plan routes using a broader successful scan. | Three unchanged scan-radius increments. MAX: Largest standalone Shared scan reach. | A / Common / C | None | taunt_resonator; stealth_scan | No discovery-rule change; focus_lens remains Lancer combat/intel hybrid. |
 | 3 | 2 | `shared_dash_capacitor` / 대쉬 캐패시터 (retained) | Mobility — Make the existing dash available more often. | Three unchanged flat cooldown reductions. MAX: Full dash availability without longer displacement. | A / Common / C | None | ship dash signatures; engine_tuning | Not dash distance; return_protocol is a legacy hybrid. |
 | 3 | 3 | `shared_cutting_ammo` / 절단 탄약 (retained) | Salvage — Break salvage efficiently while retaining modest combat support. | Harvest-object damage plus small general damage each level. MAX: Full mining specialization with broad supporting offense. | A / Rare / C | None | cargo_bay; salvage_protocol | Medium: MG sustained harvest / SG harvest burst are stronger family packages; monitor stacking. |
@@ -130,11 +175,13 @@ Research still opens 3/6/9/12 positions **per available branch**, with Breacher 
 
 Save version 7 adds an idempotent research-grandfather list. Version-6 or earlier manufactured IDs retain their old legitimate research tier when moved later; stable per-definition previousDevelopmentResearchTier metadata records that old boundary. Normal ship gates remain, so backward F10 checkpoints disable locked branches without erasing purchases. New purchases use the final row. Missing catalog defers migration; unknown IDs remain diagnosed and preserved. No ownership is fabricated beyond the existing v5 fitted/purchased migration; no currency is charged/refunded.
 
-The fourteen non-roster Shared definitions remain recognized for old owners, compatible and usable through the compact legacy section. They have no normal blueprint or manufacturing action for new players. The three displaced entries are shared_rapid_feed, shared_targeting_bus and shared_combat_gyro; promoted entries are shared_repair_foam, shared_dash_capacitor and shared_cutting_ammo. All existing assets/IDs/GUIDs remain.
+The seventeen non-roster Shared definitions remain recognized for existing owners and usable through the compact legacy section. They have no normal blueprint, research or manufacturing action for new players. The latest three retired positions are shared_salvage_protocol, shared_reinforced_plating and shared_repair_foam. No assets/IDs/GUIDs were deleted; no refunds or automatic frame substitutions occur. Earlier legacy transitions remain preserved.
 
 Terminal Guidance alone remains conditional: fitted but unowned until mg_guidance_control reaches Lv3 and normal acquisition succeeds. No new prerequisites. Starting deployment levels retain nonrefundable provenance; earned upgrades keep existing field-drop/dismantling treatment. No empty/maxed pool reopens the master catalog.
 
 ## Legacy Shared ownership
+
+The 2026-09-25 conversion also retires `shared_salvage_protocol`, `shared_reinforced_plating` and `shared_repair_foam` from the board. Existing ownership, fitting, IDs, GUIDs and effects remain; no refund or automatic frame replacement is made.
 
 | ID | Korean name | Policy |
 |---|---|---|
@@ -157,9 +204,9 @@ Terminal Guidance alone remains conditional: fitted but unowned until mg_guidanc
 
 All sixteen IDs in the new-module value table require dedicated equipment icons. No unrelated icon was copied or claimed as final art.
 
-### Validation and remaining tuning
+### Historical 2026-09-22 validation and remaining tuning
 
-Static catalog inspection confirms 66 unique asset references/IDs/GUIDs: 62 ordinary + three boss + Pixel Curse. Final development positions are 12/12/12/12 with zero pending; fourteen Shared modules remain outside the board. All fifty previous definitions retain ID, GUID, name, category, rarity, MaxLevel, LevelEffects and prerequisites. No production scene or prefab is edited; the existing authored four-tab, twelve-card board resolves final metadata through the catalog.
+Historical 2026-09-22 validation (superseded catalog counts): static inspection confirmed 66 unique asset references/IDs/GUIDs: 62 ordinary + three boss + Pixel Curse. Final development positions are 12/12/12/12 with zero pending; fourteen Shared modules remain outside the board. All fifty previous definitions retain ID, GUID, name, category, rarity, MaxLevel, LevelEffects and prerequisites. No production scene or prefab is edited; the existing authored four-tab, twelve-card board resolves final metadata through the catalog.
 
 Runtime and Editor/test static compilation passed. Unity asset-only authoring and localization validation executed successfully. Historical recipe policy is superseded by the 2026-09-23 economy calibration; all 48 current prices are listed below. Existing owners retain their purchases without a refund or retroactive charge. Dedicated icons remain unassigned for all sixteen new items; the existing generic equipment fallback is intentional.
 
@@ -177,13 +224,13 @@ FINAL_REWARD count=24 trials=64 firstMax=6.23 thirdMax=12.42 specialMax=42.28 up
 Actual 480×270 Play Mode smoke completed through Boot, Settlement manufacture/fitting, all four researched boards, three ship deployments, new equipment upgrades to MAX, real weapon firing/pooling, portal handoffs with depleted vitals, and return/relaunch Lv1 reset. This automated smoke is not natural-play balance validation.
 Unity exited 0; 263 smoke assertions passed and 23 screenshots were captured at 480×270. No captured runtime errors/assertions. The temporary harness and its meta were removed after execution.
 
-Human tuning remains: sustained-fire/heat rhythm; displacement and slug readability in crowds; charge-reserve feel alongside Semi-Auto and Dash Echo; late Special MAX pacing; natural-run affordability; dedicated icons. Operating Frames were implemented separately on 2026-09-22 (see SYSTEM_DESIGN): they occupy none of these 48 positions, require no manufacture, and never enter Trait rewards. New post-ending Curse systems and universal equipment debuffs remain absent. Manufacturing recipes are now calibrated; natural-play economy validation remains open.
+Human tuning remains: sustained-fire/heat rhythm; displacement and slug readability in crowds; charge-reserve feel alongside Semi-Auto and Dash Echo; late Special MAX pacing; natural-run affordability; dedicated icons. The separate 2026-09-22 Operating Frame implementation is superseded by the three manufactured Shared Row-2 modules above. New post-ending Curse systems and universal equipment debuffs remain absent. Manufacturing recipes are now calibrated; natural-play economy validation remains open.
 
 ## Source ownership
 
 Assets are authored by `EquipmentFinalRosterAuthoring.Apply` through AssetDatabase, without opening Settlement or rebuilding UI. `EquipmentDevelopmentInstaller` delegates metadata to the same final mapping so rerunning it cannot resurrect the provisional roster. Existing row moves and the three Shared substitutions are intentional, not category/ID changes.
 
-Rejected/deferred for this roster: ricochet chains, elemental/status frameworks, swarm projectile cloning, extra resource economies and post-ending Curse challenges. Frame mechanics now have a separate pre-run owner; no roster position or prerequisite depends on them.
+Rejected/deferred for this roster: ricochet chains, elemental/status frameworks, swarm projectile cloning, extra resource economies and post-ending Curse challenges. Structural frame effects use the existing player bootstrap owner and three Shared Row-2 equipment positions; no separate frame-selection authority remains.
 
 
 
@@ -194,9 +241,9 @@ Rejected/deferred for this roster: ricochet chains, elemental/status frameworks,
 | `shared_cargo_bay` | Shared | 1 / A | 12 | 0 | 0.37 |
 | `shared_salvage_magnet` | Shared | 1 / A | 10 | 0 | 0.31 |
 | `shared_engine_tuning` | Shared | 1 / A | 12 | 0 | 0.37 |
-| `shared_salvage_protocol` | Shared | 2 / B | 20 | 0 | 0.61 |
-| `shared_reinforced_plating` | Shared | 2 / B | 18 | 1 | 0.83 |
-| `shared_repair_foam` | Shared | 2 / B | 18 | 0 | 0.55 |
+| `shared_lightweight_frame` | Shared | 2 / B | 20 | 0 | 0.61 |
+| `shared_standard_frame` | Shared | 2 / B | 18 | 0 | 0.55 |
+| `shared_heavy_frame` | Shared | 2 / B | 18 | 1 | 0.83 |
 | `shared_radar_amplifier` | Shared | 3 / C | 28 | 1 | 0.83 |
 | `shared_dash_capacitor` | Shared | 3 / C | 30 | 0 | 0.89 |
 | `shared_cutting_ammo` | Shared | 3 / C | 32 | 1 | 0.95 |
@@ -240,4 +287,4 @@ Rejected/deferred for this roster: ricochet chains, elemental/status frameworks,
 | `sn_dash_echo_shot` | Lancer | 4 / D | 52 | 2 | 1.52 |
 | `sn_reserve_capacitor` | Lancer | 4 / D | 54 | 2 | 1.58 |
 
-See [Equipment Economy](EQUIPMENT_ECONOMY.md) for supply, starter grant, before/after prices and validation. Operating Frames remain separate, free and numerically provisional.
+See [Equipment Economy](EQUIPMENT_ECONOMY.md) for supply, starter grant, before/after prices and validation. Structural frames use the Row-2 recipes and exact provisional combination profiles above.

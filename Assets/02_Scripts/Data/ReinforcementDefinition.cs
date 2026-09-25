@@ -280,7 +280,11 @@ public class ReinforcementDefinition : ScriptableObject
         };
     }
 
-    public string BuildEffectSummary()
+    public string BuildEffectSummary() => BuildEffectSummary(false);
+
+    public string BuildRichEffectSummary() => BuildEffectSummary(true);
+
+    private string BuildEffectSummary(bool rich)
     {
         if (effects == null || effects.Count == 0)
         {
@@ -303,7 +307,7 @@ public class ReinforcementDefinition : ScriptableObject
                 builder.AppendLine();
             }
 
-            builder.Append(ReinforcementEffectTextUtility.Format(effect));
+            builder.Append(rich ? ReinforcementEffectTextUtility.FormatRich(effect) : ReinforcementEffectTextUtility.Format(effect));
         }
 
         return builder.Length > 0 ? builder.ToString() : "효과 정보 없음";
@@ -336,6 +340,9 @@ public class ReinforcementDefinition : ScriptableObject
 
 public static class ReinforcementEffectTextUtility
 {
+    public static string FormatRich(ReinforcementEffect effect) => effect == null ? string.Empty :
+        StatPresentation.Rich(StatPresentation.Category(effect.EffectType), Format(effect));
+
     public static string Format(ReinforcementEffect effect)
     {
         if (effect == null)

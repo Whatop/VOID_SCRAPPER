@@ -77,7 +77,11 @@ public static class EquipmentDevelopmentInstaller
         SetRect(root.transform.Find("Catalog"), new Vector2(-82, -15), new Vector2(220, 137));
         Bind(panel, "equipmentLegacyScroll", root.transform.Find("Catalog").GetComponent<ScrollRect>());
         root.transform.Find("Catalog").gameObject.SetActive(false);
-        SetRect(root.transform.Find("ClearSlot"), new Vector2(-82, -92), new Vector2(220, 14));
+        SetRect(root.transform.Find("ClearSlot"), new Vector2(-139, -94), new Vector2(106, 13));
+        Button special = root.transform.Find("ResearchSpecial")?.GetComponent<Button>();
+        if (special == null)
+            special = Button("ResearchSpecial", root.transform, font, "특수 연구 장비", new Vector2(-25, -94), new Vector2(106, 13));
+        Bind(panel, "researchSpecialEquipmentButton", special);
         root.transform.Find("ClearSlot").gameObject.SetActive(false);
         root.transform.Find("Effects").gameObject.SetActive(false);
         Transform growth = root.transform.Find("Inspection/Growth/Content");
@@ -118,7 +122,7 @@ public static class EquipmentDevelopmentInstaller
         var ownerData = new SerializedObject(owner);
         var upgrade = ownerData.FindProperty("traitActionButton").objectReferenceValue as Button;
         if (upgrade != null) upgrade.gameObject.SetActive(false);
-        OperatingFrameAuthoring.AuthorSettlement(panel);
+        StructuralFrameAuthoring.AuthorSettlement(panel);
         var errors = new List<string>();
         if (!panel.ValidateEquipmentPresentation(errors)) throw new InvalidOperationException(string.Join("\n", errors));
     }

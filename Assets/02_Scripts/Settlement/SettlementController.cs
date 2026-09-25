@@ -1627,7 +1627,7 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
             return "미해금 상태. 효과 없음.";
         }
 
-        return TraitEffectTextUtility.BuildEffectText(trait, level).Replace("\n", ", ");
+        return TraitEffectTextUtility.BuildRichEffectText(trait, level).Replace("\n", ", ");
     }
 
     private string FormatCost(int scrapCost, int coreCost)

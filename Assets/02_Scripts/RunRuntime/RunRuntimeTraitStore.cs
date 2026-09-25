@@ -127,6 +127,11 @@ public class RunRuntimeTraitStore : MonoBehaviour
         }
 
         int currentLevel = GetLevel(trait.TraitId);
+        // Structural effects remain at deployment Lv1 even after a runtime level is removed.
+        // Keep that active level in the common MAX check so no reward caller offers a wasted re-upgrade.
+        if (deploymentRun != null && deploymentRun.IsActive && deploymentRun.HasPreparedEquipment(trait.TraitId) &&
+            StructuralFrameProfile.ModuleFor(trait.TraitId) != StructuralFrameModules.None)
+            currentLevel = Mathf.Max(currentLevel, 1);
         return currentLevel < trait.MaxLevel;
     }
 

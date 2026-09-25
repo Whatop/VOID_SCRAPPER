@@ -2940,7 +2940,8 @@ public sealed class QAStabilizationPass1Tests
         Assert.That(title, Is.Not.Null);
         Transform section = title.transform.parent;
         Assert.That(section.name, Is.EqualTo("StoryRecoverySection"));
-        Assert.That(section.parent.name, Is.EqualTo("InventoryRoot"));
+        Assert.That(section.parent.name, Is.EqualTo("StoryProgressInspectionRoot"));
+        Assert.That(section.parent.gameObject.activeSelf, Is.False);
         Assert.That(section.GetComponentsInChildren<Selectable>(true), Is.Empty);
         Assert.That(section.GetComponentsInChildren<ScrollRect>(true), Is.Empty);
         for (int i = 0; i < 3; i++)
@@ -2961,12 +2962,11 @@ public sealed class QAStabilizationPass1Tests
             Assert.That(slot.FindPropertyRelative("statusText").objectReferenceValue, Is.Not.Null);
             Assert.That(slot.FindPropertyRelative("canvasGroup").objectReferenceValue, Is.Not.Null);
         }
-        RectTransform inventory = (RectTransform)section.parent;
+        RectTransform inventory = (RectTransform)section.parent.parent;
         Assert.That(inventory.sizeDelta.y, Is.LessThanOrEqualTo(270f));
-        RectTransform row = (RectTransform)section;
         RectTransform content = (RectTransform)inventory.Find("Content");
-        Assert.That(row.anchoredPosition.y - row.sizeDelta.y * 0.5f,
-            Is.GreaterThan(content.anchoredPosition.y + content.sizeDelta.y * 0.5f));
+        Assert.That(content.sizeDelta.y, Is.GreaterThanOrEqualTo(196f));
+        Assert.That(panel.HasStoryProgressPresentation, Is.True);
     }
 
     [TestCase(BossStoryPart.SectorStabilizer, CampaignBossId.SectorAdministrator)]

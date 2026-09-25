@@ -1,5 +1,33 @@
 # VOID SCRAPPER 구현 상태 매트릭스
 
+## 2026-09-25 - Research-derived Special equipment
+
+Code and authored content implemented: three Special/Shared blueprints derive unlocks from corresponding existing analysis milestones; normal paid manufacture, free unrestricted fitting, immutable Lv1 deployment and runtime upgrades apply. Original recovery parts remain progression only. Current analyzed saves expose blueprints without grants or a new save migration.
+
+Shared now has a compact Special research subsection alongside the existing board/legacy views. The shared inventory prefab and Expedition unpacked copy have an optional Recovery log overlay and larger Equipment/Cargo bodies; original slot bindings remain read-only. The prior always-visible strip layout is superseded.
+
+Runtime and Editor/test static compilation pass with zero errors. Focused new NUnit cases are authored and compile; production content/localization checks, 767 presentation assertions and the serialized asset audit pass. Unity licensing IPC refusal blocks execution of EditMode tests, generated localization import, rendered 480 × 270 checks and screenshots. New Korean/English source keys are validated but must still be imported through the existing Import Catalog command. See [full report](RESEARCH_SPECIAL_EQUIPMENT_REPORT.md).
+
+Existing working-tree work is preserved; no commit/push. Existing 48-board recipes/effects, starter allowance, structural balance, save DTOs, runtime stat/reconstruction owners, cargo, boss and enemy-base implementation are unchanged. Post-ending Curse remains unimplemented.
+
+## 2026-09-25 - Inventory UX and stat presentation
+
+Implemented the authored Equipment/Cargo split in the shared inventory prefab and Expedition's unpacked copy, fixed Active presentation bindings, retained Story Recovery above both tabs, added visible-target input guards and per-instance tab memory, separated non-cargo currencies, and reused cargo return-capacity authority.
+
+StatPresentation covers all 49 Trait effect types and all 25 Reinforcement effect types using 18 semantic colors. Plain APIs are retained. Settlement growth, reward choices, selected/current equipment effects, resolved structural profiles and Active effects share rich presentation. Structural values and runtime ownership are unchanged.
+
+Validation: Runtime / Editor static compilation has zero errors (52 / 4 existing warnings). Standalone production presentation checks and saved-asset preservation checks pass; 33 focused NUnit cases are authored and compile. Unity EditMode execution is blocked before project loading by licensing IPC refusal. Actual rendered Play Mode, Korean/English text bounds and the four requested screenshots are **not validated/captured**. [Detailed report](INVENTORY_PRESENTATION_REPORT.md) records the evidence and pending checks.
+
+No commit/push. Existing working-tree changes, including the earlier structural conversion and unrelated Editor-generated changes, are retained. Enemy bases, bosses, combat balance and post-ending Curse were not changed.
+
+## 2026-09-25 - Structural frame equipment conversion
+
+Implemented selected-ship branch filtering; three Shared Row-2 MaxLevel-1 structural modules; exact seven nonempty fusion profiles plus none; version-8 one-time researched-selection migration; legacy-owner retention; removal of separate Operating Frame preference, selector and count scaling. This supersedes the 2026-09-22 foundation below. Existing runtime/bootstrap owners, 45 other board definitions, starter allowance, story/boss data and post-ending Curse scope are preserved.
+
+Executed: Runtime / Editor-test static compile 0 errors (52 / 4 existing warnings); 349 standalone production-data assertions; 418 saved-asset/preservation checks; source/catalog localization and hash checks. Added 39 focused structural Editor cases. Full Unity EditMode and actual rendered 480×270 Play Mode were **not executed**: licensing IPC refused the connection and Unity stalled before project loading. Saved UI assets were edited from the closed Editor's disk state, with no new dangling references. The detailed [implementation report](STRUCTURAL_FRAME_CONVERSION_REPORT.md) records exact profiles, recipes, migration, files, validation limits and pending checks.
+
+No commit/push; pre-existing solution deletion preserved. Balance remains provisional. The post-ending Curse system is not implemented.
+
 ## 2026-09-23 - Equipment manufacturing economy calibration
 
 Implemented: all 48 calibrated recipes; exact-once natural starter materials; authored Scrap/Core cost/current-funds rows; Editor-only production-map economy diagnostic. No world rewards, combat effects, rarity weights, frames or campaign rules changed.

@@ -65,8 +65,8 @@ public sealed class RunRewardOption
         ? (trait != null ? trait.GetCategoryText() : "특성")
         : (reinforcement != null ? reinforcement.GetUseTypeText() : "Reinforcement");
 
-    public string RarityText => RunRewardRarityUtility.GetText(rarity);
-    public Color RarityColor => RunRewardRarityUtility.GetColor(rarity);
+    public string RarityText => trait != null && trait.IsResearchSpecialEquipment ? trait.GetRarityText() : RunRewardRarityUtility.GetText(rarity);
+    public Color RarityColor => trait != null && trait.IsResearchSpecialEquipment ? trait.GetRarityColor() : RunRewardRarityUtility.GetColor(rarity);
 
     public static RunRewardOption FromTrait(TraitDefinition definition)
     {

@@ -1,11 +1,13 @@
 # Equipment Development mapping — final 48 positions
 
-Live catalog: 66 definitions, 62 ordinary, 48 board positions and fourteen preserved Shared legacy definitions. Metadata owns branch/tier/order; scene order is never authority.
+Live catalog: 72 definitions, 68 ordinary-flow equipment (48 board positions, seventeen preserved Shared legacy definitions and three research-derived Special modules). Metadata owns branch/tier/order; scene order is never authority.
+
+Shared's Special research subsection reuses the authored inspection/manufacturing cards for `special_sector_stabilization`, `special_matter_compression` and `special_phase_navigation`. Each unlocks only after its corresponding original part analysis, uses normal paid manufacturing and free fitting, and deploys at Lv1 with MaxLevel 3. These are additional blueprints outside the 48 positions; they are neither legacy entries nor a new ship branch. See [Special equipment design](SYSTEM_DESIGN.md#research-derived-special-equipment-2026-09-25).
 
 | Branch / row | Position 1 | Position 2 | Position 3 |
 |---|---|---|---|
 | Shared / 1 | `shared_cargo_bay` | `shared_salvage_magnet` | `shared_engine_tuning` |
-| Shared / 2 | `shared_salvage_protocol` | `shared_reinforced_plating` | `shared_repair_foam` |
+| Shared / 2 | `shared_lightweight_frame` | `shared_standard_frame` | `shared_heavy_frame` |
 | Shared / 3 | `shared_radar_amplifier` | `shared_dash_capacitor` | `shared_cutting_ammo` |
 | Shared / 4 | `shared_return_container` | `shared_active_cooler` | `shared_periodic_reflector` |
 | Sweeper / 1 | `mg_traverse_servo` | `mg_guidance_control` | `mg_stable_feed` |
@@ -21,13 +23,17 @@ Live catalog: 66 definitions, 62 ordinary, 48 board positions and fourteen prese
 | Lancer / 3 | `sn_stealth_scan` | `sn_charge_aperture` | `sn_anchor_optics` |
 | Lancer / 4 | `sn_semi_auto_laser` | `sn_dash_echo_shot` | `sn_reserve_capacitor` |
 
+## Selected-ship presentation and structural conversion (2026-09-25)
+
+Only Shared + current ship are visible. Hangar/WeaponTree remains authority; its change event refreshes the panel and invalid tabs fall back to Shared. Hidden branches retain authored data and fitting preferences. All three Row-2 frames unlock on first analysis, are manufactured once, fit in any combination, and deploy at MaxLevel 1. The exact fusion table, runtime ownership and version-8 migration are specified in [Final Roster](EQUIPMENT_FINAL_ROSTER.md#structural-frame-equipment-conversion-2026-09-25).
+
 ### Ownership, research and legacy compatibility
 
 Research still opens 3/6/9/12 positions **per available branch**, with Breacher opening after first analysis and Lancer after second. Third analysis remains independent of Route Core assembly. There is no global fitting cap. Normal matching fitted modules deploy at Lv1 from the immutable RunContext snapshot, after store reset; player reconstruction reapplies attained levels once without reseeding or restoring depleted HP/Armor/Active Reinforcement. Run ending clears runtime levels, not manufacturing/fitting.
 
-Save version 7 adds an idempotent research-grandfather list. Version-6 or earlier manufactured IDs retain their old legitimate research tier when moved later; stable per-definition previousDevelopmentResearchTier metadata records that old boundary. Normal ship gates remain, so backward F10 checkpoints disable locked branches without erasing purchases. New purchases use the final row. Missing catalog defers migration; unknown IDs remain diagnosed and preserved. No ownership is fabricated beyond the existing v5 fitted/purchased migration; no currency is charged/refunded.
+Historical save version 7 added an idempotent research-grandfather list. Version-6 or earlier manufactured IDs retain their old legitimate research tier when moved later; stable per-definition previousDevelopmentResearchTier metadata records that old boundary. Normal ship gates remain, so backward F10 checkpoints disable locked branches without erasing purchases. New purchases use the final row. Missing catalog defers migration; unknown IDs remain diagnosed and preserved. No ownership is fabricated beyond the existing v5 fitted/purchased migration; no currency is charged/refunded.
 
-The fourteen non-roster Shared definitions remain recognized for old owners, compatible and usable through the compact legacy section. They have no normal blueprint or manufacturing action for new players. The three displaced entries are shared_rapid_feed, shared_targeting_bus and shared_combat_gyro; promoted entries are shared_repair_foam, shared_dash_capacitor and shared_cutting_ammo. All existing assets/IDs/GUIDs remain.
+The seventeen non-roster Shared definitions remain recognized for existing owners and usable through the compact legacy section. They have no normal blueprint, research or manufacturing action for new players. The latest three retired positions are shared_salvage_protocol, shared_reinforced_plating and shared_repair_foam. No assets/IDs/GUIDs were deleted; no refunds or automatic frame substitutions occur. Earlier legacy transitions remain preserved.
 
 Terminal Guidance alone remains conditional: fitted but unowned until mg_guidance_control reaches Lv3 and normal acquisition succeeds. No new prerequisites. Starting deployment levels retain nonrefundable provenance; earned upgrades keep existing field-drop/dismantling treatment. No empty/maxed pool reopens the master catalog.
 
@@ -40,9 +46,9 @@ Finalized against captured map supply; authoritative values are the live TraitDe
 | `shared_cargo_bay` | Shared | 1 / A | 12 | 0 | 0.37 |
 | `shared_salvage_magnet` | Shared | 1 / A | 10 | 0 | 0.31 |
 | `shared_engine_tuning` | Shared | 1 / A | 12 | 0 | 0.37 |
-| `shared_salvage_protocol` | Shared | 2 / B | 20 | 0 | 0.61 |
-| `shared_reinforced_plating` | Shared | 2 / B | 18 | 1 | 0.83 |
-| `shared_repair_foam` | Shared | 2 / B | 18 | 0 | 0.55 |
+| `shared_lightweight_frame` | Shared | 2 / B | 20 | 0 | 0.61 |
+| `shared_standard_frame` | Shared | 2 / B | 18 | 0 | 0.55 |
+| `shared_heavy_frame` | Shared | 2 / B | 18 | 1 | 0.83 |
 | `shared_radar_amplifier` | Shared | 3 / C | 28 | 1 | 0.83 |
 | `shared_dash_capacitor` | Shared | 3 / C | 30 | 0 | 0.89 |
 | `shared_cutting_ammo` | Shared | 3 / C | 32 | 1 | 0.95 |

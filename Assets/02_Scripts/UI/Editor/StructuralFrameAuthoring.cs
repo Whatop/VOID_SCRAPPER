@@ -10,7 +10,7 @@ using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 // Focused, idempotent authoring only. No menu installer or runtime hierarchy fallback.
-public static class OperatingFrameAuthoring
+public static class StructuralFrameAuthoring
 {
     public const string MenuPrefab = "Assets/03_Prefabs/UI/PF_ExpeditionMapInventoryMenu.prefab";
 
@@ -21,7 +21,8 @@ public static class OperatingFrameAuthoring
         for (int i = 0; i < SceneManager.sceneCount; i++)
             if (SceneManager.GetSceneAt(i).isDirty) throw new InvalidOperationException("Save open scene work before frame authoring.");
         if (!LocalizationContentImporter.Import(LocalizationContentImporter.DefaultSourceAssetPath, LocalizationContentImporter.DefaultCatalogAssetPath, true))
-            throw new InvalidOperationException("Operating Frame localization import failed.");
+            throw new InvalidOperationException("Structural Frame localization import failed.");
+        AuthorModules();
         Scene original = SceneManager.GetActiveScene();
         Scene scene = SceneManager.GetSceneByPath("Assets/01_Scenes/Settlement.unity");
         bool opened = !scene.IsValid() || !scene.isLoaded;
@@ -63,7 +64,64 @@ public static class OperatingFrameAuthoring
         }
         AssetDatabase.SaveAssets();
         LocalizationContentImporter.ValidateDefaultCatalogFromMenu();
-        Debug.Log("Operating Frame authoring passed: Settlement frame controls and shared inventory inspection.");
+        Debug.Log("Structural Frame authoring passed: three equipment modules, retired selector and shared inventory inspection.");
+    }
+
+    public static void AuthorModules()
+    {
+        var catalog = AssetDatabase.LoadAssetAtPath<TraitCatalog>("Assets/02_Scripts/Config/Catalog/TraitCatalog_Main.asset");
+        if (catalog == null) throw new InvalidOperationException("Missing equipment catalog.");
+        string[] ids = { StructuralFrameProfile.LightweightId, StructuralFrameProfile.StandardId, StructuralFrameProfile.HeavyId };
+        string[] names = { "경량 프레임", "표준 프레임", "중갑 프레임" };
+        string[] descriptions = { "내구성과 적재량을 줄여 기동성을 극대화합니다.", "전투와 자원 회수, 적재 성능을 안정적으로 보조합니다.", "기동성을 줄여 내구성과 장거리 탐사 적재량을 높입니다." };
+        string[] iconSources = { "shared_engine_tuning", "shared_cargo_bay", "shared_reinforced_plating" };
+        int[] scrap = { 20, 18, 18 }, core = { 0, 0, 1 };
+        for (int i = 0; i < ids.Length; i++)
+        {
+            string path = "Assets/02_Scripts/Config/TraitDefinition/Common/" + (67 + i) + "_" + ids[i] + ".asset";
+            var matches = AssetDatabase.FindAssets("t:TraitDefinition").Select(g => AssetDatabase.LoadAssetAtPath<TraitDefinition>(AssetDatabase.GUIDToAssetPath(g)))
+                .Where(t => t != null && t.TraitId == ids[i]).ToArray();
+            if (matches.Length > 1 || (matches.Length == 1 && AssetDatabase.GetAssetPath(matches[0]) != path))
+                throw new InvalidOperationException("Structural equipment ID collision: " + ids[i]);
+            TraitDefinition trait = matches.SingleOrDefault();
+            if (trait == null)
+            {
+                if (AssetDatabase.LoadMainAssetAtPath(path) != null) throw new InvalidOperationException("Occupied structural asset path: " + path);
+                trait = ScriptableObject.CreateInstance<TraitDefinition>();
+                var data = new SerializedObject(trait);
+                data.FindProperty("traitId").stringValue = ids[i];
+                data.FindProperty("displayName").stringValue = names[i];
+                data.FindProperty("description").stringValue = descriptions[i];
+                data.FindProperty("icon").objectReferenceValue = catalog.FindById(iconSources[i]).Icon;
+                data.FindProperty("category").intValue = (int)TraitCategory.Shared;
+                data.FindProperty("rarity").intValue = (int)TraitRarity.Common;
+                data.FindProperty("maxLevel").intValue = 1;
+                // Individual effects must stay empty. The immutable exact-set profile owns every modifier.
+                data.FindProperty("levelEffects").arraySize = 0;
+                data.FindProperty("developmentRoster").boolValue = true;
+                data.FindProperty("developmentResearchTier").intValue = 1;
+                data.FindProperty("developmentDisplayOrder").intValue = i;
+                data.FindProperty("manufacturingScrapCost").intValue = scrap[i];
+                data.FindProperty("manufacturingCoreCost").intValue = core[i];
+                data.ApplyModifiedPropertiesWithoutUndo();
+                AssetDatabase.CreateAsset(trait, path);
+            }
+            if (catalog.FindById(ids[i]) == null)
+            {
+                var data = new SerializedObject(catalog);
+                var definitions = data.FindProperty("traitDefinitions");
+                int index = definitions.arraySize++;
+                definitions.GetArrayElementAtIndex(index).objectReferenceValue = trait;
+                data.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+        foreach (string id in new[] { "shared_salvage_protocol", "shared_reinforced_plating", "shared_repair_foam" })
+        {
+            var data = new SerializedObject(catalog.FindById(id));
+            data.FindProperty("developmentRoster").boolValue = false;
+            data.ApplyModifiedPropertiesWithoutUndo();
+        }
+        AssetDatabase.SaveAssets();
     }
 
     public static void AuthorSettlement(ShipTraitTreePanel panel)
@@ -73,37 +131,26 @@ public static class OperatingFrameAuthoring
         if (root == null) throw new InvalidOperationException("Settlement/ShipTraitTreePanel.equipmentDevelopmentRoot missing.");
         TMP_Text heading = data.FindProperty("equipmentHeading").objectReferenceValue as TMP_Text;
         if (heading == null) throw new InvalidOperationException("Equipment Development heading/font is missing.");
-        TMP_FontAsset font = heading.font;
         SetRect(heading.transform, new Vector2(-82, 102), new Vector2(230, 13));
-        var frameRoot = Rect("OperatingFrames", root.transform, new Vector2(-82, 77), new Vector2(230, 34));
-        var frameHeading = Label("Heading", frameRoot.transform, font, "운용 프레임", new Vector2(0, 10), new Vector2(230, 10), 8);
-        var buttons = data.FindProperty("operatingFrameButtons"); buttons.arraySize = 3;
-        var labels = data.FindProperty("operatingFrameLabels"); labels.arraySize = 3;
-        string[] names = { "Lightweight", "Standard", "Heavy" };
-        OperatingFrameType[] types = { OperatingFrameType.Lightweight, OperatingFrameType.Standard, OperatingFrameType.Heavy };
-        var localization = AssetDatabase.LoadAssetAtPath<LocalizationCatalog>(LocalizationContentImporter.DefaultCatalogAssetPath);
-        for (int i = 0; i < 3; i++)
-        {
-            Button button = MakeButton(names[i], frameRoot.transform, font, OperatingFrameText.Name(types[i], localization),
-                new Vector2(-73 + i * 73, -5), new Vector2(70, 18));
-            buttons.GetArrayElementAtIndex(i).objectReferenceValue = button;
-            labels.GetArrayElementAtIndex(i).objectReferenceValue = button.GetComponentInChildren<TMP_Text>(true);
-        }
-        data.FindProperty("operatingFrameHeading").objectReferenceValue = frameHeading;
+        // Remove the retired selector and its listeners, rather than disabling a second authority.
+        Transform oldSelector = root.transform.Find("OperatingFrames");
+        if (oldSelector != null) Object.DestroyImmediate(oldSelector.gameObject);
         string[] tabs = { "sharedTabButton", "machineGunTabButton", "shotgunTabButton", "sniperTabButton" };
         for (int i = 0; i < tabs.Length; i++)
         {
             var tab = data.FindProperty(tabs[i]).objectReferenceValue as Component;
-            SetRect(tab != null ? tab.transform : null, new Vector2(-170 + i * 56, 50), new Vector2(54, 17));
+            SetRect(tab != null ? tab.transform : null, new Vector2(i == 0 ? -137 : -27, 78), new Vector2(106, 18));
         }
         for (int row = 0; row < 4; row++)
         {
-            SetRect(root.transform.Find("ResearchRow" + row), new Vector2(-82, 34 - row * 31), new Vector2(220, 10));
+            SetRect(root.transform.Find("ResearchRow" + row), new Vector2(-82, 54 - row * 36), new Vector2(220, 10));
             for (int col = 0; col < 3; col++)
-                SetRect(root.transform.Find("Slot" + (row * 3 + col)), new Vector2(-166 + col * 73, 19 - row * 31), new Vector2(70, 23));
+                SetRect(root.transform.Find("Slot" + (row * 3 + col)), new Vector2(-166 + col * 73, 36 - row * 36), new Vector2(70, 25));
         }
         SetRect(root.transform.Find("Catalog"), new Vector2(-82, -25), new Vector2(220, 118));
-        SetRect(root.transform.Find("ClearSlot"), new Vector2(-82, -94), new Vector2(220, 13));
+        Transform special = root.transform.Find("ResearchSpecial");
+        SetRect(root.transform.Find("ClearSlot"), new Vector2(special != null ? -139 : -82, -94), new Vector2(special != null ? 106 : 220, 13));
+        if (special != null) SetRect(special, new Vector2(-25, -94), new Vector2(106, 13));
         SetRect(root.transform.Find("Hint"), new Vector2(-82, -107), new Vector2(230, 9));
         ((TMP_Text)data.FindProperty("equipmentHint").objectReferenceValue).fontSize = 7;
         data.ApplyModifiedPropertiesWithoutUndo();
@@ -119,31 +166,33 @@ public static class OperatingFrameAuthoring
         var title = data.FindProperty("shipNameText").objectReferenceValue as TextMeshProUGUI;
         if (title == null) throw new InvalidOperationException("Inventory shipNameText/header is missing.");
         TMP_FontAsset font = title.font;
-        title.fontSize = 7.5f;
+        title.fontSize = 7f;
         title.raycastTarget = true;
-        title.textWrappingMode = TextWrappingModes.NoWrap;
-        SetRect(title.transform, new Vector2(-144, 0), new Vector2(120, 20));
+        title.textWrappingMode = TextWrappingModes.Normal;
+        SetRect(title.transform, new Vector2(-131, 0), new Vector2(156, 20));
         Button inspect = title.GetComponent<Button>();
         if (inspect == null) inspect = title.gameObject.AddComponent<Button>();
         inspect.targetGraphic = title;
         ColorBlock colors = inspect.colors; colors.highlightedColor = colors.selectedColor = SettlementSelectionColors.Hover;
         inspect.colors = colors;
         Transform inventory = title.transform.parent.parent;
-        var overlay = Rect("OperatingFrameInspection", inventory, Vector2.zero, new Vector2(418, 240));
+        Transform previous = inventory.Find("OperatingFrameInspection");
+        if (previous != null) previous.name = "StructuralFrameInspection";
+        var overlay = Rect("StructuralFrameInspection", inventory, Vector2.zero, new Vector2(418, 240));
         Image shade = GetOrAdd<Image>(overlay); shade.color = new Color(0, .015f, .03f, .8f);
-        var box = Rect("Panel", overlay.transform, Vector2.zero, new Vector2(270, 180));
+        var box = Rect("Panel", overlay.transform, Vector2.zero, new Vector2(270, 210));
         GetOrAdd<Image>(box).color = new Color(.025f, .06f, .09f, 1);
-        TMP_Text text = Label("Details", box.transform, font, "", new Vector2(0, 14), new Vector2(246, 132), 8.5f);
+        TMP_Text text = Label("Details", box.transform, font, "", new Vector2(0, 12), new Vector2(246, 166), 8.5f);
         text.alignment = TextAlignmentOptions.TopLeft;
-        Button close = MakeButton("Close", box.transform, font, "닫기", new Vector2(0, -74), new Vector2(108, 18));
-        data.FindProperty("operatingFrameLocalization").objectReferenceValue = AssetDatabase.LoadAssetAtPath<LocalizationCatalog>(LocalizationContentImporter.DefaultCatalogAssetPath);
-        data.FindProperty("operatingFrameInspectButton").objectReferenceValue = inspect;
-        data.FindProperty("operatingFrameInspectionRoot").objectReferenceValue = overlay;
-        data.FindProperty("operatingFrameInspectionText").objectReferenceValue = text;
-        data.FindProperty("operatingFrameCloseButton").objectReferenceValue = close;
+        Button close = MakeButton("Close", box.transform, font, "닫기", new Vector2(0, -91), new Vector2(108, 18));
+        data.FindProperty("structuralFrameLocalization").objectReferenceValue = AssetDatabase.LoadAssetAtPath<LocalizationCatalog>(LocalizationContentImporter.DefaultCatalogAssetPath);
+        data.FindProperty("structuralFrameInspectButton").objectReferenceValue = inspect;
+        data.FindProperty("structuralFrameInspectionRoot").objectReferenceValue = overlay;
+        data.FindProperty("structuralFrameInspectionText").objectReferenceValue = text;
+        data.FindProperty("structuralFrameCloseButton").objectReferenceValue = close;
         data.ApplyModifiedPropertiesWithoutUndo();
         overlay.SetActive(false);
-        if (!panel.HasOperatingFramePresentation) throw new InvalidOperationException("Authored frame inspection references are incomplete.");
+        if (!panel.HasStructuralFramePresentation) throw new InvalidOperationException("Authored frame inspection references are incomplete.");
     }
 
     private static T GetOrAdd<T>(GameObject go) where T : Component => go.GetComponent<T>() ?? go.AddComponent<T>();

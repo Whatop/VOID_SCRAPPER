@@ -82,8 +82,7 @@ public sealed partial class DebugItemGrantUI
         applyCheckpointButton.interactable = CanEditCampaign;
         campaignCheckpointDropdown.interactable = CanEditCampaign;
         if (campaignMode)
-            SetResult(CanEditCampaign ? OperatingFrameText.Summary(PermanentProgress.Instance.ProjectedOperatingFrame) +
-                "\n" + OperatingFrameText.Tier(PermanentProgress.Instance.ProjectedOperatingFrame) : "캠페인 QA는 정착지에서 사용할 수 있습니다.", CanEditCampaign);
+            SetResult(CanEditCampaign ? StructuralFrameText.DevelopmentStatus(PermanentProgress.Instance) : "캠페인 QA는 정착지에서 사용할 수 있습니다.", CanEditCampaign);
     }
 
     private void GrantPermanentResources()

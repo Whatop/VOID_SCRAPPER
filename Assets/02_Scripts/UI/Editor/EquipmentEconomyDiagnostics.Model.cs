@@ -23,7 +23,7 @@ public static partial class EquipmentEconomyDiagnostics
     [Serializable]
     public sealed class Estimate
     {
-        public int sample, trials, capacity, fittedCount;
+        public int sample, trials, capacity;
         public string frame, profile;
         public bool bossCleared;
         public double theoreticalScrap, theoreticalCore, discoverableScrap, discoverableCore;
@@ -36,7 +36,7 @@ public static partial class EquipmentEconomyDiagnostics
     public static RunResultData Settle(RunManager manager, RunContext run, RunEndReason reason) =>
         (RunResultData)Settlement.Invoke(manager, new object[] { reason, run });
 
-    public static Estimate EstimateMap(MapSample map, OperatingFrameType frame, float visited, string profile,
+    public static Estimate EstimateMap(MapSample map, StructuralFrameModules frame, float visited, string profile,
         int trials = 512, bool bossCleared = true)
     {
         Random.State originalRandom = Random.state;
@@ -55,8 +55,7 @@ public static partial class EquipmentEconomyDiagnostics
             int initialCargo = 0;
             foreach (TraitLevelEffect level in catalog.FindById("shared_cargo_bay").LevelEffects)
                 if (level.Level == 1 && level.EffectType == TraitEffectType.CargoCapacityBonus) initialCargo += Mathf.RoundToInt(level.Value);
-            int fittedCount = map.repeat && map.depth == 2 ? 24 : 6 * (map.depth + 1);
-            var frameProfile = new OperatingFrameProfile(frame, fittedCount);
+            var frameProfile = new StructuralFrameProfile(frame);
             int capacity = ship.CargoCapacity + initialCargo + frameProfile.CargoBonus;
             bonus.AddHarvestYieldPercent(frameProfile.HarvestYieldPercent);
             bonus.AddScrapGainPercent(SeaRegionCatalog.Get((SeaRegionType)map.weather).ScrapGainPercent);
@@ -74,7 +73,7 @@ public static partial class EquipmentEconomyDiagnostics
                 group.Add(source);
             }
             var result = new Estimate { sample = map.sample, trials = trials, frame = frame.ToString(), profile = profile,
-                capacity = capacity, fittedCount = fittedCount, bossCleared = bossCleared };
+                capacity = capacity, bossCleared = bossCleared };
             Random.InitState(9023 + map.sample);
             for (int trial = 0; trial < trials; trial++)
             {
@@ -151,11 +150,11 @@ public static partial class EquipmentEconomyDiagnostics
     {
         var results = new Estimates();
         foreach (MapSample map in samples.maps)
-            foreach (OperatingFrameType frame in Enum.GetValues(typeof(OperatingFrameType)))
+            foreach (StructuralFrameModules frame in Enum.GetValues(typeof(StructuralFrameModules)))
                 for (int profile = 0; profile < 3; profile++)
                     results.rows.Add(EstimateMap(map, frame, new[] { .4f, .65f, .9f }[profile], new[] { "Quick", "Normal", "Thorough" }[profile], trials));
         foreach (MapSample map in samples.maps)
-            results.rows.Add(EstimateMap(map, OperatingFrameType.Standard, .65f, "Normal without boss", trials, false));
+            results.rows.Add(EstimateMap(map, StructuralFrameModules.Standard, .65f, "Normal without boss", trials, false));
         // First Region-2 boss guarantee is not a renewable 2-Core stipend. Same-map sensitivity
         // uses the existing repeat Raider recipe, labelled separately from captured map inventories.
         var repeatBoss = AssetDatabase.LoadAssetAtPath<BossCampaignDefinition>(
@@ -167,7 +166,7 @@ public static partial class EquipmentEconomyDiagnostics
                 repeat.repeat = true;
                 repeat.bossCore = repeatBoss.CoreShardReward;
                 repeat.guaranteedCore = 0;
-                results.rows.Add(EstimateMap(repeat, OperatingFrameType.Standard, .65f, "Normal repeat estimate", trials));
+                results.rows.Add(EstimateMap(repeat, StructuralFrameModules.Standard, .65f, "Normal repeat estimate", trials));
             }
         return results;
     }

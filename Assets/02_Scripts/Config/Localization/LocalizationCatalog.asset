@@ -941,284 +941,6 @@ MonoBehaviour:
     context: Tutorial optional route objective detail
     notes: Route placement is optional and target approach remains authoritative
     maxLengthHint: 72
-  - textKey: ui.operating_frame.bonuses
-    korean: "\uBCF4\uB108\uC2A4"
-    english: Bonuses
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.cargo
-    korean: "\uC801\uC7AC\uB7C9 {value}"
-    english: Cargo capacity {value}
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.close
-    korean: "\uB2EB\uAE30"
-    english: Close
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.count
-    korean: "\uD604\uC7AC \uC7A5\uCC29: {count}\uC885"
-    english: 'Fitted modules: {count}'
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.damage
-    korean: "\uACF5\uACA9\uB825 {value}%"
-    english: Damage {value}%
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.dash_cooldown
-    korean: "\uB300\uC26C \uCFE8\uB2E4\uC6B4 {value}%"
-    english: Dash cooldown {value}%
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.dash_distance
-    korean: "\uB300\uC26C \uAC70\uB9AC {value}"
-    english: Dash distance {value}
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.fixed_at_launch
-    korean: "\uCD9C\uACA9 \uC2DC \uACE0\uC815 \xB7 \uD0D0\uC0AC \uC911 \uBCC0\uACBD
-      \uBD88\uAC00"
-    english: Fixed at launch for this expedition
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.free_selection
-    korean: "\uBB34\uB8CC \uC120\uD0DD \xB7 \uC7A5\uBE44 \uC81C\uC791\uACFC \uBCC4\uAC1C"
-    english: "Free selection \xB7 Separate from crafting"
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.harvest
-    korean: "\uC218\uD655\uB7C9 {value}%"
-    english: Harvest yield {value}%
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.heavy
-    korean: "\uC911\uAC11\uD615"
-    english: Heavy
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.heavy.description
-    korean: "\uC7A5\uBE44\uB97C \uB9CE\uC774 \uD0D1\uC7AC\uD560\uC218\uB85D \uB0B4\uAD6C\uC131\uACFC
-      \uC801\uC7AC \uC131\uB2A5\uC774 \uD5A5\uC0C1\uB41C\uB2E4. \uAE30\uB3D9\uC131\uC740
-      \uAC10\uC18C\uD55C\uB2E4."
-    english: More modules improve durability and cargo capacity. Mobility is reduced.
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.heavy.tier0
-    korean: "\uB0B4\uAD6C\xB7\uC801\uC7AC I \xB7 0\u20136\uC885"
-    english: "Durability/cargo I \xB7 0\u20136 modules"
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.heavy.tier1
-    korean: "\uB0B4\uAD6C\xB7\uC801\uC7AC II \xB7 7\u201312\uC885"
-    english: "Durability/cargo II \xB7 7\u201312 modules"
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.heavy.tier2
-    korean: "\uB0B4\uAD6C\xB7\uC801\uC7AC III \xB7 13\u201318\uC885"
-    english: "Durability/cargo III \xB7 13\u201318 modules"
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.heavy.tier3
-    korean: "\uB0B4\uAD6C\xB7\uC801\uC7AC MAX \xB7 19\uC885 \uC774\uC0C1"
-    english: "Maximum durability/cargo \xB7 19+ modules"
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.hp
-    korean: "\uCD5C\uB300 \uCCB4\uB825 {value}"
-    english: Maximum HP {value}
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.lightweight
-    korean: "\uACBD\uB7C9\uD615"
-    english: Lightweight
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.lightweight.description
-    korean: "\uC7A5\uBE44 \uC218\uB97C \uC904\uC5EC \uAE30\uB3D9 \uD6A8\uC728\uC744
-      \uB192\uC778\uB2E4. \uCCB4\uB825\uACFC \uC801\uC7AC \uC131\uB2A5\uC740 \uAC10\uC18C\uD55C\uB2E4."
-    english: Fewer modules improve mobility. Health and cargo capacity are reduced.
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.lightweight.tier0
-    korean: "\uACBD\uB7C9 \uD6A8\uC728 MAX \xB7 0\u20136\uC885"
-    english: "Maximum mobility \xB7 0\u20136 modules"
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.lightweight.tier1
-    korean: "\uACBD\uB7C9 \uD6A8\uC728 II \xB7 7\u201312\uC885"
-    english: "Mobility II \xB7 7\u201312 modules"
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.lightweight.tier2
-    korean: "\uACBD\uB7C9 \uD6A8\uC728 I \xB7 13\u201318\uC885"
-    english: "Mobility I \xB7 13\u201318 modules"
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.lightweight.tier3
-    korean: "\uAE30\uB3D9 \uBCF4\uB108\uC2A4 \uC5C6\uC74C \xB7 19\uC885 \uC774\uC0C1"
-    english: "No mobility bonus \xB7 19+ modules"
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.move
-    korean: "\uC774\uB3D9 \uC18D\uB3C4 {value}%"
-    english: Movement speed {value}%
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.penalties
-    korean: "\uD398\uB110\uD2F0"
-    english: Penalties
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.projection
-    korean: "\uC608\uC0C1 \uD6A8\uACFC"
-    english: Projected effects
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.standard
-    korean: "\uD45C\uC900\uD615"
-    english: Standard
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.standard.description
-    korean: "\uC7A5\uBE44 \uC218\uC5D0 \uAD6C\uC560\uBC1B\uC9C0 \uC54A\uACE0 \uC804\uD22C\uC640
-      \uD68C\uC218 \uC131\uB2A5\uC744 \uC548\uC815\uC801\uC73C\uB85C \uBCF4\uC870\uD55C\uB2E4."
-    english: Reliable combat and salvage support, regardless of module count.
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.summary
-    korean: "\uC6B4\uC6A9 \uD504\uB808\uC784: {frame}\n\uC7A5\uCC29 \uC7A5\uBE44:
-      {count}\uC885"
-    english: 'Frame: {frame}
-
-      Fitted modules: {count}'
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
-  - textKey: ui.operating_frame.title
-    korean: "\uC6B4\uC6A9 \uD504\uB808\uC784"
-    english: Operating Frame
-    japanese: 
-    simplifiedChinese: 
-    traditionalChinese: 
-    context: Operating Frame
-    notes: Provisional profile; named placeholders
-    maxLengthHint: 100
   - textKey: ui.settings.language
     korean: "\uC5B8\uC5B4"
     english: 
@@ -2229,5 +1951,266 @@ MonoBehaviour:
     context: Unacquired story part
     notes: Read-only permanent story recovery inventory
     maxLengthHint: 8
+  - textKey: ui.structural_frame.after_fitting
+    korean: "장착 후"
+    english: "After fitting"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.cargo
+    korean: "적재량 {value}"
+    english: "Cargo capacity {value}"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.close
+    korean: "닫기"
+    english: "Close"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.current
+    korean: "현재:"
+    english: "Current:"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.damage
+    korean: "공격력 {value}%"
+    english: "Damage {value}%"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.dash_cooldown
+    korean: "대쉬 쿨다운 {value}%"
+    english: "Dash cooldown {value}%"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.dash_distance
+    korean: "대쉬 거리 {value}"
+    english: "Dash distance {value}"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.equipment_tag
+    korean: "구조 장비 · 공용"
+    english: "Structural equipment · Shared"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.fitted
+    korean: "장착"
+    english: "Fitted"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.fixed_at_launch
+    korean: "출격 시 고정 · 탐사 중 변경 불가"
+    english: "Fixed at launch for this expedition"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.fusion
+    korean: "융합"
+    english: "Fusion"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.fusion_hint
+    korean: "다른 구조 프레임과 함께 장착하면 효과가 변경됩니다."
+    english: "Fitting other structural frames changes these effects."
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.harvest
+    korean: "수확량 {value}%"
+    english: "Harvest yield {value}%"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.hp
+    korean: "최대 체력 {value}"
+    english: "Maximum HP {value}"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.max_level
+    korean: "최대 Lv.1 · 출격 시 MAX"
+    english: "Max Lv.1 · MAX at launch"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.move
+    korean: "이동 속도 {value}%"
+    english: "Movement speed {value}%"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.owned
+    korean: "제작됨"
+    english: "Manufactured"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.profile0
+    korean: "없음"
+    english: "None"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.profile1
+    korean: "경량"
+    english: "Lightweight"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.profile2
+    korean: "표준"
+    english: "Standard"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.profile3
+    korean: "경량 + 표준"
+    english: "Lightweight + Standard"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.profile4
+    korean: "중갑"
+    english: "Heavy"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.profile5
+    korean: "경량 + 중갑"
+    english: "Lightweight + Heavy"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.profile6
+    korean: "표준 + 중갑"
+    english: "Standard + Heavy"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.profile7
+    korean: "통합 프레임"
+    english: "Integrated Frame"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.single
+    korean: "단독 효과"
+    english: "Single-module effects"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.summary
+    korean: "구조 프레임: {frame}"
+    english: "Structural frame: {frame}"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.title
+    korean: "구조 프레임"
+    english: "Structural Frame"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
+  - textKey: ui.structural_frame.unowned
+    korean: "미제작"
+    english: "Not manufactured"
+    japanese: ""
+    simplifiedChinese: ""
+    traditionalChinese: ""
+    context: "Structural frame equipment"
+    notes: "Exact combination profile"
+    maxLengthHint: 100
   sourceAssetPath: Assets/02_Scripts/Config/Localization/Source/Localization.csv
-  contentHash: f807acec3097ba9a98580a1ab44fcfd9d054f66d999e05591c56d01b64bb6998
+  contentHash: 79c75bcda99a68fbac8dfc1526778b934a9675472751dbbda323c7f09343e70e

@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 7;
+    private const int CurrentSaveVersion = 8;
 
     public static SaveManager Instance { get; private set; }
 
@@ -308,7 +308,9 @@ public class SaveManager : MonoBehaviour
                 return false;
             }
 
-            SaveData loaded = JsonUtility.FromJson<SaveData>(json);
+            // Preserve explicit DTO defaults for absent fields, especially the retired-frame -1 sentinel.
+            SaveData loaded = new SaveData();
+            JsonUtility.FromJsonOverwrite(json, loaded);
             if (loaded == null)
             {
                 error = "JSON did not contain save data";
@@ -460,6 +462,11 @@ public class SaveManager : MonoBehaviour
                     saveData.version = 7;
                     break;
 
+                case 7:
+                    saveData.RetireLegacyOperatingFrame();
+                    saveData.version = 8;
+                    break;
+
                 default:
                     error = $"no migration exists for save version {saveData.version}";
                     return false;
@@ -502,7 +509,7 @@ public class SaveManager : MonoBehaviour
     private void SanitizeSaveData(SaveData saveData)
     {
         saveData.version = CurrentSaveVersion;
-        saveData.selectedOperatingFrame = OperatingFrameProfile.Normalize(saveData.selectedOperatingFrame);
+        saveData.selectedOperatingFrame = -1;
         // Preserve cross-branch preferences and unknown IDs; progression validates usable definitions.
         saveData.equipmentLoadoutTraitIds = NormalizeUniqueStrings(saveData.equipmentLoadoutTraitIds);
         saveData.manufacturedEquipmentIds = NormalizeUniqueStrings(saveData.manufacturedEquipmentIds);

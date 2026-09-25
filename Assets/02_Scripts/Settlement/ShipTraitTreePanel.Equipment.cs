@@ -54,6 +54,8 @@ public partial class ShipTraitTreePanel
     private TraitDefinition inspectedEquipment;
     private bool equipmentBindingErrorReported;
     private bool showingLegacyEquipment;
+    private bool showingResearchSpecialEquipment;
+    [SerializeField] private Button researchSpecialEquipmentButton;
     private EquipmentDevelopmentResult lastEquipmentResult = EquipmentDevelopmentResult.Success;
 
     public bool IsEquipmentDevelopment => equipmentDevelopmentMode;
@@ -66,7 +68,7 @@ public partial class ShipTraitTreePanel
         if (equipmentDevelopmentRoot == null || equipmentHeading == null || equipmentHint == null || equipmentDetails == null ||
             equipmentName == null || equipmentIcon == null || equipmentCompatibility == null || equipmentMaxLevel == null ||
             equipmentGrowthHeading == null || equipmentCandidateState == null || equipmentActivationButton == null ||
-            equipmentRequirements == null || equipmentLegacyScroll == null || clearEquipmentButton == null ||
+            equipmentRequirements == null || equipmentLegacyScroll == null || clearEquipmentButton == null || researchSpecialEquipmentButton == null ||
             equipmentGrowthScroll == null || equipmentGrowthRows == null || equipmentGrowthRows.Length == 0 ||
             equipmentLocalization == null || equipmentSlots == null || equipmentSlots.Length != 12 ||
             equipmentResearchLabels == null || equipmentResearchLabels.Length != 4 || equipmentCandidates == null || equipmentCandidates.Length == 0)
@@ -94,7 +96,6 @@ public partial class ShipTraitTreePanel
         if (equipmentResearchLabels != null)
             foreach (TMP_Text label in equipmentResearchLabels)
                 if (label == null) errors.Add("Settlement/EquipmentDevelopment: missing research row label.");
-        ValidateOperatingFramePresentation(errors);
         ValidateManufacturingCosts(errors);
         return errors.Count == start;
     }
@@ -103,8 +104,6 @@ public partial class ShipTraitTreePanel
     {
         var errors = new List<string>();
         if (!ValidateEquipmentPresentation(errors)) { Debug.LogError(string.Join("\n", errors), this); return; }
-        UnbindOperatingFrames();
-        BindOperatingFrames();
         foreach (var views in new[] { equipmentSlots, equipmentCandidates })
             foreach (var view in views)
             {
@@ -119,6 +118,8 @@ public partial class ShipTraitTreePanel
         }
         equipmentActivationButton.onClick.RemoveListener(ExecuteEquipmentAction);
         equipmentActivationButton.onClick.AddListener(ExecuteEquipmentAction);
+        researchSpecialEquipmentButton.onClick.RemoveListener(ToggleResearchSpecialEquipment);
+        researchSpecialEquipmentButton.onClick.AddListener(ToggleResearchSpecialEquipment);
         clearEquipmentButton.onClick.RemoveListener(ToggleLegacyEquipment);
         clearEquipmentButton.onClick.AddListener(ToggleLegacyEquipment);
         GameSettingsRuntime.Changed -= RefreshEquipmentPresentation;
@@ -127,8 +128,8 @@ public partial class ShipTraitTreePanel
 
     private void UnbindEquipmentPresentation()
     {
-        UnbindOperatingFrames();
         GameSettingsRuntime.Changed -= RefreshEquipmentPresentation;
+        if (researchSpecialEquipmentButton != null) researchSpecialEquipmentButton.onClick.RemoveListener(ToggleResearchSpecialEquipment);
         if (equipmentActivationButton != null) equipmentActivationButton.onClick.RemoveListener(ExecuteEquipmentAction);
         if (clearEquipmentButton != null) clearEquipmentButton.onClick.RemoveListener(ToggleLegacyEquipment);
         foreach (var views in new[] { equipmentSlots, equipmentCandidates })
@@ -136,22 +137,31 @@ public partial class ShipTraitTreePanel
                 if (view?.button != null && view.action != null) view.button.onClick.RemoveListener(view.action);
     }
 
+    public bool IsEquipmentBranchVisible(ShipTraitBranchKind branch)
+    {
+        WeaponTreeType weapon = PermanentProgress.Instance != null ? PermanentProgress.Instance.LastSelectedWeaponTree : WeaponTreeType.MachineGun;
+        return branch == ShipTraitBranchKind.Shared ||
+            branch == (weapon == WeaponTreeType.Shotgun ? ShipTraitBranchKind.Shotgun :
+                weapon == WeaponTreeType.Sniper ? ShipTraitBranchKind.Sniper : ShipTraitBranchKind.MachineGun);
+    }
+
     public void SelectEquipmentBranch(ShipTraitBranchKind branch)
     {
-        if (!CanUseTraitInput) return;
-        inspectingOperatingFrame = false;
+        if (!CanUseTraitInput || !IsEquipmentBranchVisible(branch)) return;
         selectedBranch = branch;
         inspectedEquipment = null;
         showingLegacyEquipment = false;
+        showingResearchSpecialEquipment = false;
         lastEquipmentResult = EquipmentDevelopmentResult.Success;
         RefreshEquipmentPresentation();
     }
 
     public void InspectEquipment(TraitDefinition trait)
     {
-        if (!CanUseTraitInput || trait == null) return;
-        inspectingOperatingFrame = false;
+        if (!CanUseTraitInput || trait == null || !IsEquipmentBranchVisible(trait.DevelopmentBranch)) return;
         inspectedEquipment = trait;
+        showingResearchSpecialEquipment = trait.IsResearchSpecialEquipment;
+        if (showingResearchSpecialEquipment) showingLegacyEquipment = false;
         selectedBranch = trait.DevelopmentBranch;
         lastEquipmentResult = EquipmentDevelopmentResult.Success;
         RefreshEquipmentPresentation();
@@ -162,7 +172,17 @@ public partial class ShipTraitTreePanel
     private void ToggleLegacyEquipment()
     {
         if (!CanUseTraitInput) return;
+        showingResearchSpecialEquipment = false;
         showingLegacyEquipment = !showingLegacyEquipment;
+        RefreshEquipmentPresentation();
+    }
+
+    public void ToggleResearchSpecialEquipment()
+    {
+        if (!CanUseTraitInput || selectedBranch != ShipTraitBranchKind.Shared) return;
+        showingResearchSpecialEquipment = !showingResearchSpecialEquipment;
+        showingLegacyEquipment = false;
+        inspectedEquipment = null;
         RefreshEquipmentPresentation();
     }
 
@@ -202,6 +222,13 @@ public partial class ShipTraitTreePanel
             return;
         }
         PermanentProgress progress = PermanentProgress.Instance;
+        if (!IsEquipmentBranchVisible(selectedBranch))
+        {
+            selectedBranch = ShipTraitBranchKind.Shared;
+            inspectedEquipment = null;
+            showingLegacyEquipment = false;
+            showingResearchSpecialEquipment = false;
+        }
         equipmentHeading.text = EquipmentText("title");
         int shared = 0, ship = 0, legacy = 0;
         if (progress != null)
@@ -217,18 +244,33 @@ public partial class ShipTraitTreePanel
             .Replace("{specific}", ship.ToString()).Replace("{total}", (shared + ship).ToString());
         foreach (var tab in EquipmentTabs())
         {
+            bool visible = IsEquipmentBranchVisible(tab.BranchKind);
+            tab.gameObject.SetActive(visible);
+            if (!visible) continue;
             tab.SetLabel(BranchName(tab.BranchKind));
             tab.SetVisualState(progress != null && progress.GetEquipmentResearchPositionCount(tab.BranchKind) > 0, selectedBranch == tab.BranchKind, true);
             EquipmentColors(tab.GetComponent<Button>(), selectedBranch == tab.BranchKind);
         }
+        researchSpecialEquipmentButton.gameObject.SetActive(selectedBranch == ShipTraitBranchKind.Shared);
+        researchSpecialEquipmentButton.GetComponentInChildren<TMP_Text>(true).text =
+            EquipmentText(showingResearchSpecialEquipment ? "blueprints" : "special");
+        EquipmentColors(researchSpecialEquipmentButton, showingResearchSpecialEquipment);
         foreach (var view in equipmentSlots) view.definition = null;
         if (progress?.EquipmentCatalog != null)
             foreach (TraitDefinition trait in progress.EquipmentCatalog.TraitDefinitions)
-                if (trait != null && trait.IsDevelopmentRoster && trait.HasValidDevelopmentMetadata && trait.DevelopmentBranch == selectedBranch)
+            {
+                if (trait == null || !trait.HasValidDevelopmentMetadata || trait.DevelopmentBranch != selectedBranch) continue;
+                if (showingResearchSpecialEquipment)
+                {
+                    if (trait.IsResearchSpecialEquipment)
+                        equipmentSlots[(int)trait.RequiredStoryPartAnalysis - 1].definition = trait;
+                }
+                else if (trait.IsDevelopmentRoster)
                     equipmentSlots[trait.DevelopmentResearchTier * 3 + trait.DevelopmentDisplayOrder].definition = trait;
+            }
         foreach (var view in equipmentCandidates)
         {
-            bool visible = view.definition != null && !view.definition.IsDevelopmentRoster && view.definition.DevelopmentBranch == selectedBranch &&
+            bool visible = view.definition != null && !view.definition.IsDevelopmentRoster && !view.definition.IsResearchSpecialEquipment && view.definition.DevelopmentBranch == selectedBranch &&
                 progress != null && progress.IsEquipmentManufactured(view.definition.TraitId);
             if (visible) legacy++;
             view.button.gameObject.SetActive(visible && showingLegacyEquipment);
@@ -241,18 +283,16 @@ public partial class ShipTraitTreePanel
         equipmentLegacyScroll.gameObject.SetActive(showingLegacyEquipment);
         for (int row = 0; row < 4; row++)
         {
-            equipmentResearchLabels[row].gameObject.SetActive(!showingLegacyEquipment);
-            equipmentResearchLabels[row].text = EquipmentText("row" + row) +
+            equipmentResearchLabels[row].gameObject.SetActive(!showingLegacyEquipment && (!showingResearchSpecialEquipment || row == 0));
+            equipmentResearchLabels[row].text = showingResearchSpecialEquipment ? EquipmentText("special_heading") : EquipmentText("row" + row) +
                 (progress == null || progress.GetEquipmentResearchPositionCount(selectedBranch) <= row * 3 ? " · " + EquipmentText("locked") : "");
         }
         foreach (var view in equipmentSlots)
         {
-            view.button.gameObject.SetActive(!showingLegacyEquipment);
+            view.button.gameObject.SetActive(!showingLegacyEquipment && (!showingResearchSpecialEquipment || view.definition != null));
             RefreshEquipmentCard(view);
         }
-        RefreshOperatingFrames();
-        if (inspectingOperatingFrame) RefreshOperatingFrameDetails();
-        else RefreshEquipmentDetails();
+        RefreshEquipmentDetails();
     }
 
     private void RefreshEquipmentCard(PreparedEquipmentView view)
@@ -267,12 +307,13 @@ public partial class ShipTraitTreePanel
         view.fittedIndicator.text = fitted ? EquipmentText("fitted_mark") : locked ? EquipmentText("locked_short") : string.Empty;
         view.fittedIndicator.color = fitted ? new Color(.5f, .95f, .65f) : new Color(.6f, .65f, .7f);
         bool selected = trait != null && trait == inspectedEquipment;
-        view.label.color = selected ? SettlementSelectionColors.Selected : locked ? new Color(.55f, .62f, .68f) : Color.white;
+        view.label.color = selected ? SettlementSelectionColors.Selected : locked ? new Color(.55f, .62f, .68f) : trait != null && trait.IsResearchSpecialEquipment ? trait.GetRarityColor() : Color.white;
         EquipmentColors(view.button, selected);
     }
 
     private string UnlockCondition(TraitDefinition trait)
     {
+        if (trait.IsResearchSpecialEquipment) return EquipmentText("research" + (int)trait.RequiredStoryPartAnalysis);
         int shipTier = trait.DevelopmentBranch == ShipTraitBranchKind.Shotgun ? 1 : trait.DevelopmentBranch == ShipTraitBranchKind.Sniper ? 2 : 0;
         return EquipmentText("research" + Mathf.Max(shipTier, trait.DevelopmentResearchTier));
     }
@@ -284,7 +325,7 @@ public partial class ShipTraitTreePanel
         if (!manufactured)
         {
             EquipmentDevelopmentResult availability = PermanentProgress.Instance.GetManufacturingAvailability(trait);
-            if (!trait.IsDevelopmentRoster) text.Append(EquipmentText("pending"));
+            if (!trait.IsManufacturableBlueprint) text.Append(EquipmentText("pending"));
             else if (availability == EquipmentDevelopmentResult.InvalidRecipe) text.Append(EquipmentText("invalid_recipe"));
             if (availability == EquipmentDevelopmentResult.InsufficientResources)
                 text.Append("\n").Append(EquipmentText("insufficient"));
@@ -321,26 +362,49 @@ public partial class ShipTraitTreePanel
         equipmentName.text = trait != null ? trait.DisplayName : EquipmentText("inspect");
         equipmentIcon.sprite = trait?.Icon;
         equipmentIcon.enabled = equipmentIcon.sprite != null;
-        equipmentCompatibility.text = trait != null ? Compatibility(trait) : string.Empty;
+        equipmentCompatibility.text = trait != null ? trait.IsResearchSpecialEquipment ? trait.GetCategoryText() : Compatibility(trait) : string.Empty;
+        equipmentCompatibility.color = trait != null && trait.IsResearchSpecialEquipment ? trait.GetRarityColor() : Color.white;
         equipmentDetails.text = trait != null ? trait.Description : EquipmentText("instructions");
         equipmentRequirements.text = trait != null && progress != null ? BuildEquipmentRequirements(trait, manufactured) : string.Empty;
         equipmentMaxLevel.text = trait == null ? string.Empty : locked ? EquipmentText("locked") :
             EquipmentText(trait.HasRuntimePrerequisites ? "conditional_level" : "max_level").Replace("{max}", trait.MaxLevel.ToString());
         equipmentGrowthHeading.gameObject.SetActive(trait != null && !locked);
-        equipmentGrowthHeading.text = EquipmentText("growth");
+        bool structural = trait != null && StructuralFrameProfile.ModuleFor(trait.TraitId) != StructuralFrameModules.None;
+        equipmentGrowthHeading.text = structural ? StructuralFrameText.Get("single", equipmentLocalization) : EquipmentText("growth");
+        if (structural)
+        {
+            equipmentCompatibility.text = StructuralFrameText.Get("equipment_tag", equipmentLocalization);
+            equipmentMaxLevel.text = StructuralFrameText.Get("max_level", equipmentLocalization);
+        }
         for (int i = 0; i < equipmentGrowthRows.Length; i++)
         {
             EquipmentGrowthRow row = equipmentGrowthRows[i];
-            bool visible = trait != null && !locked && i < trait.MaxLevel;
+            bool visible = trait != null && (structural ? i < 3 : !locked && i < trait.MaxLevel);
             row.root.SetActive(visible);
             if (!visible) continue;
-            row.heading.text = "Lv " + (i + 1) + (i + 1 == trait.MaxLevel ? " · MAX" : string.Empty);
-            row.effects.text = TraitEffectTextUtility.BuildEffectText(trait, i + 1);
+            if (structural)
+            {
+                var module = StructuralFrameProfile.ModuleFor(trait.TraitId);
+                var ids = new List<string>();
+                progress?.AppendEffectiveEquipment(ids, progress.LastSelectedWeaponTree);
+                var current = StructuralFrameProfile.ResolveModules(ids);
+                row.heading.text = StructuralFrameText.Get(i == 0 ? "single" : i == 1 ? "fusion" : "after_fitting", equipmentLocalization);
+                row.effects.text = i == 0 ? StructuralFrameText.RichModifiers(new StructuralFrameProfile(module), equipmentLocalization) :
+                    i == 1 ? StructuralFrameText.Get("fusion_hint", equipmentLocalization) + "\n" +
+                        StructuralFrameText.Get("current", equipmentLocalization) + " " + StructuralFrameText.Name(current, equipmentLocalization) :
+                    StructuralFrameText.RichDetails(new StructuralFrameProfile(current | module), equipmentLocalization);
+            }
+            else
+            {
+                row.heading.text = "Lv " + (i + 1) + (i + 1 == trait.MaxLevel ? " · MAX" : string.Empty);
+                row.effects.richText = true;
+                row.effects.text = TraitEffectTextUtility.BuildRichEffectText(trait, i + 1);
+            }
         }
         equipmentCandidateState.text = trait == null || locked ? string.Empty : EquipmentText(fitted ?
             (trait.HasRuntimePrerequisites ? "conditional_fitted" : "active") : manufactured ? "manufactured" : "unmanufactured");
         if (lastEquipmentResult == EquipmentDevelopmentResult.SaveFailed) equipmentCandidateState.text = EquipmentText("save_failed");
-        equipmentActivationButton.gameObject.SetActive(trait != null && !locked && (manufactured || trait.IsDevelopmentRoster));
+        equipmentActivationButton.gameObject.SetActive(trait != null && !locked && (manufactured || trait.IsManufacturableBlueprint));
         equipmentActivationButton.interactable = progress != null && progress.CanEditEquipment &&
             (manufactured || (trait != null && progress.GetManufacturingAvailability(trait) == EquipmentDevelopmentResult.Success));
         equipmentActivationButton.GetComponentInChildren<TMP_Text>(true).text = EquipmentText(manufactured ? fitted ? "deactivate" : "activate" : "manufacture");
@@ -349,6 +413,8 @@ public partial class ShipTraitTreePanel
     public string BuildEquipmentDetails(TraitDefinition trait)
     {
         if (trait == null) return EquipmentText("instructions");
+        if (StructuralFrameProfile.ModuleFor(trait.TraitId) != StructuralFrameModules.None)
+            return trait.DisplayName + "\n" + StructuralFrameText.RichDetails(new StructuralFrameProfile(StructuralFrameProfile.ModuleFor(trait.TraitId)), equipmentLocalization);
         if (IsEquipmentResearchLocked(trait)) return trait.DisplayName + "\n" + UnlockCondition(trait);
         var text = new StringBuilder(trait.DisplayName).Append("\n").Append(Compatibility(trait)).Append("\nMax Lv ").Append(trait.MaxLevel).Append("\n");
         for (int level = 1; level <= trait.MaxLevel; level++)
@@ -365,7 +431,11 @@ public partial class ShipTraitTreePanel
     private string EquipmentText(string suffix)
     {
         string key = "ui.settlement.equipment." + suffix;
-        if (VoidScrapperLocalizationService.HasInstance) return VoidScrapperLocalizationService.Instance.GetText(key);
+        if (VoidScrapperLocalizationService.HasInstance && VoidScrapperLocalizationService.Instance.Catalog != null &&
+            VoidScrapperLocalizationService.Instance.Catalog.TryGetText(key, GameSettingsRuntime.LanguageCode, out string localized, out _))
+            return localized;
+        if (suffix == "special") return GameSettingsRuntime.LanguageCode == "en" ? "Special research" : "특수 연구 장비";
+        if (suffix == "special_heading") return GameSettingsRuntime.LanguageCode == "en" ? "Research-derived Special blueprints" : "분석 성과 · 특수 장비 도면";
         return equipmentLocalization != null && equipmentLocalization.TryGetText(key, GameSettingsRuntime.LanguageCode, out string text, out _) ? text : string.Empty;
     }
 
