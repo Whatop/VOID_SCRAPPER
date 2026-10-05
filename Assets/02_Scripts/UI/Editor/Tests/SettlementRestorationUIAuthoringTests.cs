@@ -185,6 +185,40 @@ public sealed class SettlementRestorationUIAuthoringTests
     }
 
     [Test]
+    public void RestorationFeedback_IsPostSuccessTargetedAndDoesNotReplayOnRefresh()
+    {
+        UseAuthoredFixture();
+        Call(hud, "OnEnable");
+        ui.SelectBuilding(BuildingType.Hangar);
+        Assert.That(controller.TryCompleteRestorationProject(BuildingType.Hangar), Is.False);
+        Assert.That(Get<DG.Tweening.Tween>(hud, "restorationAccent"), Is.Null);
+        var definition = ScriptableObject.CreateInstance<BuildingDefinition>();
+        try
+        {
+            var data = new SerializedObject(controller);
+            var list = data.FindProperty("buildingDefinitions"); list.arraySize = 1;
+            list.GetArrayElementAtIndex(0).objectReferenceValue = definition;
+            data.ApplyModifiedPropertiesWithoutUndo();
+            ui.SelectBuilding(BuildingType.Hangar);
+            var preview = Read<Image>(hud, "repairPreviewImage");
+            Vector3 scale = preview.transform.localScale; Color color = preview.color;
+            Assert.That(controller.TryCompleteRestorationProject(BuildingType.Hangar), Is.True);
+            Assert.That(progress.GetBuildingLevel(BuildingType.Hangar), Is.EqualTo(1));
+            var tween = Get<DG.Tweening.Tween>(hud, "restorationAccent");
+            Assert.That(tween, Is.Not.Null);
+            ui.Refresh(); hud.Refresh();
+            Assert.That(Get<DG.Tweening.Tween>(hud, "restorationAccent"), Is.SameAs(tween));
+            Assert.That(controller.TryCompleteRestorationProject(BuildingType.Hangar), Is.False);
+            Assert.That(Get<DG.Tweening.Tween>(hud, "restorationAccent"), Is.SameAs(tween));
+            ui.SelectBuilding(BuildingType.EngineWorkshop);
+            Assert.That(Get<DG.Tweening.Tween>(hud, "restorationAccent"), Is.Null);
+            Assert.That(preview.transform.localScale, Is.EqualTo(scale));
+            Assert.That(preview.color, Is.EqualTo(color));
+        }
+        finally { Object.DestroyImmediate(definition); }
+    }
+
+    [Test]
     public void AccessKeyReadySelection_ExplicitSaveHandsOffImmediatelyWithoutActivationOrTravel()
     {
         UseAuthoredFixture();

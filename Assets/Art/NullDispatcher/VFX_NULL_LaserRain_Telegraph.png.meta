@@ -1,0 +1,460 @@
+fileFormatVersion: 2
+guid: 8bcd664e39204ef4d94192ae5e7d67e0
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -3816125863982628838
+    second: VFX_NULL_LaserRain_Telegraph_0
+  - first:
+      213: 1676045577829581247
+    second: VFX_NULL_LaserRain_Telegraph_1
+  - first:
+      213: -8054922789718460055
+    second: VFX_NULL_LaserRain_Telegraph_2
+  - first:
+      213: -3685833672466974224
+    second: VFX_NULL_LaserRain_Telegraph_3
+  - first:
+      213: -1007036247183172983
+    second: VFX_NULL_LaserRain_Telegraph_4
+  - first:
+      213: 5074824861078800035
+    second: VFX_NULL_LaserRain_Telegraph_5
+  - first:
+      213: 6071976078696102258
+    second: VFX_NULL_LaserRain_Telegraph_6
+  - first:
+      213: -8467351772023480339
+    second: VFX_NULL_LaserRain_Telegraph_7
+  - first:
+      213: 7337129517159229835
+    second: VFX_NULL_LaserRain_Telegraph_8
+  - first:
+      213: 6332979965362937241
+    second: VFX_NULL_LaserRain_Telegraph_9
+  - first:
+      213: 3816022519052359655
+    second: VFX_NULL_LaserRain_Telegraph_10
+  - first:
+      213: 2446997726268009037
+    second: VFX_NULL_LaserRain_Telegraph_11
+  - first:
+      213: 5009911687009776747
+    second: VFX_NULL_LaserRain_Telegraph_12
+  - first:
+      213: -6248052462014090318
+    second: VFX_NULL_LaserRain_Telegraph_13
+  - first:
+      213: 3030662245248234595
+    second: VFX_NULL_LaserRain_Telegraph_14
+  - first:
+      213: -2415148105927129233
+    second: VFX_NULL_LaserRain_Telegraph_15
+  - first:
+      213: -414690119836130029
+    second: VFX_NULL_LaserRain_Telegraph_16
+  - first:
+      213: 5011982883305486136
+    second: VFX_NULL_LaserRain_Telegraph_17
+  - first:
+      213: -6675039615714156945
+    second: VFX_NULL_LaserRain_Telegraph_18
+  - first:
+      213: 8730106071686171952
+    second: VFX_NULL_LaserRain_Telegraph_19
+  - first:
+      213: 2308258153152097223
+    second: VFX_NULL_LaserRain_Telegraph_20
+  - first:
+      213: -3620798523252397666
+    second: VFX_NULL_LaserRain_Telegraph_21
+  - first:
+      213: -3250397973247364129
+    second: VFX_NULL_LaserRain_Telegraph_22
+  - first:
+      213: -8776323836127373046
+    second: VFX_NULL_LaserRain_Telegraph_23
+  - first:
+      213: -936731386285929990
+    second: VFX_NULL_LaserRain_Telegraph_24
+  - first:
+      213: -271011684749218591
+    second: VFX_NULL_LaserRain_Telegraph_25
+  - first:
+      213: 4965071726393490269
+    second: VFX_NULL_LaserRain_Telegraph_26
+  - first:
+      213: 8345040182583335919
+    second: VFX_NULL_LaserRain_Telegraph_27
+  - first:
+      213: -5142957575054015894
+    second: VFX_NULL_LaserRain_Telegraph_28
+  - first:
+      213: -3036193426999235566
+    second: VFX_NULL_LaserRain_Telegraph_29
+  - first:
+      213: 1146805387517668598
+    second: VFX_NULL_LaserRain_Telegraph_30
+  - first:
+      213: -874633009878031017
+    second: VFX_NULL_LaserRain_Telegraph_31
+  - first:
+      213: -5903825682982327610
+    second: VFX_NULL_LaserRain_Telegraph_32
+  - first:
+      213: 8056156286375694760
+    second: VFX_NULL_LaserRain_Telegraph_33
+  - first:
+      213: 1739223643393355815
+    second: VFX_NULL_LaserRain_Telegraph_34
+  - first:
+      213: -3196984178402876879
+    second: VFX_NULL_LaserRain_Telegraph_35
+  - first:
+      213: 1981969784141633988
+    second: VFX_NULL_LaserRain_Telegraph_36
+  - first:
+      213: 8157333154780211386
+    second: VFX_NULL_LaserRain_Telegraph_37
+  - first:
+      213: 778634217976696276
+    second: VFX_NULL_LaserRain_Telegraph_38
+  - first:
+      213: 343134651700902819
+    second: VFX_NULL_LaserRain_Telegraph_39
+  - first:
+      213: -6115046310493305063
+    second: VFX_NULL_LaserRain_Telegraph_40
+  - first:
+      213: -6658511764651573837
+    second: VFX_NULL_LaserRain_Telegraph_41
+  - first:
+      213: 8176723651014510552
+    second: VFX_NULL_LaserRain_Telegraph_42
+  - first:
+      213: 7909009754376452384
+    second: VFX_NULL_LaserRain_Telegraph_43
+  - first:
+      213: -1888930408395297559
+    second: VFX_NULL_LaserRain_Telegraph_44
+  - first:
+      213: 5140178919351606635
+    second: VFX_NULL_LaserRain_Telegraph_45
+  - first:
+      213: 8306449586227980959
+    second: VFX_NULL_LaserRain_Telegraph_46
+  - first:
+      213: -2469362263387032339
+    second: VFX_NULL_LaserRain_Telegraph_47
+  - first:
+      213: 8333553583712367295
+    second: VFX_NULL_LaserRain_Telegraph_48
+  - first:
+      213: 6509967227309647340
+    second: VFX_NULL_LaserRain_Telegraph_49
+  - first:
+      213: 2188180662814852359
+    second: VFX_NULL_LaserRain_Telegraph_50
+  - first:
+      213: -8612952947542653894
+    second: VFX_NULL_LaserRain_Telegraph_51
+  - first:
+      213: 4372514430707980972
+    second: VFX_NULL_LaserRain_Telegraph_52
+  - first:
+      213: 7499131405475166762
+    second: VFX_NULL_LaserRain_Telegraph_53
+  - first:
+      213: 5236759217191288294
+    second: VFX_NULL_LaserRain_Telegraph_54
+  - first:
+      213: -3431211044367347616
+    second: VFX_NULL_LaserRain_Telegraph_55
+  - first:
+      213: -2861761226406799992
+    second: VFX_NULL_LaserRain_Telegraph_56
+  - first:
+      213: 191638733658871742
+    second: VFX_NULL_LaserRain_Telegraph_57
+  - first:
+      213: -7699865911694212559
+    second: VFX_NULL_LaserRain_Telegraph_58
+  - first:
+      213: -3848847481618643807
+    second: VFX_NULL_LaserRain_Telegraph_59
+  - first:
+      213: 5737613385790738816
+    second: VFX_NULL_LaserRain_Telegraph_60
+  - first:
+      213: 2528545386828666831
+    second: VFX_NULL_LaserRain_Telegraph_61
+  - first:
+      213: 4581820449629120234
+    second: VFX_NULL_LaserRain_Telegraph_62
+  - first:
+      213: -7664769818392804744
+    second: VFX_NULL_LaserRain_Telegraph_63
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_NULL_LaserRain_Telegraph_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 32
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 11fb001e9546cf34cb02fcd1742bd154
+      internalID: 1164141487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_LaserRain_Telegraph_01
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 0
+        width: 32
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bada25d9403c1fe4f99cc59fe91c79ce
+      internalID: 494201326
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_LaserRain_Telegraph_02
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 32
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4f681cdb044055848979e7575f373204
+      internalID: -1427154391
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_LaserRain_Telegraph_03
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 32
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 17d3e89f088906248bf9242d1ef99079
+      internalID: 1648985164
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_LaserRain_Telegraph_04
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 32
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a8a7027539194e94c98e9cf860911b2c
+      internalID: 736253131
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_LaserRain_Telegraph_05
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 0
+        width: 32
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d33509dc7bac8ba4387e3b43c35122cb
+      internalID: -916998547
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 37674922c91f7b4409b164e6882b7462
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_NULL_LaserRain_Telegraph_00: 1164141487
+      VFX_NULL_LaserRain_Telegraph_01: 494201326
+      VFX_NULL_LaserRain_Telegraph_02: -1427154391
+      VFX_NULL_LaserRain_Telegraph_03: 1648985164
+      VFX_NULL_LaserRain_Telegraph_04: 736253131
+      VFX_NULL_LaserRain_Telegraph_05: -916998547
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

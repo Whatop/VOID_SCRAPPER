@@ -1,0 +1,27 @@
+[
+  {
+    "Name": "ui_frame.aseprite",
+    "Relative": "Output/30_PresentationSupport/UI_EquipmentFrame_96.aseprite",
+    "SHA256": "7CA8A02CAE172D14FBD214140F14C4CB677E00FAC0C5EA77D5F204C49FB731FD"
+  },
+  {
+    "Name": "ui_frames_reference.png",
+    "Relative": "Output/30_PresentationSupport/EquipmentFrames_480x270.png",
+    "SHA256": "CB9E9B4F7C629A64A9780F80BC6FD61CC2AF75F167646A6EC13081D23B35161A"
+  },
+  {
+    "Name": "background_a.png",
+    "Relative": "Output/31_RegionBackground/BG_RegionA.png",
+    "SHA256": "730853550DD087854B17B932AE71CAC2EC0616EBCFB98C668B168C0CC2552053"
+  },
+  {
+    "Name": "background_b.png",
+    "Relative": "Output/31_RegionBackground/BG_RegionB.png",
+    "SHA256": "6612CF6245AFB929B9A3028856CCDD2A936F904F50E8F0FBCE659E42B50E498F"
+  },
+  {
+    "Name": "ui_production_reference.png",
+    "Relative": "../../Logs/InventoryPolish/Rendered/en-equipment.png",
+    "SHA256": "6C91F0B26F8D5AA7BD5DD58F902EC763DAB25E4447C378DB2E16912D20A0930B"
+  }
+]

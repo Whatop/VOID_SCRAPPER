@@ -75,8 +75,8 @@ public sealed class RaiderArenaBoundaryPresentation : MonoBehaviour
         Material resolvedMaterial = material != null
             ? material
             : coreLine.sharedMaterial;
-        coreColor = brightCoreColor;
-        hazeColor = subtleHazeColor;
+        coreColor = new Color(1f, .36f, .10f, .72f);
+        hazeColor = new Color(1f, .22f, .06f, .045f);
 
         ConfigureLine(
             hazeLine,
@@ -96,6 +96,8 @@ public sealed class RaiderArenaBoundaryPresentation : MonoBehaviour
             sortingOrder,
             coreColor
         );
+        ConfigureSegments(coreLine, length, Mathf.Clamp(coreWidth, .025f, .05f));
+        ConfigureSegments(hazeLine, length, .08f);
 
         int fragmentCount = Mathf.Clamp(Mathf.CeilToInt(length * 0.65f), 8, 28);
         MapBoundaryParticleVisual2D.ConfigureEdgeParticleSystem(
@@ -248,6 +250,28 @@ public sealed class RaiderArenaBoundaryPresentation : MonoBehaviour
             hazeLine,
             WithAlpha(hazeColor, Mathf.Lerp(hazeColor.a * 0.68f, hazeColor.a, pulse))
         );
+    }
+
+    private static void ConfigureSegments(LineRenderer line, float length, float width)
+    {
+        // Reuse the existing renderer and material; no new art, shader, objects or
+        // colliders. Zero-width gaps distinguish containment from a damage laser.
+        int count = Mathf.Clamp(Mathf.CeilToInt(length / .8f), 4, 64);
+        var keys = new Keyframe[count * 4];
+        line.positionCount = keys.Length;
+        for (int i = 0; i < count; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                float fraction = j == 0 ? 0f : j == 1 ? .06f : j == 2 ? .68f : 1f;
+                float t = (i + fraction) / count;
+                int n = i * 4 + j;
+                line.SetPosition(n, new Vector3((t - .5f) * length, 0, 0));
+                keys[n] = new Keyframe(t, j == 1 || j == 2 ? 1f : 0f);
+            }
+        }
+        line.widthCurve = new AnimationCurve(keys);
+        line.widthMultiplier = width;
     }
 
     private void StopPulse()

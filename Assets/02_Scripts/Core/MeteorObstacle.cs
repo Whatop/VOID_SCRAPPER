@@ -74,6 +74,60 @@ public class MeteorObstacle : MonoBehaviour
     private Bounds roamingBounds;
     private bool hasRoamingBounds;
 
+    private bool sectorPaused, sectorBodySimulated;
+    private Vector2 sectorVelocity;
+    private float sectorAngularVelocity;
+    private bool[] sectorRendererStates, sectorColliderStates;
+    public bool IsSectorEncounterPaused => sectorPaused;
+    public bool IsSectorEncounterHidden { get; private set; }
+
+    public void PauseForSectorEncounter(Bounds arena)
+    {
+        if (sectorPaused) return;
+        CacheBreakObjects();
+        Bounds footprint = new Bounds(transform.position, Vector3.zero);
+        foreach (var renderer in renderersToDisableOnBreak) if (renderer != null) footprint.Encapsulate(renderer.bounds);
+        foreach (var collider in collidersToDisableOnBreak) if (collider != null) footprint.Encapsulate(collider.bounds);
+        sectorPaused = true;
+        IsSectorEncounterHidden = arena.Intersects(footprint);
+        if (body != null)
+        {
+            sectorBodySimulated = body.simulated; sectorVelocity = body.linearVelocity; sectorAngularVelocity = body.angularVelocity;
+            body.simulated = false;
+        }
+        if (!IsSectorEncounterHidden) return;
+        sectorRendererStates = new bool[renderersToDisableOnBreak.Length];
+        sectorColliderStates = new bool[collidersToDisableOnBreak.Length];
+        for (int i = 0; i < renderersToDisableOnBreak.Length; i++)
+        {
+            var renderer = renderersToDisableOnBreak[i]; if (renderer == null) continue;
+            sectorRendererStates[i] = renderer.forceRenderingOff; renderer.forceRenderingOff = true;
+        }
+        for (int i = 0; i < collidersToDisableOnBreak.Length; i++)
+        {
+            var collider = collidersToDisableOnBreak[i]; if (collider == null) continue;
+            sectorColliderStates[i] = collider.enabled; collider.enabled = false;
+        }
+    }
+    public void ResumeAfterSectorEncounter()
+    {
+        if (!sectorPaused) return;
+        sectorPaused = false;
+        if (body != null)
+        {
+            body.simulated = sectorBodySimulated; body.linearVelocity = sectorVelocity; body.angularVelocity = sectorAngularVelocity;
+        }
+        if (IsSectorEncounterHidden)
+        {
+            for (int i = 0; i < renderersToDisableOnBreak.Length; i++)
+                if (renderersToDisableOnBreak[i] != null) renderersToDisableOnBreak[i].forceRenderingOff = sectorRendererStates[i];
+            for (int i = 0; i < collidersToDisableOnBreak.Length; i++)
+                if (collidersToDisableOnBreak[i] != null) collidersToDisableOnBreak[i].enabled = sectorColliderStates[i];
+        }
+        IsSectorEncounterHidden = false; sectorRendererStates = null; sectorColliderStates = null;
+    }
+    private void OnDisable() => ResumeAfterSectorEncounter();
+
     public MeteorMotionMode MotionMode => motionMode;
     public bool BlocksProjectileWhenDamageIgnored => blockProjectileWhenDamageIgnored;
 
@@ -118,6 +172,7 @@ public class MeteorObstacle : MonoBehaviour
 
     private void Update()
     {
+        if (sectorPaused) return;
         switch (motionMode)
         {
             case MeteorMotionMode.LegacyTransformDrift:

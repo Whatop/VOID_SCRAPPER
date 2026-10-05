@@ -157,6 +157,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyHealth: {fileID: 100004}
   deathPresentation: {fileID: 100006}
+  finalEndingPresentation: {fileID: 0}
   campaignDefinition: {fileID: 11400000, guid: e5f815d590894ec8a91112c0adfd1daa, type: 2}
   completeFinalBossAsVictory: 1
   region2CoreRewardPresentationPrefab: {fileID: 700002, guid: e6ef49f25489455a8f57df7f4874c0d8, type: 3}
@@ -216,6 +217,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44ee835967d14239ba9fa90e2a5012e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  usePhaseRouteSequence: 1
+  phaseLockSprite: {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
+  lensExposedSprite: {fileID: 21300000, guid: 65c42c3de3c327f43a84632a0f079a91, type: 3}
+  phasePortalPrefab: {fileID: 4464085205007300302, guid: 4ed524a15f04e3b4fba63d66cf0e779a, type: 3}
+  precisionLockPrefab: {fileID: 2084254826768108535, guid: 663e04abc33edb142b9c221d25366975, type: 3}
+  phaseRedirectPrefab: {fileID: 2325796955443674962, guid: 3a88d6ba59b35fe4eb558d77bdb29735, type: 3}
+  phaseArenaHalfSize: {x: 7, y: 3.7}
+  portalWarningDuration: 0.56
+  redirectTransferDelay: 0.18
+  phaseBeamWidth: 0.12
+  phaseEscalatedRecovery: 0.55
+  lensTransitionDuration: 0.8
   enemyHealth: {fileID: 100004}
   bodyRenderer: {fileID: 100102}
   damageCollider: {fileID: 100003}
@@ -231,17 +244,17 @@ MonoBehaviour:
   stealthColor: {r: 0.25, g: 0.75, b: 1, a: 0.08}
   revealedColor: {r: 1, g: 1, b: 1, a: 1}
   chargingColor: {r: 0.45, g: 0.9, b: 1, a: 1}
-  idleSprite: {fileID: 3064268939594492125, guid: 9cb7909d72ec8564098215e93acce3a0, type: 3}
+  idleSprite: {fileID: 21300000, guid: 4433041e1ca5e1f499a71b748c6540e9, type: 3}
   chargeSprites:
-  - {fileID: 1502685339309717076, guid: 94bde60dcfcd48945b26b2565d7f2ac6, type: 3}
-  - {fileID: -9002529716096984420, guid: 2ce0a4d49f7c34d45b24b3a7e057644b, type: 3}
-  - {fileID: 8810817515384869669, guid: e4a816d1dd239a34a9e10c6a52235e47, type: 3}
-  - {fileID: 1080090594913221303, guid: 5a48d95de56274b4e8134348891d2ec6, type: 3}
-  - {fileID: -4164083868865803136, guid: fc4d5ae40f9764a409f6408ee5f3e43e, type: 3}
-  - {fileID: -2827177431468556109, guid: 70bd8492a3f81574a8e3c2ae60d91fd5, type: 3}
-  - {fileID: 4102497742261213824, guid: 4f38b91d58ab7c545910c23c311a7d63, type: 3}
-  - {fileID: -1426345826627655321, guid: 0267ddf44b229914c9892e2abd196c7a, type: 3}
-  - {fileID: 8335270685621409647, guid: 718f1b48114ea1841856577d743cbc45, type: 3}
+  - {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
+  - {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
+  - {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
+  - {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
+  - {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
+  - {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
+  - {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
+  - {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
+  - {fileID: 21300000, guid: 8ce8d6c3d20c4b84ea5ef9a962eae106, type: 3}
   chargeFrameDuration: 0.075
   maxReflections: 3
   laserBlockingMask:
@@ -302,7 +315,7 @@ MonoBehaviour:
   arenaSortingLayerName: Default
   arenaBoundarySortingOrder: 20
   outerDarknessSortingOrder: 5
-  normalCombatCameraZoomMultiplier: 1.25
+  normalCombatCameraZoomMultiplier: 1
   specialArenaCameraPadding: 1.25
   attackCameraPadding: 2.2
   maximumAttackCameraZoomMultiplier: 3.1
@@ -321,7 +334,7 @@ MonoBehaviour:
     m_Bits: 68609
   exposedDuration: 5
   exposedMaximumPlayerDistance: 6.5
-  exposedColor: {r: 1, g: 0.3, b: 1, a: 1}
+  exposedColor: {r: 0.42, g: 0.75, b: 1, a: 1}
   exposedPulseScale: 1.22
   exposedPulseSpeed: 9
   drawReflectionChainGizmos: 1
@@ -353,7 +366,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3, y: 3, z: 1}
+  m_LocalScale: {x: 0.65, y: 0.65, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 100001}
@@ -402,7 +415,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 8
-  m_Sprite: {fileID: 21300000, guid: 9cb7909d72ec8564098215e93acce3a0, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 4433041e1ca5e1f499a71b748c6540e9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

@@ -146,6 +146,21 @@ public sealed class TutorialGuidanceUIAuthoringTests
         Assert.That(Read<GameObject>(hud, "operationRoot").activeSelf, Is.False);
     }
 
+    [Test]
+    public void IdenticalTutorialObjectiveRefreshKeepsOneBriefingTween()
+    {
+        UseAuthoredFixture(); PrepareTweenRuntime(); hud.gameObject.SetActive(true);
+        Field(flow, "currentStep", TutorialStep.Move);
+        Call(flow, "ApplyCurrentStepPresentation");
+        var tween = Field<Sequence>(hud, "operationBriefingSequence");
+        Assert.That(tween, Is.Not.Null);
+        Call(flow, "ApplyCurrentStepPresentation");
+        Assert.That(Field<Sequence>(hud, "operationBriefingSequence"), Is.SameAs(tween));
+        Field(flow, "currentStep", TutorialStep.Dash);
+        Call(flow, "ApplyCurrentStepPresentation");
+        Assert.That(Field<Sequence>(hud, "operationBriefingSequence"), Is.Not.SameAs(tween));
+    }
+
     [TestCase("operationRoot")]
     [TestCase("operationTitleText")]
     [TestCase("operationDetailText")]

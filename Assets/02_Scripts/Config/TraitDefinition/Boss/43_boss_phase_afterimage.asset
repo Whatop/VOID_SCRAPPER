@@ -13,13 +13,22 @@ MonoBehaviour:
   m_Name: 43_boss_phase_afterimage
   m_EditorClassIdentifier: 
   traitId: boss_phase_afterimage
-  displayName: "위상 잔상핵"
-  description: "대쉬 시작 위치에 적의 표적을 끄는 위상 잔상을 남긴다."
-  icon: {fileID: 0}
+  displayName: "\uC704\uC0C1 \uC794\uC0C1\uD575"
+  description: "\uB300\uC26C \uC2DC\uC791 \uC704\uCE58\uC5D0 \uC801\uC758 \uD45C\uC801\uC744
+    \uB044\uB294 \uC704\uC0C1 \uC794\uC0C1\uC744 \uB0A8\uAE34\uB2E4."
+  localizationCatalog: {fileID: 0}
+  displayNameKey: 
+  descriptionKey: 
+  requiredStoryPartAnalysis: 0
+  icon: {fileID: 21300000, guid: acb8911b0f289aad39da499bbc3f64dc, type: 3}
   rarity: 2
   category: 0
   weaponTreeType: 2
   shopItemType: 3
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -31,3 +40,11 @@ MonoBehaviour:
   - level: 3
     effectType: 33
     value: 3
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 0
+  developmentResearchTier: -1
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: -1
+  manufacturingScrapCost: 0
+  manufacturingCoreCost: 0

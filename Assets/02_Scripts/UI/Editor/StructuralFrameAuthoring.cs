@@ -155,6 +155,7 @@ public static class StructuralFrameAuthoring
         ((TMP_Text)data.FindProperty("equipmentHint").objectReferenceValue).fontSize = 7;
         data.ApplyModifiedPropertiesWithoutUndo();
         panel.RefreshPanel();
+        DarkUISettlementAuthoring.ApplyEquipment(panel);
         var errors = new List<string>();
         if (!panel.ValidateEquipmentPresentation(errors)) throw new InvalidOperationException(string.Join("\n", errors));
     }

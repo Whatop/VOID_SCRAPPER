@@ -245,17 +245,23 @@ public class PoolManager : MonoBehaviour
 
     public void ReleaseAfter(GameObject instance, float delay)
     {
+        ReleaseAfter(instance, delay, false);
+    }
+
+    public void ReleaseAfter(GameObject instance, float delay, bool useUnscaledTime)
+    {
         if (instance == null)
         {
             return;
         }
 
-        StartCoroutine(ReleaseAfterRoutine(instance, delay));
+        StartCoroutine(ReleaseAfterRoutine(instance, delay, useUnscaledTime));
     }
 
-    private IEnumerator ReleaseAfterRoutine(GameObject instance, float delay)
+    private IEnumerator ReleaseAfterRoutine(GameObject instance, float delay, bool useUnscaledTime)
     {
-        yield return new WaitForSeconds(delay);
+        if (useUnscaledTime) yield return new WaitForSecondsRealtime(delay);
+        else yield return new WaitForSeconds(delay);
 
         if (instance != null && instance.activeInHierarchy)
         {

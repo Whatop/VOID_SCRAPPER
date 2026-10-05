@@ -56,6 +56,7 @@ public class CoreActivationPresentation : MonoBehaviour
 
     [Header("Yellow Pulse")]
     [SerializeField] private GameObject pulsePrefab;
+    [SerializeField] private GameObject approvedPulsePrefab;
     [SerializeField] private Material runtimePulseMaterial;
     [SerializeField] private Color pulseColor = new Color(1f, 0.82f, 0.08f, 0.95f);
     [Range(1, 8)]
@@ -104,6 +105,7 @@ public class CoreActivationPresentation : MonoBehaviour
     public bool HasFinished => finished;
     public bool KeepsSpentVisual => keepSpentVisualAfterActivation;
     public Transform FocusTarget => pulseOrigin != null ? pulseOrigin : transform;
+    public void SetApprovedPulse(GameObject prefab) => approvedPulsePrefab = prefab;
 
     private void Reset()
     {
@@ -318,6 +320,21 @@ public class CoreActivationPresentation : MonoBehaviour
     private void SpawnPulse()
     {
         Vector3 position = FocusTarget != null ? FocusTarget.position : transform.position;
+
+        if (approvedPulsePrefab != null && PoolManager.Instance != null)
+        {
+            var instance = PoolManager.Instance.Get(approvedPulsePrefab, position, Quaternion.identity);
+            var animation = instance.GetComponent<Animator>();
+            if (animation != null)
+            {
+                animation.updateMode = useUnscaledTime ? AnimatorUpdateMode.UnscaledTime : AnimatorUpdateMode.Normal;
+                animation.speed = 1f;
+                animation.Update(0f);
+                animation.speed = animation.GetCurrentAnimatorStateInfo(0).length / Mathf.Max(.01f, pulseDuration);
+            }
+            PoolManager.Instance.ReleaseAfter(instance, pulseDuration, useUnscaledTime);
+            return;
+        }
 
         if (pulsePrefab != null)
         {

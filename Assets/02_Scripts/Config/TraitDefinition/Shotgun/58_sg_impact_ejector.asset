@@ -16,7 +16,11 @@ MonoBehaviour:
   displayName: "\uCDA9\uACA9 \uBC30\uCD9C\uAE30"
   description: "\uC911\uC559 \uD0C4\uC758 \uCCAB \uC720\uD6A8 \uBA85\uC911\uC73C\uB85C
     \uBC00\uC5B4\uB0BC \uC218 \uC788\uB294 \uC801\uC744 \uC9E7\uAC8C \uBC00\uC5B4\uB0C5\uB2C8\uB2E4."
-  icon: {fileID: 0}
+  localizationCatalog: {fileID: 0}
+  displayNameKey: 
+  descriptionKey: 
+  requiredStoryPartAnalysis: 0
+  icon: {fileID: 21300000, guid: 076e5fc1a289ad0b592f10b9d14218f8, type: 3}
   rarity: 1
   category: 1
   weaponTreeType: 0

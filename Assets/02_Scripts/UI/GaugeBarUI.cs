@@ -20,6 +20,8 @@ public class GaugeBarUI : MonoBehaviour
     public float Ratio { get; private set; }
     public Image FillImage => fillImage;
     public TextMeshProUGUI ValueText => valueText;
+    private float slicedFullWidth = -1f;
+    private float slicedLeft;
 
     public void ConfigureRuntime(
         Image runtimeFillImage,
@@ -27,6 +29,7 @@ public class GaugeBarUI : MonoBehaviour
         CanvasGroup runtimeCanvasGroup,
         GameObject runtimeRootObject)
     {
+        if (fillImage != runtimeFillImage) slicedFullWidth = -1f;
         fillImage = runtimeFillImage;
         valueText = runtimeValueText;
         canvasGroup = runtimeCanvasGroup;
@@ -74,6 +77,22 @@ public class GaugeBarUI : MonoBehaviour
         if (slider != null)
         {
             slider.SetValueWithoutNotify(Ratio);
+        }
+        else if (fillImage != null && fillImage.type == Image.Type.Sliced)
+        {
+            // Slider already resizes sliced fills. Standalone authored gauges need the
+            // same width change, not fillAmount (which Sliced deliberately ignores).
+            RectTransform rect = fillImage.rectTransform;
+            if (slicedFullWidth < 0f)
+            {
+                slicedFullWidth = rect.rect.width;
+                slicedLeft = rect.anchoredPosition.x - slicedFullWidth * rect.pivot.x;
+            }
+            float width = Mathf.Round(slicedFullWidth * Ratio);
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+            Vector2 position = rect.anchoredPosition;
+            position.x = slicedLeft + width * rect.pivot.x;
+            rect.anchoredPosition = position;
         }
 
         if (valueText != null && showValueText)

@@ -2304,6 +2304,7 @@ MonoBehaviour:
   neutralInteractionText: "\uC0C1\uC810"
   hostileInteractionText: "\uC801\uB300\uD654\uB41C \uC0C1\uC810"
   tradeUI: {fileID: 0}
+  stockController: {fileID: 0}
   radarTarget: {fileID: 6428305975438978380}
   rewardDropper: {fileID: 2120804619020670449}
   activeMaintenanceBay: {fileID: 0}
@@ -3279,7 +3280,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: e8c31d2fa3f34be4c81690a90d57718e, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ca9be708a4502524f8eed70b607bc4df, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

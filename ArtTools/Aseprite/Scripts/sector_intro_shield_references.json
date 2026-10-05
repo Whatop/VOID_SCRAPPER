@@ -1,0 +1,57 @@
+[
+  {
+    "Relative": "Output/06_SectorAdministrator/sector_administrator_idle.png",
+    "Name": "boss_green.png",
+    "SHA256": "B3FD582D3440A6F73E3847335785205C195057C7CCD1F417940B1A2ED235E594"
+  },
+  {
+    "Relative": "Output/23_SectorAdministrator_Overdrive/sector_administrator_overdrive.png",
+    "Name": "boss_purple.png",
+    "SHA256": "4AA97676CB940943D4F11816443D4ACED41334D97FAA974BEEA572BEF9B6CC40"
+  },
+  {
+    "Relative": "Output/23_SectorAdministrator_Overdrive/sector_administrator_overdrive_transition.aseprite",
+    "Name": "boss_transition.aseprite",
+    "SHA256": "0E8B17000D62FA1F432D02DBBF62D3B8B123536C5FF2A4E841672E6055CCA253"
+  },
+  {
+    "Relative": "Output/23_SectorAdministrator_Overdrive/sector_administrator_overdrive_transition.png",
+    "Name": "boss_transition.png",
+    "SHA256": "6BB476CDDB3FDAC1DC4A2BA07E6D46EC8A0F5DC06FC7AFDFEB273D38E8EF15DC"
+  },
+  {
+    "Relative": "Output/23_SectorAdministrator_Overdrive/sector_administrator_overdrive_transition.json",
+    "Name": "boss_transition.json",
+    "SHA256": "35CAAD6B27E865C6E445E61BDBAD38F8857D425DA7723A8FEECF932F08370331"
+  },
+  {
+    "Relative": "Output/16_SystemBossVFX/VFX_Sector_ContainmentBarrier.aseprite",
+    "Name": "barrier.aseprite",
+    "SHA256": "3A6FCB258159F1B33EE9C2E5967509224592E585B2F20D0AC6E1CFD8D38E8DE5"
+  },
+  {
+    "Relative": "Output/16_SystemBossVFX/VFX_Sector_ContainmentBarrier.png",
+    "Name": "barrier.png",
+    "SHA256": "CE61F2C2F76078C5F8BA6D376A45E025ED364B740B4F77BD543EB7740471295C"
+  },
+  {
+    "Relative": "Output/02_Core/green/core_green_active.png",
+    "Name": "green_core.png",
+    "SHA256": "D24E1CEF64DBA833576260D4383A99FC49ADC48A22F11D630233F9A56AA34909"
+  },
+  {
+    "Relative": "../../Assets/Art/ApprovedIntegration/World/SectorAdministrator.png",
+    "Name": "production_boss.png",
+    "SHA256": "B3FD582D3440A6F73E3847335785205C195057C7CCD1F417940B1A2ED235E594"
+  },
+  {
+    "Relative": "../../Assets/Art/ApprovedIntegration/World/SectorAdministrator.png.meta",
+    "Name": "production_boss.png.meta",
+    "SHA256": "52188FEB74631185171203C5901D3B1F89226622C313456A503D7F8A0725C2F0"
+  },
+  {
+    "Relative": "Input/01_Player/Px_Player.png",
+    "Name": "player.png",
+    "SHA256": "3BFD635CC357A8857CDD4B9C558224D139F067AD7A85A18024AA05D3409FEE1A"
+  }
+]

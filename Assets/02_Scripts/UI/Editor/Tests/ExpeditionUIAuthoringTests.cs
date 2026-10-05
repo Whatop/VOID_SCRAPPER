@@ -57,7 +57,9 @@ public sealed class ExpeditionUIAuthoringTests
         Assert.That(title.transform.parent.name, Is.EqualTo("StoryRecoverySection"));
         Assert.That(title.transform.parent.parent.name, Is.EqualTo("StoryProgressInspectionRoot"));
         Assert.That(title.transform.parent.parent.gameObject.activeSelf, Is.False);
-        Assert.That(title.transform.parent.GetComponentsInChildren<Selectable>(true), Is.Empty);
+        Assert.That(title.transform.parent.GetComponentsInChildren<Selectable>(true),
+            Is.EqualTo(new[] { data.FindProperty("storyProgressCloseButton").objectReferenceValue }),
+            "The compact modal contains only its Close control; story records remain read-only.");
         for (int i = 0; i < slots.arraySize; i++)
         {
             SerializedProperty slot = slots.GetArrayElementAtIndex(i);
@@ -67,6 +69,8 @@ public sealed class ExpeditionUIAuthoringTests
             Assert.That(slot.FindPropertyRelative("iconImage").objectReferenceValue, Is.Not.Null);
             Assert.That(slot.FindPropertyRelative("nameText").objectReferenceValue, Is.Not.Null);
             Assert.That(slot.FindPropertyRelative("statusText").objectReferenceValue, Is.Not.Null);
+            Assert.That(((RectTransform)slot.FindPropertyRelative("root").objectReferenceValue)
+                .GetComponentsInChildren<Selectable>(true), Is.Empty);
         }
     }
     private static object Call(object target, string method, params object[] args)

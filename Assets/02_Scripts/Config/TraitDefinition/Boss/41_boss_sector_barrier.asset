@@ -13,13 +13,23 @@ MonoBehaviour:
   m_Name: 41_boss_sector_barrier
   m_EditorClassIdentifier: 
   traitId: boss_sector_barrier
-  displayName: "구획 방벽"
-  description: "구획 관리자의 안정화 기술. 일정 주기로 피해 1회를 무효화하고 주변 적 탄환을 제거한다."
-  icon: {fileID: 0}
+  displayName: "\uAD6C\uD68D \uBC29\uBCBD"
+  description: "\uAD6C\uD68D \uAD00\uB9AC\uC790\uC758 \uC548\uC815\uD654 \uAE30\uC220.
+    \uC77C\uC815 \uC8FC\uAE30\uB85C \uD53C\uD574 1\uD68C\uB97C \uBB34\uD6A8\uD654\uD558\uACE0
+    \uC8FC\uBCC0 \uC801 \uD0C4\uD658\uC744 \uC81C\uAC70\uD55C\uB2E4."
+  localizationCatalog: {fileID: 0}
+  displayNameKey: 
+  descriptionKey: 
+  requiredStoryPartAnalysis: 0
+  icon: {fileID: 21300000, guid: 4a0a01f292ff35c613e6cc6a7822a8e5, type: 3}
   rarity: 2
   category: 0
   weaponTreeType: 2
   shopItemType: 3
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -31,3 +41,11 @@ MonoBehaviour:
   - level: 3
     effectType: 31
     value: 3
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 0
+  developmentResearchTier: -1
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: -1
+  manufacturingScrapCost: 0
+  manufacturingCoreCost: 0

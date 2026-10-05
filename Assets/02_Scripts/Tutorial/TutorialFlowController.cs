@@ -5,6 +5,7 @@ using DG.Tweening;
 using PixelCrushers.DialogueSystem;
 using UnityEngine;
 using UnityEngine.Serialization;
+using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
 public sealed class TutorialFlowController : MonoBehaviour
@@ -54,6 +55,15 @@ public sealed class TutorialFlowController : MonoBehaviour
     [SerializeField] private PlayerDash playerDash;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private GameObject radarUiRoot;
+
+    [Header("Dash Teaching Presentation")]
+    [SerializeField] private LineRenderer dashPracticeMarker;
+    private const float DashPracticeRadius = .8f;
+    private Tween dashPracticeTween;
+    private Vector2 dashPracticeCenter;
+    private int dashAttemptSerial;
+    private bool dashAttemptStartedInZone;
+    private bool dashPracticeEstablished;
 
     [Header("Tutorial Safety")]
     [SerializeField, Min(1f)] private float tutorialMinimumHealth = 10f;
@@ -384,6 +394,9 @@ public sealed class TutorialFlowController : MonoBehaviour
         // already destroyed by a scene exit. StopAllStepRoutines may repeat this.
         StopTargetPresentation(true, true);
         ClearTutorialHealthFloor();
+        ClearDashPractice();
+        lastBriefedStep = (TutorialStep)(-1);
+        expeditionHUD?.SetMenuHintsSuppressed(this, false);
         StopAllStepRoutines();
         StopRelayNarrative(true);
         StopRescueSequence();
@@ -1266,6 +1279,7 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void SubscribeGameplayEvents()
     {
+        InputSystem.onActionChange += HandleTeachingBindingChange;
         if (eventsSubscribed)
         {
             return;
@@ -1273,6 +1287,8 @@ public sealed class TutorialFlowController : MonoBehaviour
 
         if (playerDash != null)
         {
+            if (playerHealth != null) playerHealth.Died += HandleTeachingPlayerDied;
+            playerDash.DashStarted += HandleTeachingDashStarted;
             playerDash.DashEnded += HandleDashEnded;
         }
 
@@ -1344,8 +1360,11 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void UnsubscribeGameplayEvents()
     {
+        InputSystem.onActionChange -= HandleTeachingBindingChange;
         if (playerDash != null)
         {
+            if (playerHealth != null) playerHealth.Died -= HandleTeachingPlayerDied;
+            playerDash.DashStarted -= HandleTeachingDashStarted;
             playerDash.DashEnded -= HandleDashEnded;
         }
 
@@ -1447,6 +1466,61 @@ public sealed class TutorialFlowController : MonoBehaviour
         }
     }
 
+    private void HandleTeachingBindingChange(object changed, InputActionChange change)
+    {
+        if (currentStep == TutorialStep.Dash && change == InputActionChange.BoundControlsChanged)
+            ApplyCurrentStepPresentation();
+    }
+
+    private void RefreshDashPractice()
+    {
+        if (currentStep != TutorialStep.Dash)
+        {
+            ClearDashPractice();
+            return;
+        }
+        if (dashPracticeEstablished || dashPracticeMarker == null || playerRoot == null) return;
+        dashPracticeEstablished = true;
+        dashAttemptStartedInZone = false;
+        dashPracticeCenter = playerRoot.position;
+        dashPracticeMarker.transform.position = dashPracticeCenter;
+        dashPracticeMarker.startColor = dashPracticeMarker.endColor = new Color(1f, .55f, .22f, .9f);
+        dashPracticeMarker.enabled = true;
+        dashPracticeMarker.transform.localScale = Vector3.one * .65f;
+        dashPracticeTween = dashPracticeMarker.transform.DOScale(1f, .4f).SetEase(Ease.OutSine)
+            .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+    }
+
+    private void HandleTeachingDashStarted(Vector2 direction)
+    {
+        dashAttemptStartedInZone = currentStep == TutorialStep.Dash && dashPracticeEstablished &&
+            playerRoot != null && Vector2.Distance(playerRoot.position, dashPracticeCenter) <= DashPracticeRadius;
+        dashAttemptSerial = playerDash != null ? playerDash.CompletedDashSerial : 0;
+    }
+
+    private void HandleTeachingPlayerDied()
+    {
+        ClearDashPractice();
+        if (currentStep != TutorialStep.Dash) return;
+        if (controlPacingRoutine != null) StopCoroutine(controlPacingRoutine);
+        controlPacingRoutine = null;
+        expeditionHUD?.HideObjectiveBriefing();
+        expeditionHUD?.SetMenuHintsSuppressed(this, false);
+    }
+
+    private void ClearDashPractice()
+    {
+        dashPracticeTween?.Kill();
+        dashPracticeTween = null;
+        dashPracticeEstablished = false;
+        dashAttemptStartedInZone = false;
+        if (dashPracticeMarker != null)
+        {
+            dashPracticeMarker.enabled = false;
+            dashPracticeMarker.transform.localScale = Vector3.one;
+        }
+    }
+
     private void HandleDashEnded()
     {
         if (currentStep != TutorialStep.Dash || controlPacingRoutine != null)
@@ -1454,6 +1528,24 @@ public sealed class TutorialFlowController : MonoBehaviour
             return;
         }
 
+        bool completed = playerDash != null && playerDash.CompletedDashSerial > dashAttemptSerial;
+        bool cleared = playerRoot != null && Vector2.Distance(playerRoot.position, dashPracticeCenter) > DashPracticeRadius;
+        if (!dashAttemptStartedInZone || !completed || !cleared)
+        {
+            dashAttemptStartedInZone = false;
+            return;
+        }
+        dashAttemptStartedInZone = false;
+        dashPracticeTween?.Kill();
+        if (dashPracticeMarker != null)
+        {
+            dashPracticeMarker.startColor = dashPracticeMarker.endColor = new Color(.4f, 1f, .7f, 1f);
+            dashPracticeTween = dashPracticeMarker.transform.DOScale(.1f, .25f).OnComplete(() => dashPracticeMarker.enabled = false);
+        }
+        // Tutorial intentionally has no generic WarningMessageUI binding. Its existing guide
+        // owns this acknowledgement, then the next checkpoint replaces it without a delay.
+        expeditionHUD?.ShowObjectiveBriefing("대시 회피 확인",
+            "대시로 위험 구역을 벗어났습니다.", new Color(.4f, 1f, .7f, 1f));
         controlPacingRoutine = StartCoroutine(DashCompletionRoutine());
     }
 
@@ -1739,8 +1831,10 @@ public sealed class TutorialFlowController : MonoBehaviour
 
     private void ApplyCurrentStepState()
     {
+        expeditionHUD?.SetMenuHintsSuppressed(this, currentStep == TutorialStep.Dash);
         ApplyCurrentStepPresentation();
         ApplyCurrentStepWorldState();
+        RefreshDashPractice();
         RefreshControlPacing();
         RestartIntroTransition();
         RefreshOperatorGuidance();
@@ -5024,17 +5118,19 @@ public sealed class TutorialFlowController : MonoBehaviour
             return;
         }
 
-        if (ShouldShowObjectiveBriefing(currentStep))
+        if (ShouldShowObjectiveBriefing(currentStep) &&
+            (lastBriefedStep != currentStep || lastBriefedDetail != objectiveDetail))
         {
+            lastBriefedStep = currentStep;
+            lastBriefedDetail = objectiveDetail;
             Color accent = currentStep >= TutorialStep.UnknownMission &&
                            currentStep <= TutorialStep.CurseTransformation
                 ? alienSignalPeakColor
                 : new Color(0.42f, 0.9f, 1f, 1f);
-            expeditionHUD?.ShowObjectiveBriefing(
-                ResolveObjectiveTitle(currentStep),
-                objectiveDetail,
-                accent
-            );
+            if (currentStep == TutorialStep.Dash)
+                expeditionHUD?.ShowHeldObjectiveBriefing(ResolveObjectiveTitle(currentStep), objectiveDetail, accent);
+            else
+                expeditionHUD?.ShowObjectiveBriefing(ResolveObjectiveTitle(currentStep), objectiveDetail, accent);
         }
     }
 
@@ -5143,6 +5239,9 @@ public sealed class TutorialFlowController : MonoBehaviour
         return presentation.instructionTemplate.Replace("{0}", presentation.fallbackBindingDisplay);
     }
 
+    private TutorialStep lastBriefedStep = (TutorialStep)(-1);
+    private string lastBriefedDetail;
+
     private static bool ShouldShowObjectiveBriefing(TutorialStep step)
     {
         return step == TutorialStep.Move ||
@@ -5189,7 +5288,7 @@ public sealed class TutorialFlowController : MonoBehaviour
         {
             TutorialStep.Move => "이동",
             TutorialStep.AimAndFire => "무장 확인",
-            TutorialStep.Dash => "대쉬 사용",
+            TutorialStep.Dash => "위험 구역 이탈 연습",
             TutorialStep.RadarDiscoverSalvage => "레이더 탐색",
             TutorialStep.Map => "지도 확인",
             TutorialStep.RoutePing => "경로 표시",

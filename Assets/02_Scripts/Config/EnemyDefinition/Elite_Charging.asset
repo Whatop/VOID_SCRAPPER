@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cc398a4577fa6d498d2135813e8eff2, type: 3}
   m_Name: Elite_Charging
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   enemyId: elite_charging
   displayName: "\uCC28\uC9D5 \uC5D8\uB9AC\uD2B8"
   enemyType: 8
-  enemyPrefab: {fileID: 6983035740697639387, guid: 6b003641383fd2c4face90b26dff574c, type: 3}
+  enemyPrefab: {fileID: 6983035740697639387, guid: d626bf7874fc43745a3711451c06e55b, type: 3}
   maxHp: 40
   moveSpeed: 2.4
   visionRange: 12

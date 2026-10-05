@@ -13,13 +13,22 @@ MonoBehaviour:
   m_Name: 42_boss_matter_reconstructor
   m_EditorClassIdentifier: 
   traitId: boss_matter_reconstructor
-  displayName: "물질 재구성로"
-  description: "수확 화물을 장갑으로 재구성한다. 적재량이 증가할 때 임시 Armor를 충전한다."
-  icon: {fileID: 0}
+  displayName: "\uBB3C\uC9C8 \uC7AC\uAD6C\uC131\uB85C"
+  description: "\uC218\uD655 \uD654\uBB3C\uC744 \uC7A5\uAC11\uC73C\uB85C \uC7AC\uAD6C\uC131\uD55C\uB2E4.
+    \uC801\uC7AC\uB7C9\uC774 \uC99D\uAC00\uD560 \uB54C \uC784\uC2DC Armor\uB97C \uCDA9\uC804\uD55C\uB2E4."
+  localizationCatalog: {fileID: 0}
+  displayNameKey: 
+  descriptionKey: 
+  requiredStoryPartAnalysis: 0
+  icon: {fileID: 21300000, guid: 3af841ac026668dbe7ef29b0cff283ed, type: 3}
   rarity: 2
   category: 0
   weaponTreeType: 2
   shopItemType: 3
+  persistentStoryTrait: 0
+  statusPolarity: 0
+  preventFieldDrop: 0
+  preventDismantle: 0
   maxLevel: 3
   levelEffects:
   - level: 1
@@ -40,3 +49,11 @@ MonoBehaviour:
   - level: 3
     effectType: 32
     value: 3
+  isCapstone: 0
+  prerequisites: []
+  developmentRoster: 0
+  developmentResearchTier: -1
+  developmentDisplayOrder: 0
+  previousDevelopmentResearchTier: -1
+  manufacturingScrapCost: 0
+  manufacturingCoreCost: 0

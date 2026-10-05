@@ -495,6 +495,7 @@ MonoBehaviour:
     m_Bits: 0
   isAttacking: 0
   isCharging: 0
+  muzzleFlashPrefab: {fileID: 3348743499460803659, guid: 9f01ff6b2e03ea044a5b4c5e96b228a4, type: 3}
 --- !u!114 &2963155244060544709
 MonoBehaviour:
   m_ObjectHideFlags: 0

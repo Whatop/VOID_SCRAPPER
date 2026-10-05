@@ -23,6 +23,10 @@ public class CoreObject : MonoBehaviour, IInteractable
     [Header("Shared Raider Repeat Encounter (legacy Region 1 bindings)")]
     [SerializeField] private GameObject region1RepeatBossPrefab;
     [SerializeField] private BossCampaignDefinition region1RepeatBossDefinition;
+    [SerializeField] private GameObject region2RepeatBossPrefab;
+    [SerializeField] private BossCampaignDefinition region2RepeatBossDefinition;
+    [SerializeField] private GameObject region3RepeatBossPrefab;
+    [SerializeField] private BossCampaignDefinition region3RepeatBossDefinition;
     [SerializeField] private string region1RepeatSignalSubtitle = "약탈자 지휘 신호 감지";
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     [SerializeField] private bool forceRegion1RepeatBoss;
@@ -151,15 +155,15 @@ public class CoreObject : MonoBehaviour, IInteractable
 
             if (activated)
             {
-                return "이미 활성화된 코어";
+                return UsesGrayCore ? "Gray Core activated" : "이미 활성화된 코어";
             }
 
             if (activating)
             {
-                return "코어 활성화 중";
+                return UsesGrayCore ? "Gray Core activating" : "코어 활성화 중";
             }
 
-            return interactionText;
+            return UsesGrayCore ? "Activate Gray Core" : interactionText;
         }
     }
 
@@ -463,6 +467,8 @@ public class CoreObject : MonoBehaviour, IInteractable
             PirateCommanderBossController raiderCommander =
                 spawnedBoss.GetComponent<PirateCommanderBossController>();
             raiderCommander?.BeginCombat();
+            spawnedBoss.GetComponent<RaiderSalvageCarrierBossController>()?.BeginCombat();
+            spawnedBoss.GetComponent<RaiderSniperCommanderBossController>()?.BeginCombat();
         }
 
         if (GameStateManager.Instance != null)
@@ -476,7 +482,7 @@ public class CoreObject : MonoBehaviour, IInteractable
 
         spawnedBoss?.GetComponent<NullDispatcherBossController>()?.BeginCombat();
 
-        if (alertNearbyEnemiesOnBattleStart)
+        if (ShouldAlertAmbientEnemies())
         {
             AlertNearbyEnemies();
         }
@@ -516,6 +522,25 @@ public class CoreObject : MonoBehaviour, IInteractable
         }
 
         return GameObject.FindGameObjectWithTag("Player");
+    }
+
+    private bool ShouldAlertAmbientEnemies()
+    {
+        // Other encounters retain their existing policy; Region A SYSTEM no longer pulls patrols.
+        var sector = spawnedBoss != null ? spawnedBoss.GetComponent<BossPatternController>() : null;
+        return alertNearbyEnemiesOnBattleStart && (sector == null || !sector.UsesSectorControl);
+    }
+
+    public bool TryGetSectorArenaReservation(out Bounds bounds)
+    {
+        bounds = default;
+        var encounter = ResolveBossEncounter();
+        var sector = encounter.Prefab != null ? encounter.Prefab.GetComponent<BossPatternController>() : null;
+        if (sector == null || !sector.UsesSectorControl || !useBossIntroSequence || bossIntroSequence == null) return false;
+        Vector2 half = bossIntroSequence.ResolveSystemEncounterArenaHalfExtents();
+        bounds = new Bounds(bossIntroSequence.ResolveEncounterArenaCenter(transform.position),
+            new Vector3(half.x * 2, half.y * 2, 0));
+        return true;
     }
 
     private void AlertNearbyEnemies()
@@ -612,6 +637,16 @@ public class CoreObject : MonoBehaviour, IInteractable
                 : new Vector2(8.4f, 8.4f);
             raiderCommander.ConfigureEncounter(arenaCenter, arenaHalfExtents, interactor);
         }
+        var salvageCarrier = bossObject.GetComponent<RaiderSalvageCarrierBossController>();
+        if (salvageCarrier != null)
+            salvageCarrier.ConfigureEncounter(
+                bossIntroSequence != null ? bossIntroSequence.ResolveEncounterArenaCenter(transform.position) : transform.position,
+                bossIntroSequence != null ? bossIntroSequence.ResolveRaiderEncounterArenaHalfExtents() : new Vector2(8.4f,8.4f), interactor);
+        var sniperCommander = bossObject.GetComponent<RaiderSniperCommanderBossController>();
+        if (sniperCommander != null)
+            sniperCommander.ConfigureEncounter(
+                bossIntroSequence != null ? bossIntroSequence.ResolveEncounterArenaCenter(transform.position) : transform.position,
+                bossIntroSequence != null ? bossIntroSequence.ResolveRaiderEncounterArenaHalfExtents() : new Vector2(8.4f,8.4f), interactor);
         ResolveSpaceBackgroundGenerator();
         bossController.ConfigureEncounterBackgroundPresentation(
             temporaryBossPresentationRequested ? spaceBackgroundGenerator : null
@@ -693,12 +728,28 @@ public class CoreObject : MonoBehaviour, IInteractable
         };
 
         bool useRepeatReplacement = ShouldUseRegion1RepeatBoss();
+        GetComponent<CoreFamilyPresentation>()?.ApplyDepth(depth);
         if (useRepeatReplacement &&
             region1RepeatBossPrefab != null &&
             region1RepeatBossDefinition != null)
         {
             prefab = region1RepeatBossPrefab;
             definition = region1RepeatBossDefinition;
+            // Each cleared region retains its own Raider encounter; first-clear routing above is unchanged.
+            if (depth == ExpeditionDepth.DeepZone1)
+            {
+                prefab = region2RepeatBossPrefab;
+                definition = region2RepeatBossDefinition;
+                if (prefab == null || definition == null)
+                    Debug.LogError("[CoreObject] Region B revisit requires its Salvage Carrier binding.", this);
+            }
+            else if (depth == ExpeditionDepth.DeepZone2)
+            {
+                prefab = region3RepeatBossPrefab;
+                definition = region3RepeatBossDefinition;
+                if (prefab == null || definition == null)
+                    Debug.LogError("[CoreObject] Region C revisit requires its Sniper Commander binding.", this);
+            }
         }
         else
         {
@@ -714,7 +765,7 @@ public class CoreObject : MonoBehaviour, IInteractable
             ? definition.DisplayName
             : ResolveFallbackBossDisplayName(depth);
         string signalSubtitle = useRepeatReplacement
-            ? region1RepeatSignalSubtitle
+            ? depth == ExpeditionDepth.Normal ? "GRAY CORE / RAIDER COMMANDER" : region1RepeatSignalSubtitle
             : string.Empty;
 
         resolvedBossEncounter = new ResolvedBossEncounter(
@@ -750,6 +801,8 @@ public class CoreObject : MonoBehaviour, IInteractable
             CampaignProgressionCatalog.GetBossId(depth)
         );
     }
+
+    public bool UsesGrayCore => ResolveCurrentDepth() == ExpeditionDepth.Normal && ShouldUseRegion1RepeatBoss();
 
     private bool ShouldUseRegion1RepeatBoss()
     {
@@ -1014,6 +1067,7 @@ public class CoreObject : MonoBehaviour, IInteractable
             amount,
             completedCoreInitialVelocity
         );
+        if (UsesGrayCore) GetComponent<CoreFamilyPresentation>()?.ApplyGrayPickup(pickupObject);
         completedCorePickupSpawned = true;
         RetireOriginalCoreWorldPresence();
     }
@@ -1243,7 +1297,7 @@ public class CoreObject : MonoBehaviour, IInteractable
         if (!wasRevealed && notifyPlayer && showDirectDiscoveryMessage)
         {
             ExpeditionHUD hud = FindFirstObjectByType<ExpeditionHUD>();
-            hud?.ShowWarning(directDiscoveryMessage);
+            hud?.ShowWarning(UsesGrayCore ? "Gray Core discovered." : directDiscoveryMessage);
             AudioManager.Play(SoundEventIds.UiUnlock);
         }
     }

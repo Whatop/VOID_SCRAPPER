@@ -15,6 +15,7 @@ public class WeaponHeatUI : MonoBehaviour
     [SerializeField] private Image trackImage;
     [SerializeField] private TextMeshProUGUI stateText;
     [SerializeField] private bool hideAtZeroHeat = true;
+    [SerializeField] private string areaLabel = "";
     [SerializeField] private Color normalColor = new Color(0.35f, 0.9f, 1f, 1f);
     [SerializeField] private Color warningColor = new Color(1f, 0.75f, 0.2f, 1f);
     [SerializeField] private Color overheatColor = new Color(1f, 0.2f, 0.12f, 1f);
@@ -46,8 +47,8 @@ public class WeaponHeatUI : MonoBehaviour
 
         if (stateText != null)
         {
-            stateText.text = string.Empty;
-            stateText.gameObject.SetActive(false);
+            stateText.text = areaLabel;
+            stateText.gameObject.SetActive(!string.IsNullOrEmpty(areaLabel));
         }
 
         ResolveController();
@@ -173,8 +174,8 @@ public class WeaponHeatUI : MonoBehaviour
 
         if (stateText != null)
         {
-            stateText.text = string.Empty;
-            stateText.gameObject.SetActive(false);
+            stateText.text = areaLabel;
+            stateText.gameObject.SetActive(!string.IsNullOrEmpty(areaLabel));
         }
     }
 

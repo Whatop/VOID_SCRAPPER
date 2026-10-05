@@ -17,6 +17,12 @@ public class BossLaserHazard : MonoBehaviour
     private bool initialized;
     private bool damageEnabled;
     private Coroutine lifetimeRoutine;
+    private bool redirected;
+    public Transform RuntimeOwner { get; private set; }
+    public bool HasRedirected => redirected;
+    public bool IsDamaging => initialized && damageEnabled;
+    public float DamageAmount => damage;
+    public float DamageCooldown => damageInterval;
 
     private void Awake()
     {
@@ -68,6 +74,7 @@ public class BossLaserHazard : MonoBehaviour
             recoveryDuration,
             lineCapVertices
         );
+        RuntimeOwner = runtimeAnchor;
     }
 
     public void InitializeBetween(
@@ -158,6 +165,8 @@ public class BossLaserHazard : MonoBehaviour
         );
 
         lastDamageTimes.Clear();
+        redirected = false;
+        RuntimeOwner = null;
         damageEnabled = true;
         ConfigureCollider(length, width);
         initialized = true;
@@ -261,6 +270,25 @@ public class BossLaserHazard : MonoBehaviour
         }
     }
 
+    // A single encounter-authored transfer of this SAME pooled beam. Keep its
+    // lifetime coroutine, owner, damage and per-target cooldown history intact.
+    public bool TryRedirectOnce(Vector2 start, Vector2 end)
+    {
+        Vector2 delta = end - start;
+        if (!initialized || !damageEnabled || redirected || delta.sqrMagnitude < .0001f)
+            return false;
+        redirected = true;
+        float length = delta.magnitude;
+        Vector2 center = (start + end) * .5f;
+        float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
+        transform.SetPositionAndRotation(center, Quaternion.Euler(0, 0, angle));
+        if (rb != null) { rb.position = center; rb.rotation = angle; }
+        lineRenderer.SetPosition(0, new Vector3(-length * .5f, 0, 0));
+        lineRenderer.SetPosition(1, new Vector3(length * .5f, 0, 0));
+        boxCollider.size = new Vector2(length, boxCollider.size.y);
+        return true;
+    }
+
     private IEnumerator LifetimeRoutine(float duration, float recoveryDuration)
     {
         yield return new WaitForSeconds(Mathf.Max(0.05f, duration));
@@ -355,6 +383,8 @@ public class BossLaserHazard : MonoBehaviour
 
     private void ResetRuntimeState()
     {
+        RuntimeOwner = null;
+        redirected = false;
         lastDamageTimes.Clear();
         initialized = false;
         damageEnabled = false;

@@ -140,7 +140,7 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         Assert.That(heading.gameObject.activeSelf, Is.True);
         Assert.That(scrap.root.activeSelf, Is.True); Assert.That(core.root.activeSelf, Is.False);
         Assert.That(scrap.amount.text, Does.Contain("14").And.Contain("보유 0"));
-        Assert.That(button.interactable, Is.False);
+        Assert.That(button.interactable, Is.True, "Explicit Manufacture remains reachable for the authoritative insufficient-resource response.");
         ResearchAndResources(); panel.RefreshPanel();
         panel.InspectEquipment(catalog.FindById("mg_terminal_guidance"));
         Assert.That(core.root.activeSelf, Is.True);

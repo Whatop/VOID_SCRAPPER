@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DG.Tweening;
 using System.Collections.Generic;
 using TMPro;
@@ -84,6 +84,8 @@ public class SettlementHUD : MonoBehaviour
     [SerializeField] private Image shipPreviewImage;
     [SerializeField] private TextMeshProUGUI shipTitleText;
     [SerializeField] private TextMeshProUGUI shipBodyText;
+    [SerializeField] private ScrollRect shipDetailScroll;
+    [SerializeField] private RectTransform shipDetailCard;
     [SerializeField] private TextMeshProUGUI shipActionButtonLabelText;
     [SerializeField] private TextMeshProUGUI selectedShipText;
     [SerializeField] private TextMeshProUGUI selectedWeaponText;
@@ -204,6 +206,7 @@ public class SettlementHUD : MonoBehaviour
     private void OnDisable()
     {
         StopCursePreviewTween();
+        ClearRestorationAccent();
 
         UnsubscribeController();
     }
@@ -224,6 +227,7 @@ public class SettlementHUD : MonoBehaviour
         if (subscribedController != null)
         {
             subscribedController.Changed += Refresh;
+            subscribedController.RestorationCompleted += HandleRestorationCompleted;
         }
     }
 
@@ -232,6 +236,7 @@ public class SettlementHUD : MonoBehaviour
         if (subscribedController != null)
         {
             subscribedController.Changed -= Refresh;
+            subscribedController.RestorationCompleted -= HandleRestorationCompleted;
         }
         subscribedController = null;
     }
@@ -375,7 +380,22 @@ public class SettlementHUD : MonoBehaviour
     public void SetMainShipDetail(string title, string body, string actionLabel)
     {
         SetText(shipTitleText, title);
+        body = HangarDeploymentText.FitColumns(body, shipBodyText);
+        bool changed = shipBodyText != null && shipBodyText.text != body;
+        if (shipBodyText != null) shipBodyText.richText = true;
         SetText(shipBodyText, body);
+        if (shipBodyText != null && shipDetailScroll != null && shipDetailScroll.viewport != null)
+        {
+            float height = shipBodyText.GetPreferredValues(body, shipBodyText.rectTransform.rect.width, Mathf.Infinity).y + 4;
+            float viewportHeight = Mathf.Clamp(height, 86, 148);
+            shipDetailScroll.viewport.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, viewportHeight);
+            ((RectTransform)shipDetailScroll.transform).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, viewportHeight);
+            if (shipDetailCard != null) shipDetailCard.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, viewportHeight + 44);
+            shipBodyText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
+                Mathf.Max(shipDetailScroll.viewport.rect.height, height));
+            shipDetailScroll.vertical = height > shipDetailScroll.viewport.rect.height;
+            if (changed) shipDetailScroll.verticalNormalizedPosition = 1;
+        }
         SetText(shipActionButtonLabelText, actionLabel);
     }
 
@@ -433,8 +453,44 @@ public class SettlementHUD : MonoBehaviour
         if (routeCoreComponentsRoot != null) routeCoreComponentsRoot.gameObject.SetActive(active);
     }
 
+    private bool hasRepairPreview;
+    private BuildingType repairPreviewBuilding;
+    private Tween restorationAccent;
+    private Color restorationRestColor;
+    private Vector3 restorationRestScale;
+    private void HandleRestorationCompleted(BuildingType building)
+    {
+        if (!hasRepairPreview || repairPreviewBuilding != building || repairPreviewImage == null ||
+            !repairPreviewImage.gameObject.activeInHierarchy || settlementController == null) return;
+        // Authority saved the restored state before this event. Existing result/benefit text remains authoritative.
+        ClearRestorationAccent();
+        repairPreviewImage.sprite = GetBuildingPreviewSprite(building, settlementController.GetBuildingLevel(building));
+        restorationRestColor = repairPreviewImage.color;
+        restorationRestScale = repairPreviewImage.transform.localScale;
+        repairPreviewImage.color = new Color(.55f, 1f, .85f, restorationRestColor.a);
+        restorationAccent = DOTween.Sequence()
+            .Append(repairPreviewImage.DOColor(restorationRestColor, .7f).SetEase(Ease.OutQuad))
+            .Join(repairPreviewImage.transform.DOPunchScale(restorationRestScale * .035f, .7f, 1, .3f))
+            .SetUpdate(true).SetLink(repairPreviewImage.gameObject, LinkBehaviour.KillOnDisable)
+            .OnKill(RestoreRestorationPreview);
+    }
+    private void RestoreRestorationPreview()
+    {
+        if (repairPreviewImage == null) return;
+        repairPreviewImage.color = restorationRestColor;
+        repairPreviewImage.transform.localScale = restorationRestScale;
+    }
+    private void ClearRestorationAccent()
+    {
+        if (restorationAccent == null) return;
+        restorationAccent.Kill(); restorationAccent = null;
+        RestoreRestorationPreview();
+    }
+
     public void SetRepairPreview(BuildingType buildingType, int currentLevel, int selectedIndex, int totalCount)
     {
+        if (!hasRepairPreview || repairPreviewBuilding != buildingType) ClearRestorationAccent();
+        hasRepairPreview = true; repairPreviewBuilding = buildingType;
         Sprite sprite = GetBuildingPreviewSprite(buildingType, currentLevel);
         if (repairPreviewImage != null)
         {
@@ -667,12 +723,15 @@ public class SettlementHUD : MonoBehaviour
 
     private Color ResolveWeaponAccentColor(WeaponTreeType weaponTree)
     {
-        return weaponTree switch
+        float alpha = weaponTree switch
         {
-            WeaponTreeType.Shotgun => shotgunAccentColor,
-            WeaponTreeType.Sniper => sniperAccentColor,
-            _ => machineGunAccentColor
+            WeaponTreeType.Shotgun => shotgunAccentColor.a,
+            WeaponTreeType.Sniper => sniperAccentColor.a,
+            _ => machineGunAccentColor.a
         };
+        Color color = ShipDefinition.WeaponAccent(weaponTree);
+        color.a = alpha;
+        return color;
     }
 
     private static void SetImageActive(Image image, bool active)

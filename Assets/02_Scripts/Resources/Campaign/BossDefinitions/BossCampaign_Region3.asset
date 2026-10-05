@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bossId: 3
   expeditionDepth: 2
-  displayName: "위상 관문지기"
+  displayName: "\uC704\uC0C1 \uAD00\uBB38\uC9C0\uAE30"
   subtitle: PHASE GATEKEEPER
   storyPart: 3
   grantStoryPartOnFirstDefeat: 1
+  storyPartSprite: {fileID: 21300000, guid: 263fa3e648b85314898184990cc4a2c4, type: 3}
   guaranteedPassive: {fileID: 11400000, guid: f89b358378054ceea4df47e352eec0b4, type: 2}
   grantGuaranteedPassiveEachDefeat: 1
   coreShardReward: 2

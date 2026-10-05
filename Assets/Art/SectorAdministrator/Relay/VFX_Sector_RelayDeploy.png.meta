@@ -1,0 +1,328 @@
+fileFormatVersion: 2
+guid: 44ab05843ab473940b534c96e6c86a2d
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -4000853100529078921
+    second: VFX_Sector_RelayDeploy_0
+  - first:
+      213: -1376789293805597284
+    second: VFX_Sector_RelayDeploy_1
+  - first:
+      213: -7452950473399375098
+    second: VFX_Sector_RelayDeploy_2
+  - first:
+      213: 8155808247466008620
+    second: VFX_Sector_RelayDeploy_3
+  - first:
+      213: -8077782446817648070
+    second: VFX_Sector_RelayDeploy_4
+  - first:
+      213: 6061981191117102859
+    second: VFX_Sector_RelayDeploy_5
+  - first:
+      213: 6644676158271133819
+    second: VFX_Sector_RelayDeploy_6
+  - first:
+      213: -7206438613529149509
+    second: VFX_Sector_RelayDeploy_7
+  - first:
+      213: -6082716224078589469
+    second: VFX_Sector_RelayDeploy_8
+  - first:
+      213: 7550552402575255400
+    second: VFX_Sector_RelayDeploy_9
+  - first:
+      213: 5997185340574973111
+    second: VFX_Sector_RelayDeploy_10
+  - first:
+      213: 3229552007911140031
+    second: VFX_Sector_RelayDeploy_11
+  - first:
+      213: 7749533848798457559
+    second: VFX_Sector_RelayDeploy_12
+  - first:
+      213: 9010447978386684828
+    second: VFX_Sector_RelayDeploy_13
+  - first:
+      213: 4382247951923601770
+    second: VFX_Sector_RelayDeploy_14
+  - first:
+      213: 1731524735349341002
+    second: VFX_Sector_RelayDeploy_15
+  - first:
+      213: 9194897374041198402
+    second: VFX_Sector_RelayDeploy_16
+  - first:
+      213: 4418539042504105471
+    second: VFX_Sector_RelayDeploy_17
+  - first:
+      213: 1537353018896141049
+    second: VFX_Sector_RelayDeploy_18
+  - first:
+      213: -5592387762799712938
+    second: VFX_Sector_RelayDeploy_19
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Sector_RelayDeploy_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 48
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2a2d9e21dcdd728428a8e62b5fe36a56
+      internalID: -1671105664
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_RelayDeploy_01
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 0
+        width: 48
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f0d0aac2234ba6349807c03d2076620d
+      internalID: -1695549146
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_RelayDeploy_02
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 48
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4e45bf7217f6214499b5354ee60cae87
+      internalID: -583351498
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_RelayDeploy_03
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 0
+        width: 48
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 568713cfd729d084daf6e66fd9aa1081
+      internalID: 537177744
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_RelayDeploy_04
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 48
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e0a23fd4cefde4240a00ff1af5fd413a
+      internalID: -1863132203
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_RelayDeploy_05
+      rect:
+        serializedVersion: 2
+        x: 240
+        y: 0
+        width: 48
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7e85a749969616a42a0934470444a805
+      internalID: -1731092312
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: a57fd637990fa714396cc94eecbcf0f3
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Sector_RelayDeploy_00: -1671105664
+      VFX_Sector_RelayDeploy_01: -1695549146
+      VFX_Sector_RelayDeploy_02: -583351498
+      VFX_Sector_RelayDeploy_03: 537177744
+      VFX_Sector_RelayDeploy_04: -1863132203
+      VFX_Sector_RelayDeploy_05: -1731092312
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

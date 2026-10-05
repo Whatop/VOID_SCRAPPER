@@ -55,6 +55,9 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     private Rigidbody2D rb;
     private bool isBoss;
     private bool configuredDropRewardOnDeath;
+    private object deathRewardPresentationOwner;
+    private bool deathRewardPending;
+    private Vector3 deathRewardPosition;
     private BossPatternController bossPatternController;
     private PhaseGatekeeperBossController phaseGatekeeperBossController;
     private Coroutine releaseRoutine;
@@ -64,6 +67,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     public float MaxHp => maxHp;
     public float HpRatio => maxHp <= 0f ? 0f : currentHp / maxHp;
     public bool IsDead => isDead;
+    public bool IsKnockbackActive => knockbackRoutine != null;
 
     public event Action<EnemyHealth> Damaged;
     public event Action<EnemyHealth> Died;
@@ -72,6 +76,28 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
     public void SetRewardDropEnabled(bool enabled)
     {
         dropRewardOnDeath = enabled;
+    }
+
+    // Optional presentation hold, requested synchronously by a Died subscriber.
+    // EnemyHealth and the existing RewardDropper remain the only loose-drop owners.
+    public void HoldDeathRewardForPresentation(object owner)
+    {
+        if (owner != null && isDead && deathRewardPresentationOwner == null)
+            deathRewardPresentationOwner = owner;
+    }
+    public void ReleaseDeathRewardPresentation(object owner)
+    {
+        if (!ReferenceEquals(owner, deathRewardPresentationOwner)) return;
+        deathRewardPresentationOwner = null;
+        if (!deathRewardPending) return;
+        deathRewardPending = false;
+        if (rewardDropper != null) rewardDropper.DropAt(deathRewardPosition);
+    }
+    public void CancelDeathRewardPresentation(object owner)
+    {
+        if (!ReferenceEquals(owner, deathRewardPresentationOwner)) return;
+        deathRewardPresentationOwner = null;
+        deathRewardPending = false;
     }
 
     private void Reset()
@@ -116,12 +142,16 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
     private void OnEnable()
     {
+        deathRewardPresentationOwner = null;
+        deathRewardPending = false;
         dropRewardOnDeath = configuredDropRewardOnDeath;
         ResetHealth();
     }
 
     private void OnDisable()
     {
+        deathRewardPresentationOwner = null;
+        deathRewardPending = false;
         damageFloors.Clear();
         if (releaseRoutine != null)
         {
@@ -246,6 +276,10 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
         {
             return;
         }
+
+        // Raider protection is owned by its encounter controller; no changes to other enemies.
+        var raiderShield = GetComponent<PirateCommanderBossController>();
+        if (raiderShield != null && raiderShield.TryAbsorbDamage(damage, hitPoint, incomingDirection)) return;
 
         if (bossPatternController != null &&
             bossPatternController.TryAbsorbIncomingDamage(damage, hitPoint, incomingDirection))
@@ -481,7 +515,12 @@ public class EnemyHealth : MonoBehaviour, IDamageable, IKnockbackReceiver
 
         if (dropRewardOnDeath && rewardDropper != null)
         {
-            rewardDropper.DropAt(transform.position);
+            if (deathRewardPresentationOwner != null)
+            {
+                deathRewardPosition = transform.position;
+                deathRewardPending = true;
+            }
+            else rewardDropper.DropAt(transform.position);
         }
 
         SetDeathComponentsEnabled(false);

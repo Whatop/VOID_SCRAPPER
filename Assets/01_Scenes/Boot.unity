@@ -1886,7 +1886,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fdefb2eb32842214bb7f25640447fb69, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2015,6 +2015,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 1
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!222 &140300248
 CanvasRenderer:
@@ -4178,6 +4179,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 1
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &271384481
 MonoBehaviour:
@@ -5690,6 +5692,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 0
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &337505218
 MonoBehaviour:
@@ -6696,7 +6699,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fdefb2eb32842214bb7f25640447fb69, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -7341,6 +7344,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 0
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &411854275
 MonoBehaviour:
@@ -12247,6 +12251,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 1
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &663483693
 MonoBehaviour:
@@ -12462,7 +12467,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fdefb2eb32842214bb7f25640447fb69, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -15326,6 +15331,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 1
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &860053219
 MonoBehaviour:
@@ -16704,6 +16710,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 0
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &934723147
 MonoBehaviour:
@@ -18937,6 +18944,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 1
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &1020099383
 MonoBehaviour:
@@ -19227,7 +19235,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fdefb2eb32842214bb7f25640447fb69, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -19876,7 +19884,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fdefb2eb32842214bb7f25640447fb69, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -20163,6 +20171,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2a1f06267e1cdfd478e87c11dd32122c, type: 2}
   - {fileID: 11400000, guid: c9acaf39f5af8e64982d4f15f441ca5b, type: 2}
   equipmentLoadoutTraitIds: []
+  manufacturedEquipmentIds: []
   scrapParts: 0
   coreShards: 0
   stabilizedAlloy: 0
@@ -20319,6 +20328,7 @@ MonoBehaviour:
     matterReconstructorCargoProgress: 0
     matterReconstructorArmorStacks: 0
     preparedEquipmentIds: []
+    structuralFrames: 0
 --- !u!1 &1104040784
 GameObject:
   m_ObjectHideFlags: 0
@@ -21475,7 +21485,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e994f32c1ad9d9a4d9acdb03b931ddeb, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e34557c46ffdf5f46afc9c6a664b232b, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -22137,7 +22147,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fdefb2eb32842214bb7f25640447fb69, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -22601,6 +22611,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 0
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &1209960643
 MonoBehaviour:
@@ -27305,7 +27316,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fdefb2eb32842214bb7f25640447fb69, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -28856,7 +28867,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fdefb2eb32842214bb7f25640447fb69, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -29354,6 +29365,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 1
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &1644048057
 MonoBehaviour:
@@ -30023,7 +30035,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e994f32c1ad9d9a4d9acdb03b931ddeb, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e34557c46ffdf5f46afc9c6a664b232b, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -31093,6 +31105,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 1
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &1766965299
 MonoBehaviour:
@@ -31869,7 +31882,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fdefb2eb32842214bb7f25640447fb69, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -32603,6 +32616,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 1
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &1863070751
 MonoBehaviour:
@@ -35188,7 +35202,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e994f32c1ad9d9a4d9acdb03b931ddeb, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e34557c46ffdf5f46afc9c6a664b232b, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -36340,6 +36354,7 @@ MonoBehaviour:
   disabledClickSoundEventId: 12_ui_disabled
   playClick: 1
   playHover: 1
+  playSelectionHover: 0
   playDisabledClick: 1
 --- !u!114 &2105642089
 MonoBehaviour:

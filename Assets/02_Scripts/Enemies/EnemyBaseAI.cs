@@ -136,6 +136,8 @@ public class EnemyBaseAI : MonoBehaviour
     private int chargingRepositionDirection = 1;
     private bool initialized;
     private GameStateManager observedGameStateManager;
+    private Renderer[] sectorHiddenRenderers;
+    private bool[] sectorPreviousRenderingOff;
     private Transform targetBeforeBossEncounterIsolation;
     private bool bossEncounterIsolated;
     private bool rigidbodySimulatedBeforeBossEncounterIsolation;
@@ -403,6 +405,8 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         rb.linearVelocity = desiredVelocity * effectiveExternalMoveSpeedMultiplier;
+        if (visualRoot == null || visualRoot == transform)
+            ApplyFacingRotation(Time.fixedDeltaTime, true);
     }
 
     public void ApplyDefinition(EnemyDefinition definition)
@@ -1282,8 +1286,11 @@ public class EnemyBaseAI : MonoBehaviour
                                       chargingRepositionDirection;
             desiredVelocity = strafeDirection * moveSpeed *
                               Mathf.Max(0.1f, chargingRepositionSpeedMultiplier);
-            SetFacing(toPlayer);
         }
+        // Repositioning is a retreat/strafe, not a turn away from the target.
+        // MoveTo otherwise turns the vision cone backwards, causing the next
+        // update to chase the lost target and reverse velocity every other frame.
+        FaceTo(player.position);
     }
 
     private void UpdateSentinelCombat()
@@ -1661,6 +1668,11 @@ public class EnemyBaseAI : MonoBehaviour
             return transform.position;
         }
 
+        // Ordinary Charging Enemy follows current position during approach too.
+        // Elite/sniper/other interceptors keep their authored predictive behavior.
+        if (enemyDefinition != null && enemyDefinition.EnemyType == EnemyType.Charging)
+            return player.position;
+
         Vector2 leadOffset = playerBody != null
             ? playerBody.linearVelocity * Mathf.Max(0f, leadTime)
             : Vector2.zero;
@@ -1709,7 +1721,7 @@ public class EnemyBaseAI : MonoBehaviour
         return (attackController != null && attackController.IsAimDirectionLocked) ||
                (meleeChargeController != null && meleeChargeController.LocksFacing);
     }
-    private void ApplyFacingRotation(float deltaTime)
+    private void ApplyFacingRotation(float deltaTime, bool physicsStep = false)
     {
         if (!rotateToFacingDirection)
         {
@@ -1717,6 +1729,12 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         Transform targetRoot = visualRoot != null ? visualRoot : transform;
+
+        bool rotatesBody = targetRoot == transform && rb != null;
+        if (rotatesBody != physicsStep) return;
+
+        if (attackController != null && attackController.IsCharging)
+            facingDirection = attackController.CurrentChargeDirection;
 
         if (targetRoot == null)
         {
@@ -1730,6 +1748,14 @@ public class EnemyBaseAI : MonoBehaviour
 
         float angle = Mathf.Atan2(facingDirection.y, facingDirection.x) * Mathf.Rad2Deg;
         Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle + rotationOffset);
+
+        if (rotatesBody)
+        {
+            float targetAngle = angle + rotationOffset;
+            rb.MoveRotation(turnSpeed <= 0f ? targetAngle :
+                Mathf.MoveTowardsAngle(rb.rotation, targetAngle, turnSpeed * deltaTime));
+            return;
+        }
 
         if (turnSpeed <= 0f)
         {
@@ -1854,6 +1880,7 @@ public class EnemyBaseAI : MonoBehaviour
 
     private static bool IsRegionWithBossEncounterIsolation()
     {
+        if (BossPatternController.ActiveSectorEncounter != null || PirateCommanderBossController.ActiveAssaultEncounter != null) return true;
         RunManager runManager = RunManager.Instance;
 
         if (runManager == null || !runManager.HasActiveRun || runManager.CurrentRun == null)
@@ -1868,6 +1895,7 @@ public class EnemyBaseAI : MonoBehaviour
     private bool IsAmbientEnemyForBossEncounterIsolation()
     {
         if (purpose == EnemyPurpose.Boss ||
+            GetComponentInParent<BossPatternController>(true) != null ||
             GetComponentInParent<FrigateTriadBossController>() != null ||
             GetComponentInParent<PhaseGatekeeperBossController>() != null)
         {
@@ -1886,6 +1914,22 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         bossEncounterIsolated = true;
+        if (BossPatternController.ActiveSectorEncounter != null ||
+            FrigateTriadBossController.ActiveDefenseEncounter != null ||
+            PhaseGatekeeperBossController.ActivePhaseEncounter != null ||
+            PirateCommanderBossController.ActiveAssaultEncounter != null ||
+            RaiderSalvageCarrierBossController.ActiveEncounter != null ||
+            RaiderSniperCommanderBossController.ActiveEncounter != null)
+        {
+            sectorHiddenRenderers = GetComponentsInChildren<Renderer>(true);
+            sectorPreviousRenderingOff = new bool[sectorHiddenRenderers.Length];
+            for (int i = 0; i < sectorHiddenRenderers.Length; i++)
+            {
+                sectorPreviousRenderingOff[i] = sectorHiddenRenderers[i].forceRenderingOff;
+                sectorHiddenRenderers[i].forceRenderingOff = true;
+            }
+            Bullet.ReleaseAllActiveFromSource(transform);
+        }
         targetBeforeBossEncounterIsolation = player;
         CancelCurrentAttack();
         roleController?.SuspendForBossEncounterIsolation();
@@ -1919,6 +1963,12 @@ public class EnemyBaseAI : MonoBehaviour
         }
 
         bossEncounterIsolated = false;
+        if (sectorHiddenRenderers != null)
+        {
+            for (int i = 0; i < sectorHiddenRenderers.Length; i++)
+                if (sectorHiddenRenderers[i] != null) sectorHiddenRenderers[i].forceRenderingOff = sectorPreviousRenderingOff[i];
+            sectorHiddenRenderers = null; sectorPreviousRenderingOff = null;
+        }
 
         if (rb != null && capturedRigidbodySimulationState)
         {

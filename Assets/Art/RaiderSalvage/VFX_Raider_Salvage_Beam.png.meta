@@ -1,0 +1,331 @@
+fileFormatVersion: 2
+guid: 77630559f2b30f547b58eb4c4e9481b7
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 5076761283143132452
+    second: VFX_Raider_Salvage_Beam_0
+  - first:
+      213: -2817828506206143125
+    second: VFX_Raider_Salvage_Beam_1
+  - first:
+      213: -3699064523365628375
+    second: VFX_Raider_Salvage_Beam_2
+  - first:
+      213: -7031220093079508494
+    second: VFX_Raider_Salvage_Beam_3
+  - first:
+      213: 538822645242092574
+    second: VFX_Raider_Salvage_Beam_4
+  - first:
+      213: 4575057243080947650
+    second: VFX_Raider_Salvage_Beam_5
+  - first:
+      213: -591534196840763139
+    second: VFX_Raider_Salvage_Beam_6
+  - first:
+      213: -3232625145984782108
+    second: VFX_Raider_Salvage_Beam_7
+  - first:
+      213: -5774771572221808498
+    second: VFX_Raider_Salvage_Beam_8
+  - first:
+      213: -5332670702866430105
+    second: VFX_Raider_Salvage_Beam_9
+  - first:
+      213: -5251017402193324745
+    second: VFX_Raider_Salvage_Beam_10
+  - first:
+      213: 2524248261735856963
+    second: VFX_Raider_Salvage_Beam_11
+  - first:
+      213: 7335866460896932415
+    second: VFX_Raider_Salvage_Beam_12
+  - first:
+      213: -2881325007428131064
+    second: VFX_Raider_Salvage_Beam_13
+  - first:
+      213: 3687924099775469796
+    second: VFX_Raider_Salvage_Beam_14
+  - first:
+      213: -9011031005831743313
+    second: VFX_Raider_Salvage_Beam_15
+  - first:
+      213: -1737082035689501530
+    second: VFX_Raider_Salvage_Beam_16
+  - first:
+      213: -3247457720707950523
+    second: VFX_Raider_Salvage_Beam_17
+  - first:
+      213: 6080763840249192536
+    second: VFX_Raider_Salvage_Beam_18
+  - first:
+      213: 2446994608342032900
+    second: VFX_Raider_Salvage_Beam_19
+  - first:
+      213: 2457892521867796860
+    second: VFX_Raider_Salvage_Beam_20
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Raider_Salvage_Beam_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 96
+        height: 32
+      alignment: 9
+      pivot: {x: 0, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e31618d752bcf344182b8a78d1657895
+      internalID: -82588429
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_Salvage_Beam_01
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 96
+        height: 32
+      alignment: 9
+      pivot: {x: 0, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5521c2b673b418a42acd993e04a6c1cb
+      internalID: 457712348
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_Salvage_Beam_02
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 96
+        height: 32
+      alignment: 9
+      pivot: {x: 0, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 55e200e162578af43acdc7656f6b367c
+      internalID: 1778223486
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_Salvage_Beam_03
+      rect:
+        serializedVersion: 2
+        x: 288
+        y: 0
+        width: 96
+        height: 32
+      alignment: 9
+      pivot: {x: 0, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8d84a97bde898a14dba6f7e70911a044
+      internalID: 2049335724
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_Salvage_Beam_04
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 0
+        width: 96
+        height: 32
+      alignment: 9
+      pivot: {x: 0, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dc3def054481370469c81f6be1a0546d
+      internalID: -1953331251
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_Salvage_Beam_05
+      rect:
+        serializedVersion: 2
+        x: 480
+        y: 0
+        width: 96
+        height: 32
+      alignment: 9
+      pivot: {x: 0, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3f217ea26a8c559459f92634b5788419
+      internalID: 1069546963
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 7dee2dfdd3c0b5f4db8d3883dc4e8e95
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Raider_Salvage_Beam_00: -82588429
+      VFX_Raider_Salvage_Beam_01: 457712348
+      VFX_Raider_Salvage_Beam_02: 1778223486
+      VFX_Raider_Salvage_Beam_03: 2049335724
+      VFX_Raider_Salvage_Beam_04: -1953331251
+      VFX_Raider_Salvage_Beam_05: 1069546963
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,72 @@
+[
+  {
+    "Relative": "Output\\02_Core\\purple_corrupted\\core_purple_corrupted_inactive.aseprite",
+    "Name": "core_purple_corrupted_inactive.aseprite",
+    "SHA256": "295BD1F3724A3405F0E638BD7507DEC767618844C8E77EA52C83DCC2474283F7",
+    "Width": null,
+    "Height": null
+  },
+  {
+    "Relative": "Output\\02_Core\\purple_corrupted\\core_purple_corrupted_active.aseprite",
+    "Name": "core_purple_corrupted_active.aseprite",
+    "SHA256": "02BF0DA6D9504FACB1B54D0C2DC6DD3C1441136DEE9B6D4E648B586E32EF0359",
+    "Width": null,
+    "Height": null
+  },
+  {
+    "Relative": "Output\\02_Core\\purple_corrupted\\core_purple_corrupted_overloaded.aseprite",
+    "Name": "core_purple_corrupted_overloaded.aseprite",
+    "SHA256": "54A928BDD2E9963F99D3D9C8918CB8A75F89A96C24EEFC003300889E4D6A5B3A",
+    "Width": null,
+    "Height": null
+  },
+  {
+    "Relative": "Output\\02_Core\\purple_corrupted\\core_purple_corrupted_inactive.png",
+    "Name": "core_purple_corrupted_inactive.png",
+    "SHA256": "0C3D4041FE8BE7C531E8CA38E0EABCD498220FBCF47E9C9073DF30EFB96F23B5",
+    "Width": 64,
+    "Height": 64
+  },
+  {
+    "Relative": "Output\\02_Core\\purple_corrupted\\core_purple_corrupted_active.png",
+    "Name": "core_purple_corrupted_active.png",
+    "SHA256": "F97D60E469A53EFC89042FEB9D650391E4EAEB576F93CEAEFCF5B2094C3DC79F",
+    "Width": 256,
+    "Height": 64
+  },
+  {
+    "Relative": "Output\\02_Core\\purple_corrupted\\core_purple_corrupted_overloaded.png",
+    "Name": "core_purple_corrupted_overloaded.png",
+    "SHA256": "BCAD174F04550FF3D7423656D7E1BBC5520EF0D1290A9B4C6AE7CD7F41091A6C",
+    "Width": 256,
+    "Height": 64
+  },
+  {
+    "Relative": "Output\\06_SectorAdministrator\\sector_administrator_idle.png",
+    "Name": "sector_administrator_idle.png",
+    "SHA256": "B3FD582D3440A6F73E3847335785205C195057C7CCD1F417940B1A2ED235E594",
+    "Width": 128,
+    "Height": 128
+  },
+  {
+    "Relative": "Output\\07_DefenseOverseer\\defense_overseer_idle.png",
+    "Name": "defense_overseer_idle.png",
+    "SHA256": "631CAB15241893A9EA210A416852F711F5B87C3FDE783503AA318F41EF409D6C",
+    "Width": 128,
+    "Height": 128
+  },
+  {
+    "Relative": "Output\\08_PhaseGatekeeper\\phase_gatekeeper_idle.png",
+    "Name": "phase_gatekeeper_idle.png",
+    "SHA256": "3128FD1F5ACD195BB7EF58994313997F1758998216D9E7AB67C150F6C1EDAA5F",
+    "Width": 128,
+    "Height": 128
+  },
+  {
+    "Relative": "Output\\15_GameplayVFX\\VFX_Player_Dash_Curse.png",
+    "Name": "VFX_Player_Dash_Curse.png",
+    "SHA256": "D92D6449979C2813E30D639459D87A270F224A42872A3044DD8A7DFE42CB58C3",
+    "Width": 128,
+    "Height": 32
+  }
+]

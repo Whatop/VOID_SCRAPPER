@@ -1,0 +1,32 @@
+[
+  {
+    "Name": "frame_reference.aseprite",
+    "Relative": "Output/30_PresentationSupport/UI_EquipmentFrame_64.aseprite",
+    "SHA256": "4964871C2F20C767DFCAFAF270BDD4EB72A87E8E28DCA47BF4DFAA2309CD711D"
+  },
+  {
+    "Name": "frames_reference.png",
+    "Relative": "Output/30_PresentationSupport/EquipmentFrames_480x270.png",
+    "SHA256": "CB9E9B4F7C629A64A9780F80BC6FD61CC2AF75F167646A6EC13081D23B35161A"
+  },
+  {
+    "Name": "modal_reference.png",
+    "Relative": "Output/32_RegionTransitionModal/UI_RegionTransition_SafeReturn.png",
+    "SHA256": "08A5CFD1C7430262255A0B7DAD4478D75DCF8C479510CA8B1B41E6228F084C5C"
+  },
+  {
+    "Name": "icon_precision.png",
+    "Relative": "../../Assets/02_Scripts/Config/Icons/Trait/Sniper/38_sn_focus_lens.png",
+    "SHA256": "997A3CA1945F6D8E17F69EE5B6300A95DDAA38F7A5654ACF6AF4EB8B26E3AED2"
+  },
+  {
+    "Name": "icon_shotgun.png",
+    "Relative": "../../Assets/02_Scripts/Config/Icons/Trait/Shotgun/31_sg_choke_barrel.png",
+    "SHA256": "C5012A8ABC3BDFB41E6F7E77C409E9BF56511B13A4D7C3EAE6BB231764027B31"
+  },
+  {
+    "Name": "icon_machinegun.png",
+    "Relative": "../../Assets/02_Scripts/Config/Icons/Trait/MachineGun/30_mg_midrange_pressure.png",
+    "SHA256": "8C7A05C20CAC2992E381DE7A485B5F1FD596C0A654A55A32C9AAFAB8268AB097"
+  }
+]

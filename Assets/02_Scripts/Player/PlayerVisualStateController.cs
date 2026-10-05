@@ -197,7 +197,8 @@ public class PlayerVisualStateController : MonoBehaviour
         muzzleSize *= amplification * Mathf.Lerp(1f, 1.12f, choke);
 
         PlayVisualRecoil(direction, recoilDistance, rotationDegrees, kickDuration, returnDuration);
-        PlayMuzzlePulse(muzzleWorldPosition, direction, ResolveWeaponAccentColor(weaponTreeType), muzzleSize);
+        if (weaponController == null || weaponController.CurrentWeapon == null || !weaponController.CurrentWeapon.HasAuthoredMuzzleEffect)
+            PlayMuzzlePulse(muzzleWorldPosition, direction, ResolveWeaponAccentColor(weaponTreeType), muzzleSize);
         PlayCameraResponse(weaponTreeType, cameraAmplitude, cameraDuration);
     }
 

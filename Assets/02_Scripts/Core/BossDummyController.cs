@@ -120,6 +120,7 @@ public class BossDummyController : MonoBehaviour
 
     private void OnDisable()
     {
+        enemyHealth?.CancelDeathRewardPresentation(this);
         if (enemyHealth != null)
         {
             enemyHealth.Died -= HandleBossDied;
@@ -198,6 +199,8 @@ public class BossDummyController : MonoBehaviour
 
         deathHandled = true;
         CacheResolvedDeathContext();
+        if (ShouldHoldLooseDeathReward())
+            enemyHealth?.HoldDeathRewardForPresentation(this);
 
         // Permanent recovery/save precedes every optional death/recovery tween.
         ProcessCampaignRewardsOnce();
@@ -215,6 +218,11 @@ public class BossDummyController : MonoBehaviour
 
         return true;
     }
+
+    private bool ShouldHoldLooseDeathReward() =>
+        resolvedDeathBossId == CampaignBossId.SectorAdministrator &&
+        bossPatternController != null && bossPatternController.UsesSectorControl &&
+        deathPresentation != null && deathPresentation.enabled;
 
     private void RestoreEncounterBackground(bool playRecoveryOverlay)
     {
@@ -263,6 +271,7 @@ public class BossDummyController : MonoBehaviour
 
     private void HandleRunEnded(RunResultData _)
     {
+        enemyHealth?.CancelDeathRewardPresentation(this);
         if (postDeathRoutine != null)
         {
             StopCoroutine(postDeathRoutine);
@@ -293,6 +302,7 @@ public class BossDummyController : MonoBehaviour
             if (!finalEndingPresentation.Completed || IsRunEnding()) yield break;
             RestoreEncounterBackground(true);
         }
+        enemyHealth?.ReleaseDeathRewardPresentation(this);
         yield return CompleteBossDeathRoutine();
         postDeathRoutine = null;
     }

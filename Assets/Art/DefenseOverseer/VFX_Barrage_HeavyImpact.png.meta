@@ -1,0 +1,337 @@
+fileFormatVersion: 2
+guid: 837dcde498c836f4abfd525e543d1056
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -6398881930242662808
+    second: VFX_Barrage_HeavyImpact_0
+  - first:
+      213: 7824657637399132331
+    second: VFX_Barrage_HeavyImpact_1
+  - first:
+      213: 4144149556414426823
+    second: VFX_Barrage_HeavyImpact_2
+  - first:
+      213: 2076169973276841245
+    second: VFX_Barrage_HeavyImpact_3
+  - first:
+      213: -2404683598510985979
+    second: VFX_Barrage_HeavyImpact_4
+  - first:
+      213: 6006802655946467503
+    second: VFX_Barrage_HeavyImpact_5
+  - first:
+      213: 4610575185900416356
+    second: VFX_Barrage_HeavyImpact_6
+  - first:
+      213: 1460055730225003724
+    second: VFX_Barrage_HeavyImpact_7
+  - first:
+      213: -7050554333686812132
+    second: VFX_Barrage_HeavyImpact_8
+  - first:
+      213: 4918415946717348431
+    second: VFX_Barrage_HeavyImpact_9
+  - first:
+      213: 5499376926269778193
+    second: VFX_Barrage_HeavyImpact_10
+  - first:
+      213: 5982083449068389069
+    second: VFX_Barrage_HeavyImpact_11
+  - first:
+      213: -3029997133945412321
+    second: VFX_Barrage_HeavyImpact_12
+  - first:
+      213: -475451290989862613
+    second: VFX_Barrage_HeavyImpact_13
+  - first:
+      213: 3632941641805911409
+    second: VFX_Barrage_HeavyImpact_14
+  - first:
+      213: 4403871652620703637
+    second: VFX_Barrage_HeavyImpact_15
+  - first:
+      213: 6299339636369931947
+    second: VFX_Barrage_HeavyImpact_16
+  - first:
+      213: -4975062811313949554
+    second: VFX_Barrage_HeavyImpact_17
+  - first:
+      213: 5347834885178116941
+    second: VFX_Barrage_HeavyImpact_18
+  - first:
+      213: -5656110274435502903
+    second: VFX_Barrage_HeavyImpact_19
+  - first:
+      213: -8990594445487171690
+    second: VFX_Barrage_HeavyImpact_20
+  - first:
+      213: -9001454397392356591
+    second: VFX_Barrage_HeavyImpact_21
+  - first:
+      213: 6801823620400465473
+    second: VFX_Barrage_HeavyImpact_22
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Barrage_HeavyImpact_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0a27dc215147cfe49a97fb88676b7301
+      internalID: -1857882418
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_HeavyImpact_01
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 487c96d0e820425438d8b58501797a73
+      internalID: -1503023827
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_HeavyImpact_02
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3dcac0db4ab667e4ba3b752758b7efb9
+      internalID: 1390492969
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_HeavyImpact_03
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d75ac6f2ace573e46a798881f0eebd65
+      internalID: -265927662
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_HeavyImpact_04
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c27e6cc5f866ffb48982452f3011cd1d
+      internalID: 304967744
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_HeavyImpact_05
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a9fd2ea54a0a71e46be8ed04e7f60bc6
+      internalID: 857528278
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: e177849f5688774469b7b85bd7237252
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Barrage_HeavyImpact_00: -1857882418
+      VFX_Barrage_HeavyImpact_01: -1503023827
+      VFX_Barrage_HeavyImpact_02: 1390492969
+      VFX_Barrage_HeavyImpact_03: -265927662
+      VFX_Barrage_HeavyImpact_04: 304967744
+      VFX_Barrage_HeavyImpact_05: 857528278
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

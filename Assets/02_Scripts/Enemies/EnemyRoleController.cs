@@ -89,6 +89,7 @@ public class EnemyRoleController : MonoBehaviour
 
     [Header("Harvest Beam Optional")]
     [SerializeField] private LineRenderer harvestBeam;
+    [SerializeField] private PickupCollectionPresentation pickupCollectionPresentation;
 
     [Header("Player Notification")]
     [SerializeField] private float roleNotificationDistance = 22f;
@@ -346,6 +347,7 @@ public class EnemyRoleController : MonoBehaviour
 
     public bool TryHandleAlert(EnemyBaseAI owner, float deltaTime)
     {
+        pickupCollectionPresentation?.Clear();
         if (owner == null)
         {
             return false;
@@ -386,6 +388,7 @@ public class EnemyRoleController : MonoBehaviour
 
     public bool TryHandleCombat(EnemyBaseAI owner, float deltaTime)
     {
+        pickupCollectionPresentation?.Clear();
         if (owner == null)
         {
             return false;
@@ -417,6 +420,7 @@ public class EnemyRoleController : MonoBehaviour
 
     public bool TryHandleSearch(EnemyBaseAI owner, float deltaTime)
     {
+        pickupCollectionPresentation?.Clear();
         if (owner == null)
         {
             return false;
@@ -445,6 +449,7 @@ public class EnemyRoleController : MonoBehaviour
 
     public bool TryHandleReturn(EnemyBaseAI owner, float deltaTime)
     {
+        pickupCollectionPresentation?.Clear();
         if (owner == null)
         {
             return false;
@@ -453,7 +458,17 @@ public class EnemyRoleController : MonoBehaviour
         if (roleType == EnemyRoleType.Defender)
         {
             UpdateDefenderHome(owner);
-            return false;
+            // A guard that just broke its leash must finish returning. Generic Return would
+            // immediately see the pursuing player and re-enter Combat, which breaks the leash
+            // again on the next frame and leaves the guard stationary outside its zone.
+            owner.CancelCurrentAttack();
+            owner.CommandMoveTo(owner.HomePosition, 1f, protectedTarget);
+            if (Vector2.Distance(transform.position, owner.HomePosition) <= idleArriveDistance)
+            {
+                owner.CommandStopMoving();
+                owner.RequestState(EnemyState.Patrol);
+            }
+            return true;
         }
 
         if (roleType == EnemyRoleType.RivalHarvester || roleType == EnemyRoleType.Scavenger)
@@ -660,6 +675,7 @@ public class EnemyRoleController : MonoBehaviour
             owner.CanSeePlayerForRole() &&
             Vector2.Distance(transform.position, owner.Player.position) <= rivalPlayerEngageRange)
         {
+            pickupCollectionPresentation?.Clear();
             owner.EngagePlayer();
             return;
         }
@@ -668,6 +684,7 @@ public class EnemyRoleController : MonoBehaviour
             owner.CanSuspectPlayerForRole() &&
             Vector2.Distance(transform.position, owner.Player.position) <= rivalPlayerEngageRange)
         {
+            pickupCollectionPresentation?.Clear();
             owner.AlertTo(owner.Player.position);
             return;
         }
@@ -907,6 +924,7 @@ public class EnemyRoleController : MonoBehaviour
 
     private void UpdateScavengerCombat(EnemyBaseAI owner, float deltaTime)
     {
+        pickupCollectionPresentation?.Clear();
         ReleaseIrreversibleSlot();
         panicTimer = Mathf.Max(0f, panicTimer - deltaTime);
 
@@ -1427,6 +1445,13 @@ public class EnemyRoleController : MonoBehaviour
                 continue;
             }
 
+            // Base storage and the captive's prison also use HarvestObjectHealth. They are
+            // encounter objectives, not salvage for the hauler delivering to that stronghold.
+            if (candidate.GetComponentInParent<FieldBaseController>() != null)
+            {
+                continue;
+            }
+
             float distance = Vector2.Distance(transform.position, candidate.transform.position);
 
             if (distance > harvestSearchRadius)
@@ -1546,6 +1571,7 @@ public class EnemyRoleController : MonoBehaviour
 
     private void ReleaseRewardPickupTarget()
     {
+        pickupCollectionPresentation?.Clear();
         if (rewardPickupTarget != null)
         {
             ReservedRewardPickups.Remove(rewardPickupTarget);
@@ -1637,6 +1663,7 @@ public class EnemyRoleController : MonoBehaviour
 
     private void HandleDamaged(EnemyHealth _)
     {
+        if (roleType == EnemyRoleType.Scavenger) pickupCollectionPresentation?.Clear();
         if (simulationGate != null)
         {
             simulationGate.ForceActive();
@@ -1753,6 +1780,7 @@ public class EnemyRoleController : MonoBehaviour
     {
         if (owner == null || rewardPickupTarget == null || !rewardPickupTarget.IsAvailable)
         {
+            pickupCollectionPresentation?.Clear();
             return false;
         }
 
@@ -1767,6 +1795,7 @@ public class EnemyRoleController : MonoBehaviour
                 moveSpeedMultiplier,
                 rewardPickupTarget.transform
             );
+            pickupCollectionPresentation?.Clear();
             return false;
         }
 
@@ -1775,12 +1804,14 @@ public class EnemyRoleController : MonoBehaviour
         if (!rewardPickupTarget.CanBeTakenByEnemy)
         {
             pickupChannelTimer = Mathf.Max(0.05f, pickupCollectChannelDuration);
+            pickupCollectionPresentation?.Clear();
             return false;
         }
 
         if (RefreshSimulationLevel() != EnemyRoleSimulationLevel.Active || !TryAcquireIrreversibleSlot())
         {
             pickupChannelTimer = Mathf.Max(0.05f, pickupCollectChannelDuration);
+            pickupCollectionPresentation?.Clear();
             return false;
         }
 
@@ -1791,6 +1822,9 @@ public class EnemyRoleController : MonoBehaviour
         }
 
         pickupChannelTimer -= deltaTime;
+        pickupCollectionPresentation?.Sample(transform, rewardPickupTarget,
+            1f - pickupChannelTimer / Mathf.Max(.05f, pickupCollectChannelDuration),
+            owner.Player != null ? owner.Player.GetComponent<PlayerHealth>() : null);
 
         if (pickupChannelTimer > 0f)
         {

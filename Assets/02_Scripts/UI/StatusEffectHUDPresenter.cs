@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,6 +30,9 @@ public class StatusEffectHUDPresenter : MonoBehaviour
     private PlayerReinforcementController subscribedReinforcementController;
     private float nextDurationRefreshTime;
     private bool externalVisible = true;
+    private TraitDefinition acquiredTrait;
+    private int acquiredLevel;
+    private Coroutine acquisitionRoutine;
 
     private struct StatusEntry
     {
@@ -69,7 +73,37 @@ public class StatusEffectHUDPresenter : MonoBehaviour
 
     private void OnDisable()
     {
+        ClearAcquisition();
         Unsubscribe();
+    }
+
+    public void PresentAcquiredTrait(TraitDefinition trait, int level)
+    {
+        if (trait == null || !isActiveAndEnabled) return;
+        ClearAcquisition();
+        acquiredTrait = trait;
+        acquiredLevel = level;
+        RefreshStatuses();
+        for (int i = 0; i < slots.Count; i++)
+            if (slots[i] != null && slots[i].StatusId == trait.TraitId) slots[i].PlayAcquisitionAccent();
+        acquisitionRoutine = StartCoroutine(SettleAcquisition());
+    }
+
+    private IEnumerator SettleAcquisition()
+    {
+        yield return new WaitForSecondsRealtime(2f);
+        acquisitionRoutine = null;
+        acquiredTrait = null;
+        RefreshStatuses();
+    }
+
+    private void ClearAcquisition()
+    {
+        if (acquisitionRoutine != null) StopCoroutine(acquisitionRoutine);
+        acquisitionRoutine = null;
+        acquiredTrait = null;
+        // Slots are reused by RefreshStatuses; Release also cancels each finite accent.
+        for (int i = 0; i < slots.Count; i++) slots[i]?.Release();
     }
 
     private void Update()
@@ -86,6 +120,7 @@ public class StatusEffectHUDPresenter : MonoBehaviour
     public void SetExternalVisible(bool visible)
     {
         externalVisible = visible;
+        if (!visible) ClearAcquisition();
 
         if (statusRowRoot != null && statusRowRoot.gameObject.activeSelf != visible)
         {
@@ -103,6 +138,14 @@ public class StatusEffectHUDPresenter : MonoBehaviour
         ResolveReferences();
         statusEntries.Clear();
         AppendPersistentStoryTraits();
+        if (acquiredTrait != null && !ContainsStatusId(acquiredTrait.TraitId))
+        {
+            statusEntries.Add(new StatusEntry {
+                statusId = acquiredTrait.TraitId, displayName = acquiredTrait.DisplayName,
+                description = acquiredTrait.Description, icon = acquiredTrait.Icon,
+                accentColor = acquiredTrait.GetRarityColor(), stackCount = acquiredLevel, priority = 1
+            });
+        }
         AppendActiveReinforcementStatuses();
         SortEntriesByPriority();
 

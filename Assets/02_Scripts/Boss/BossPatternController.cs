@@ -5,7 +5,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyHealth))]
 [RequireComponent(typeof(Rigidbody2D))]
-public class BossPatternController : MonoBehaviour
+public partial class BossPatternController : MonoBehaviour
 {
     private enum BossPattern
     {
@@ -276,6 +276,8 @@ public class BossPatternController : MonoBehaviour
     private Coroutine phase2TransitionRoutine;
     private Coroutine phase2ShieldCombatRoutine;
     private Coroutine phase2ShieldBreakRoutine;
+    private PlayerHealth observedPlayerHealth;
+    private RunManager observedRunManager;
 
     private Vector2 arenaCenter;
     private Vector2 moveTarget;
@@ -366,6 +368,12 @@ public class BossPatternController : MonoBehaviour
 
     private void OnEnable()
     {
+        if (useSectorControlSequence) ActiveSectorEncounter = this;
+        sectorCycle = 0; sectorAngle = 22.5f; sectorEscalationReady = false;
+        sectorEscalationPresented = false; sectorAddedSpokeExtension = 1f;
+        ResetSectorTransition();
+        ResetSectorIdentity();
+        SetSectorStage(SectorStage.Idle);
         deathHandled = false;
         phase2 = false;
         casting = false;
@@ -395,6 +403,10 @@ public class BossPatternController : MonoBehaviour
         ResolvePlayer();
         ResolvePhase2PresentationReferences();
         SetPhase2ShieldVisualVisible(false);
+        BindCancellation();
+
+        // Reserve the authored phase gate before a single large hit can skip it.
+        enemyHealth?.SetDamageFloor(this, phase2HpRatio);
 
         initialized = true;
         patternRoutine = StartCoroutine(PatternLoopRoutine());
@@ -402,12 +414,22 @@ public class BossPatternController : MonoBehaviour
 
     private void OnDisable()
     {
+        ResetSectorTransition();
+        ClearSectorAttacks();
+        StopSectorIdentity();
+        ReleaseSectorCameraFraming();
+        EndSectorArenaCleanup();
+        if (useSectorControlSequence) { DestroyPhase2ManagerShips(); DestroyPhase1ManagerShips(); }
         initialized = false;
+        UnbindCancellation();
 
         if (enemyHealth != null)
         {
             enemyHealth.Died -= HandleDied;
+            enemyHealth.RemoveDamageFloor(this);
         }
+
+        Bullet.ReleaseAllActiveFromSource(transform);
 
         if (patternRoutine != null)
         {
@@ -495,6 +517,9 @@ public class BossPatternController : MonoBehaviour
         UpdatePhase2ShieldVisual();
         UpdateMovement(Time.deltaTime);
         UpdateFacing(Time.deltaTime);
+        UpdateSectorCameraFraming();
+        UpdateSectorSpokes(Time.deltaTime);
+        UpdateSectorSupport(Time.deltaTime);
     }
 
     public void ConfigureBossArena(Vector2 center, Vector2 halfExtents, float verticalScale)
@@ -507,11 +532,27 @@ public class BossPatternController : MonoBehaviour
         );
         externallyConfiguredVerticalSpaceScale = Mathf.Clamp(verticalScale, 0.2f, 1f);
         arenaCenter = center;
+        BeginSectorArenaCleanup();
     }
 
     public void SetExternalIntroPresentationOwnership(bool owned)
     {
         externalIntroPresentationOwnershipActive = owned;
+    }
+
+    // The intro prepares the same owner/profile used by UpdateSectorCameraFraming.
+    // No combat component or scheduler is enabled by this presentation handoff.
+    public void PrepareSectorIntroCameraHandoff()
+    {
+        if (!useSectorControlSequence || sectorCameraProfileHeld) return;
+        ResolvePlayer();
+        ResolvePhase2PresentationReferences();
+        UpdateSectorCameraFraming();
+    }
+
+    public void CancelSectorIntroPresentation()
+    {
+        if (useSectorControlSequence) CancelCombat();
     }
 
     public IEnumerator PlayIntroGuardianEntryRoutine()
@@ -611,6 +652,14 @@ public class BossPatternController : MonoBehaviour
             if (player == null)
             {
                 yield return null;
+                continue;
+            }
+
+            if (useSectorControlSequence)
+            {
+                UpdatePhase();
+                if (sectorPhase2Pending) yield return SectorPendingTransitionRoutine();
+                else yield return SectorControlCycleRoutine(SectorEscalated);
                 continue;
             }
 
@@ -1553,6 +1602,11 @@ public class BossPatternController : MonoBehaviour
     }
     private float GetManagerRotationForPosition(Vector2 position)
     {
+        if (useSectorControlSequence)
+        {
+            Vector2 inward = arenaCenter - position;
+            return Mathf.Atan2(inward.y, inward.x) * Mathf.Rad2Deg - 90f;
+        }
         Vector2 outward = position - arenaCenter;
 
         if (outward.sqrMagnitude <= 0.001f)
@@ -1808,6 +1862,12 @@ public class BossPatternController : MonoBehaviour
 
     private float[] GetPhase1ManagerRotations()
     {
+        if (useSectorControlSequence)
+        {
+            Vector2[] positions = GetPhase1ManagerFinalPositions();
+            return new[] { GetManagerRotationForPosition(positions[0]), GetManagerRotationForPosition(positions[1]),
+                GetManagerRotationForPosition(positions[2]), GetManagerRotationForPosition(positions[3]) };
+        }
         return new[]
         {
             managerShipBaseRotationZ + 0f,
@@ -2053,6 +2113,7 @@ public class BossPatternController : MonoBehaviour
             );
         }
         boundaryLaserWalls.Add(wall.gameObject);
+        ApplySectorContainment(wall, length);
     }
 
     private IEnumerator MoveManagerShipsRoutine(
@@ -2128,11 +2189,9 @@ public class BossPatternController : MonoBehaviour
 
         if (prefab != null)
         {
-            managerObject = Instantiate(
-                prefab,
-                position,
-                Quaternion.Euler(0f, 0f, rotationZ)
-            );
+            managerObject = useSectorControlSequence && PoolManager.Instance != null
+                ? PoolManager.Instance.Get(prefab, position, Quaternion.Euler(0, 0, rotationZ))
+                : Instantiate(prefab, position, Quaternion.Euler(0, 0, rotationZ));
         }
         else
         {
@@ -2156,6 +2215,13 @@ public class BossPatternController : MonoBehaviour
         managerShip.SetRuntimeIndex(runtimeIndex);
         managerShip.ApplySlotRotation(rotationZ);
         managerShip.SetTint(prefabTint);
+
+        if (useSectorControlSequence && runtimeIndex >= 1 && runtimeIndex <= 6)
+        {
+            var presentation = managerObject.GetComponent<SectorRelayPresentation>();
+            sectorRelayViews[runtimeIndex - 1] = presentation;
+            presentation?.ResetPresentation();
+        }
 
         return managerShip;
     }
@@ -2319,6 +2385,7 @@ public class BossPatternController : MonoBehaviour
 
     private void UpdateFacing(float deltaTime)
     {
+        if (useSectorControlSequence && sectorWeaponFacingLocked) return;
         if (!rotateToPlayer || player == null)
         {
             return;
@@ -2361,6 +2428,14 @@ public class BossPatternController : MonoBehaviour
             return;
         }
 
+        if (useSectorControlSequence)
+        {
+            // Detection never owns cancellation. The existing scheduler consumes
+            // this request only after the current attack's cleanup/recovery.
+            if (!deathHandled) sectorPhase2Pending = true;
+            return;
+        }
+
         if (!usePhase2ShieldTransition)
         {
             EnterTruePhase2();
@@ -2384,6 +2459,7 @@ public class BossPatternController : MonoBehaviour
     private IEnumerator Phase2TransitionRoutine()
     {
         StopCurrentBossPatternForTransition();
+        PrepareSectorEscalation();
         casting = true;
         StopMoving();
 
@@ -2488,7 +2564,10 @@ public class BossPatternController : MonoBehaviour
             phase2ExpeditionHUD.SetCinematicMode(false);
         }
 
+        if (useSectorControlSequence) phase2CameraZoomController?.ResetZoom(false);
         RestorePhase2PlayerInput();
+
+        if (useSectorControlSequence) yield return SectorEscalationRoutine();
 
         phase2ShieldDamageEnabled = true;
         casting = false;
@@ -2504,6 +2583,11 @@ public class BossPatternController : MonoBehaviour
     {
         while (phase2ShieldActive && enemyHealth != null && !enemyHealth.IsDead)
         {
+            if (useSectorControlSequence)
+            {
+                yield return SectorControlCycleRoutine(true);
+                continue;
+            }
             yield return Phase2HexagonRotatingLaserCycleRoutine(false);
 
             if (!phase2ShieldActive || enemyHealth == null || enemyHealth.IsDead)
@@ -2523,6 +2607,7 @@ public class BossPatternController : MonoBehaviour
 
     private void EnterTruePhase2()
     {
+        enemyHealth?.RemoveDamageFloor(this);
         phase2 = true;
         phase2TransitionStarted = true;
         phase2ShieldActive = false;
@@ -2550,6 +2635,7 @@ public class BossPatternController : MonoBehaviour
 
     public bool TryAbsorbIncomingDamage(float damage, Vector2 hitPoint, Vector2 incomingDirection)
     {
+        if (useSectorControlSequence && sectorIntroProtected && damage > 0f) return true;
         if (!phase2ShieldActive || damage <= 0f)
         {
             return false;
@@ -2563,7 +2649,8 @@ public class BossPatternController : MonoBehaviour
         }
 
         phase2ShieldHp = Mathf.Max(0f, phase2ShieldHp - damage);
-        BossHealthBarUI.Instance?.ShowPhaseShield(phase2ShieldHp, phase2ShieldMaxHpRuntime);
+        if (useSectorControlSequence) sectorShield?.AbsorptionHit(hitPoint);
+        BossHealthBarUI.Instance?.ShowPhaseShield(phase2ShieldHp, phase2ShieldMaxHpRuntime, useSectorControlSequence ? "SH" : null);
 
         CombatFeedbackManager.PlayHit(
             hitPoint,
@@ -2586,6 +2673,18 @@ public class BossPatternController : MonoBehaviour
 
     private IEnumerator Phase2ShieldBreakRoutine()
     {
+        if (useSectorControlSequence)
+        {
+            // Preserve the existing protection authority without a second combat
+            // owner or cancellation of the running Region A attack on shield break.
+            EnterTruePhase2();
+            sectorShield?.AbsorptionBreak();
+            phase2ShieldBreakRoutine = null;
+            yield break;
+        }
+        ClearSectorAttacks();
+        Bullet.ReleaseAllActiveFromSource(transform);
+        if (useSectorControlSequence && sectorBody != null) sectorBody.sprite = SectorEmpowered ? (sectorPhase2Sprite != null ? sectorPhase2Sprite : sectorIdleSprite) : sectorExposedSprite;
         phase2ShieldActive = false;
         phase2ShieldDamageEnabled = false;
 
@@ -2640,11 +2739,12 @@ public class BossPatternController : MonoBehaviour
 
         EnsurePhase2ShieldVisual();
         SetPhase2ShieldVisualVisible(true);
-        BossHealthBarUI.Instance?.ShowPhaseShield(phase2ShieldHp, phase2ShieldMaxHpRuntime);
+        BossHealthBarUI.Instance?.ShowPhaseShield(phase2ShieldHp, phase2ShieldMaxHpRuntime, useSectorControlSequence ? "SH" : null);
     }
 
     private void EnsurePhase2ShieldVisual()
     {
+        if (useSectorControlSequence && sectorShield != null) return;
         if (phase2ShieldVisualRoot != null)
         {
             return;
@@ -2730,6 +2830,7 @@ public class BossPatternController : MonoBehaviour
 
     private void UpdatePhase2ShieldVisual()
     {
+        if (useSectorControlSequence && sectorShield != null) return;
         if (!phase2ShieldActive)
         {
             return;
@@ -2740,6 +2841,7 @@ public class BossPatternController : MonoBehaviour
             : Mathf.Clamp01(phase2ShieldHp / phase2ShieldMaxHpRuntime);
 
         Color color = Color.Lerp(phase2ShieldLowColor, phase2ShieldColor, ratio);
+        if (useSectorControlSequence) color = Color.Lerp(color, SectorEnergyColor, sectorEnergyBlend);
         float pulse = 1f + Mathf.Sin(Time.unscaledTime * 8f) * 0.07f;
 
         if (phase2RuntimeShieldLine != null)
@@ -2772,6 +2874,8 @@ public class BossPatternController : MonoBehaviour
 
     private void StopCurrentBossPatternForTransition()
     {
+        ClearSectorAttacks();
+        Bullet.ReleaseAllActiveFromSource(transform);
         if (patternRoutine != null)
         {
             StopCoroutine(patternRoutine);
@@ -2907,14 +3011,16 @@ public class BossPatternController : MonoBehaviour
 
         if (phase2GungeonCamera != null)
         {
-            phase2GungeonCamera.ReleaseOwnedCinematicFocus(this, resetCamera);
+            phase2GungeonCamera.ReleaseOwnedCinematicFocus(this, resetCamera && !useSectorControlSequence);
             phase2GungeonCamera.SetCinematicInputOffsetLocked(this, false);
         }
 
         if (resetCamera && phase2CameraZoomController != null)
         {
-            phase2CameraZoomController.CancelCinematicTransition(true);
-            phase2CameraZoomController.ResetZoom(true);
+            // Region A may be widened to keep both actors visible at an edge.
+            // Release through the existing smoothing instead of snapping back.
+            phase2CameraZoomController.CancelCinematicTransition(!useSectorControlSequence);
+            phase2CameraZoomController.ResetZoom(!useSectorControlSequence);
         }
 
         if (resetCamera && phase2SpaceBackgroundGenerator != null)
@@ -3388,7 +3494,7 @@ public class BossPatternController : MonoBehaviour
 
             if (managerShip != null)
             {
-                Destroy(managerShip.gameObject);
+                ReturnSectorRelay(managerShip);
             }
         }
 
@@ -3400,13 +3506,13 @@ public class BossPatternController : MonoBehaviour
     {
         if (phase2TopManagerShip != null)
         {
-            Destroy(phase2TopManagerShip.gameObject);
+            ReturnSectorRelay(phase2TopManagerShip);
             phase2TopManagerShip = null;
         }
 
         if (phase2BottomManagerShip != null)
         {
-            Destroy(phase2BottomManagerShip.gameObject);
+            ReturnSectorRelay(phase2BottomManagerShip);
             phase2BottomManagerShip = null;
         }
 
@@ -3416,6 +3522,7 @@ public class BossPatternController : MonoBehaviour
 
     private void DestroyBoundaryLaserWalls()
     {
+        ReleaseSectorBarrierVisuals();
         for (int i = boundaryLaserWalls.Count - 1; i >= 0; i--)
         {
             GameObject wallObject = boundaryLaserWalls[i];
@@ -3472,14 +3579,53 @@ public class BossPatternController : MonoBehaviour
 
     public void StopCombatForDeathPresentation()
     {
+        StopCombat(true);
+    }
+
+    private void BindCancellation()
+    {
+        UnbindCancellation();
+        observedPlayerHealth = player != null ? player.GetComponent<PlayerHealth>() : null;
+        observedRunManager = RunManager.Instance;
+        if (observedPlayerHealth != null) observedPlayerHealth.Died += HandlePlayerDied;
+        if (observedRunManager != null) observedRunManager.RunEnded += HandleRunEnded;
+    }
+
+    private void UnbindCancellation()
+    {
+        if (observedPlayerHealth != null) observedPlayerHealth.Died -= HandlePlayerDied;
+        if (observedRunManager != null) observedRunManager.RunEnded -= HandleRunEnded;
+        observedPlayerHealth = null;
+        observedRunManager = null;
+    }
+
+    private void HandlePlayerDied() => CancelCombat();
+    private void HandleRunEnded(RunResultData _) => CancelCombat();
+
+    private void CancelCombat()
+    {
+        StopCombat(false);
+        BossHealthBarUI.Instance?.Hide();
+    }
+
+    private void StopCombat(bool playDeathSound)
+    {
+        ResetSectorTransition();
+        ClearSectorAttacks();
+        StopSectorIdentity();
+        ReleaseSectorCameraFraming();
+        EndSectorArenaCleanup();
         if (deathHandled)
         {
             return;
         }
 
         deathHandled = true;
+        initialized = false;
         casting = false;
-        AudioManager.PlayAt(SoundEventIds.BossDeath, transform.position);
+        enemyHealth?.RemoveDamageFloor(this);
+        Bullet.ReleaseAllActiveFromSource(transform);
+        if (playDeathSound) AudioManager.PlayAt(SoundEventIds.BossDeath, transform.position);
 
         if (patternRoutine != null)
         {
@@ -3521,6 +3667,7 @@ public class BossPatternController : MonoBehaviour
         DestroyPhase2ManagerShips();
         DestroyPhase1ManagerShips();
         StopMoving();
+        UnbindCancellation();
     }
 
     private Vector2 RotateVector(Vector2 vector, float angle)

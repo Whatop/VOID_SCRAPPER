@@ -1,0 +1,32 @@
+[
+  {
+    "Relative": "Output/28_SectorIntroShieldVFX/VFX_Sector_BossArrivalMarker.aseprite",
+    "SHA256": "67A03F6EFEEDC4073428C1AF4DF2532EDCE80C78BC4FD6AE4D5B183D9234C9BF",
+    "Name": "marker_before.aseprite"
+  },
+  {
+    "Relative": "Output/28_SectorIntroShieldVFX/VFX_Sector_BossArrivalMarker.png",
+    "SHA256": "7B6CCDAC695F63AE6042F0F4AFB17CEF0A3003849F6DB2F5FE937BAF00065926",
+    "Name": "marker_before.png"
+  },
+  {
+    "Relative": "Output/28_SectorIntroShieldVFX/VFX_Sector_BossArrivalMarker.json",
+    "SHA256": "492F61A828E6C893EBD20E72E343D47EBD7CFD5424BAA8C0D8433068EB2D7136",
+    "Name": "marker_before.json"
+  },
+  {
+    "Relative": "Output/28_SectorIntroShieldVFX/VFX_Sector_BossMaterialization.png",
+    "SHA256": "196F63781EC542F4439A2A1FFDE83309A2AAB7FB1A2B85B1A877A35E60563286",
+    "Name": "materialization.png"
+  },
+  {
+    "Relative": "Output/06_SectorAdministrator/sector_administrator_idle.png",
+    "SHA256": "B3FD582D3440A6F73E3847335785205C195057C7CCD1F417940B1A2ED235E594",
+    "Name": "boss_green.png"
+  },
+  {
+    "Relative": "Input/01_Player/Px_Player.png",
+    "SHA256": "3BFD635CC357A8857CDD4B9C558224D139F067AD7A85A18024AA05D3409FEE1A",
+    "Name": "player.png"
+  }
+]

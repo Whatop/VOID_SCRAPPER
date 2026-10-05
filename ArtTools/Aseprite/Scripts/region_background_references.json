@@ -1,0 +1,47 @@
+[
+  {
+    "Name": "base_Tutorial.aseprite",
+    "Relative": "Output/30_PresentationSupport/BG_Tutorial.aseprite",
+    "SHA256": "89E134B648AE8D8DFD4A7CBEF03EAB71AF8F619C28CB81D922D59A206B96E4E7"
+  },
+  {
+    "Name": "base_RegionA.aseprite",
+    "Relative": "Output/30_PresentationSupport/BG_RegionA.aseprite",
+    "SHA256": "4926E4CDB55AEE1E74C8990624C21C551B772C9502D3BBF1A501F514D504ACBB"
+  },
+  {
+    "Name": "base_RegionB.aseprite",
+    "Relative": "Output/30_PresentationSupport/BG_RegionB.aseprite",
+    "SHA256": "7CD6AC96AF05A29CA0BC80A72FC6EF6976897053BAF018EA622E98E992FC8B31"
+  },
+  {
+    "Name": "base_RegionC.aseprite",
+    "Relative": "Output/30_PresentationSupport/BG_RegionC.aseprite",
+    "SHA256": "8B4A2178595FFE8C305D02190C92069D99BB115FE9B4C6D39DCF7C0139C04D93"
+  },
+  {
+    "Name": "base_Final.aseprite",
+    "Relative": "Output/30_PresentationSupport/BG_Final.aseprite",
+    "SHA256": "C87520BAE63ADAF29F5BB911CA6D1294A7C21F7A362D62E99C91499877A64780"
+  },
+  {
+    "Name": "player.png",
+    "Relative": "Input/01_Player/Px_Player.png",
+    "SHA256": "3BFD635CC357A8857CDD4B9C558224D139F067AD7A85A18024AA05D3409FEE1A"
+  },
+  {
+    "Name": "enemy.png",
+    "Relative": "Output/03_RaiderEnemy/raider_basic.png",
+    "SHA256": "7296ED1738B50BDD809FF8D4A5BDCC558E9D809270999EE8B5ACD9B93B0C21D8"
+  },
+  {
+    "Name": "guard.png",
+    "Relative": "Output/04_SystemSupport/system_support_green.png",
+    "SHA256": "03584046D5F5FDEE096138D7B4469F544CC79C43D3300659CDD72C734E5FB4B1"
+  },
+  {
+    "Name": "credit.png",
+    "Relative": "Output/19_WorldPickups/Pickup_Credit.png",
+    "SHA256": "B6CA17D5F212D635B7C0395793BEBFA392E02C9B90B82DBCEC111DDCC329C8C0"
+  }
+]

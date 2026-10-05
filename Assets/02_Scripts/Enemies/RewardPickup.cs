@@ -12,6 +12,7 @@ public enum RewardPickupKind
 [RequireComponent(typeof(Rigidbody2D))]
 public class RewardPickup : MonoBehaviour, IInteractable
 {
+    [SerializeField] private GameObject pickupSparklePrefab;
     private static readonly HashSet<RewardPickup> ActiveRegistry = new HashSet<RewardPickup>();
 
     public static IEnumerable<RewardPickup> ActivePickups => ActiveRegistry;
@@ -110,6 +111,7 @@ public class RewardPickup : MonoBehaviour, IInteractable
     public int Amount => amount;
     public string InteractionText => BuildCargoInteractionText();
     public bool IsAvailable => !collected && isActiveAndEnabled && gameObject.activeInHierarchy;
+    public event System.Action BecameUnavailable;
     public bool CanBeTakenByEnemy => !preserveExactCargoAmount &&
                                      IsAvailable &&
                                      activeAge >= Mathf.Max(0f, enemyCollectionProtectionDuration);
@@ -215,6 +217,7 @@ public class RewardPickup : MonoBehaviour, IInteractable
 
     private void OnDisable()
     {
+        BecameUnavailable?.Invoke();
         ActiveRegistry.Remove(this);
 
         if (rb != null)
@@ -607,6 +610,8 @@ public class RewardPickup : MonoBehaviour, IInteractable
                 break;
         }
 
+        if (pickupSparklePrefab != null && PoolManager.Instance != null)
+            PoolManager.Instance.SpawnAutoRelease(pickupSparklePrefab, transform.position, .24f);
         PlayPickupSound();
         ReleaseSelf();
     }

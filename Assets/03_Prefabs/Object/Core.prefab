@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: -6155725199462713330}
   - component: {fileID: 2785288026569375596}
   - component: {fileID: 1064423043092237462}
+  - component: {fileID: 4315469879194919272}
   m_Layer: 8
   m_Name: Core
   m_TagString: Untagged
@@ -56,6 +57,9 @@ MonoBehaviour:
   markerSprite: {fileID: 21300000, guid: a227d7f0883c31e418d596d82d4c8e43, type: 3}
   markerColor: {r: 1, g: 1, b: 0, a: 1}
   markerScale: 1.35
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 1
   alertOnMachineGunScan: 0
@@ -114,11 +118,16 @@ MonoBehaviour:
   requirePlayerStayInRange: 1
   interactionStayRadius: 3
   bossPrefab: {fileID: 2869722714546691079, guid: bd35c3a3a0ce6de45bbb6b45c19770b8, type: 3}
-  finalBossPrefab: {fileID: 100000, guid: e403693d7e404945a69c79053e21d741, type: 3}
   region2BossPrefab: {fileID: 100000, guid: 662621d35e964a9facf578eff82da1e4, type: 3}
+  region3BossPrefab: {fileID: 0}
+  finalBossPrefab: {fileID: 100000, guid: e403693d7e404945a69c79053e21d741, type: 3}
   region1RepeatBossPrefab: {fileID: 100000, guid: e28d3d3313ed47cf894549274d2b4938, type: 3}
   region1RepeatBossDefinition: {fileID: 11400000, guid: 33e42a9f02564b98b66245c0a262836c, type: 2}
-  region1RepeatSignalSubtitle: "약탈자 지휘 신호 감지"
+  region2RepeatBossPrefab: {fileID: 100000, guid: e5e1cd96f2041a04899c6abe066e7939, type: 3}
+  region2RepeatBossDefinition: {fileID: 11400000, guid: 5561d8bf4f73ac344b9f7b481617e026, type: 2}
+  region3RepeatBossPrefab: {fileID: 100000, guid: 0491ce26109e8f04c8117b36d6b3c8c4, type: 3}
+  region3RepeatBossDefinition: {fileID: 11400000, guid: 4d8e2f39a9a3d154cb2937d5e109b142, type: 2}
+  region1RepeatSignalSubtitle: "\uC57D\uD0C8\uC790 \uC9C0\uD718 \uC2E0\uD638 \uAC10\uC9C0"
   forceRegion1RepeatBoss: 0
   bossSpawnPoint: {fileID: 6304785954078690802}
   bossSpawnOffset: {x: 0, y: 50}
@@ -281,6 +290,7 @@ MonoBehaviour:
   verticalSpaceScale: 1
   arenaCenterOffset: {x: 0, y: 2.5}
   bossBattlePositionOffset: {x: 0, y: 2.5}
+  useBossPatternGuardianSystem: 1
   laserManagerShipPrefab: {fileID: 9075188055483279069, guid: 9b16b9571380dec4286fb3a2ecbcef64, type: 3}
   createRuntimePlaceholderIfMissing: 1
   keepManagerShipsUntilBossDeath: 1
@@ -490,6 +500,7 @@ MonoBehaviour:
   collapseDuration: 0.32
   useUnscaledTime: 1
   pulsePrefab: {fileID: 708775973121913217, guid: 1198ce77258758242b6bb8d5d29073b3, type: 3}
+  approvedPulsePrefab: {fileID: 6673998505649346033, guid: 64b30ff40538e154499931512b9d5f55, type: 3}
   runtimePulseMaterial: {fileID: 0}
   pulseColor: {r: 1, g: 0.82, b: 0.08, a: 0.95}
   pulseCount: 3
@@ -533,6 +544,41 @@ MonoBehaviour:
   hideCoreVisualAfterActivation: 1
   pulseShakeAmplitude: 0.12
   pulseShakeDuration: 0.2
+--- !u!114 &4315469879194919272
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1313109600501432131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 357dd98da596d9148a79f50bca801b1e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 7185286819984742303}
+  body: {fileID: 1250328346901562833}
+  familyControllers:
+  - {fileID: 22100000, guid: 4aae09a110a3ed743b30b0370dab4d8b, type: 2}
+  - {fileID: 22100000, guid: e382ba379f8f83a438b9ee31b50a1aa9, type: 2}
+  - {fileID: 22100000, guid: 07dba01d3bdf3a740973ac113b991bda, type: 2}
+  - {fileID: 22100000, guid: 14b1348a3474c8446a6593cba44f61c8, type: 2}
+  idleSprites:
+  - {fileID: -1027943777, guid: 89b7521566e652c4caf168fd9e7a474c, type: 3}
+  - {fileID: -1400817382, guid: ac127fce9b3c97a458948a03f9ad514d, type: 3}
+  - {fileID: -2116961936, guid: ade5c9c1b97fbcb4199f8f5d361bcb0b, type: 3}
+  - {fileID: 1301626751, guid: 990d157c32013b540b12c877dfbe9da0, type: 3}
+  activationPresentation: {fileID: 1064423043092237462}
+  activationPulses:
+  - {fileID: 6673998505649346033, guid: 64b30ff40538e154499931512b9d5f55, type: 3}
+  - {fileID: 625345856920198032, guid: 5b2b48346f2a40149943781731c950e0, type: 3}
+  - {fileID: 4077051429969426931, guid: a056e5c0ec1d6f84fa8155fb071c413f, type: 3}
+  - {fileID: 7388368554605874942, guid: d7749928a7d655b4b9901715df170f76, type: 3}
+  grayController: {fileID: 22100000, guid: f9aa6947b8a616340918387ad5f0df0c, type: 2}
+  grayIdle: {fileID: -1027986395, guid: 042a0da65924bfa4bad5846f8d8781ec, type: 3}
+  grayIcon: {fileID: 1626624669, guid: 4f286d8e161359c43b2fb635e99db344, type: 3}
+  grayShard: {fileID: 215418748, guid: 6a8d98fec6114664bb487394ae1e4e6e, type: 3}
+  grayPulse: {fileID: 8893133147218819985, guid: fc4c1055bca558940b4a024afa2d2098, type: 3}
 --- !u!1 &4609441940791210394
 GameObject:
   m_ObjectHideFlags: 0
@@ -611,7 +657,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 0df3f4882e48cc74e8ad305b2eab1e58, type: 3}
+  m_Sprite: {fileID: -1027943777, guid: 89b7521566e652c4caf168fd9e7a474c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -632,7 +678,7 @@ Animator:
   m_GameObject: {fileID: 4609441940791210394}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 2a8d353cc53ed0a43a46bfc435cd27e0, type: 2}
+  m_Controller: {fileID: 22100000, guid: 4aae09a110a3ed743b30b0370dab4d8b, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0

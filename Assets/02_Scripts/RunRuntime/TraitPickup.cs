@@ -292,8 +292,7 @@ public class TraitPickup : MonoBehaviour, IInteractable
         ExpeditionHUD acquireHud = FindFirstObjectByType<ExpeditionHUD>();
         if (acquireHud != null)
         {
-            string actionText = previousLevel > 0 ? "강화" : "획득";
-            acquireHud.ShowWarning($"특성 {actionText}: {traitDefinition.DisplayName} Lv{newLevel}");
+            acquireHud.ShowTraitAcquired(traitDefinition, previousLevel, newLevel);
         }
 
         traitDefinition = null;

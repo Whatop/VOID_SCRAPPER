@@ -109,6 +109,7 @@ public class PlayerReinforcementController : MonoBehaviour
     public event Action<ReinforcementDefinition, int, int> EquipmentChanged;
     public event Action<int, int, float> ChargesChanged;
     public event Action<ReinforcementDefinition> Used;
+    public event Action<ReinforcementDefinition> AcquisitionAcknowledged;
     public event Action ActiveTimedStatusesChanged;
     public event Action<bool> ReturnMarkerStateChanged;
 
@@ -163,6 +164,11 @@ public class PlayerReinforcementController : MonoBehaviour
 
     public bool Equip(ReinforcementDefinition definition, int overrideCharges = -1, bool updateRunContext = true)
     {
+        return EquipCore(definition, overrideCharges, updateRunContext, true);
+    }
+
+    private bool EquipCore(ReinforcementDefinition definition, int overrideCharges, bool updateRunContext, bool acknowledge)
+    {
         CacheReferences();
 
         if (definition == null)
@@ -201,10 +207,7 @@ public class PlayerReinforcementController : MonoBehaviour
             PushStateToRunContext();
         }
 
-        ShowWarning(
-            $"장비 장착: {definition.DisplayName}",
-            ShipCommunicationSeverity.Confirmation
-        );
+        if (acknowledge) ConfirmAcquisition();
         return true;
     }
 
@@ -223,9 +226,9 @@ public class PlayerReinforcementController : MonoBehaviour
         return EquipReplacingCurrent(definition, -1, true, ResolveDropPosition());
     }
 
-    public bool EquipWithoutDropping(ReinforcementDefinition definition, int overrideCharges = -1, bool updateRunContext = true)
+    public bool EquipWithoutDropping(ReinforcementDefinition definition, int overrideCharges = -1, bool updateRunContext = true, bool acknowledge = true)
     {
-        return Equip(definition, overrideCharges, updateRunContext);
+        return EquipCore(definition, overrideCharges, updateRunContext, acknowledge);
     }
 
     public bool EquipFromPickup(ReinforcementDefinition definition, int charges, Vector2 pickupPosition)
@@ -249,7 +252,7 @@ public class PlayerReinforcementController : MonoBehaviour
             return false;
         }
 
-        return Equip(definition, runContext.EquippedReinforcementCharges, false);
+        return EquipCore(definition, runContext.EquippedReinforcementCharges, false, false);
     }
 
     public void ClearEquipment(bool updateRunContext = true)
@@ -428,18 +431,20 @@ public class PlayerReinforcementController : MonoBehaviour
         ReinforcementDefinition previousDefinition = equippedDefinition;
         int previousCharges = currentCharges;
 
-        bool equipped = Equip(newDefinition, overrideCharges, updateRunContext);
+        bool equipped = EquipCore(newDefinition, overrideCharges, updateRunContext, false);
 
         if (!equipped)
         {
             return false;
         }
 
+        bool dropped = false;
         if (dropCurrentEquipmentOnReplace && previousDefinition != null && previousDefinition != newDefinition)
         {
-            SpawnPickup(previousDefinition, previousCharges, dropPosition);
+            dropped = SpawnPickup(previousDefinition, previousCharges, dropPosition);
         }
 
+        ConfirmAcquisition(dropped ? $"{previousDefinition.DisplayName} · 필드에 남음" : null);
         return true;
     }
 
@@ -469,7 +474,7 @@ public class PlayerReinforcementController : MonoBehaviour
             return false;
         }
 
-        bool equipped = Equip(newDefinition, overrideCharges, updateRunContext);
+        bool equipped = EquipCore(newDefinition, overrideCharges, updateRunContext, false);
 
         if (!equipped)
         {
@@ -479,12 +484,29 @@ public class PlayerReinforcementController : MonoBehaviour
         if (shouldStorePrevious && !maintenanceBay.TryStore(previousDefinition, previousCharges))
         {
             // 보관 실패 시 기존 장비로 롤백한다. 장비 유실 방지용.
-            Equip(previousDefinition, previousCharges, updateRunContext);
+            EquipCore(previousDefinition, previousCharges, updateRunContext, false);
             ShowWarning("정비소 보관 실패로 장비 교체를 취소했습니다.");
             return false;
         }
 
+        ConfirmAcquisition(shouldStorePrevious ? $"{previousDefinition.DisplayName} · 정비소 보관" : null);
         return true;
+    }
+
+    // Called only after the owning pickup/shop/storage transaction has succeeded.
+    public void ConfirmAcquisition(string previousOutcome = null)
+    {
+        if (equippedDefinition == null) return;
+        AcquisitionAcknowledged?.Invoke(equippedDefinition);
+        string message = $"장착 · {equippedDefinition.DisplayName}";
+        if (!string.IsNullOrEmpty(previousOutcome)) message += "\n" + previousOutcome;
+        FindFirstObjectByType<ExpeditionHUD>()?.ShowReinforcementAcquisition(message, this);
+    }
+
+    public void ConfirmStored(ReinforcementDefinition definition)
+    {
+        if (definition != null)
+            FindFirstObjectByType<ExpeditionHUD>()?.ShowReinforcementAcquisition($"정비소 보관 · {definition.DisplayName}", this);
     }
 
     private void ConsumeChargeAfterSuccessfulUse()

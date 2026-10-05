@@ -29,7 +29,7 @@ MonoBehaviour:
   secondaryProjectileDefinition: {fileID: 0}
   secondaryProjectileCount: 1
   secondarySpreadAngle: 0
-  predictiveShotChance: 0.6
+  predictiveShotChance: 0
   predictiveMinimumTargetSpeed: 0.5
   predictiveMaxLeadTime: 0.65
   predictiveVelocityMultiplier: 1.0

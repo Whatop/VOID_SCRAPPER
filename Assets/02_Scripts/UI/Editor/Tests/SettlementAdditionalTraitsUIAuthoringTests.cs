@@ -522,7 +522,7 @@ public sealed partial class SettlementAdditionalTraitsUIAuthoringTests
         Assert.That(view.button.colors.normalColor, Is.EqualTo(SettlementSelectionColors.SelectedBackground));
         Assert.That(view.button.colors.highlightedColor, Is.EqualTo(SettlementSelectionColors.HoverBackground));
         Assert.That(Get<TMP_Text>(panel, "equipmentRequirements").text, Does.Contain("자원 부족"));
-        Assert.That(Get<Button>(panel, "equipmentActivationButton").interactable, Is.False);
+        Assert.That(Get<Button>(panel, "equipmentActivationButton").interactable, Is.True);
         ResearchAndResources(1); panel.RefreshPanel();
         Assert.That(panel.TryExecuteEquipmentAction(), Is.EqualTo(EquipmentDevelopmentResult.Success));
         Assert.That(progress.IsEquipmentFitted(trait.TraitId), Is.False);

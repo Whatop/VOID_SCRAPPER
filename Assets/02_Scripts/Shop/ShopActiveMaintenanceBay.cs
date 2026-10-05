@@ -219,6 +219,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
             storedCharges[index] = currentCharges;
 
             controller.ClearEquipment(true);
+            controller.ConfirmStored(currentDefinition);
             return true;
         }
 
@@ -228,7 +229,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
             return false;
         }
 
-        bool equipped = controller.EquipWithoutDropping(targetStored, targetCharges, true);
+        bool equipped = controller.EquipWithoutDropping(targetStored, targetCharges, true, false);
 
         if (!equipped)
         {
@@ -237,6 +238,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
 
         storedItems[index] = currentDefinition;
         storedCharges[index] = currentCharges;
+        controller.ConfirmAcquisition($"{currentDefinition.DisplayName} · 정비소 보관");
         return true;
     }
 
@@ -268,7 +270,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
         // 현재 액티브가 없으면 보관 아이템을 장착하고 슬롯은 빈 칸 처리.
         if (currentEquipped == null)
         {
-            bool equippedOnly = controller.EquipWithoutDropping(selectedStored, selectedCharges, true);
+            bool equippedOnly = controller.EquipWithoutDropping(selectedStored, selectedCharges, true, false);
 
             if (!equippedOnly)
             {
@@ -276,6 +278,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
             }
 
             ClearSlot(index);
+            controller.ConfirmAcquisition();
             return true;
         }
 
@@ -289,7 +292,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
             return false;
         }
 
-        bool equipped = controller.EquipWithoutDropping(selectedStored, selectedCharges, true);
+        bool equipped = controller.EquipWithoutDropping(selectedStored, selectedCharges, true, false);
 
         if (!equipped)
         {
@@ -298,6 +301,7 @@ public class ShopActiveMaintenanceBay : MonoBehaviour
 
         storedItems[index] = currentEquipped;
         storedCharges[index] = currentCharges;
+        controller.ConfirmAcquisition($"{currentEquipped.DisplayName} · 정비소 보관");
         return true;
     }
 

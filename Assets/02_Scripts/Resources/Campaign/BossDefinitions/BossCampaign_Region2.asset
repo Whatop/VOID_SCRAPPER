@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bossId: 2
   expeditionDepth: 1
-  displayName: "회수 포식자"
+  displayName: "\uD68C\uC218 \uD3EC\uC2DD\uC790"
   subtitle: SALVAGE DEVOURER
   storyPart: 2
   grantStoryPartOnFirstDefeat: 1
+  storyPartSprite: {fileID: 21300000, guid: 1f2f38c45c34a4e4c8ab82cfb6fd2aef, type: 3}
   guaranteedPassive: {fileID: 11400000, guid: 40cb441cdce840269674f4c1e05bd059, type: 2}
   grantGuaranteedPassiveEachDefeat: 1
   coreShardReward: 2

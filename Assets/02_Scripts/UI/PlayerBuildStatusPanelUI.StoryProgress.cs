@@ -41,7 +41,7 @@ public partial class PlayerBuildStatusPanelUI
         for (int i = 1; i <= 3; i++)
             if (progress != null && progress.HasBossStoryPart((BossStoryPart)i)) acquired++;
         SetButtonLabel(storyProgressInspectButton,
-            ResolveStoryText("ui.story_recovery.inspect", InventoryText("회수 기록", "Recovery log")) + " " + acquired + "/3");
+            ResolveStoryText("ui.story_recovery.inspect", InventoryText("회수 기록", "Recovery Log")) + " " + acquired + "/3");
         storyProgressSummaryText.text = ResolveStoryText("ui.story_recovery.analysis_count",
             InventoryText("분석 완료 {count}/3", "Analyzed {count}/3"))
             .Replace("{count}", (progress != null ? progress.AnalyzedEquipmentComponentCount : 0).ToString());

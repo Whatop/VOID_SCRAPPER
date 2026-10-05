@@ -63,12 +63,16 @@ defense.core.combat,오염 코어 격리 {phase} / 3,Isolate corrupted core {pha
 defense.core.reactivate,{partName} 재활성화,Reactivate {partName},,,,Disabled core interaction,Presentation only,28
 defense.core.fused,코어 안정화 {count} / 3,Cores stabilized {count} / 3,,,,Defense fusion,Presentation only,28
 defense.core.complete,항로 코어 안정화 완료,Route Core stabilized,,,,Defense complete,Presentation only,28
-ui.story_recovery.title,스토리 회수품,,,,,Story Recovery section,Read-only permanent story recovery inventory,16
-ui.story_recovery.acquired,획득,,,,,Acquired story part,Read-only permanent story recovery inventory,8
-ui.story_recovery.unacquired,미획득,,,,,Unacquired story part,Read-only permanent story recovery inventory,8
-ui.story_recovery.sector_stabilizer,구획 안정기,,,,,Sector Stabilizer name,Read-only permanent story recovery inventory,16
-ui.story_recovery.matter_compressor,물질 압축로,,,,,Matter Compressor name,Read-only permanent story recovery inventory,16
-ui.story_recovery.phase_navigation_lens,위상 항법 렌즈,,,,,Phase Navigation Lens name,Read-only permanent story recovery inventory,16
+defense.purple.start,항로 코어 신호 소실 · 레이더 탐색 필요,Core signal lost - scan with Radar,,,,Route Core Purple finale,Active scan required,48
+defense.purple.exposed,오염 코어 노출,Corruption exposed,,,,Route Core Purple finale,Fixed damage window,32
+defense.purple.hidden,신호 재은폐,Signal hidden again,,,,Route Core Purple finale,Scan again,32
+defense.purple.hint,[{radar}] 레이더  [{scan}] 탐색,[{radar}] Radar  [{scan}] Scan,,,,Route Core Purple finale,Rebound input labels,64
+ui.story_recovery.title,회수 기록,Recovery Log,,,,Story Recovery section,Read-only permanent story recovery inventory,16
+ui.story_recovery.acquired,획득,Recovered,,,,Acquired story part,Read-only permanent story recovery inventory,8
+ui.story_recovery.unacquired,미획득,Not Acquired,,,,Unacquired story part,Read-only permanent story recovery inventory,8
+ui.story_recovery.sector_stabilizer,구획 안정기,Sector Stabilizer,,,,Sector Stabilizer name,Read-only permanent story recovery inventory,16
+ui.story_recovery.matter_compressor,물질 압축로,Matter Compressor,,,,Matter Compressor name,Read-only permanent story recovery inventory,16
+ui.story_recovery.phase_navigation_lens,위상 항법 렌즈,Phase Navigation Lens,,,,Phase Navigation Lens name,Read-only permanent story recovery inventory,16
 system.campaign.recovered.sector_stabilizer,구획 안정기 회수 완료 · 영구 보관됨,,,,,Sector Stabilizer recovered,Presentation after authoritative permanent grant and save,64
 system.campaign.recovered.matter_compressor,물질 압축로 회수 완료 · 영구 보관됨,,,,,Matter Compressor recovered,Presentation after authoritative permanent grant and save,64
 system.campaign.recovered.phase_navigation_lens,위상 항법 렌즈 회수 완료 · 영구 보관됨,,,,,Phase Navigation Lens recovered,Presentation after authoritative permanent grant and save,64
@@ -242,5 +246,48 @@ equipment.special_phase_navigation.description,위상 항법 렌즈 분석으로
 ui.settlement.equipment.special,특수 연구 장비,Special research,,,,Equipment Development,Shared subsection,24
 ui.settlement.equipment.special_heading,분석 성과 · 특수 장비 도면,Research-derived Special blueprints,,,,Equipment Development,Shared subsection,48
 ui.story_recovery.analyzed,분석 완료,Analyzed,,,,Read-only story status,,16
-ui.story_recovery.inspect,회수 기록,Recovery log,,,,Inventory read-only inspection,,24
+ui.story_recovery.inspect,회수 기록,Recovery Log,,,,Inventory read-only inspection,,24
 ui.story_recovery.analysis_count,분석 완료 {count}/3,Analyzed {count}/3,,,,Inventory read-only inspection,,24
+ui.hangar.weapon,무장,Weapon,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.weapon.mg,기관총,Machine Gun,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.weapon.sg,샷건,Shotgun,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.weapon.sn,저격총,Sniper,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.ship.muchingun_ship.name,스위퍼,Sweeper,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.ship.shotgun_ship.name,브리처,Breacher,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.ship.sniper_ship.name,랜서,Lancer,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.ship.muchingun_ship.description,기본 수확용 기체. 중거리 기관총으로 적을 밀어내고 잔해와 컨테이너를 안정적으로 파괴한다.,A salvage ship. Its mid-range machine gun pushes back enemies and reliably breaks debris and containers.,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.ship.shotgun_ship.description,근접 전투 특화,Specialized for close-range combat.,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.ship.sniper_ship.description,"은폐, 원거리 전투 특화",Specialized for stealth and long-range combat.,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.locked,개발 잠김,Development locked,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.analysis,분석한 부품 {current} / {required},Analyzed components {current} / {required},,,,Hangar fresh deployment,Presentation only,
+ui.hangar.requirement,필요 조건,Requirement,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.available,개발 가능,Ready to develop,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.unavailable,조건 미충족,Requirements not met,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.cost,개발 비용,Development cost,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.projection,출격 예상 성능,Fresh deployment,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.base,기본 기체 성능,Base chassis,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.innate,기체 특성,Innate trait,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.cargo,적재,Cargo,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.armor,방어도,Armor,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.damage,공격력,Damage,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.fire_rate,연사력,Fire rate,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.move,이동 속도,Move speed,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.dash_cooldown,대시 재사용,Dash cooldown,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.dash_distance,대시 거리,Dash distance,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.harvest,수확량,Harvest yield,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.harvest_damage,수확 오브젝트 피해,Harvest damage,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.recovery,회복 효율,Recovery,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.scrap,스크랩 획득량,Scrap gain,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.projectile_speed,투사체 속도,Projectile speed,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.range,사거리,Range,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.spread,탄 퍼짐,Spread,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.charge_time,차징 시간,Charge time,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.charge_damage,차징 피해,Charge damage,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.pickup,흡수 범위,Pickup range,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.radar,레이더 반경,Radar radius,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.taunt,도발 지속,Taunt duration,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.stealth,은밀 표식,Stealth marker,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.homing_angle,유도 각도,Homing angle,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.homing_range,유도 거리,Homing range,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.projectiles,탄 수,Projectiles,,,,Hangar fresh deployment,Presentation only,
+ui.hangar.pierce,관통 횟수,Pierce count,,,,Hangar fresh deployment,Presentation only,

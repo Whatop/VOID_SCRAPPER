@@ -1,0 +1,358 @@
+fileFormatVersion: 2
+guid: a2e7076288667214abf9f0991d0b73e2
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -1763947315197249161
+    second: VFX_Barrage_TargetTelegraph_0
+  - first:
+      213: 4289160323114658025
+    second: VFX_Barrage_TargetTelegraph_1
+  - first:
+      213: -2620336125896012558
+    second: VFX_Barrage_TargetTelegraph_2
+  - first:
+      213: -5223655514492032455
+    second: VFX_Barrage_TargetTelegraph_3
+  - first:
+      213: -4926026628745130440
+    second: VFX_Barrage_TargetTelegraph_4
+  - first:
+      213: -4295768429849317670
+    second: VFX_Barrage_TargetTelegraph_5
+  - first:
+      213: 8447080528927121981
+    second: VFX_Barrage_TargetTelegraph_6
+  - first:
+      213: -3338861246101984701
+    second: VFX_Barrage_TargetTelegraph_7
+  - first:
+      213: -8381144778978545132
+    second: VFX_Barrage_TargetTelegraph_8
+  - first:
+      213: 134037560393851868
+    second: VFX_Barrage_TargetTelegraph_9
+  - first:
+      213: 8499586065964154359
+    second: VFX_Barrage_TargetTelegraph_10
+  - first:
+      213: -7213087855205267307
+    second: VFX_Barrage_TargetTelegraph_11
+  - first:
+      213: 3591775841563641441
+    second: VFX_Barrage_TargetTelegraph_12
+  - first:
+      213: -2889951089825989584
+    second: VFX_Barrage_TargetTelegraph_13
+  - first:
+      213: -7167169525860783908
+    second: VFX_Barrage_TargetTelegraph_14
+  - first:
+      213: -7943442311103135474
+    second: VFX_Barrage_TargetTelegraph_15
+  - first:
+      213: -6853272211770522262
+    second: VFX_Barrage_TargetTelegraph_16
+  - first:
+      213: -1409961822613377174
+    second: VFX_Barrage_TargetTelegraph_17
+  - first:
+      213: 8267709439440273116
+    second: VFX_Barrage_TargetTelegraph_18
+  - first:
+      213: -8600011311149280766
+    second: VFX_Barrage_TargetTelegraph_19
+  - first:
+      213: -4056347387081231704
+    second: VFX_Barrage_TargetTelegraph_20
+  - first:
+      213: -3101617055919432652
+    second: VFX_Barrage_TargetTelegraph_21
+  - first:
+      213: -2761616336183391647
+    second: VFX_Barrage_TargetTelegraph_22
+  - first:
+      213: 6518250810400764602
+    second: VFX_Barrage_TargetTelegraph_23
+  - first:
+      213: 5440334841458580905
+    second: VFX_Barrage_TargetTelegraph_24
+  - first:
+      213: 2078795539027938917
+    second: VFX_Barrage_TargetTelegraph_25
+  - first:
+      213: 1476646938254790732
+    second: VFX_Barrage_TargetTelegraph_26
+  - first:
+      213: -2836526304730122876
+    second: VFX_Barrage_TargetTelegraph_27
+  - first:
+      213: -4055401047897634626
+    second: VFX_Barrage_TargetTelegraph_28
+  - first:
+      213: 9218303739665748548
+    second: VFX_Barrage_TargetTelegraph_29
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Barrage_TargetTelegraph_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 663fb6b2606bbca43949cf3d3a4ebc34
+      internalID: -1014363652
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_TargetTelegraph_01
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 80544c50077bd4d4ab956078f699fc67
+      internalID: 521381621
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_TargetTelegraph_02
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e9d5a954d7090364489682f1a8cbcb7d
+      internalID: 1244543221
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_TargetTelegraph_03
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8a620b145814ebf4f921df170f53739d
+      internalID: -1584805170
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_TargetTelegraph_04
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e65044777e6b90d4aad60f6d933b3c6f
+      internalID: 1227036690
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Barrage_TargetTelegraph_05
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8273b62f661f8254fbc7e669221a1136
+      internalID: -275823433
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: f387a4613a857a64bba389237c9a2a23
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Barrage_TargetTelegraph_00: -1014363652
+      VFX_Barrage_TargetTelegraph_01: 521381621
+      VFX_Barrage_TargetTelegraph_02: 1244543221
+      VFX_Barrage_TargetTelegraph_03: -1584805170
+      VFX_Barrage_TargetTelegraph_04: 1227036690
+      VFX_Barrage_TargetTelegraph_05: -275823433
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

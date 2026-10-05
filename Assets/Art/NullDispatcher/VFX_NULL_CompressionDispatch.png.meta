@@ -1,0 +1,367 @@
+fileFormatVersion: 2
+guid: 54c4b1bbcc8fb434dace76aed61c282f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2664312614523338567
+    second: VFX_NULL_CompressionDispatch_0
+  - first:
+      213: 7003677847150844960
+    second: VFX_NULL_CompressionDispatch_1
+  - first:
+      213: -768717539504467766
+    second: VFX_NULL_CompressionDispatch_2
+  - first:
+      213: 6608852987862424821
+    second: VFX_NULL_CompressionDispatch_3
+  - first:
+      213: 774385297479830064
+    second: VFX_NULL_CompressionDispatch_4
+  - first:
+      213: -3779339111028456076
+    second: VFX_NULL_CompressionDispatch_5
+  - first:
+      213: 1894347818278099122
+    second: VFX_NULL_CompressionDispatch_6
+  - first:
+      213: 5078596845782764809
+    second: VFX_NULL_CompressionDispatch_7
+  - first:
+      213: 8000696905282710837
+    second: VFX_NULL_CompressionDispatch_8
+  - first:
+      213: 5603909608750852763
+    second: VFX_NULL_CompressionDispatch_9
+  - first:
+      213: -4783831970423901404
+    second: VFX_NULL_CompressionDispatch_10
+  - first:
+      213: -3681824134108515314
+    second: VFX_NULL_CompressionDispatch_11
+  - first:
+      213: -3007914242645865079
+    second: VFX_NULL_CompressionDispatch_12
+  - first:
+      213: -2284890765209924786
+    second: VFX_NULL_CompressionDispatch_13
+  - first:
+      213: 2766463102584285782
+    second: VFX_NULL_CompressionDispatch_14
+  - first:
+      213: 2026523572022070530
+    second: VFX_NULL_CompressionDispatch_15
+  - first:
+      213: 8466923915196229326
+    second: VFX_NULL_CompressionDispatch_16
+  - first:
+      213: -4355959331055298234
+    second: VFX_NULL_CompressionDispatch_17
+  - first:
+      213: 8013777484295075050
+    second: VFX_NULL_CompressionDispatch_18
+  - first:
+      213: 3050587618046521553
+    second: VFX_NULL_CompressionDispatch_19
+  - first:
+      213: 281590734388701132
+    second: VFX_NULL_CompressionDispatch_20
+  - first:
+      213: 6014332373014595149
+    second: VFX_NULL_CompressionDispatch_21
+  - first:
+      213: -193837653284501188
+    second: VFX_NULL_CompressionDispatch_22
+  - first:
+      213: -3992237423337891221
+    second: VFX_NULL_CompressionDispatch_23
+  - first:
+      213: -2629995593655421852
+    second: VFX_NULL_CompressionDispatch_24
+  - first:
+      213: -4572369933771873171
+    second: VFX_NULL_CompressionDispatch_25
+  - first:
+      213: 4835988750493928339
+    second: VFX_NULL_CompressionDispatch_26
+  - first:
+      213: -1159195062902896874
+    second: VFX_NULL_CompressionDispatch_27
+  - first:
+      213: 5324721102386192188
+    second: VFX_NULL_CompressionDispatch_28
+  - first:
+      213: -5823074937668691995
+    second: VFX_NULL_CompressionDispatch_29
+  - first:
+      213: -2181443104674522082
+    second: VFX_NULL_CompressionDispatch_30
+  - first:
+      213: -5491952277852455885
+    second: VFX_NULL_CompressionDispatch_31
+  - first:
+      213: -5702963020600279534
+    second: VFX_NULL_CompressionDispatch_32
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_NULL_CompressionDispatch_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 141fe6bc4ba4ac5449049021e5b5daac
+      internalID: -1087801693
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CompressionDispatch_01
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c3af1d644b8da5a45aee4ea986146d20
+      internalID: 1117976369
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CompressionDispatch_02
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3dc887e335bf8c44b960b03d3b0e1261
+      internalID: 905203312
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CompressionDispatch_03
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7e00494ad26ab7d43b65177c3188f735
+      internalID: 520206426
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CompressionDispatch_04
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3a95b27fa5e5363479299049cb4d7cd3
+      internalID: 1717428650
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CompressionDispatch_05
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5b017c2f38aa11d409619298e132a568
+      internalID: 938640972
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: b45462d2bb5294545b9c89ddf9aedcd3
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_NULL_CompressionDispatch_00: -1087801693
+      VFX_NULL_CompressionDispatch_01: 1117976369
+      VFX_NULL_CompressionDispatch_02: 905203312
+      VFX_NULL_CompressionDispatch_03: 520206426
+      VFX_NULL_CompressionDispatch_04: 1717428650
+      VFX_NULL_CompressionDispatch_05: 938640972
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

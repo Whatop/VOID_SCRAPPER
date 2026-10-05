@@ -122,6 +122,8 @@ public class InteractionPromptUI : MonoBehaviour
     private RunRuntimeTraitStore subscribedTraitStore;
     private PermanentProgress subscribedPermanentProgress;
     private PlayerReinforcementController subscribedReinforcementController;
+    private EmergencyReturnController emergencyReturn;
+    private EmergencyReturnExitSequence emergencyExit;
 
     private void Reset()
     {
@@ -147,12 +149,19 @@ public class InteractionPromptUI : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+        hintHud = FindFirstObjectByType<ExpeditionHUD>();
         ConfigureCompactPromptPresentation();
         ConfigureFieldLootPresentation();
 
         if (playerInteractor == null)
         {
             playerInteractor = FindFirstObjectByType<PlayerInteractor>();
+        }
+
+        if (playerInteractor != null)
+        {
+            emergencyReturn = playerInteractor.GetComponent<EmergencyReturnController>();
+            emergencyExit = playerInteractor.GetComponent<EmergencyReturnExitSequence>();
         }
 
         ResolveInputActions();
@@ -190,6 +199,7 @@ public class InteractionPromptUI : MonoBehaviour
     private void OnDisable()
     {
         InputSystem.onActionChange -= HandleInputActionChange;
+        UpdateMenuHintPriority(false);
 
         if (playerInteractor != null)
         {
@@ -676,10 +686,7 @@ public class InteractionPromptUI : MonoBehaviour
         int fieldCharges = ResolvePickupCharges(pickup, definition);
         SetText(
             lootDescriptionText,
-            BuildLootDescription(
-                definition.Description,
-                BuildReinforcementSummary(definition, fieldCharges)
-            )
+            BuildReinforcementSummary(definition, fieldCharges)
         );
 
         ReinforcementDefinition currentDefinition = reinforcementController != null
@@ -695,10 +702,7 @@ public class InteractionPromptUI : MonoBehaviour
             SetText(lootCurrentNameText, LocalizeFieldLootText(currentDefinition.DisplayName));
             SetText(
                 lootCurrentDescriptionText,
-                BuildLootDescription(
-                    currentDefinition.Description,
-                    BuildReinforcementSummary(currentDefinition, reinforcementController.CurrentCharges)
-                )
+                BuildReinforcementSummary(currentDefinition, reinforcementController.CurrentCharges)
             );
             SetText(lootOwnedStateText, "교체 · 장착 중인 장비는 필드에 남습니다");
         }
@@ -840,7 +844,7 @@ public class InteractionPromptUI : MonoBehaviour
             return string.Empty;
         }
 
-        string effectSummary = LocalizeFieldLootText(definition.BuildEffectSummary());
+        string effectSummary = LocalizeFieldLootText(definition.BuildEffectSummary()).Replace("\n", " · ");
         string chargeSummary = $"사용 횟수 {Mathf.Clamp(charges, 0, definition.MaxCharges)}/{definition.MaxCharges}";
 
         if (definition.UsesRecharge)
@@ -1337,7 +1341,27 @@ public class InteractionPromptUI : MonoBehaviour
 
         rectTransform.anchoredPosition = localPoint;
         UpdatePromptChildLayout(lastProgressVisible);
+        ClampCompactPromptToCanvas();
         SetVisible(true);
+    }
+
+    private void ClampCompactPromptToCanvas()
+    {
+        // Loot cards already have their own bounds policy. Keep ordinary world
+        // prompts below the top HUD and above the bottom controls at 480x270.
+        if (rectTransform == null || canvasRectTransform == null ||
+            currentTarget is TraitPickup || currentTarget is ReinforcementPickup)
+        {
+            return;
+        }
+
+        rectTransform.GetWorldCorners(lootDetailWorldCorners);
+        Vector3 bottomLeft = canvasRectTransform.InverseTransformPoint(lootDetailWorldCorners[0]);
+        Vector3 topRight = canvasRectTransform.InverseTransformPoint(lootDetailWorldCorners[2]);
+        Rect bounds = canvasRectTransform.rect;
+        float x = ResolveBoundsOffset(bottomLeft.x, topRight.x, bounds.xMin + 8f, bounds.xMax - 8f);
+        float y = ResolveBoundsOffset(bottomLeft.y, topRight.y, bounds.yMin + 36f, bounds.yMax - 64f);
+        rectTransform.position += canvasRectTransform.TransformVector(new Vector3(x, y, 0f));
     }
 
     private Vector3 ResolveTargetAnchorWorldPosition()
@@ -1545,8 +1569,28 @@ public class InteractionPromptUI : MonoBehaviour
         currentAnchor = null;
     }
 
+    private bool regionBossSuppressed;
+    private ExpeditionHUD hintHud;
+    private bool suppressesMenuHints;
+    public void SetRegionBossSuppressed(bool suppressed)
+    {
+        regionBossSuppressed = suppressed;
+        SetVisible(!suppressed && currentTarget != null);
+    }
+
     public void SetVisible(bool visible)
     {
+        // The target may remain nearby during a boss fight. Suppress only its
+        // presentation; the interactor and encounter retain all input authority.
+        GameState state = GameStateManager.Instance != null
+            ? GameStateManager.Instance.CurrentState : GameState.Expedition;
+        visible &= !regionBossSuppressed && state != GameState.BossBattle && state != GameState.FinalBossBattle;
+        // A nearby swapped item can stay targeted during return preparation.
+        // Keep the gauge/release instruction readable without changing interaction authority.
+        visible &= !(emergencyReturn != null && emergencyReturn.IsPreparing) &&
+                   !(emergencyExit != null && emergencyExit.IsPlaying);
+        UpdateMenuHintPriority(visible);
+
         if (!visible)
         {
             SetLootDetailVisible(false);
@@ -1570,6 +1614,13 @@ public class InteractionPromptUI : MonoBehaviour
         {
             rootObject.SetActive(visible);
         }
+    }
+
+    private void UpdateMenuHintPriority(bool contextualActionVisible)
+    {
+        if (suppressesMenuHints == contextualActionVisible) return;
+        suppressesMenuHints = contextualActionVisible;
+        hintHud?.SetMenuHintsSuppressed(this, contextualActionVisible);
     }
 
     private void SetProgressVisible(bool visible, float ratio)

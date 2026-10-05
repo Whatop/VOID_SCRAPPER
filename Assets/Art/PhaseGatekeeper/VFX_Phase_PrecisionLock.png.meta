@@ -1,0 +1,346 @@
+fileFormatVersion: 2
+guid: d96535b7d2084f544ac41f56799fb158
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4796877056524118612
+    second: VFX_Phase_PrecisionLock_0
+  - first:
+      213: 6776854026431018083
+    second: VFX_Phase_PrecisionLock_1
+  - first:
+      213: -6470397288701434405
+    second: VFX_Phase_PrecisionLock_2
+  - first:
+      213: -2178161100874181793
+    second: VFX_Phase_PrecisionLock_3
+  - first:
+      213: 751044165806291478
+    second: VFX_Phase_PrecisionLock_4
+  - first:
+      213: -2222626196110372802
+    second: VFX_Phase_PrecisionLock_5
+  - first:
+      213: 6442428269164463004
+    second: VFX_Phase_PrecisionLock_6
+  - first:
+      213: -4799013539951140686
+    second: VFX_Phase_PrecisionLock_7
+  - first:
+      213: 3162643846423621873
+    second: VFX_Phase_PrecisionLock_8
+  - first:
+      213: -6940781199390478629
+    second: VFX_Phase_PrecisionLock_9
+  - first:
+      213: -2346857233862729150
+    second: VFX_Phase_PrecisionLock_10
+  - first:
+      213: 2392856648555594618
+    second: VFX_Phase_PrecisionLock_11
+  - first:
+      213: 1118204517154693186
+    second: VFX_Phase_PrecisionLock_12
+  - first:
+      213: -3777987726791517291
+    second: VFX_Phase_PrecisionLock_13
+  - first:
+      213: 2573017781896673808
+    second: VFX_Phase_PrecisionLock_14
+  - first:
+      213: -1794413215876056183
+    second: VFX_Phase_PrecisionLock_15
+  - first:
+      213: 316650613601751923
+    second: VFX_Phase_PrecisionLock_16
+  - first:
+      213: 4913178852625474209
+    second: VFX_Phase_PrecisionLock_17
+  - first:
+      213: -9012318676235664436
+    second: VFX_Phase_PrecisionLock_18
+  - first:
+      213: -3137659370870954312
+    second: VFX_Phase_PrecisionLock_19
+  - first:
+      213: 6106814252946048818
+    second: VFX_Phase_PrecisionLock_20
+  - first:
+      213: 231880168810155514
+    second: VFX_Phase_PrecisionLock_21
+  - first:
+      213: -7013897538989498936
+    second: VFX_Phase_PrecisionLock_22
+  - first:
+      213: 7472917238357210566
+    second: VFX_Phase_PrecisionLock_23
+  - first:
+      213: 5377498470506189311
+    second: VFX_Phase_PrecisionLock_24
+  - first:
+      213: 5168762364343028368
+    second: VFX_Phase_PrecisionLock_25
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Phase_PrecisionLock_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bd541d264a658754bbf59dcb57b99820
+      internalID: 227461761
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Phase_PrecisionLock_01
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 647b4c4db0868d749a95bf4437818dcb
+      internalID: 504260539
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Phase_PrecisionLock_02
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d789f5e63dfd04842a53f85d027049e5
+      internalID: 2142953088
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Phase_PrecisionLock_03
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ab2ebbd2e4128cc40878aad561369209
+      internalID: 2040470282
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Phase_PrecisionLock_04
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 77d9525fc581ad54eaa681a8c4e32c9e
+      internalID: -110024755
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Phase_PrecisionLock_05
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 44859f373ef0e714dbf53b479749d8c5
+      internalID: 1349234663
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: a0c25392c13ba9f44a10ab2aab355172
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Phase_PrecisionLock_00: 227461761
+      VFX_Phase_PrecisionLock_01: 504260539
+      VFX_Phase_PrecisionLock_02: 2142953088
+      VFX_Phase_PrecisionLock_03: 2040470282
+      VFX_Phase_PrecisionLock_04: -110024755
+      VFX_Phase_PrecisionLock_05: 1349234663
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

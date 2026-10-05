@@ -1,0 +1,1 @@
+Sector intro and shield VFX authored with Aseprite CLI + Lua.

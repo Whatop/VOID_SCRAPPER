@@ -1,0 +1,92 @@
+[
+  {
+    "Relative": "Output\\06_SectorAdministrator\\sector_administrator_idle.png",
+    "Name": "boss_green.png",
+    "SHA256": "B3FD582D3440A6F73E3847335785205C195057C7CCD1F417940B1A2ED235E594"
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_ContainmentBarrier.aseprite",
+    "Name": "barrier.aseprite",
+    "SHA256": "3A6FCB258159F1B33EE9C2E5967509224592E585B2F20D0AC6E1CFD8D38E8DE5"
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_ContainmentBarrier.png",
+    "Name": "barrier.png",
+    "SHA256": "CE61F2C2F76078C5F8BA6D376A45E025ED364B740B4F77BD543EB7740471295C"
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_ContainmentBarrier.json",
+    "Name": "barrier.json",
+    "SHA256": "761E122BB7EE86BB423C7CEFBDD52301A01AEED90A57B1D071A8C9D11149FED6"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Space Kit\\PlayerBullet.png",
+    "Name": "missile_body.png",
+    "SHA256": "1A8CA068A0C820874D2756A2EC00094FB536F59B02345BD8D9323880882135C4"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Space Kit\\PlayerBullet.png.meta",
+    "Name": "missile_body.png.meta",
+    "SHA256": "EF5818A41EB9468D13348B9F791691307C925E58CE904E7E0E54CBFEEE116F7E"
+  },
+  {
+    "Relative": "..\\..\\Assets\\02_Scripts\\Resources\\VFX\\PF_Player_MG_DashMissile.prefab",
+    "Name": "player_missile.prefab",
+    "SHA256": "3C61B59462DADDCE682A591AF647E108F7B7085D189F86ECC8D17B310CBE9117"
+  },
+  {
+    "Relative": "..\\..\\Assets\\03_Prefabs\\VFX\\SectorGuidedMissile.prefab",
+    "Name": "enemy_missile.prefab",
+    "SHA256": "78094C7C85BC1349BDAAA7D793D5FBFA66F1AD3FC82C67D7CCDE45A88D531D3E"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Art\\SectorAdministrator\\VFX_Sector_ContainmentBarrier.png",
+    "Name": "production_barrier.png",
+    "SHA256": "CE61F2C2F76078C5F8BA6D376A45E025ED364B740B4F77BD543EB7740471295C"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Art\\SectorAdministrator\\VFX_Sector_ContainmentBarrier.png.meta",
+    "Name": "production_barrier.png.meta",
+    "SHA256": "461B01D9997605D4D944C1EF34BC0365AA7328D07EBDA70536CD2C8B5BFF0A17"
+  },
+  {
+    "Relative": "Input\\01_Player\\Px_Player.png",
+    "Name": "player.png",
+    "SHA256": "3BFD635CC357A8857CDD4B9C558224D139F067AD7A85A18024AA05D3409FEE1A"
+  },
+  {
+    "Relative": "Output\\25_SectorSupportVFX\\manifest.json",
+    "Name": "previous_manifest.json",
+    "SHA256": "E2606087921B4BBCAD352B681CBFAD7677739C63B470178B669B65E536239AF1"
+  },
+  {
+    "Relative": "Output\\25_SectorSupportVFX\\VFX_Sector_EnemyMissileTrail.aseprite",
+    "Name": "VFX_Sector_EnemyMissileTrail.aseprite",
+    "SHA256": "8DB4B4EC62B25D5C5327A220BA90C67EC8D2B1EAE47BA8A1875AA22F0D6FADD3"
+  },
+  {
+    "Relative": "Output\\25_SectorSupportVFX\\VFX_Sector_RectangleRelease.aseprite",
+    "Name": "VFX_Sector_RectangleRelease.aseprite",
+    "SHA256": "0B8F1D5324DA1ABBAF927F3F0BE8C143F976549A3BED226763F677882450CA57"
+  },
+  {
+    "Relative": "Output\\25_SectorSupportVFX\\VFX_Sector_RectangleCorner.aseprite",
+    "Name": "VFX_Sector_RectangleCorner.aseprite",
+    "SHA256": "A8244078337462C309789A98944B9596962B659990FDBB06B80143D4319EED75"
+  },
+  {
+    "Relative": "Output\\25_SectorSupportVFX\\VFX_Sector_BarrierFormationFront.aseprite",
+    "Name": "VFX_Sector_BarrierFormationFront.aseprite",
+    "SHA256": "D010A8B10BDB6EFB64E3C04FF75DFAC4372555C597466478DD22FF0EED74569C"
+  },
+  {
+    "Relative": "Output\\25_SectorSupportVFX\\VFX_Sector_BarrierActivationSpark.aseprite",
+    "Name": "VFX_Sector_BarrierActivationSpark.aseprite",
+    "SHA256": "5C9A1864DE4DDF468ACBB30B21C466D7AAA23C77696038D5EF1E45EBC0A69EC8"
+  },
+  {
+    "Relative": "Output\\25_SectorSupportVFX\\VFX_Sector_BarrierStabilizationPulse.aseprite",
+    "Name": "VFX_Sector_BarrierStabilizationPulse.aseprite",
+    "SHA256": "2CB1BA6236AE816BF02BEED605A1613E9A529782407F2306C4CDC134D62250ED"
+  }
+]

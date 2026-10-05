@@ -1,4 +1,5 @@
 using TMPro;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -96,6 +97,29 @@ public class ReinforcementSlotUI : MonoBehaviour
     [SerializeField] private bool showPartialRechargeWhileUsable = true;
 
     private ReinforcementDefinition currentDefinition;
+    private Tween acquisitionAccent;
+    private Vector3 settledScale;
+    private bool hasSettledScale;
+
+    public void PresentAcquisition()
+    {
+        ClearAcquisitionAccent();
+        if (!isActiveAndEnabled) return;
+        settledScale = transform.localScale;
+        hasSettledScale = true;
+        acquisitionAccent = transform.DOPunchScale(settledScale * .12f, .55f, 1, .25f)
+            .SetUpdate(true).SetLink(gameObject, LinkBehaviour.KillOnDisable)
+            .OnComplete(() => { transform.localScale = settledScale; acquisitionAccent = null; });
+    }
+
+    private void ClearAcquisitionAccent()
+    {
+        acquisitionAccent?.Kill();
+        acquisitionAccent = null;
+        if (hasSettledScale) transform.localScale = settledScale;
+    }
+
+    private void OnDisable() => ClearAcquisitionAccent();
 
     public void ConfigureRuntime(
         GameObject presentationRoot,
@@ -167,6 +191,7 @@ public class ReinforcementSlotUI : MonoBehaviour
 
     public void SetEmpty()
     {
+        ClearAcquisitionAccent();
         currentDefinition = null;
 
         SetActive(equippedRoot, false);
@@ -226,7 +251,7 @@ public class ReinforcementSlotUI : MonoBehaviour
 
         SetIcon(icon, canUse ? readyIconColor : disabledIconColor);
         SetDisabledOverlay(unavailable && !isRecharging);
-        SetReadyGlow(canUse);
+        SetReadyGlow(canUse && !hasActiveDuration);
         SetActiveDuration(hasActiveDuration, activeDurationRatio);
         SetChargeText(currentCharges, maxCharges);
 
@@ -247,6 +272,13 @@ public class ReinforcementSlotUI : MonoBehaviour
                 canUse,
                 isRecharging || (!hasAnyCharge && definition.UsesRecharge)
             );
+        }
+
+        // Duration is cyan and drains; recharge is neutral and fills. Never layer both.
+        if (hasActiveDuration && activeDurationFillImage != null)
+        {
+            if (iconRechargeFillImage != null) iconRechargeFillImage.enabled = false;
+            if (iconImage != null) iconImage.color = disabledIconColor;
         }
     }
 

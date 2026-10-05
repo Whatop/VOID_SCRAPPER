@@ -214,10 +214,7 @@ public sealed class ExpeditionOperationController : MonoBehaviour
 
     private bool TryInitializeRegion3BossInvestigation(ExpeditionMapGenerator generatedMap)
     {
-        RunManager runManager = RunManager.Instance;
-        if (runManager == null ||
-            !runManager.HasActiveRun ||
-            runManager.CurrentRun.ExpeditionDepth != ExpeditionDepth.DeepZone2)
+        if (generatedMap == null || !generatedMap.UsesRegion3PhaseGatekeeperFoundation)
         {
             return false;
         }

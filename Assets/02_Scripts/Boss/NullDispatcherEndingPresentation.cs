@@ -90,6 +90,7 @@ public sealed class NullDispatcherEndingPresentation : MonoBehaviour
         if (run != null) run.RunEnded += HandleRunEnded;
         if (state != null) state.StateChanged += HandleStateChanged;
         if (dialogueEntry != null) dialogueEntry.Completed += HandleDialogueCompleted;
+        GetComponent<NullDispatcherPresentation>()?.ShowEndingCore();
         if (!visualStateCached)
         {
             visualStateCached = true;

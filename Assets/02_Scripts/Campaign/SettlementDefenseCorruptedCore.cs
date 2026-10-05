@@ -24,6 +24,37 @@ public sealed class SettlementDefenseCorruptedCore : MonoBehaviour, IInteractabl
     [SerializeField] private ProjectileDefinition projectile;
     [SerializeField] private Color corruptedColor = new Color(0.7f, 0.18f, 0.9f, 1f);
 
+    [Header("Authored weapon telegraph")]
+    [SerializeField] private LineRenderer telegraph;
+    [Header("Orange - Shotgun")]
+    [SerializeField, Min(2)] private int fanCount = 5;
+    [SerializeField, Range(1f, 120f)] private float fanSpread = 64f;
+    [SerializeField, Min(1)] private int volleyCount = 2;
+    [SerializeField, Min(.1f)] private float volleyInterval = .24f;
+    [SerializeField] private float secondVolleyOffset = 6f;
+    [SerializeField, Min(.1f)] private float shotgunTelegraph = .65f;
+    [SerializeField, Min(.1f)] private float shotgunRecovery = 1.4f;
+    [SerializeField, Min(1f)] private float shotgunSpeed = 4.2f;
+    [Header("Blue - Sniper")]
+    [SerializeField, Min(1)] private int sniperShots = 3;
+    [SerializeField, Min(.1f)] private float sniperAim = .65f;
+    [SerializeField, Min(.1f)] private float sniperLock = .3f;
+    [SerializeField, Min(.1f)] private float sniperRecovery = .35f;
+    [SerializeField, Min(.1f)] private float sniperCycleRecovery = 1f;
+    [SerializeField, Min(1f)] private float sniperSpeed = 14f;
+    [Header("Green - Machine Gun")]
+    [SerializeField, Range(8, 12)] private int machineGunShots = 10;
+    [SerializeField, Min(.05f)] private float machineGunInterval = .13f;
+    [SerializeField, Range(1f, 60f)] private float machineGunSweep = 24f;
+    [SerializeField, Min(.1f)] private float machineGunWarmup = .65f;
+    [SerializeField, Min(.1f)] private float machineGunRecovery = 1.8f;
+    [SerializeField, Min(1f)] private float machineGunSpeed = 5.2f;
+
+    public enum AttackStage { Idle, Aim, Locked, Firing, Recovery }
+    public AttackStage Attack { get; private set; }
+    public Vector2 CommittedDirection { get; private set; }
+    public int ShotsFired { get; private set; }
+
     private SettlementDefenseEncounterController encounter;
     private Transform player;
     private Transform center;
@@ -39,7 +70,7 @@ public sealed class SettlementDefenseCorruptedCore : MonoBehaviour, IInteractabl
     public bool HasAuthoredBindings => health != null && visual != null && combatCollider != null &&
         interactionCollider != null && interactionCollider != combatCollider &&
         projectile != null && projectile.ProjectilePrefab != null &&
-        projectile.ProjectilePrefab.GetComponent<Bullet>() != null;
+        projectile.ProjectilePrefab.GetComponent<Bullet>() != null && telegraph != null;
     public string InteractionText
     {
         get
@@ -69,6 +100,8 @@ public sealed class SettlementDefenseCorruptedCore : MonoBehaviour, IInteractabl
         player = target;
         center = centralCore;
         State = CoreState.Dormant;
+        ShotsFired = 0;
+        HideTelegraph();
         health.SetRewardDropEnabled(false);
         health.ResetHealth();
         health.SetMaxHp(hp, true);
@@ -103,57 +136,136 @@ public sealed class SettlementDefenseCorruptedCore : MonoBehaviour, IInteractabl
 
     private IEnumerator CombatRoutine()
     {
-        var spacing = new WaitForSeconds(0.18f);
-        var recovery = new WaitForSeconds(Part == BossStoryPart.SectorStabilizer ? 1.4f : 0.9f);
-        yield return recovery;
-        float radialOffset = 0f;
+        yield return WaitCombat(.75f);
         while (State == CoreState.CombatActive)
         {
             if (GameplayPauseManager.IsPaused || player == null)
             {
-                yield return spacing;
+                yield return null;
                 continue;
             }
-            int volleys = Part == BossStoryPart.PhaseNavigationLens ? 3 :
-                Part == BossStoryPart.MatterCompressor ? 2 : 1;
-            for (int volley = 0; volley < volleys && State == CoreState.CombatActive; volley++)
-            {
-                Vector2 direction = ((Vector2)player.position - (Vector2)transform.position).normalized;
-                if (Part == BossStoryPart.SectorStabilizer)
-                {
-                    for (int shot = 0; shot < 10; shot++)
-                    {
-                        Fire(Quaternion.Euler(0f, 0f, radialOffset + shot * 36f) * Vector2.up, 4.2f);
-                    }
-                    radialOffset += 18f;
-                }
-                else if (Part == BossStoryPart.PhaseNavigationLens)
-                {
-                    Fire(direction, 6f); // Each shot reacquires the player, with readable spacing.
-                }
-                else
-                {
-                    for (int shot = -2; shot <= 2; shot++)
-                    {
-                        Fire(Quaternion.Euler(0f, 0f, shot * 13f) * direction, 7f);
-                    }
-                }
-                yield return spacing;
-            }
-            yield return recovery;
+            if (Part == BossStoryPart.SectorStabilizer) yield return ShotgunCycle();
+            else if (Part == BossStoryPart.PhaseNavigationLens) yield return SniperCycle();
+            else yield return MachineGunCycle();
         }
+    }
+
+    private Vector2 AimAtPlayer()
+    {
+        Vector2 delta = player != null ? (Vector2)(player.position - transform.position) : Vector2.down;
+        return delta.sqrMagnitude > .001f ? delta.normalized : Vector2.down;
+    }
+
+    private IEnumerator WaitCombat(float duration)
+    {
+        float elapsed = 0;
+        while (elapsed < duration && State == CoreState.CombatActive)
+        {
+            if (!GameplayPauseManager.IsPaused) elapsed += Time.deltaTime;
+            yield return null;
+        }
+    }
+
+    private IEnumerator ShotgunCycle()
+    {
+        CommittedDirection = AimAtPlayer();
+        Attack = AttackStage.Locked;
+        ShowTelegraph(CommittedDirection, fanSpread, 4.5f, .045f, cleanColor);
+        yield return WaitCombat(shotgunTelegraph);
+        HideTelegraph();
+        Attack = AttackStage.Firing;
+        for (int volley = 0; volley < volleyCount; volley++)
+        {
+            for (int pellet = 0; pellet < fanCount; pellet++)
+            {
+                float angle = Mathf.Lerp(-fanSpread / 2, fanSpread / 2, pellet / (float)Mathf.Max(1, fanCount - 1));
+                Fire(Quaternion.Euler(0, 0, angle + (volley == 0 ? 0 : secondVolleyOffset)) * CommittedDirection, shotgunSpeed);
+            }
+            if (volley + 1 < volleyCount) yield return WaitCombat(volleyInterval);
+        }
+        Attack = AttackStage.Recovery;
+        yield return WaitCombat(shotgunRecovery);
+    }
+
+    private IEnumerator SniperCycle()
+    {
+        for (int shot = 0; shot < sniperShots; shot++)
+        {
+            Attack = AttackStage.Aim;
+            float elapsed = 0;
+            while (elapsed < sniperAim && State == CoreState.CombatActive)
+            {
+                if (!GameplayPauseManager.IsPaused)
+                {
+                    CommittedDirection = AimAtPlayer();
+                    ShowTelegraph(CommittedDirection, 0, 16f, .025f, cleanColor);
+                    elapsed += Time.deltaTime;
+                }
+                yield return null;
+            }
+            Attack = AttackStage.Locked;
+            ShowTelegraph(CommittedDirection, 0, 16f, .07f, Color.Lerp(cleanColor, Color.white, .65f));
+            yield return WaitCombat(sniperLock);
+            HideTelegraph();
+            Attack = AttackStage.Firing;
+            Fire(CommittedDirection, sniperSpeed);
+            Attack = AttackStage.Recovery;
+            yield return WaitCombat(sniperRecovery);
+        }
+        yield return WaitCombat(sniperCycleRecovery);
+    }
+
+    private IEnumerator MachineGunCycle()
+    {
+        CommittedDirection = AimAtPlayer();
+        Attack = AttackStage.Locked;
+        ShowTelegraph(CommittedDirection, machineGunSweep, 4.5f, .035f, cleanColor);
+        yield return WaitCombat(machineGunWarmup);
+        HideTelegraph();
+        Attack = AttackStage.Firing;
+        visual.color = Color.Lerp(cleanColor, Color.white, .25f);
+        for (int shot = 0; shot < machineGunShots; shot++)
+        {
+            float angle = Mathf.Lerp(-machineGunSweep / 2, machineGunSweep / 2, shot / (float)Mathf.Max(1, machineGunShots - 1));
+            Fire(Quaternion.Euler(0, 0, angle) * CommittedDirection, machineGunSpeed);
+            yield return WaitCombat(machineGunInterval);
+        }
+        Attack = AttackStage.Recovery;
+        visual.color = new Color(cleanColor.r * .5f, cleanColor.g * .5f, cleanColor.b * .5f, 1);
+        yield return WaitCombat(machineGunRecovery);
+        visual.color = cleanColor;
+    }
+
+    private void ShowTelegraph(Vector2 direction, float spread, float length, float width, Color color)
+    {
+        if (telegraph == null || State != CoreState.CombatActive) return;
+        telegraph.enabled = true;
+        telegraph.startWidth = telegraph.endWidth = width;
+        telegraph.startColor = telegraph.endColor = color;
+        telegraph.positionCount = spread > 0 ? 4 : 2;
+        Vector3 origin = transform.position;
+        telegraph.SetPosition(0, origin);
+        telegraph.SetPosition(1, origin + Quaternion.Euler(0, 0, -spread / 2) * (Vector3)direction * length);
+        if (spread > 0)
+        {
+            telegraph.SetPosition(2, origin);
+            telegraph.SetPosition(3, origin + Quaternion.Euler(0, 0, spread / 2) * (Vector3)direction * length);
+        }
+    }
+
+    private void HideTelegraph()
+    {
+        if (telegraph != null) telegraph.enabled = false;
     }
 
     private void Fire(Vector2 direction, float speed)
     {
         if (State != CoreState.CombatActive || GameplayPauseManager.IsPaused ||
-            projectile == null || projectile.ProjectilePrefab == null)
+            projectile == null || projectile.ProjectilePrefab == null || PoolManager.Instance == null)
         {
             return;
         }
-        GameObject shot = PoolManager.Instance != null
-            ? PoolManager.Instance.Get(projectile.ProjectilePrefab, transform.position, Quaternion.identity)
-            : Instantiate(projectile.ProjectilePrefab, transform.position, Quaternion.identity);
+        GameObject shot = PoolManager.Instance.Get(projectile.ProjectilePrefab, transform.position, Quaternion.identity);
         if (shot == null)
         {
             return;
@@ -162,6 +274,7 @@ public sealed class SettlementDefenseCorruptedCore : MonoBehaviour, IInteractabl
         bullet.Initialize(direction, ProjectileOwner.Enemy, projectile, speedOverride: speed,
             rangeOverride: 16f, projectileSource: gameObject);
         bullet.ConfigureProjectileColor(cleanColor);
+        ShotsFired++;
     }
 
     private void HandleDefeat(EnemyHealth defeated)
@@ -244,6 +357,8 @@ public sealed class SettlementDefenseCorruptedCore : MonoBehaviour, IInteractabl
 
     private void StopCombat()
     {
+        Attack = AttackStage.Idle;
+        HideTelegraph();
         if (combat != null)
         {
             StopCoroutine(combat);

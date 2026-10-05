@@ -1,0 +1,410 @@
+fileFormatVersion: 2
+guid: 567baf61c15d8c242babde1048403814
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -682172043443860912
+    second: VFX_Sector_BossShield_0
+  - first:
+      213: -3603183075586710314
+    second: VFX_Sector_BossShield_1
+  - first:
+      213: 664521625139965725
+    second: VFX_Sector_BossShield_2
+  - first:
+      213: 7795168064540525484
+    second: VFX_Sector_BossShield_3
+  - first:
+      213: 5411005524603698029
+    second: VFX_Sector_BossShield_4
+  - first:
+      213: -7686561643842909166
+    second: VFX_Sector_BossShield_5
+  - first:
+      213: 271815792989116467
+    second: VFX_Sector_BossShield_6
+  - first:
+      213: -2619651277531923686
+    second: VFX_Sector_BossShield_7
+  - first:
+      213: 5833770520928090411
+    second: VFX_Sector_BossShield_8
+  - first:
+      213: -2121455196711590852
+    second: VFX_Sector_BossShield_9
+  - first:
+      213: 2787213786455713550
+    second: VFX_Sector_BossShield_10
+  - first:
+      213: -5461009999642225083
+    second: VFX_Sector_BossShield_11
+  - first:
+      213: -3289178252469680952
+    second: VFX_Sector_BossShield_12
+  - first:
+      213: -8793129018655661702
+    second: VFX_Sector_BossShield_13
+  - first:
+      213: -5976417876097052296
+    second: VFX_Sector_BossShield_14
+  - first:
+      213: -5565677143107665703
+    second: VFX_Sector_BossShield_15
+  - first:
+      213: 4975957777585743983
+    second: VFX_Sector_BossShield_16
+  - first:
+      213: 5309897355868789637
+    second: VFX_Sector_BossShield_17
+  - first:
+      213: 8667237974512643004
+    second: VFX_Sector_BossShield_18
+  - first:
+      213: -8607888413378102231
+    second: VFX_Sector_BossShield_19
+  - first:
+      213: 6336303235581913800
+    second: VFX_Sector_BossShield_20
+  - first:
+      213: -8235849848888239120
+    second: VFX_Sector_BossShield_21
+  - first:
+      213: -8199313953147804828
+    second: VFX_Sector_BossShield_22
+  - first:
+      213: -9105759298692376801
+    second: VFX_Sector_BossShield_23
+  - first:
+      213: -4241590738415519442
+    second: VFX_Sector_BossShield_24
+  - first:
+      213: 7454727047314181259
+    second: VFX_Sector_BossShield_25
+  - first:
+      213: -1576017144941568106
+    second: VFX_Sector_BossShield_26
+  - first:
+      213: -2757361251967016939
+    second: VFX_Sector_BossShield_27
+  - first:
+      213: -6051404625594592005
+    second: VFX_Sector_BossShield_28
+  - first:
+      213: 2191431384248637217
+    second: VFX_Sector_BossShield_29
+  - first:
+      213: 3805597983434766699
+    second: VFX_Sector_BossShield_30
+  - first:
+      213: -8858615488045206617
+    second: VFX_Sector_BossShield_31
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Sector_BossShield_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 128
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 387940b3f5308ef4f9ce8217fbd9f6a4
+      internalID: -361270812
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossShield_01
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 128
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3792b0c10c880f24ca4721d89f96265d
+      internalID: -377585758
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossShield_02
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 128
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 303cb4ce46f1e444d9b12e2d6a614cf6
+      internalID: 513895956
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossShield_03
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 128
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6fd49e421b4b45b4294e7bae531940f6
+      internalID: 1370239720
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossShield_04
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 11c9528e5e5614b498471ab4bd03c33f
+      internalID: 2140726470
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossShield_05
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ee13d1f7a7605944c967e20ae8944e0f
+      internalID: 1300818414
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossShield_06
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d65be2d2e66978844b2e01197b1ca718
+      internalID: 324017652
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossShield_07
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bda2ee5f749d05a4a98c97779cc76fe1
+      internalID: 295701811
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 27933250d3a111b4399e2419af8b7ee5
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Sector_BossShield_00: -361270812
+      VFX_Sector_BossShield_01: -377585758
+      VFX_Sector_BossShield_02: 513895956
+      VFX_Sector_BossShield_03: 1370239720
+      VFX_Sector_BossShield_04: 2140726470
+      VFX_Sector_BossShield_05: 1300818414
+      VFX_Sector_BossShield_06: 324017652
+      VFX_Sector_BossShield_07: 295701811
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

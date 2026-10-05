@@ -6,6 +6,7 @@ using UnityEngine.Serialization;
 
 public class ExpeditionMapGenerator : MonoBehaviour
 {
+    private readonly Collider2D[] enemySpawnOverlapBuffer = new Collider2D[16];
     public readonly struct Region2BossCorridorData
     {
         public float CenterX { get; }
@@ -462,6 +463,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
         currentRegion2BossCorridorRuntime;
     public PhaseGatekeeperBossController CurrentRegion3BossEncounter =>
         currentRegion3BossEncounter;
+    // The resolved route expects this foundation even if generation failed to publish its encounter.
+    public bool UsesRegion3PhaseGatekeeperFoundation => IsRegion3PhaseGatekeeperMap();
     public MiniTrader CurrentMiniTrader => currentMiniTrader;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -2417,9 +2420,13 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            GameObject prefab = PickPrefab(prefabs, fallbackPrefab);
+            // The authored base array defines a small composition rotation; shops stay random.
+            GameObject prefab = fieldBaseZone && prefabs != null && prefabs.Length > 0
+                ? prefabs[i % prefabs.Length]
+                : PickPrefab(prefabs, fallbackPrefab);
             if (prefab == null)
             {
+                Debug.LogWarning($"{label}[{i}] has no authored prefab. Check {name}'s prefab array.", this);
                 continue;
             }
 
@@ -3429,6 +3436,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
             return;
         }
 
+        // Large wrecks extend beyond point-spacing reservations. Sync once before testing
+        // bounded enemy candidates against the actual colliders.
+        Physics2D.SyncTransforms();
+
         int basicCount = config != null ? config.BasicEnemyCount : 20;
         int shotgunCount = config != null ? config.ShotgunEnemyCount : 5;
         int chargingCount = config != null ? config.ChargingEnemyCount : 4;
@@ -3498,15 +3509,8 @@ public class ExpeditionMapGenerator : MonoBehaviour
             );
             shotgunCount -= placedDefenderShotgun;
 
-            EnemyDefinition resolvedRivalDefinition = rivalHarvesterDefinition != null
-                ? rivalHarvesterDefinition
-                : basicEnemyDefinition;
-            EnemyDefinition resolvedScavengerDefinition = scavengerDefinition != null
-                ? scavengerDefinition
-                : basicEnemyDefinition;
-
             int placedRivals = PlaceRoleEnemyBatch(
-                resolvedRivalDefinition,
+                rivalHarvesterDefinition,
                 Mathf.Min(rivalRequest, basicCount),
                 EnemyRoleType.RivalHarvester,
                 "RivalHarvester"
@@ -3514,7 +3518,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             basicCount -= placedRivals;
 
             int placedScavengers = PlaceRoleEnemyBatch(
-                resolvedScavengerDefinition,
+                scavengerDefinition,
                 Mathf.Min(scavengerRequest, basicCount),
                 EnemyRoleType.Scavenger,
                 "Scavenger"
@@ -3681,9 +3685,17 @@ public class ExpeditionMapGenerator : MonoBehaviour
                 CreateRegion2BossCorridorRuntime();
             }
 
-            PlaceBossArenaCoverMeteors(position, i);
+            // Legacy asteroid covers deliberately bypassed the placement reservation.
+            // Boss combat now keeps this reserved area clear; ordinary meteor batches
+            // and their existing reservation checks remain unchanged.
 
-            if (reserveBossArenaFromOtherSpawns)
+            if (reserveBossArenaFromOtherSpawns && spawnedCore != null &&
+                spawnedCore.TryGetSectorArenaReservation(out Bounds sectorReservation))
+            {
+                // Match the actual shifted intro arena, not the unrelated map-config rectangle.
+                ReservePlacementBounds(sectorReservation);
+            }
+            else if (reserveBossArenaFromOtherSpawns)
             {
                 Vector2 arenaHalfExtents = config != null
                     ? config.BossArenaHalfExtents
@@ -4434,8 +4446,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
         bool avoidStartSafeRadius,
         string label)
     {
-        if (definition == null || definition.EnemyPrefab == null || count <= 0)
+        if (count <= 0) return;
+        if (definition == null || definition.EnemyPrefab == null)
         {
+            Debug.LogWarning($"{label}: requested {count}, placed 0. Assign the intended EnemyDefinition and EnemyPrefab on {name}.", this);
             return;
         }
 
@@ -4559,8 +4573,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
         float threatCost,
         float clusteredRatio)
     {
-        if (definition == null || definition.EnemyPrefab == null || count <= 0)
+        if (count <= 0) return;
+        if (definition == null || definition.EnemyPrefab == null)
         {
+            Debug.LogWarning($"{label}: requested {count}, placed 0. Assign the intended EnemyDefinition and EnemyPrefab on {name}.", this);
             return;
         }
 
@@ -4746,8 +4762,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
             ? prefabOverride
             : definition != null ? definition.EnemyPrefab : null;
 
-        if (definition == null || resolvedPrefab == null || count <= 0)
+        if (count <= 0) return 0;
+        if (definition == null || resolvedPrefab == null)
         {
+            Debug.LogWarning($"{label}: requested {count}, placed 0. Assign the definition and Defender prefab on {name}.", this);
             return 0;
         }
 
@@ -4757,6 +4775,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         if (targets.Count == 0)
         {
+            Debug.LogWarning($"{label}: requested {count}, placed 0. No generated guard targets are available.", this);
             return 0;
         }
 
@@ -4806,6 +4825,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             placed++;
         }
 
+        ReportRolePlacement(label, count, placed);
         return placed;
     }
 
@@ -4815,8 +4835,10 @@ public class ExpeditionMapGenerator : MonoBehaviour
         EnemyRoleType roleType,
         string label)
     {
-        if (definition == null || definition.EnemyPrefab == null || count <= 0)
+        if (count <= 0) return 0;
+        if (definition == null || definition.EnemyPrefab == null)
         {
+            Debug.LogWarning($"{label}: requested {count}, placed 0. Assign the dedicated {roleType} definition and EnemyPrefab on {name}; no Basic substitution was made.", this);
             return 0;
         }
 
@@ -4895,7 +4917,14 @@ public class ExpeditionMapGenerator : MonoBehaviour
             placed++;
         }
 
+        ReportRolePlacement(label, count, placed);
         return placed;
+    }
+
+    private void ReportRolePlacement(string label, int requested, int placed)
+    {
+        if (placed < requested)
+            Debug.LogWarning($"{label}: requested {requested}, placed {placed}. Bounded placement exhausted; check safe radius, reservations and collider clearance on {name}.", this);
     }
 
     private bool TryFindRolePositionNearSalvagePoi(out Vector2 position)
@@ -5030,6 +5059,7 @@ public class ExpeditionMapGenerator : MonoBehaviour
             return null;
         }
 
+        if (!IsEnemySpawnClear(resolvedPrefab, position)) return null;
         GameObject spawned = Spawn(resolvedPrefab, position, objectName);
 
         if (spawned == null)
@@ -5053,6 +5083,18 @@ public class ExpeditionMapGenerator : MonoBehaviour
 
         ApplyEnemyHpModifiers(spawned);
         return spawned;
+    }
+
+    private bool IsEnemySpawnClear(GameObject prefab, Vector2 position)
+    {
+        var circle = prefab.GetComponent<CircleCollider2D>();
+        float radius = circle != null
+            ? circle.radius * Mathf.Max(Mathf.Abs(prefab.transform.localScale.x), Mathf.Abs(prefab.transform.localScale.y))
+            : .5f;
+        var filter = new ContactFilter2D { useTriggers = false };
+        filter.SetLayerMask(Physics2D.GetLayerCollisionMask(prefab.layer));
+        int hits = Physics2D.OverlapCircle(position, Mathf.Max(.35f, radius) + .1f, filter, enemySpawnOverlapBuffer);
+        return hits == 0;
     }
 
     private static void ConfigureHostileRadarTarget(GameObject spawned)

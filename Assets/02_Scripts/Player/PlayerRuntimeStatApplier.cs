@@ -37,6 +37,12 @@ public class PlayerRuntimeStatApplier : MonoBehaviour
     [SerializeField] private bool logApplyResult = true;
 
     private RuntimeStats runtimeStats;
+    // Presentation reads authored baselines only; no runtime application or player instantiation.
+    public float BaseMoveSpeed => baseMoveSpeed;
+    public float BaseDashDistance => baseDashDistance;
+    public float BaseDashCooldown => baseDashCooldown;
+    public float BaseMaxArmor => baseMaxArmor;
+    public float BaseStartingArmor => baseStartingArmor;
     private StructuralFrameProfile appliedStructuralFrame;
     private bool hasStructuralFrame;
 

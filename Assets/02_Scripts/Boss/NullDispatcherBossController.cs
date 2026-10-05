@@ -15,6 +15,7 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
     public enum Pattern { RoutePartition, CompressionDispatch, PhaseRedirect }
 
     [SerializeField] private EnemyHealth health;
+    [SerializeField] private NullDispatcherPresentation presentation;
     [SerializeField] private SpriteRenderer body;
     [SerializeField] private BossLaserHazard laserPrefab;
     [SerializeField] private Material lineMaterial;
@@ -126,7 +127,12 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
 
     public bool SupportRequested => supportRequested;
 
-    public EncounterPhase Phase { get; private set; } = EncounterPhase.Intro;
+    private EncounterPhase phase = EncounterPhase.Intro;
+    public EncounterPhase Phase
+    {
+        get => phase;
+        private set { phase = value; presentation?.ShowPhase(value); }
+    }
     public TreatmentChoice Choice { get; private set; }
     public bool PatternRunning => patterns != null;
     public bool PatternDamageEnabled { get; private set; }
@@ -140,6 +146,7 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
             return false;
         }
         health = health != null ? health : GetComponent<EnemyHealth>();
+        if (presentation == null) presentation = GetComponent<NullDispatcherPresentation>();
         player = actor != null ? actor.GetComponent<PlayerController2D>() : null;
         weapon = actor != null ? actor.GetComponent<PlayerWeaponController>() : null;
         playerHealth = actor != null ? actor.GetComponent<PlayerHealth>() : null;
@@ -301,6 +308,8 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
                 damaging ? 0.18f : 0.07f, 10f, damaging ? 2f : 0f, 0.4f,
                 lineMaterial, damaging ? new Color(0.8f, 0.2f, 1f) : new Color(0.5f, 1f, 0.65f, 0.65f),
                 "Default", 70);
+            if (presentation != null && presentation.ShowLane(new Vector2(arena.min.x, y), new Vector2(arena.max.x, y), damaging, telegraphSeconds))
+                laser.GetComponent<LineRenderer>().enabled = false;
         }
     }
 
@@ -310,7 +319,7 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
         {
             relays[i].transform.position = arena.center + new Vector3((i == 0 ? -1f : 1f) * arena.extents.x * 0.7f,
                 arena.extents.y * 0.5f, 0f);
-            relays[i].color = color;
+            relays[i].color = presentation != null ? Color.white : color;
             relays[i].enabled = true;
         }
     }
@@ -326,12 +335,14 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
             Vector2 sample = player != null ? (Vector2)player.transform.position : (Vector2)arena.center;
             for (int side = 0; side < 2; side++)
             {
+                presentation?.PlayCompression(relays[side].transform.position);
                 FireFan(relays[side].transform.position, sample, 5, 18f, 4.5f, new Color(1f, 0.55f, 0.15f));
             }
             yield return new WaitForSeconds(0.55f);
         }
         Vector2 finalAim = player != null ? (Vector2)player.transform.position : (Vector2)arena.center;
         yield return new WaitForSeconds(0.4f);
+        presentation?.PlayCompression(transform.position);
         FireFan(transform.position, finalAim, 5, 12f, 6f, new Color(1f, 0.55f, 0.15f));
         yield return new WaitForSeconds(0.7f);
     }
@@ -351,6 +362,7 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
                 // Relay charge travels through the network; only its exit emits a hostile packet.
                 yield return new WaitForSeconds(delta.magnitude / 10f);
                 Vector2 aim = player != null ? (Vector2)player.transform.position : (Vector2)arena.center;
+                presentation?.PlayRedirect(relays[1].transform.position, aim);
                 FireFan(relays[1].transform.position, aim, 3, 16f, 5f, Color.white);
                 yield return new WaitForSeconds(0.4f);
                 continue;
@@ -362,6 +374,7 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
                 // Reuse the same projectile; its entry leg is harmless. No portal framework.
                 routed.transform.position = relays[1].transform.position;
                 Vector2 target = player != null ? (Vector2)player.transform.position : (Vector2)arena.center;
+                presentation?.PlayRedirect(relays[1].transform.position, target);
                 routed.Initialize((target - (Vector2)routed.transform.position).normalized,
                     ProjectileOwner.Enemy, projectile, damageOverride: 2f, speedOverride: 6f,
                     rangeOverride: 16f, projectileSource: gameObject);
@@ -430,8 +443,13 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
                 yield return new WaitForSeconds(0.4f);
                 if (!CanContinue() || Phase != EncounterPhase.FinalPhase) yield break;
                 Vector2 target = player != null ? (Vector2)player.transform.position : (Vector2)arena.center;
+                presentation?.PlayRedirect(relays[1].transform.position, target);
                 FireFan(relays[1].transform.position, target, RedirectPacketsPerBurst, 22f, 4f, Color.white);
-                if (i == 0) FireFan(transform.position, target, CompressionFanCount, 25f, 3.5f, Color.white);
+                if (i == 0)
+                {
+                    presentation?.PlayCompression(transform.position);
+                    FireFan(transform.position, target, CompressionFanCount, 25f, 3.5f, Color.white);
+                }
                 yield return new WaitForSeconds(0.6f);
             }
         }
@@ -950,6 +968,8 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
         if (reclaimBeam == null || beamOrigin == null || player == null) return;
         reclaimBeam.SetPosition(0, beamOrigin.position);
         reclaimBeam.SetPosition(1, player.transform.position);
+        if (presentation != null && presentation.UpdateForcedLink(beamOrigin.position, player.transform.position))
+            reclaimBeam.enabled = false;
     }
 
     private void PlayBranchPulse(bool connectionBreak)
@@ -963,7 +983,8 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
             if (body != null) sequence.Append(body.transform.DOPunchScale(bodyScale * 0.12f, 0.5f, 3));
             if (connectionBreak && breakPulse != null)
             {
-                breakPulse.enabled = true;
+                if (presentation != null) presentation.PlayBurst();
+                breakPulse.enabled = presentation == null;
                 sequence.Join(breakPulse.transform.DOScale(pulseScale * 3f, 0.5f));
                 sequence.Join(breakPulse.DOFade(0f, 0.5f));
             }
@@ -994,6 +1015,7 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
 
     private void StopBeam()
     {
+        presentation?.StopForcedLink();
         player?.ClearExternalPush(branchOwner);
         if (reclaimBeam != null) reclaimBeam.enabled = false;
         StopBranchVisuals();
@@ -1057,6 +1079,7 @@ public sealed class NullDispatcherBossController : MonoBehaviour, IFinalBossTrea
 
     private void ClearLasers()
     {
+        presentation?.ClearLanes();
         lanesDamaging = false;
         foreach (var laser in lasers)
         {

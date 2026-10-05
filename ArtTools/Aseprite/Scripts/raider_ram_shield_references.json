@@ -1,0 +1,67 @@
+[
+  {
+    "Relative": "Output/12_SalvageTradingStation/salvage_trading_station_shield_active.aseprite",
+    "Name": "normal_shield_source.aseprite",
+    "SHA256": "6A77DBDD99EC331679A93168FDA3621E818959D36F905DC8EDF636BDF0C46FBE"
+  },
+  {
+    "Relative": "Output/15_GameplayVFX/VFX_ShieldHit.aseprite",
+    "Name": "shield_hit.aseprite",
+    "SHA256": "E15F013370FD98465826E60A2C32E084B74F09B90C21E11BB05CF819D681119E"
+  },
+  {
+    "Relative": "../../Assets/Art/CombatReadability/ShieldHit.png",
+    "Name": "shield_hit_imported.png",
+    "SHA256": "6711BC74547FC6C263A33FCE4BA3DEB9ECA122939F0771DA85C5B493C2C5521A"
+  },
+  {
+    "Relative": "../../Assets/Art/CombatReadability/ShieldHit.png.meta",
+    "Name": "shield_hit_imported.png.meta",
+    "SHA256": "79805A8BEFE84DC07E2F8B00C1C47B671BBB6C869039BCC01E7E8A1B1A0F198D"
+  },
+  {
+    "Relative": "../../Assets/02_Scripts/Resources/VFX/Approved/ShieldHit.prefab",
+    "Name": "ShieldHit.prefab",
+    "SHA256": "6D2BAB314BC5D08D683A320DA900A6F994B6E29EE66E78CFF46A3AFD49C34540"
+  },
+  {
+    "Relative": "../../Assets/02_Scripts/Resources/VFX/Approved/ShieldHit.prefab.meta",
+    "Name": "ShieldHit.prefab.meta",
+    "SHA256": "C734983A78A38FF20D84AB8946A76E24392096667B84E0630C2FCD44F33B3B76"
+  },
+  {
+    "Relative": "Output/09_RaiderAssaultCommander/raider_assault_commander_idle.png",
+    "Name": "boss_idle.png",
+    "SHA256": "750ABF68DB4E758AF464263572E0DD2608CB5A7054CD5D8257B0DE566A0869AF"
+  },
+  {
+    "Relative": "Output/09_RaiderAssaultCommander/raider_assault_commander_weapons_hot.png",
+    "Name": "boss_hot.png",
+    "SHA256": "2F84283153F3D0AA113CFB24BAAD94316947FE38F1EB9A685B9AD753C6D71321"
+  },
+  {
+    "Relative": "Output/18_RaiderBossVFX/VFX_Raider_DamageSparks.png",
+    "Name": "damage_sparks.png",
+    "SHA256": "23CE48052604035805B3FE59C237A249D59A6B12BC9F6B6B8C6F416C2F5076A0"
+  },
+  {
+    "Relative": "Output/18_RaiderBossVFX/VFX_Raider_HeavyMuzzle.png",
+    "Name": "heavy_muzzle.png",
+    "SHA256": "DB4E0DEBE21A128378F5B8D823E850A634E743DF61C26389C785460F4943D7B8"
+  },
+  {
+    "Relative": "Output/18_RaiderBossVFX/VFX_Raider_Assault_WeaponsHot.png",
+    "Name": "weapons_hot.png",
+    "SHA256": "DB8B1B2F8CD72EE4AB87AEDA2B1491AABF3741CFA84B73F21D518B934E407DF3"
+  },
+  {
+    "Relative": "Output/15_GameplayVFX/VFX_Player_Dash.png",
+    "Name": "dash.png",
+    "SHA256": "12625E234C8372DC4F9892BEBA0A05264A82841E300FD2B310404F09BD1264D3"
+  },
+  {
+    "Relative": "Input/01_Player/Px_Player.png",
+    "Name": "player.png",
+    "SHA256": "3BFD635CC357A8857CDD4B9C558224D139F067AD7A85A18024AA05D3409FEE1A"
+  }
+]

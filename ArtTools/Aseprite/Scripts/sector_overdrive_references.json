@@ -1,0 +1,27 @@
+[
+  {
+    "Relative": "Output\\06_SectorAdministrator\\sector_administrator_idle.aseprite",
+    "Name": "approved_idle.aseprite",
+    "SHA256": "BCC550996EBF700D6C7A256DF71197BBA7D45A99C1B5404030738DF7B2CB73BD"
+  },
+  {
+    "Relative": "Output\\06_SectorAdministrator\\sector_administrator_idle.png",
+    "Name": "approved_idle.png",
+    "SHA256": "B3FD582D3440A6F73E3847335785205C195057C7CCD1F417940B1A2ED235E594"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Art\\ApprovedIntegration\\World\\SectorAdministrator.png",
+    "Name": "production.png",
+    "SHA256": "B3FD582D3440A6F73E3847335785205C195057C7CCD1F417940B1A2ED235E594"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Art\\ApprovedIntegration\\World\\SectorAdministrator.png.meta",
+    "Name": "production.png.meta",
+    "SHA256": "52188FEB74631185171203C5901D3B1F89226622C313456A503D7F8A0725C2F0"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Art\\SectorAdministrator\\SectorCenterCannon.asset",
+    "Name": "SectorCenterCannon.asset",
+    "SHA256": "AF8DB33CCCBDCF264495758C871C63B5C8C90DD15B4B1C78F5455126D8D4AFA3"
+  }
+]

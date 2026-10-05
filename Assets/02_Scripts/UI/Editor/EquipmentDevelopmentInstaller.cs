@@ -123,8 +123,48 @@ public static class EquipmentDevelopmentInstaller
         var upgrade = ownerData.FindProperty("traitActionButton").objectReferenceValue as Button;
         if (upgrade != null) upgrade.gameObject.SetActive(false);
         StructuralFrameAuthoring.AuthorSettlement(panel);
+        AuthorInputAndSound(panel);
         var errors = new List<string>();
         if (!panel.ValidateEquipmentPresentation(errors)) throw new InvalidOperationException(string.Join("\n", errors));
+    }
+
+    public static void AuthorInputAndSound(ShipTraitTreePanel panel)
+    {
+        var data = new SerializedObject(panel);
+        foreach (string field in new[] { "sharedTabButton", "machineGunTabButton", "shotgunTabButton", "sniperTabButton" })
+        {
+            var tab = (ShipTraitBranchTabButton)data.FindProperty(field).objectReferenceValue;
+            if (tab == null) throw new InvalidOperationException(panel.name + "." + field + " is missing.");
+            var tabData = new SerializedObject(tab);
+            tabData.FindProperty("playClickSound").boolValue = false;
+            tabData.ApplyModifiedPropertiesWithoutUndo();
+            Configure(tab.GetComponent<Button>(), SoundEventIds.UiClick);
+        }
+        foreach (string field in new[] { "researchSpecialEquipmentButton", "clearEquipmentButton" })
+            Configure((Button)data.FindProperty(field).objectReferenceValue, SoundEventIds.UiClick);
+        foreach (string field in new[] { "equipmentSlots", "equipmentCandidates" })
+        {
+            var views = data.FindProperty(field);
+            for (int i = 0; i < views.arraySize; i++)
+                Configure((Button)views.GetArrayElementAtIndex(i).FindPropertyRelative("button").objectReferenceValue, SoundEventIds.TraitSelect);
+        }
+        Configure((Button)data.FindProperty("equipmentActivationButton").objectReferenceValue, null);
+
+        void Configure(Button button, string click)
+        {
+            if (button == null) throw new InvalidOperationException(panel.name + ": missing Equipment input/sound button.");
+            var input = button.GetComponent<EquipmentDevelopmentInput>() ?? button.gameObject.AddComponent<EquipmentDevelopmentInput>();
+            Bind(input, "owner", panel);
+            var sound = button.GetComponent<UISoundButton>() ?? button.gameObject.AddComponent<UISoundButton>();
+            var so = new SerializedObject(sound);
+            so.FindProperty("playSelectionHover").boolValue = true;
+            so.FindProperty("playHover").boolValue = true;
+            so.FindProperty("hoverSoundEventId").stringValue = SoundEventIds.UiHover;
+            so.FindProperty("playClick").boolValue = click != null;
+            so.FindProperty("clickSoundEventId").stringValue = click ?? SoundEventIds.UiClick;
+            so.FindProperty("disabledClickSoundEventId").stringValue = SoundEventIds.UiDisabled;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
     }
 
     private static void SetRect(Transform target, Vector2 position, Vector2 size)

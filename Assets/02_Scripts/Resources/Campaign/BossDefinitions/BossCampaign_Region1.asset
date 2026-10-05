@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bossId: 1
   expeditionDepth: 0
-  displayName: "구획 관리자"
+  displayName: "\uAD6C\uD68D \uAD00\uB9AC\uC790"
   subtitle: SECTOR ADMINISTRATOR
   storyPart: 1
   grantStoryPartOnFirstDefeat: 1
+  storyPartSprite: {fileID: 21300000, guid: 46acca03cb563c44e90748d439db1711, type: 3}
   guaranteedPassive: {fileID: 11400000, guid: 80a0b306777f4d5dbdf22410ee776ae9, type: 2}
   grantGuaranteedPassiveEachDefeat: 1
   coreShardReward: 1

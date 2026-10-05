@@ -1,0 +1,364 @@
+fileFormatVersion: 2
+guid: 7fe226572bb1e404996b63d90e174d6f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 429353795280504453
+    second: VFX_Raider_BarrageTelegraph_0
+  - first:
+      213: 9179926204714913279
+    second: VFX_Raider_BarrageTelegraph_1
+  - first:
+      213: -7701817075685441572
+    second: VFX_Raider_BarrageTelegraph_2
+  - first:
+      213: -6753881942733684080
+    second: VFX_Raider_BarrageTelegraph_3
+  - first:
+      213: -1559620344228189442
+    second: VFX_Raider_BarrageTelegraph_4
+  - first:
+      213: 2966970706051824460
+    second: VFX_Raider_BarrageTelegraph_5
+  - first:
+      213: -8330941340767083742
+    second: VFX_Raider_BarrageTelegraph_6
+  - first:
+      213: -4257878288204206902
+    second: VFX_Raider_BarrageTelegraph_7
+  - first:
+      213: 8212168836677993098
+    second: VFX_Raider_BarrageTelegraph_8
+  - first:
+      213: -5987495184660738801
+    second: VFX_Raider_BarrageTelegraph_9
+  - first:
+      213: 2747377977708288467
+    second: VFX_Raider_BarrageTelegraph_10
+  - first:
+      213: -4480524036624466718
+    second: VFX_Raider_BarrageTelegraph_11
+  - first:
+      213: 2388208539847979743
+    second: VFX_Raider_BarrageTelegraph_12
+  - first:
+      213: -4957986905268403591
+    second: VFX_Raider_BarrageTelegraph_13
+  - first:
+      213: -2594368584806270767
+    second: VFX_Raider_BarrageTelegraph_14
+  - first:
+      213: 7920593507779675887
+    second: VFX_Raider_BarrageTelegraph_15
+  - first:
+      213: -2225256397639914593
+    second: VFX_Raider_BarrageTelegraph_16
+  - first:
+      213: -454397879690681998
+    second: VFX_Raider_BarrageTelegraph_17
+  - first:
+      213: -9056360722992006700
+    second: VFX_Raider_BarrageTelegraph_18
+  - first:
+      213: -8092647122349521228
+    second: VFX_Raider_BarrageTelegraph_19
+  - first:
+      213: -2968373325138267743
+    second: VFX_Raider_BarrageTelegraph_20
+  - first:
+      213: 3400291176600798439
+    second: VFX_Raider_BarrageTelegraph_21
+  - first:
+      213: 3270361044151167347
+    second: VFX_Raider_BarrageTelegraph_22
+  - first:
+      213: -2904569904064330255
+    second: VFX_Raider_BarrageTelegraph_23
+  - first:
+      213: 2448019175903141557
+    second: VFX_Raider_BarrageTelegraph_24
+  - first:
+      213: 8699406032750835526
+    second: VFX_Raider_BarrageTelegraph_25
+  - first:
+      213: -3698782851338336654
+    second: VFX_Raider_BarrageTelegraph_26
+  - first:
+      213: 4767584641065129454
+    second: VFX_Raider_BarrageTelegraph_27
+  - first:
+      213: 3560525769333428493
+    second: VFX_Raider_BarrageTelegraph_28
+  - first:
+      213: 1533329578546587709
+    second: VFX_Raider_BarrageTelegraph_29
+  - first:
+      213: 2441752963900037159
+    second: VFX_Raider_BarrageTelegraph_30
+  - first:
+      213: -2457153138812000389
+    second: VFX_Raider_BarrageTelegraph_31
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Raider_BarrageTelegraph_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: df61072ca86258d4dab05b4c187c67ac
+      internalID: -1225028269
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_BarrageTelegraph_01
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 074ff5656364034449a5b09a1e98c3fd
+      internalID: -743087501
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_BarrageTelegraph_02
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cc5c7df5a479ea741ab17d8e65dcc3a2
+      internalID: 1164686949
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_BarrageTelegraph_03
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 071f32426f84e784ba0bf58f8ccd82f3
+      internalID: -2023289943
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_BarrageTelegraph_04
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cacb825d4a48348449022e80c762d05f
+      internalID: -435172416
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_BarrageTelegraph_05
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8d318544d06358a4aa7d399ef7363346
+      internalID: 771468640
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: d8b4b1502b75a1245bec279379b2d1a2
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Raider_BarrageTelegraph_00: -1225028269
+      VFX_Raider_BarrageTelegraph_01: -743087501
+      VFX_Raider_BarrageTelegraph_02: 1164686949
+      VFX_Raider_BarrageTelegraph_03: -2023289943
+      VFX_Raider_BarrageTelegraph_04: -435172416
+      VFX_Raider_BarrageTelegraph_05: 771468640
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

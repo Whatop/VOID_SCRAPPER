@@ -133,6 +133,7 @@ public partial class Bullet : MonoBehaviour
     private float homingTargetRefreshTimer;
     private bool allowHomingReacquisition = true;
     private bool useTimedHoming;
+    private bool fixedStepHoming;
     private float homingTimeRemaining;
     private bool useTerminalGuidance;
     private float terminalGuidanceRetentionRangeMultiplier = 1f;
@@ -275,6 +276,7 @@ public partial class Bullet : MonoBehaviour
     private void OnDisable()
     {
         ResetEquipmentProjectileState();
+        fixedStepHoming = false;
         damagedTargets.Clear();
         homingTarget = null;
         RestoreProjectilePresentation();
@@ -332,7 +334,7 @@ public partial class Bullet : MonoBehaviour
             }
         }
 
-        UpdateHoming();
+        if (!fixedStepHoming) UpdateHoming();
         UpdateCloseRangeVisual();
         ApplyRotation();
     }
@@ -344,6 +346,11 @@ public partial class Bullet : MonoBehaviour
             return;
         }
 
+        if (fixedStepHoming)
+        {
+            UpdateHomingStep(Time.fixedDeltaTime);
+            ApplyRotation();
+        }
         Vector2 velocity = moveDirection * speed;
 
         if (useSineWave && moveDirection.sqrMagnitude > 0.001f)
@@ -632,6 +639,7 @@ public partial class Bullet : MonoBehaviour
         homingTargetRefreshTimer = 0f;
         allowHomingReacquisition = allowReacquisition;
         useTimedHoming = false;
+        fixedStepHoming = false;
         homingTimeRemaining = 0f;
         useTerminalGuidance = false;
         terminalGuidanceRetentionRangeMultiplier = 1f;
@@ -643,7 +651,8 @@ public partial class Bullet : MonoBehaviour
         float turnRateDegreesPerSecond,
         float acquisitionRange,
         bool allowReacquisition,
-        float duration)
+        float duration,
+        bool usePhysicsStep = false)
     {
         useHoming = initialTarget != null &&
                     turnRateDegreesPerSecond > 0f &&
@@ -655,6 +664,7 @@ public partial class Bullet : MonoBehaviour
         homingTargetRefreshTimer = 0f;
         allowHomingReacquisition = allowReacquisition;
         useTimedHoming = useHoming;
+        fixedStepHoming = usePhysicsStep;
         homingTimeRemaining = Mathf.Max(0f, duration);
         useTerminalGuidance = false;
         terminalGuidanceRetentionRangeMultiplier = 1f;
@@ -726,6 +736,7 @@ public partial class Bullet : MonoBehaviour
         homingTargetRefreshTimer = 0f;
         allowHomingReacquisition = true;
         useTimedHoming = false;
+        fixedStepHoming = false;
         homingTimeRemaining = 0f;
         useTerminalGuidance = false;
         terminalGuidanceRetentionRangeMultiplier = 1f;
@@ -879,9 +890,14 @@ public partial class Bullet : MonoBehaviour
 
     private void UpdateHoming()
     {
+        UpdateHomingStep(Time.deltaTime);
+    }
+
+    private void UpdateHomingStep(float deltaTime)
+    {
         if (useTimedHoming)
         {
-            homingTimeRemaining -= Time.deltaTime;
+            homingTimeRemaining -= deltaTime;
             if (homingTimeRemaining <= 0f)
             {
                 useTimedHoming = false;
@@ -905,7 +921,7 @@ public partial class Bullet : MonoBehaviour
                 return;
             }
 
-            homingTargetRefreshTimer -= Time.deltaTime;
+            homingTargetRefreshTimer -= deltaTime;
 
             if (homingTargetRefreshTimer <= 0f)
             {
@@ -939,7 +955,7 @@ public partial class Bullet : MonoBehaviour
             return;
         }
 
-        float maxRadiansDelta = homingAngle * Mathf.Deg2Rad * Time.deltaTime;
+        float maxRadiansDelta = homingAngle * Mathf.Deg2Rad * deltaTime;
 
         Vector3 newDirection = Vector3.RotateTowards(
             moveDirection,
@@ -1225,6 +1241,8 @@ public partial class Bullet : MonoBehaviour
                     overpressureStrength
                 );
 
+                var raiderShield = enemyHealth.GetComponent<PirateCommanderBossController>();
+                int shieldSequence = raiderShield != null ? raiderShield.AbsorbedHitSequence : 0;
                 bool damaged = TryApplyDamageToTarget(
                     enemyHealth,
                     value => enemyHealth.TakeDamage(value, hitPoint, moveDirection),
@@ -1234,7 +1252,8 @@ public partial class Bullet : MonoBehaviour
 
                 if (damaged && owner == ProjectileOwner.Player)
                 {
-                    PlayOverpressureImpactFeedback(hitPoint, overpressureStrength);
+                    if (raiderShield == null || raiderShield.AbsorbedHitSequence == shieldSequence)
+                        PlayOverpressureImpactFeedback(hitPoint, overpressureStrength);
                     EnemyBaseAI enemyAI = enemyHealth.GetComponent<EnemyBaseAI>();
                     enemyAI?.NotifyDamagedByPlayer();
                     playerProjectileHitListener?.HandlePlayerProjectileHit(enemyHealth, enemyAI);
@@ -1822,9 +1841,14 @@ public partial class Bullet : MonoBehaviour
         damagedTargets.Add(targetId);
         EnemyHealth impactEnemy = targetComponent as EnemyHealth;
         float impactEnemyHp = impactEnemy != null ? impactEnemy.CurrentHp : 0f;
+        var raiderShield = impactEnemy != null ? impactEnemy.GetComponent<PirateCommanderBossController>() : null;
+        int shieldSequence = raiderShield != null ? raiderShield.AbsorbedHitSequence : 0;
         damageAction.Invoke(damage * Mathf.Max(0f, damageMultiplier));
         ApplyEquipmentImpact(impactEnemy, impactEnemyHp);
-        SpawnImpactEffect(impactScaleMultiplier);
+        // Real Raider absorption already emits the approved Shield Hit. Preserve
+        // projectile damage, pierce and equipment ownership without stacking Generic Hit.
+        if (raiderShield == null || raiderShield.AbsorbedHitSequence == shieldSequence)
+            SpawnImpactEffect(impactScaleMultiplier);
 
         if (remainingPierceCount > 0)
         {

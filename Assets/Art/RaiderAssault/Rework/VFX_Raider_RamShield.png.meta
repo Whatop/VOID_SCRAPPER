@@ -1,0 +1,555 @@
+fileFormatVersion: 2
+guid: 877f45bc4738cb545afb55d1b37225e9
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -5352559937200912873
+    second: VFX_Raider_RamShield_0
+  - first:
+      213: 7143359309616771606
+    second: VFX_Raider_RamShield_1
+  - first:
+      213: -6647557547470379173
+    second: VFX_Raider_RamShield_2
+  - first:
+      213: 2943732014026017500
+    second: VFX_Raider_RamShield_3
+  - first:
+      213: 2029182814240702153
+    second: VFX_Raider_RamShield_4
+  - first:
+      213: -8987154764315143314
+    second: VFX_Raider_RamShield_5
+  - first:
+      213: -7195795005628076267
+    second: VFX_Raider_RamShield_6
+  - first:
+      213: -5249726659731312727
+    second: VFX_Raider_RamShield_7
+  - first:
+      213: 8378456901875886455
+    second: VFX_Raider_RamShield_8
+  - first:
+      213: 1375989092899361465
+    second: VFX_Raider_RamShield_9
+  - first:
+      213: -6497089493476485407
+    second: VFX_Raider_RamShield_10
+  - first:
+      213: 5129249711045501051
+    second: VFX_Raider_RamShield_11
+  - first:
+      213: -5561016827797502153
+    second: VFX_Raider_RamShield_12
+  - first:
+      213: -9015980985018991795
+    second: VFX_Raider_RamShield_13
+  - first:
+      213: -1229758545090578998
+    second: VFX_Raider_RamShield_14
+  - first:
+      213: 1393751135531685392
+    second: VFX_Raider_RamShield_15
+  - first:
+      213: -5789106675191974108
+    second: VFX_Raider_RamShield_16
+  - first:
+      213: 2163539014169285591
+    second: VFX_Raider_RamShield_17
+  - first:
+      213: -2062476989258349577
+    second: VFX_Raider_RamShield_18
+  - first:
+      213: -846336180887238058
+    second: VFX_Raider_RamShield_19
+  - first:
+      213: 939671724289003909
+    second: VFX_Raider_RamShield_20
+  - first:
+      213: -7404468590153161168
+    second: VFX_Raider_RamShield_21
+  - first:
+      213: 5715837583762960956
+    second: VFX_Raider_RamShield_22
+  - first:
+      213: -4309158697321459343
+    second: VFX_Raider_RamShield_23
+  - first:
+      213: 7553105817702377539
+    second: VFX_Raider_RamShield_24
+  - first:
+      213: 4479312783323442449
+    second: VFX_Raider_RamShield_25
+  - first:
+      213: 7926452748302257334
+    second: VFX_Raider_RamShield_26
+  - first:
+      213: -3527712777198658433
+    second: VFX_Raider_RamShield_27
+  - first:
+      213: 4846998625499042169
+    second: VFX_Raider_RamShield_28
+  - first:
+      213: -8346038617686411277
+    second: VFX_Raider_RamShield_29
+  - first:
+      213: -4861630081331366344
+    second: VFX_Raider_RamShield_30
+  - first:
+      213: 1395581874538737705
+    second: VFX_Raider_RamShield_31
+  - first:
+      213: -1018838781099336907
+    second: VFX_Raider_RamShield_32
+  - first:
+      213: -4366391445811771822
+    second: VFX_Raider_RamShield_33
+  - first:
+      213: -3136701893426562539
+    second: VFX_Raider_RamShield_34
+  - first:
+      213: -6843972455133571533
+    second: VFX_Raider_RamShield_35
+  - first:
+      213: 6995594235230287111
+    second: VFX_Raider_RamShield_36
+  - first:
+      213: 8247438060093026885
+    second: VFX_Raider_RamShield_37
+  - first:
+      213: 659915771399482048
+    second: VFX_Raider_RamShield_38
+  - first:
+      213: -4462356356139516932
+    second: VFX_Raider_RamShield_39
+  - first:
+      213: -5589765852939066537
+    second: VFX_Raider_RamShield_40
+  - first:
+      213: -6202659343534537658
+    second: VFX_Raider_RamShield_41
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_10
+      rect:
+        serializedVersion: 2
+        x: 960
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1e6596b5783b5d5a0800000000000000
+      internalID: -6497089493476485407
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_11
+      rect:
+        serializedVersion: 2
+        x: 1056
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b70642faf61ce2740800000000000000
+      internalID: 5129249711045501051
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_12
+      rect:
+        serializedVersion: 2
+        x: 1152
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 737092d98ac43d2b0800000000000000
+      internalID: -5561016827797502153
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b81f6a6771cc57b41a534ce2edd4fd4d
+      internalID: 1432406299
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_01
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fed76cca403a2594eb031fd49fc29f43
+      internalID: 2064855544
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_02
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 494e113df55d74f4ca956eb6e3406ebc
+      internalID: 137996585
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_03
+      rect:
+        serializedVersion: 2
+        x: 288
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e775b9b697c8d5047a2b7337827fc2e5
+      internalID: 1251047436
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_04
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 91a94eb34cdad06408f281bd45b31efb
+      internalID: 313480829
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_05
+      rect:
+        serializedVersion: 2
+        x: 480
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 41113d854f4d1a149baad9c29ad4bb46
+      internalID: -189431844
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_06
+      rect:
+        serializedVersion: 2
+        x: 576
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8228b235d65429a48b612aebc71434ae
+      internalID: 1051430073
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_07
+      rect:
+        serializedVersion: 2
+        x: 672
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f1d62bbd8a22f764baf4ba34b929e1f9
+      internalID: 1168742367
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_08
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9ed83ff28c648d24f843c0d118e165ca
+      internalID: 1815755519
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Raider_RamShield_09
+      rect:
+        serializedVersion: 2
+        x: 864
+        y: 0
+        width: 96
+        height: 48
+      alignment: 9
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5c73cf13e3b5d4a4881431eba9c20c87
+      internalID: -411650203
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: f8a20efbab54b514b96c961a606b5188
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Raider_RamShield_00: 1432406299
+      VFX_Raider_RamShield_01: 2064855544
+      VFX_Raider_RamShield_02: 137996585
+      VFX_Raider_RamShield_03: 1251047436
+      VFX_Raider_RamShield_04: 313480829
+      VFX_Raider_RamShield_05: -189431844
+      VFX_Raider_RamShield_06: 1051430073
+      VFX_Raider_RamShield_07: 1168742367
+      VFX_Raider_RamShield_08: 1815755519
+      VFX_Raider_RamShield_09: -411650203
+      VFX_Raider_RamShield_10: -6497089493476485407
+      VFX_Raider_RamShield_11: 5129249711045501051
+      VFX_Raider_RamShield_12: -5561016827797502153
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

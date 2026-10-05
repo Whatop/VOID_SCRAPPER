@@ -1,0 +1,77 @@
+[
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_LaserBeam.aseprite",
+    "Name": "green_beam.aseprite",
+    "SHA256": "7608024645ED7FA8BD39A12E6B0A6BC3CBDD7FAB63A735C779413E0DFD62D539"
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_LaserBeam.png",
+    "Name": "green_beam.png",
+    "SHA256": "1D75405DEA07C86C793F8AA3925EFF9B8112B7E4EE4D361BDC0136AC05F9D94A"
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_LaserBeam.json",
+    "Name": "green_beam.json",
+    "SHA256": "C3BA43B1CEF20555B057077D7973A01924DD5076DCD91AE30C6588871F555FA6"
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_LaserTelegraph.aseprite",
+    "Name": "green_warning.aseprite",
+    "SHA256": "5920D34A00E564AF7BD51FDC41E139040C286C16B93FADC9F7A13D35CA72C38A"
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_LaserTelegraph.png",
+    "Name": "green_warning.png",
+    "SHA256": "492BA0C9232C528A71128EED8B57A62588A9F0020E66CC12B8EB90437CD81679"
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_LaserTelegraph.json",
+    "Name": "green_warning.json",
+    "SHA256": "82173BA425210E03CA2CBE39AB7B612A243F3625348C0E4CD9F1ACFA5BE1D572"
+  },
+  {
+    "Relative": "Output\\23_SectorAdministrator_Overdrive\\sector_administrator_overdrive.png",
+    "Name": "purple_boss.png",
+    "SHA256": "4AA97676CB940943D4F11816443D4ACED41334D97FAA974BEEA572BEF9B6CC40"
+  },
+  {
+    "Relative": "Output\\23_SectorAdministrator_Overdrive\\manifest.json",
+    "Name": "overdrive_manifest.json",
+    "SHA256": "8C95600803E8D046F7D5EFD885D0E6B4EE24B1E0F4C0C59D8873F4BA1927A194"
+  },
+  {
+    "Relative": "Output\\06_SectorAdministrator\\sector_administrator_idle.png",
+    "Name": "green_boss.png",
+    "SHA256": "B3FD582D3440A6F73E3847335785205C195057C7CCD1F417940B1A2ED235E594"
+  },
+  {
+    "Relative": "Output\\02_Core\\purple_corrupted\\core_purple_corrupted_active.png",
+    "Name": "purple_core_reference.png",
+    "SHA256": "F97D60E469A53EFC89042FEB9D650391E4EAEB576F93CEAEFCF5B2094C3DC79F"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Art\\SectorAdministrator\\VFX_Sector_LaserBeam.png",
+    "Name": "production_beam.png",
+    "SHA256": "1D75405DEA07C86C793F8AA3925EFF9B8112B7E4EE4D361BDC0136AC05F9D94A"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Art\\SectorAdministrator\\VFX_Sector_LaserBeam.png.meta",
+    "Name": "production_beam.png.meta",
+    "SHA256": "4C67B969B1FE6134323C80AAF8E2AAA3CD2DCCD2143A87BCDCEABBC354D00E0E"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Art\\SectorAdministrator\\VFX_Sector_LaserTelegraph.png",
+    "Name": "production_warning.png",
+    "SHA256": "492BA0C9232C528A71128EED8B57A62588A9F0020E66CC12B8EB90437CD81679"
+  },
+  {
+    "Relative": "..\\..\\Assets\\Art\\SectorAdministrator\\VFX_Sector_LaserTelegraph.png.meta",
+    "Name": "production_warning.png.meta",
+    "SHA256": "417C46A52AD7ACE62DBE814DEDE594CB0260DC4AED7BD73DBC7AF12CECC1C132"
+  },
+  {
+    "Relative": "Input\\01_Player\\Px_Player.png",
+    "Name": "player_reference.png",
+    "SHA256": "3BFD635CC357A8857CDD4B9C558224D139F067AD7A85A18024AA05D3409FEE1A"
+  }
+]

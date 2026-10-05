@@ -27,13 +27,13 @@ function Missing-Refs($blocks) {
 $paths = @('Assets/03_Prefabs/UI/PF_ExpeditionMapInventoryMenu.prefab','Assets/01_Scenes/Expedition.unity')
 foreach ($path in $paths) {
     $blocks = Read-Blocks $path
-    $baselinePath = 'Logs/InventoryPresentationBaseline/' + [IO.Path]::GetFileName($path)
+    $baselinePath = 'Logs/InventoryPolish/Baseline/' + [IO.Path]::GetFileName($path)
     $baseline = Read-Blocks $baselinePath
     $oldMissing = Missing-Refs $baseline
     foreach ($missing in (Missing-Refs $blocks).Keys) { Check ($oldMissing.ContainsKey($missing)) "New dangling reference $missing in $path" }
     foreach ($id in $baseline.Keys) { Check ($blocks.ContainsKey($id)) "Existing authored ID was deleted: $id" }
     $panel = $blocks['116849717']
-    foreach ($field in @('equipmentTabButton','cargoTabButton','equipmentContentRoot','cargoContentRoot','activeEffectText','activeChargeText','activeStateText','activeSlotSelectButton','activeFieldDropButton','passiveFieldDropButton','equipmentDetailScrollRect','activeEffectsScrollRect','runResourcesText','cargoReturnProjectionText')) {
+    foreach ($field in @('equipmentTabButton','cargoTabButton','equipmentContentRoot','cargoContentRoot','activeEffectText','activeChargeText','activeStateText','activeSlotSelectButton','activeFieldDropButton','passiveFieldDropButton','equipmentDetailScrollRect','activeEffectsScrollRect','runResourcesText','cargoReturnProjectionText','activeHeadingText','storageHeadingText','cargoHeadingText')) {
         $ref = Ref $panel $field
         Check ($ref -ne '0' -and $blocks.ContainsKey($ref)) "Missing authored $field in $path"
     }
@@ -44,7 +44,7 @@ foreach ($path in $paths) {
     Check ($blocks['1334581682'] -match 'm_Name: CargoContentRoot') 'Cargo root'
     Check ($blocks['920000030'] -match 'm_IsActive: 1') 'Equipment defaults visible'
     Check ($blocks['1334581682'] -match 'm_IsActive: 0') 'Cargo defaults hidden'
-    Check ((Ref $blocks['950100002'] 'm_Father') -eq '1160451699') 'Story must remain outside both tabs'
+    Check ((Ref $blocks['950100002'] 'm_Father') -eq '970300011') 'Story must remain in its optional overlay'
     foreach ($id in $blocks.Keys) {
         $b = $blocks[$id]
         if ($b -notmatch '^--- !u!224 ') { continue }
@@ -82,7 +82,7 @@ foreach ($path in $paths) {
         $button=Ref $panel $buttonField; $go=Ref $blocks[$button] 'm_GameObject'
         $rect=[regex]::Match($blocks[$go],'component: \{fileID: (\d+)').Groups[1].Value
         $tabRects += $rect
-        Separate $rect '950100002'
+        Separate $rect '970300002'
         Separate $rect '920000021'
         Separate $rect '960200071'
     }
@@ -99,7 +99,7 @@ $meta = [IO.File]::ReadAllText((Join-Path (Get-Location) 'Assets/03_Prefabs/UI/P
 $guid = [regex]::Match($meta, 'guid: (\w+)').Groups[1].Value
 $tutorial = [IO.File]::ReadAllText((Join-Path (Get-Location) 'Assets/01_Scenes/Tutorial.unity'))
 Check ($tutorial.Contains($guid)) 'Tutorial must still inherit the shared inventory prefab'
-Check ($tutorial -ceq [IO.File]::ReadAllText((Join-Path (Get-Location) 'Logs/InventoryPresentationBaseline/Tutorial.unity'))) 'Tutorial overrides changed unexpectedly'
+Check ($tutorial -ceq [IO.File]::ReadAllText((Join-Path (Get-Location) 'Logs/InventoryPolish/Baseline/Tutorial.unity'))) 'Tutorial overrides changed unexpectedly'
 
 function Method([string]$source, [string]$name) {
     $m = [regex]::Match($source, '(?m)^    (?:public|private) [^\r\n]+ '+$name+'\([^\r\n]*\)\s*\{')
@@ -108,12 +108,12 @@ function Method([string]$source, [string]$name) {
     while ($depth -gt 0 -and $end -lt $source.Length) { if($source[$end] -eq '{'){$depth++};if($source[$end] -eq '}'){$depth--};$end++ }
     return $source.Substring($m.Index,$end-$m.Index).Replace("`r`n","`n")
 }
-$before = [IO.File]::ReadAllText((Join-Path (Get-Location) 'Logs/InventoryPresentationBaseline/PlayerBuildStatusPanelUI.cs'))
+$before = [IO.File]::ReadAllText((Join-Path (Get-Location) 'Logs/InventoryPolish/Baseline/PlayerBuildStatusPanelUI.cs'))
 $after = [IO.File]::ReadAllText((Join-Path (Get-Location) 'Assets/02_Scripts/UI/PlayerBuildStatusPanelUI.cs'))
 foreach ($method in @('TryDropActiveFieldItem','TryDropSelectedPassiveFieldItem','TryJettisonSelectedCargo','ToggleSelectedCargoAutoPickup')) {
     $old = Method $before $method
-    $new = [regex]::Replace((Method $after $method),'(?m)^        if \(!CanUse(?:Equipment|Cargo)Actions[^\n]*\n','')
-    Check ($new -ceq $old) "Gameplay operation changed beyond visibility guard: $method"
+    $new = Method $after $method
+    Check ($new -ceq $old) "Gameplay operation changed: $method"
 }
 foreach ($method in @('SpawnTraitFieldPickup','SpawnCargoPickup','ResolveFieldDropPosition','ReleaseFieldDropObject','PresentStoryPartAcquired','StopStoryRecoveryFeedback')) {
     Check ((Method $before $method) -ceq (Method $after $method)) "Gameplay/story implementation changed: $method"
@@ -121,4 +121,6 @@ foreach ($method in @('SpawnTraitFieldPickup','SpawnCargoPickup','ResolveFieldDr
 $tabs = [IO.File]::ReadAllText((Join-Path (Get-Location) 'Assets/02_Scripts/UI/PlayerBuildStatusPanelUI.InventoryTabs.cs'))
 Check ($tabs -notmatch 'new GameObject|Instantiate\(|AddComponent|void Update\(') 'No runtime fallback hierarchy or tab polling'
 Check ($tabs -notmatch 'SaveData|SaveManager') 'Tab state must remain UI-only'
-Write-Output "PASS: $script:assertions serialized/preservation checks (includes all existing IDs); drop/jettison/auto-pickup bodies differ only by visibility guards."
+Check ($after -match 'private bool showAllCargoResources = true;') 'Fresh Cargo must default to Show All'
+Check ($tabs -notmatch '[\u2713\u25CF\u25C6]') 'No selected-tab glyph markers'
+Write-Output "PASS: $script:assertions serialized/preservation checks (includes all existing IDs); drop/jettison/auto-pickup bodies are unchanged."

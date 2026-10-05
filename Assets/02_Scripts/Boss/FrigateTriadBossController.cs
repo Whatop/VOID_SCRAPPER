@@ -22,7 +22,9 @@ public enum SalvageDevourerCombatPattern
     LimitedHomingMissiles = 4,
     WallRicochetBullets = 5,
     OneAliveLaser = 6,
-    RotatingBullets = 7
+    RotatingBullets = 7,
+    BatterySuppression = 8,
+    HeavyBarrage = 9
 }
 
 public enum SalvageDevourerFinalSequenceState
@@ -39,7 +41,7 @@ public enum SalvageDevourerFinalSequenceState
 [DefaultExecutionOrder(10100)]
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyHealth))]
-public sealed class FrigateTriadBossController : MonoBehaviour
+public sealed partial class FrigateTriadBossController : MonoBehaviour
 {
     private const float DeferredHealthFloor = 1f;
     private const int NWayProjectilesPerFrigate = 2;
@@ -278,7 +280,8 @@ public sealed class FrigateTriadBossController : MonoBehaviour
         IsGameplayActive &&
         aggregateHealth != null &&
         !aggregateHealth.IsDead &&
-        !nonFinalDestructionTransitionActive;
+        !nonFinalDestructionTransitionActive &&
+        (!useDefenseOverseerSequence || state != FrigateTriadBossState.Transition);
 
     public event Action<FrigateBossPart> PartDestroyed;
     public event Action<int> AlivePartCountChanged;
@@ -340,6 +343,7 @@ public sealed class FrigateTriadBossController : MonoBehaviour
             return;
         }
 
+        if (useDefenseOverseerSequence) TickDefenseFlashes();
         if (IsRunEnding() || corridorController == null ||
             !corridorController.IsRuntimeActive)
         {
@@ -502,7 +506,14 @@ public sealed class FrigateTriadBossController : MonoBehaviour
 
         if (isLethal)
         {
-            BeginNonFinalDestructionTransition(part);
+            if (useDefenseOverseerSequence)
+            {
+                // Remove ownership on the lethal hit, before a transition can yield.
+                CancelPatternWork(true);
+                part.EnterDestroyedState();
+                part.BeginDetachedWreckFade(destructionWreckFadeDelay, destructionWreckFadeDuration);
+            }
+            else BeginNonFinalDestructionTransition(part);
         }
 
         return true;
@@ -555,6 +566,7 @@ public sealed class FrigateTriadBossController : MonoBehaviour
         }
 
         corridorController = corridor;
+        BeginDefenseArenaIsolation();
         formationFollowing = false;
         entryComplete = false;
         entryPlaying = false;
@@ -715,6 +727,7 @@ public sealed class FrigateTriadBossController : MonoBehaviour
         CancelFinalSequence(false);
         CancelNonFinalDestructionTransition();
         CancelPatternWork(true);
+        EndDefenseArenaIsolation();
         initialized = false;
         gameplayBegun = false;
         formationFollowing = false;
@@ -828,6 +841,7 @@ public sealed class FrigateTriadBossController : MonoBehaviour
         nextTwoAlivePatternIndex = 0;
         nextOneAlivePatternIndex = 0;
         warningPlacementSequence = 0;
+        ResetDefenseSequence();
         nWayBiasSequence = 0;
         formationMovementPaused = false;
         finalChargeDamageAttempted = false;
@@ -1898,6 +1912,12 @@ public sealed class FrigateTriadBossController : MonoBehaviour
         int expectedAliveCount,
         SalvageDevourerCombatPattern firstPattern)
     {
+        if (useDefenseOverseerSequence)
+        {
+            yield return DefenseSequenceRoutine(token, expectedAliveCount);
+            if (token == patternToken) patternRoutine = null;
+            yield break;
+        }
         bool useFirstPattern = firstPattern != SalvageDevourerCombatPattern.None;
 
         while (CanContinuePattern(token, expectedAliveCount))
@@ -2953,6 +2973,11 @@ public sealed class FrigateTriadBossController : MonoBehaviour
 
     private IEnumerator AliveCountTransitionRoutine(int token, int expectedAliveCount)
     {
+        if (useDefenseOverseerSequence)
+        {
+            yield return DefenseTransitionRoutine(token, expectedAliveCount);
+            yield break;
+        }
         float elapsed = 0f;
         float delay = Mathf.Max(0.05f, aliveCountTransitionDelay);
 
@@ -3007,6 +3032,7 @@ public sealed class FrigateTriadBossController : MonoBehaviour
         }
 
         activePattern = SalvageDevourerCombatPattern.None;
+        ClearDefenseAttacks();
         ReleaseActiveWarnings();
         ReleaseActiveLaser();
         HideEncounterLine();
@@ -3137,6 +3163,7 @@ public sealed class FrigateTriadBossController : MonoBehaviour
         bossFightRadarScanner?.SetExternalInputLocked(this, true);
         bossFightRadarPanel?.SetPresentationSuppressed(this, true);
         bossFightHud?.SetMenuHintsSuppressed(this, true);
+        if (useDefenseOverseerSequence && bossFightHud != null) bossFightHud.SetRegionBossPresentation(this, true);
         bossFightHealthBar?.SetSalvageDevourerTriadPresentation(this, this, true);
         bossFightUiModeActive = true;
     }
@@ -3153,6 +3180,7 @@ public sealed class FrigateTriadBossController : MonoBehaviour
         bossFightRadarPanel?.SetPresentationSuppressed(this, false);
         bossFightHud?.SetMenuHintsSuppressed(this, false);
         bossFightHealthBar?.SetSalvageDevourerTriadPresentation(this, this, false);
+        if (useDefenseOverseerSequence && bossFightHud != null) bossFightHud.SetRegionBossPresentation(this, false);
         bossFightMenuController = null;
         bossFightRadarScanner = null;
         bossFightRadarPanel = null;

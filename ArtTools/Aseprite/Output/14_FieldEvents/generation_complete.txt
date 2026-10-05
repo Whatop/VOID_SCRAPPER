@@ -1,0 +1,1 @@
+FIELD EVENTS: four objects, thirteen state poses, layered sources, transparent PNGs and comparison.

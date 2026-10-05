@@ -62,6 +62,7 @@ public sealed class SalvageDevourerCorridorController : MonoBehaviour
     private bool terminalRearWallDeployed;
 
     public bool IsRuntimeActive => runtimeActive;
+    public Bounds EncounterReservedBounds => corridorData.ReservedBounds;
     public bool IsPrepared => runtimeActive;
     public bool IsScrollStarted => runtimeActive && scrollStarted;
     public bool HasReachedTerminal =>

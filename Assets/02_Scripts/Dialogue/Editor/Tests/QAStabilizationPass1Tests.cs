@@ -539,14 +539,14 @@ public sealed class QAStabilizationPass1Tests
         var inner = (SpriteRenderer)GetHotfixField(boss, "innerCore");
         Assert.That(outer.activeSelf, Is.True);
         Assert.That(inner.gameObject.activeSelf, Is.False);
-        Assert.That(inner.sprite.name, Is.EqualTo("core5"));
+        Assert.That(inner.sprite.name, Is.EqualTo("NULL_Dispatcher_critical_exposed"));
         Assert.That(inner.transform.IsChildOf(outer.transform), Is.False);
         var parts = (SpriteRenderer[])GetHotfixField(boss, "shellPieces");
         Assert.That(parts.Length, Is.EqualTo(4));
         foreach (var part in parts)
         {
             Assert.That(part.transform.IsChildOf(outer.transform), Is.True);
-            Assert.That(part.sprite.name, Is.EqualTo("Square"));
+            Assert.That(part.sprite.name, Does.StartWith("NULL_ShellFragment_"));
             Assert.That(part.GetComponent<Rigidbody2D>(), Is.Null);
         }
         Assert.That(GetHotfixField(boss, "deathPresentation"), Is.SameAs(prefab.GetComponent<BossDeathPresentation>()));
@@ -2141,6 +2141,24 @@ public sealed class QAStabilizationPass1Tests
         SetPrivateField(encounter, "componentCores", configs);
         SetPrivateField(encounter, "corePrefab", AssetDatabase.LoadAssetAtPath<GameObject>(
             "Assets/03_Prefabs/Enemy/PF_SettlementCorruptedCore.prefab").GetComponent<SettlementDefenseCorruptedCore>());
+        var saved = AuthoredRuntimeFixture.Open("Settlement");
+        try
+        {
+            var source = AuthoredRuntimeFixture.Single<SettlementDefenseEncounterController>(saved);
+            var purple = UnityEngine.Object.Instantiate((SettlementDefensePurpleCore)GetHotfixField(source, "purpleCore"),
+                ((GameObject)GetHotfixField(encounter, "deckRoot")).transform);
+            var radarShell = UnityEngine.Object.Instantiate((GameObject)GetHotfixField(source, "radarPresentation"),
+                ((GameObject)GetHotfixField(encounter, "deckCanvas")).transform);
+            var scanner = playerRoot.AddComponent<PlayerRadarScanner>(); scanner.enabled = false;
+            SetPrivateField(scanner, "radarPanelAnimator", radarShell.GetComponentInChildren<RadarPanelAnimator>(true));
+            SetPrivateField(scanner, "radarHUD", radarShell.GetComponentInChildren<RadarHUD>(true));
+            SetPrivateField(encounter, "purpleCore", purple); SetPrivateField(encounter, "deckRadar", scanner);
+            SetPrivateField(encounter, "radarPresentation", radarShell);
+            SetPrivateField(encounter, "radarPanel", radarShell.GetComponentInChildren<RadarPanelAnimator>(true));
+            SetPrivateField(encounter, "radarHint", radarShell.transform.Find("InputHint").GetComponent<TMPro.TMP_Text>());
+            SetPrivateField(encounter, "blackoutRenderers", new[] { (SpriteRenderer)GetHotfixField(encounter, "centralVisual") });
+        }
+        finally { AuthoredRuntimeFixture.Close(saved); }
         var requested = new UnityEngine.Events.UnityEvent();
         UnityEditor.Events.UnityEventTools.AddVoidPersistentListener(requested, encounter.BeginEncounter);
         requested.SetPersistentListenerState(0, UnityEngine.Events.UnityEventCallState.EditorAndRuntime);
@@ -2272,6 +2290,12 @@ public sealed class QAStabilizationPass1Tests
                     DG.Tweening.TweenExtensions.Complete(pulse, true);
                 }
             }
+            Assert.That(encounter.IsPurpleActive, Is.True, "Third fusion requires the Radar finale before campaign completion.");
+            Assert.That(progress.SettlementDefenseCleared, Is.False);
+            var finalTarget = (SettlementDefensePurpleCore)GetHotfixField(encounter, "purpleCore");
+            typeof(SettlementDefensePurpleCore).GetProperty("State").SetValue(finalTarget, SettlementDefensePurpleCore.Phase.Exposed);
+            finalTarget.Health.RemoveDamageFloor(finalTarget);
+            finalTarget.Health.TakeDamage(10000f);
             Assert.That(encounter.IsActive, Is.False);
             Assert.That(encounter.FusedCount, Is.EqualTo(3));
             Assert.That(completions, Is.EqualTo(1));
@@ -2752,7 +2776,7 @@ public sealed class QAStabilizationPass1Tests
             SetPrivateField(slot, "part", CampaignProgressionCatalog.GetStoryPart(bosses[i]));
             SetPrivateField(slot, "canvasGroup", group);
             slot.Refresh(progress);
-            Assert.That(group.alpha, Is.EqualTo(i < count ? 1f : 0.55f));
+            Assert.That(group.alpha, Is.EqualTo(i < count ? 1f : 0.82f));
         }
         Assert.That(progress.AcquiredBossStoryPartCount, Is.EqualTo(count));
     }
@@ -2942,7 +2966,8 @@ public sealed class QAStabilizationPass1Tests
         Assert.That(section.name, Is.EqualTo("StoryRecoverySection"));
         Assert.That(section.parent.name, Is.EqualTo("StoryProgressInspectionRoot"));
         Assert.That(section.parent.gameObject.activeSelf, Is.False);
-        Assert.That(section.GetComponentsInChildren<Selectable>(true), Is.Empty);
+        Assert.That(section.GetComponentsInChildren<Selectable>(true),
+            Is.EqualTo(new[] { serialized.FindProperty("storyProgressCloseButton").objectReferenceValue }));
         Assert.That(section.GetComponentsInChildren<ScrollRect>(true), Is.Empty);
         for (int i = 0; i < 3; i++)
         {
@@ -3002,7 +3027,7 @@ public sealed class QAStabilizationPass1Tests
             SetPrivateField(slot, "statusText", status);
             SetPrivateField(panel, "storyRecoverySlots", new[] { slot });
             panel.RefreshStoryRecovery();
-            Assert.That(group.alpha, Is.EqualTo(0.55f));
+            Assert.That(group.alpha, Is.EqualTo(0.82f));
             Assert.That(icon.enabled, Is.False);
             string unacquired = status.text;
             InvokeHotfix(panel, "BindRuntimeEvents");

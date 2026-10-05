@@ -125,6 +125,7 @@ public class EnemyAttackController : MonoBehaviour
     public bool IsAimDirectionLocked => isCharging && chargeAimCommitted;
     public bool IsCommittedCharge => isCharging && chargeAimCommitted;
     public Vector2 LockedChargeDirection => lockedChargeDirection;
+    public Vector2 CurrentChargeDirection => currentChargeDirection;
     public Transform FirePoint => ResolveCenterFirePoint();
     public EnemyRangedAttackPattern RangedAttackPattern => rangedAttackPattern;
 
@@ -134,6 +135,10 @@ public class EnemyAttackController : MonoBehaviour
     public event Action<EnemyAttackController> ChargeStarted;
     public event Action<EnemyAttackController> ChargeReleased;
     public event Action<EnemyAttackController> ChargeCanceled;
+
+    [Header("Lightweight Firing Presentation")]
+    [SerializeField] private PooledMuzzleFlash muzzleFlashPrefab;
+    private int muzzleFrame = -1;
 
     private void Awake()
     {
@@ -796,6 +801,14 @@ public class EnemyAttackController : MonoBehaviour
             projectileSourceRoot != null ? projectileSourceRoot.gameObject : gameObject
         );
 
+        // One tiny flash per emitted group, not one effect per shotgun pellet.
+        if (muzzleFlashPrefab != null && PoolManager.Instance != null && muzzleFrame != Time.frameCount)
+        {
+            muzzleFrame = Time.frameCount;
+            var flashObject = PoolManager.Instance.Get(muzzleFlashPrefab.gameObject, origin,
+                Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg));
+            flashObject.GetComponent<PooledMuzzleFlash>().Play(transform, gameObject);
+        }
         return bullet;
     }
 
@@ -855,12 +868,6 @@ public class EnemyAttackController : MonoBehaviour
             return false;
         }
 
-        float minimumSpeed = Mathf.Max(0f, predictiveMinimumTargetSpeed);
-        if (targetBody.linearVelocity.sqrMagnitude < minimumSpeed * minimumSpeed)
-        {
-            return false;
-        }
-
         ProjectileDefinition aimProjectile = projectileDefinition != null
             ? projectileDefinition
             : secondaryProjectileDefinition;
@@ -907,8 +914,23 @@ public class EnemyAttackController : MonoBehaviour
             return GetDirectionToTarget(origin, target.position);
         }
 
-        Vector2 targetPosition = target.position;
+        Vector2 targetPosition = targetBody.position;
         Vector2 targetVelocity = targetBody.linearVelocity * Mathf.Max(0f, predictiveVelocityMultiplier);
+        float minimumSpeed = Mathf.Max(0f, predictiveMinimumTargetSpeed);
+        if (targetVelocity.sqrMagnitude < minimumSpeed * minimumSpeed)
+            return GetDirectionToTarget(origin, targetPosition);
+        return GetDirectionToTarget(origin, PredictTargetPosition(origin, targetPosition,
+            targetVelocity, projectileSpeed, predictiveMaxLeadTime));
+    }
+
+    // No allocation or state mutation; sampled during early charge and frozen at
+    // the existing commitment point. Probability and projectile stats stay authored.
+    public static Vector2 PredictTargetPosition(Vector2 origin, Vector2 targetPosition,
+        Vector2 targetVelocity, float projectileSpeed, float maxLeadTime)
+    {
+        if (!IsFinite(projectileSpeed) || projectileSpeed <= .01f ||
+            !IsFinite(maxLeadTime) || maxLeadTime <= 0f ||
+            !IsFinite(targetVelocity.x) || !IsFinite(targetVelocity.y)) return targetPosition;
         Vector2 relativePosition = targetPosition - origin;
 
         float leadTime = SolveInterceptTime(relativePosition, targetVelocity, projectileSpeed);
@@ -918,10 +940,11 @@ public class EnemyAttackController : MonoBehaviour
             leadTime = relativePosition.magnitude / projectileSpeed;
         }
 
-        leadTime = Mathf.Clamp(leadTime, 0f, Mathf.Max(0f, predictiveMaxLeadTime));
-        Vector2 predictedPosition = targetPosition + targetVelocity * leadTime;
-        return GetDirectionToTarget(origin, predictedPosition);
+        leadTime = Mathf.Clamp(leadTime, 0f, maxLeadTime);
+        return IsFinite(leadTime) ? targetPosition + targetVelocity * leadTime : targetPosition;
     }
+
+    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
     private static float SolveInterceptTime(
         Vector2 relativePosition,

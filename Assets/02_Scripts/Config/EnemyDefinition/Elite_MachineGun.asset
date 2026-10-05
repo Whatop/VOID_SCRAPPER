@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cc398a4577fa6d498d2135813e8eff2, type: 3}
   m_Name: Elite_MachineGun
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   enemyId: elite_machinegun
   displayName: "\uAE30\uAD00\uCD1D \uC5D8\uB9AC\uD2B8"
   enemyType: 6
-  enemyPrefab: {fileID: 6983035740697639387, guid: 6b003641383fd2c4face90b26dff574c, type: 3}
+  enemyPrefab: {fileID: 6983035740697639387, guid: dcb7a1430cb25a64f918a49af9769553, type: 3}
   maxHp: 42
   moveSpeed: 2.8
   visionRange: 11
@@ -36,6 +36,10 @@ MonoBehaviour:
   burstTrackTargetEachShot: 1
   shakeLateralSpeed: 1.35
   shakeFrequency: 4.5
+  staggeredVolleyCount: 2
+  staggeredVolleyInterval: 0.25
+  staggeredVolleyAngleOffset: 9
+  staggeredTrackTargetEachVolley: 1
   splitProjectileDefinition: {fileID: 0}
   splitProjectileCount: 6
   splitDelay: 0.95

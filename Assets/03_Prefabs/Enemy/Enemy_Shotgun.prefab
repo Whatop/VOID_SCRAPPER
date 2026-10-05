@@ -191,7 +191,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: -7918928145898029670, guid: d49e64aced3373c46aeee19b6dc2762c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: c54212aae3470db4486dc0060faa2caf, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -462,6 +462,7 @@ MonoBehaviour:
     m_Bits: 0
   isAttacking: 0
   isCharging: 0
+  muzzleFlashPrefab: {fileID: 3348743499460803659, guid: 9f01ff6b2e03ea044a5b4c5e96b228a4, type: 3}
 --- !u!114 &2963155244060544709
 MonoBehaviour:
   m_ObjectHideFlags: 0

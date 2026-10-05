@@ -97,6 +97,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
     [Header("Unstable Reactor")]
     [SerializeField] private ExpeditionEventDamageReceiver reactorDamageReceiver;
+    [SerializeField] private ReactorFeedbackUI reactorFeedback;
     [SerializeField] private float reactorChargeTime = 0.75f;
     [SerializeField] private float reactorMaxHp = 24f;
     [SerializeField] private float reactorTimeLimit = 12f;
@@ -213,7 +214,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
     public ExpeditionEventType EventType => eventType;
     public ExpeditionEventState State => state;
-    public bool CanReceiveEventDamage => eventType == ExpeditionEventType.UnstableReactor && state == ExpeditionEventState.Active;
+    public bool CanReceiveEventDamage => eventType == ExpeditionEventType.UnstableReactor && state == ExpeditionEventState.Active && phase == CombatPhase.None;
     public RadarTarget RadarTarget => radarTarget;
 
     public event System.Action<ExpeditionEventObject, ExpeditionEventState> Resolved;
@@ -355,6 +356,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
     private void OnDisable()
     {
+        reactorFeedback?.Clear();
         StopAllEventCoroutines();
         UntrackAllEnemies();
         KillTweens(false);
@@ -412,7 +414,8 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
         }
 
         reactorHp = Mathf.Max(0f, reactorHp - damage);
-        SetProgress(Mathf.Min(GetReactorHpRatio(), GetReactorTimeRatio()), warningColor);
+        SetProgress(GetReactorHpRatio(), warningColor);
+        reactorFeedback?.Refresh(reactorTimer, GetReactorHpRatio());
         FlashCore();
 
         if (reactorHp <= 0f)
@@ -428,7 +431,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
         state = ExpeditionEventState.Active;
         phase = CombatPhase.RescueWave1;
 
-        Message("구조 신호 확인. 1차 적 접근 중.");
+        Message("구조 신호 확인. 1차 적 접근 중.", ShipCommunicationSeverity.Confirmation);
 
         SpawnBatch(basicEnemyDefinition, basicEnemyPrefabFallback, rescueWave1Basic, true, false);
         SpawnBatch(shotgunEnemyDefinition, shotgunEnemyPrefabFallback, rescueWave1Shotgun, true, false);
@@ -440,7 +443,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
     {
         BeginEvent("미확인 장치", "장치 반응을 분석한다.", infoColor);
 
-        Message("미확인 장치 분석 중...");
+        Message("미확인 장치 분석 중...", ShipCommunicationSeverity.Confirmation);
         PlayProgressLoop(infoColor);
 
         yield return new WaitForSeconds(Mathf.Max(0.05f, unknownChargeTime));
@@ -449,7 +452,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
         if (Random.value <= unknownSafeChance)
         {
-            Message("장치 안정화 성공. 보상을 회수해라.");
+            Message("장치 안정화 성공. 보상을 회수해라.", ShipCommunicationSeverity.Confirmation);
             DropReward(unknownSafeReward);
             Finish(false);
             yield break;
@@ -472,7 +475,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
     {
         BeginEvent("불안정 원자로", "제한 시간 안에 파괴한다.", warningColor);
 
-        Message("원자로 기동 중...");
+        Message("원자로 기동 중...", ShipCommunicationSeverity.Confirmation);
         PlayProgressLoop(warningColor);
 
         yield return new WaitForSeconds(Mathf.Max(0.05f, reactorChargeTime));
@@ -485,6 +488,10 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
         SetDamageEnabled(true);
         SetProgress(1f, warningColor);
+
+        ResolvePlayer();
+        reactorFeedback?.Begin(reactorTimer, GetReactorHpRatio(),
+            player != null ? player.GetComponent<PlayerHealth>() : null, RunManager.Instance);
 
         Message("원자로 폭주 시작. 공격해서 안정화해라.");
     }
@@ -502,13 +509,14 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
         PlayProgressLoop(infoColor);
         SetProgress(0f, infoColor);
-        Message("블랙박스 회수 시작. 추적 신호 감지.");
+        Message("블랙박스 회수 시작. 추적 신호 감지.", ShipCommunicationSeverity.Confirmation);
     }
 
     private void UpdateReactorTimer()
     {
+        if (!CanReceiveEventDamage) return;
         reactorTimer -= Time.deltaTime;
-        SetProgress(Mathf.Min(GetReactorHpRatio(), GetReactorTimeRatio()), warningColor);
+        reactorFeedback?.Refresh(reactorTimer, GetReactorHpRatio());
 
         if (reactorTimer <= 0f)
         {
@@ -519,11 +527,6 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
     private float GetReactorHpRatio()
     {
         return reactorMaxHp <= 0f ? 0f : Mathf.Clamp01(reactorHp / reactorMaxHp);
-    }
-
-    private float GetReactorTimeRatio()
-    {
-        return reactorTimeLimit <= 0f ? 0f : Mathf.Clamp01(reactorTimer / reactorTimeLimit);
     }
 
     private void UpdateBlackBox()
@@ -549,7 +552,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
         if (blackBoxTimer <= 0f)
         {
-            Message("블랙박스 복구 완료. 보상을 회수해라.");
+            Message("블랙박스 복구 완료. 보상을 회수해라.", ShipCommunicationSeverity.Confirmation);
             DropReward(blackBoxReward);
             Finish(false);
         }
@@ -557,7 +560,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
     private void CompleteReactor()
     {
-        if (state != ExpeditionEventState.Active)
+        if (!CanReceiveEventDamage)
         {
             return;
         }
@@ -566,26 +569,25 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
         HideProgress();
         Pulse(successColor);
 
-        Message("원자로 안정화 성공. 고가치 보상을 회수해라.");
+        Message("원자로 안정화 성공. 고가치 보상을 회수해라.", ShipCommunicationSeverity.Confirmation);
         DropReward(reactorReward);
         Finish(false);
     }
 
     private void FailReactor()
     {
-        if (state != ExpeditionEventState.Active)
+        if (!CanReceiveEventDamage)
         {
             return;
         }
 
+        phase = CombatPhase.ReactorFailure;
         SetDamageEnabled(false);
         HideProgress();
         Pulse(failColor);
 
         Message("원자로 폭주. 보상 손실. 적 증원 발생.");
         AudioManager.PlayAt(SoundEventIds.EnemyAlert, transform.position);
-
-        phase = CombatPhase.ReactorFailure;
 
         SpawnBatch(basicEnemyDefinition, basicEnemyPrefabFallback, reactorFailureBasic, true, false);
         SpawnBatch(chargingEnemyDefinition, chargingEnemyPrefabFallback, reactorFailureCharging, true, false);
@@ -709,13 +711,13 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
                 break;
 
             case CombatPhase.RescueWave2:
-                Message("구조 신호 클리어. 보급 캡슐을 회수해라.");
+                Message("구조 신호 클리어. 보급 캡슐을 회수해라.", ShipCommunicationSeverity.Confirmation);
                 DropReward(rescueReward);
                 Finish(false);
                 break;
 
             case CombatPhase.UnknownCombat:
-                Message("증원 격파. 보상을 회수해라.");
+                Message("증원 격파. 보상을 회수해라.", ShipCommunicationSeverity.Confirmation);
                 DropReward(unknownCombatReward);
                 Finish(false);
                 break;
@@ -1214,7 +1216,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
         radarTarget.SetVisible(state != ExpeditionEventState.Completed && state != ExpeditionEventState.Failed);
     }
 
-    private void Message(string message)
+    private void Message(string message, ShipCommunicationSeverity severity = ShipCommunicationSeverity.Warning)
     {
         if (hud == null)
         {
@@ -1223,7 +1225,8 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
         if (hud != null)
         {
-            hud.ShowWarning(message);
+            hud.ShowCommunication(ShipCommunicationChannel.System, message, severity,
+                severity == ShipCommunicationSeverity.Confirmation ? 1.6f : -1f, this);
         }
     }
 
@@ -1405,6 +1408,7 @@ public class ExpeditionEventObject : MonoBehaviour, IInteractable
 
     private void HideProgress()
     {
+        reactorFeedback?.Clear();
         progressSequence?.Kill(false);
         progressSequence = null;
 

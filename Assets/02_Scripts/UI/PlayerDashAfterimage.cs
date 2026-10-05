@@ -5,6 +5,12 @@ public class PlayerDashAfterimage : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private PlayerDash playerDash;
+    [Header("Approved Dash VFX")]
+    [SerializeField] private GameObject normalDashPrefab;
+    [SerializeField] private GameObject curseDashPrefab;
+    [SerializeField] private float approvedEffectLifetime = .18f;
+    private PlayerVisualStateController playerVisual;
+    private Rigidbody2D playerBody;
 
     [Tooltip("플레이어 기체 이미지 루트. 보통 VisualRoot.")]
     [SerializeField] private Transform visualRoot;
@@ -33,6 +39,8 @@ public class PlayerDashAfterimage : MonoBehaviour
     {
         CacheReferences();
         CacheSourceRenderers();
+        playerVisual = GetComponentInParent<PlayerVisualStateController>();
+        playerBody = GetComponentInParent<Rigidbody2D>();
     }
 
     private void Update()
@@ -99,6 +107,16 @@ public class PlayerDashAfterimage : MonoBehaviour
 
     private void SpawnAfterimage()
     {
+        GameObject approved = playerVisual != null && playerVisual.IsCursed ? curseDashPrefab : normalDashPrefab;
+        if (approved != null)
+        {
+            if (PoolManager.Instance == null) return;
+            Vector2 direction = playerBody != null && playerBody.linearVelocity.sqrMagnitude > .001f
+                ? playerBody.linearVelocity.normalized : (Vector2)visualRoot.up;
+            GameObject effect = PoolManager.Instance.SpawnAutoRelease(approved, transform.position, approvedEffectLifetime);
+            if (effect != null) effect.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
+            return;
+        }
         if (sourceRenderers == null || sourceRenderers.Length == 0)
         {
             CacheSourceRenderers();

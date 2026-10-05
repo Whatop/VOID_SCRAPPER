@@ -7,6 +7,9 @@ using UnityEngine.UI;
 public class UISoundButton :
     MonoBehaviour,
     IPointerEnterHandler,
+    IPointerExitHandler,
+    ISelectHandler,
+    IDeselectHandler,
     IPointerDownHandler,
     IPointerClickHandler
 {
@@ -16,6 +19,7 @@ public class UISoundButton :
 
     [SerializeField] private bool playClick = true;
     [SerializeField] private bool playHover = true;
+    [SerializeField] private bool playSelectionHover;
     [SerializeField] private bool playDisabledClick = true;
 
     private Button button;
@@ -24,6 +28,9 @@ public class UISoundButton :
 
     private bool pointerDownStateCaptured;
     private bool wasInteractableOnPointerDown = true;
+    private bool pointerInside;
+    private bool selectionHovered;
+    private int lastHoverFrame = -1;
 
     private void Awake()
     {
@@ -59,10 +66,17 @@ public class UISoundButton :
 
         pointerDownStateCaptured = false;
         wasInteractableOnPointerDown = true;
+        pointerInside = selectionHovered = false;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        if (playSelectionHover)
+        {
+            if (!pointerInside) PlayFocusHover();
+            pointerInside = true;
+            return;
+        }
         if (!isPrimaryInstance || !playHover)
         {
             return;
@@ -75,6 +89,26 @@ public class UISoundButton :
             return;
         }
 
+        AudioManager.Play(hoverSoundEventId);
+    }
+
+    public void OnPointerExit(PointerEventData eventData) => pointerInside = false;
+
+    public void OnSelect(BaseEventData eventData)
+    {
+        if (!playSelectionHover || selectionHovered) return;
+        selectionHovered = true;
+        if (!pointerInside) PlayFocusHover();
+    }
+
+    public void OnDeselect(BaseEventData eventData) => selectionHovered = false;
+
+    private void PlayFocusHover()
+    {
+        CacheButton();
+        if (!isActiveAndEnabled || !isPrimaryInstance || !playHover || button == null ||
+            !button.IsActive() || !button.IsInteractable() || lastHoverFrame == Time.frameCount) return;
+        lastHoverFrame = Time.frameCount;
         AudioManager.Play(hoverSoundEventId);
     }
 

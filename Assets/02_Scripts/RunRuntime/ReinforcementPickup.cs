@@ -272,7 +272,7 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
         ReinforcementDefinition previousDefinition = controller.EquippedDefinition;
         int previousCharges = controller.CurrentCharges;
 
-        bool equipped = controller.EquipWithoutDropping(pickedDefinition, pickedCharges, true);
+        bool equipped = controller.EquipWithoutDropping(pickedDefinition, pickedCharges, true, false);
 
         if (!equipped)
         {
@@ -285,9 +285,11 @@ public class ReinforcementPickup : MonoBehaviour, IInteractable
         if (previousDefinition != null)
         {
             Initialize(previousDefinition, previousCharges, pickupBlockSeconds);
+            controller.ConfirmAcquisition($"{previousDefinition.DisplayName} · 필드에 남음");
         }
         else
         {
+            controller.ConfirmAcquisition();
             reinforcementDefinition = null;
             storedCharges = -1;
             ApplyVisual();

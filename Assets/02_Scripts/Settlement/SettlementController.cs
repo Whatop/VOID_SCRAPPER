@@ -126,6 +126,8 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
     [SerializeField] private List<ShipDefinition> shipDefinitions = new List<ShipDefinition>();
     [SerializeField] private List<BuildingDefinition> buildingDefinitions = new List<BuildingDefinition>();
     [SerializeField] private List<TraitDefinition> traitDefinitions = new List<TraitDefinition>();
+    [Tooltip("Read-only authored baseline. Validated against the Expedition player; never applied for preview.")]
+    [SerializeField] private PlayerRuntimeStatApplier deploymentStatSource;
 
     [Header("Legacy Building Upgrade Data (Ignored)")]
     [Tooltip("Retained only so existing scene serialization remains compatible. Restoration does not spend currency.")]
@@ -145,6 +147,7 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
     private WeaponTreeType selectedWeaponTree;
     private string selectedShipId;
     private int previewShipIndex;
+    private VoidScrapperLocalizationService hangarLocalization;
 
     public WeaponTreeType SelectedWeaponTree => selectedWeaponTree;
     public string SelectedShipId => string.IsNullOrWhiteSpace(selectedShipId) ? ResolveDefaultShipId() : selectedShipId;
@@ -188,6 +191,7 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
 
     private void OnEnable()
     {
+        SubscribeHangarLocalization();
         if (PermanentProgress.Instance != null)
         {
             PermanentProgress.Instance.Changed += HandleProgressChanged;
@@ -196,6 +200,7 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
 
     private void Start()
     {
+        SubscribeHangarLocalization();
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.ChangeState(GameState.Settlement);
@@ -209,6 +214,8 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
 
     private void OnDisable()
     {
+        if (hangarLocalization != null) hangarLocalization.LanguageChanged -= HandleHangarLanguageChanged;
+        hangarLocalization = null;
         if (PermanentProgress.Instance != null)
         {
             PermanentProgress.Instance.Changed -= HandleProgressChanged;
@@ -644,6 +651,16 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
         return "기체 개발";
     }
 
+    private void SubscribeHangarLocalization()
+    {
+        if (!VoidScrapperLocalizationService.HasInstance || hangarLocalization == VoidScrapperLocalizationService.Instance) return;
+        if (hangarLocalization != null) hangarLocalization.LanguageChanged -= HandleHangarLanguageChanged;
+        hangarLocalization = VoidScrapperLocalizationService.Instance;
+        hangarLocalization.LanguageChanged += HandleHangarLanguageChanged;
+    }
+
+    private void HandleHangarLanguageChanged(string language) => NotifyChanged();
+
     public Sprite GetPreviewShipSprite()
     {
         return PreviewShip != null
@@ -654,7 +671,7 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
     public string GetPreviewShipTitle()
     {
         ShipDefinition ship = PreviewShip;
-        return ship != null ? ship.DisplayName : "기체 없음";
+        return ship != null ? HangarDeploymentText.ShipName(ship) : "기체 없음";
     }
 
     public string BuildPreviewShipDetailText()
@@ -665,34 +682,11 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
             return "기체 데이터가 없습니다.";
         }
 
-        StringBuilder builder = new StringBuilder();
-
         bool unlocked = IsShipUnlocked(ship);
-
-        if (!unlocked)
-        {
-            builder.AppendLine(ship.Description);
-            builder.AppendLine();
-            builder.AppendLine($"개발 비용  {FormatCost(ship.RequiredScrapParts, ship.RequiredCoreShards)}");
-
-            if (!IsShipPrerequisiteMet(ship))
-            {
-                builder.AppendLine(string.IsNullOrWhiteSpace(ship.RequiredUnlockFlag)
-                    ? "미충족 조건 있음"
-                    : $"필요 조건: {ship.RequiredUnlockFlag}");
-            }
-
-            return builder.ToString();
-        }
-
-        builder.AppendLine($"무장  {GetWeaponDisplayName(ship.DefaultWeaponTree)}");
-        builder.AppendLine($"HP  {ship.MaxHp}    적재  {ship.CargoCapacity}");
-        builder.AppendLine($"이동  {FormatSignedPercent(ship.MoveSpeedBonusPercent)}    대시  {FormatSignedNumber(ship.DashDistanceBonus)}");
-        builder.AppendLine();
-        builder.AppendLine("기체 특성");
-        builder.AppendLine(string.IsNullOrWhiteSpace(ship.PassiveDescription) ? "추가 패시브 없음." : ship.PassiveDescription);
-
-        return builder.ToString();
+        var progress = PermanentProgress.Instance;
+        var projection = unlocked ? HangarDeploymentProjection.Calculate(ship, progress, traitDefinitions, deploymentStatSource) : null;
+        return HangarDeploymentText.Build(ship, projection, unlocked, IsShipPrerequisiteMet(ship), progress,
+            FormatCost(ship.RequiredScrapParts, ship.RequiredCoreShards));
     }
     public bool TryCompleteRestorationProject(BuildingType buildingType)
     {
@@ -1574,7 +1568,8 @@ public class SettlementController : MonoBehaviour, IMainDamagedAccessKeyQuestSta
         }
 
         string color = satisfied ? "#74E6D2" : "#D6B36A";
-        string marker = satisfied ? "✓" : "•";
+        // The authored Korean UI font has no checkmark glyph. Keep status explicit in both languages.
+        string marker = satisfied ? "[OK]" : "-";
         builder.Append($"<color={color}>{marker}</color> {text}");
     }
 

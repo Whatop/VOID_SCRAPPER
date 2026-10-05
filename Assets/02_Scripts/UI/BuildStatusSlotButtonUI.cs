@@ -2,15 +2,17 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 [DisallowMultipleComponent]
-public class BuildStatusSlotButtonUI : MonoBehaviour
+public class BuildStatusSlotButtonUI : MonoBehaviour, ISelectHandler
 {
     [Header("References")]
     [SerializeField] private Button button;
     [SerializeField] private Image iconImage;
     [SerializeField] private Image rarityFrameImage;
     [SerializeField] private TextMeshProUGUI amountText;
+    [SerializeField] private TextMeshProUGUI kindText;
     [SerializeField] private GameObject amountRoot;
     [SerializeField] private GameObject selectedRoot;
     [SerializeField] private GameObject ownedRoot;
@@ -25,6 +27,26 @@ public class BuildStatusSlotButtonUI : MonoBehaviour
     [SerializeField] private Color unownedOverlayColor = new Color(0f, 0f, 0f, 0.5f);
 
     private Action clicked;
+    public Button Button => button;
+
+    public void SetKindLabel(string label)
+    {
+        if (kindText != null) kindText.text = label;
+    }
+
+    public void OnSelect(BaseEventData eventData)
+    {
+        clicked?.Invoke();
+        ScrollRect scroll = GetComponentInParent<ScrollRect>();
+        if (scroll == null || scroll.viewport == null || scroll.content == null) return;
+        Canvas.ForceUpdateCanvases();
+        Bounds bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(scroll.viewport, transform);
+        Rect view = scroll.viewport.rect;
+        float offset = bounds.max.y > view.yMax ? view.yMax - bounds.max.y :
+            bounds.min.y < view.yMin ? view.yMin - bounds.min.y : 0;
+        scroll.StopMovement();
+        scroll.content.anchoredPosition += new Vector2(0, offset);
+    }
 
     private void Reset()
     {

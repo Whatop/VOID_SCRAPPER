@@ -1,0 +1,62 @@
+[
+  {
+    "Name": "player.png",
+    "Relative": "Input/01_Player/Px_Player.png",
+    "SHA256": "3BFD635CC357A8857CDD4B9C558224D139F067AD7A85A18024AA05D3409FEE1A"
+  },
+  {
+    "Name": "trace_reference.aseprite",
+    "Relative": "Output/30_PresentationSupport/VFX_Player_RectBoundary.aseprite",
+    "SHA256": "253526DA929952EE74855D2AB8235BCFD2D9B4183EC4C0D5681FEBBF0DF2615F"
+  },
+  {
+    "Name": "dash_reference.aseprite",
+    "Relative": "Output/15_GameplayVFX/VFX_Player_Dash.aseprite",
+    "SHA256": "4EEE36C6D9E71F9795E20DE3B38DB0108B0DCCA3F5AFD75AD1547EDC0CD3C034"
+  },
+  {
+    "Name": "barrier_reference.png",
+    "Relative": "Output/16_SystemBossVFX/VFX_Sector_ContainmentBarrier.png",
+    "SHA256": "CE61F2C2F76078C5F8BA6D376A45E025ED364B740B4F77BD543EB7740471295C"
+  },
+  {
+    "Name": "enemy.png",
+    "Relative": "Output/03_RaiderEnemy/raider_basic.png",
+    "SHA256": "7296ED1738B50BDD809FF8D4A5BDCC558E9D809270999EE8B5ACD9B93B0C21D8"
+  },
+  {
+    "Name": "guard.png",
+    "Relative": "Output/04_SystemSupport/system_support_green.png",
+    "SHA256": "03584046D5F5FDEE096138D7B4469F544CC79C43D3300659CDD72C734E5FB4B1"
+  },
+  {
+    "Name": "credit.png",
+    "Relative": "Output/19_WorldPickups/Pickup_Credit.png",
+    "SHA256": "B6CA17D5F212D635B7C0395793BEBFA392E02C9B90B82DBCEC111DDCC329C8C0"
+  },
+  {
+    "Name": "background_Tutorial.png",
+    "Relative": "Output/31_RegionBackground/BG_Tutorial.png",
+    "SHA256": "185BDF4984F101F0ACF59B67A3A72D2C2CFF835FCC5719DF2DA9609971BAEF3F"
+  },
+  {
+    "Name": "background_RegionA.png",
+    "Relative": "Output/31_RegionBackground/BG_RegionA.png",
+    "SHA256": "730853550DD087854B17B932AE71CAC2EC0616EBCFB98C668B168C0CC2552053"
+  },
+  {
+    "Name": "background_RegionB.png",
+    "Relative": "Output/31_RegionBackground/BG_RegionB.png",
+    "SHA256": "6612CF6245AFB929B9A3028856CCDD2A936F904F50E8F0FBCE659E42B50E498F"
+  },
+  {
+    "Name": "background_RegionC.png",
+    "Relative": "Output/31_RegionBackground/BG_RegionC.png",
+    "SHA256": "31775E25EC3A1D4F20FCB5F810D17AC62B6AA4388B2A22937CFAADF9C9133657"
+  },
+  {
+    "Name": "background_Final.png",
+    "Relative": "Output/31_RegionBackground/BG_Final.png",
+    "SHA256": "C0D6F653C486E512FD85D222E5EDC3026393D3D36B933F78900C10C679B54012"
+  }
+]

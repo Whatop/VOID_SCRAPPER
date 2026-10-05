@@ -1,0 +1,514 @@
+fileFormatVersion: 2
+guid: e247f8e9302d0d24d9857f91f26b30fc
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -1276431669145340459
+    second: VFX_Sector_CoreMissileFlash_0
+  - first:
+      213: -1461349167151868020
+    second: VFX_Sector_CoreMissileFlash_1
+  - first:
+      213: 8912001917678042970
+    second: VFX_Sector_CoreMissileFlash_2
+  - first:
+      213: 2140476953668889682
+    second: VFX_Sector_CoreMissileFlash_3
+  - first:
+      213: 2395085222443993614
+    second: VFX_Sector_CoreMissileFlash_4
+  - first:
+      213: -3570013972116397896
+    second: VFX_Sector_CoreMissileFlash_5
+  - first:
+      213: 6956598870422246538
+    second: VFX_Sector_CoreMissileFlash_6
+  - first:
+      213: -147182422026400492
+    second: VFX_Sector_CoreMissileFlash_7
+  - first:
+      213: 4420219971739187816
+    second: VFX_Sector_CoreMissileFlash_8
+  - first:
+      213: 567736851558897948
+    second: VFX_Sector_CoreMissileFlash_9
+  - first:
+      213: -6334151076031102567
+    second: VFX_Sector_CoreMissileFlash_10
+  - first:
+      213: 484893223021011810
+    second: VFX_Sector_CoreMissileFlash_11
+  - first:
+      213: -1674985068940124820
+    second: VFX_Sector_CoreMissileFlash_12
+  - first:
+      213: -7878799585811609897
+    second: VFX_Sector_CoreMissileFlash_13
+  - first:
+      213: 5747371478302259796
+    second: VFX_Sector_CoreMissileFlash_14
+  - first:
+      213: 3893383551724370671
+    second: VFX_Sector_CoreMissileFlash_15
+  - first:
+      213: -2021888405767776314
+    second: VFX_Sector_CoreMissileFlash_16
+  - first:
+      213: -8077306948534798267
+    second: VFX_Sector_CoreMissileFlash_17
+  - first:
+      213: -1800128282237750921
+    second: VFX_Sector_CoreMissileFlash_18
+  - first:
+      213: 2986035965750948643
+    second: VFX_Sector_CoreMissileFlash_19
+  - first:
+      213: -8549162009511887607
+    second: VFX_Sector_CoreMissileFlash_20
+  - first:
+      213: -446492003071236574
+    second: VFX_Sector_CoreMissileFlash_21
+  - first:
+      213: -3861119219899822296
+    second: VFX_Sector_CoreMissileFlash_22
+  - first:
+      213: 7453238431127955231
+    second: VFX_Sector_CoreMissileFlash_23
+  - first:
+      213: -7953872819667261255
+    second: VFX_Sector_CoreMissileFlash_24
+  - first:
+      213: 8735163299237547939
+    second: VFX_Sector_CoreMissileFlash_25
+  - first:
+      213: 1734547869572499733
+    second: VFX_Sector_CoreMissileFlash_26
+  - first:
+      213: -3700305083448671921
+    second: VFX_Sector_CoreMissileFlash_27
+  - first:
+      213: -5230111789766450267
+    second: VFX_Sector_CoreMissileFlash_28
+  - first:
+      213: -8245618334347314776
+    second: VFX_Sector_CoreMissileFlash_29
+  - first:
+      213: -1062204431759232364
+    second: VFX_Sector_CoreMissileFlash_30
+  - first:
+      213: -2956507380045724113
+    second: VFX_Sector_CoreMissileFlash_31
+  - first:
+      213: -4669831061009359903
+    second: VFX_Sector_CoreMissileFlash_32
+  - first:
+      213: -5257223615106811841
+    second: VFX_Sector_CoreMissileFlash_33
+  - first:
+      213: -693099338781629522
+    second: VFX_Sector_CoreMissileFlash_34
+  - first:
+      213: 7212702251233747989
+    second: VFX_Sector_CoreMissileFlash_35
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_10
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9910287f7239818a0800000000000000
+      internalID: -6334151076031102567
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_11
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 0
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 263692831dfaab600800000000000000
+      internalID: 484893223021011810
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 32
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5fa8887824635d44aac45b4d84fb3b05
+      internalID: 311155153
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_01
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 32
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ab6a66b95c129814a905af9caa68cd36
+      internalID: 357979447
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_02
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 32
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a1a18e46713ffa1458a397e6d6c8dd0e
+      internalID: -1144696103
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_03
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 32
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 132f05b177f9f3340ad70cd22075006d
+      internalID: 734137144
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_04
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 32
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d2a7cdb953934d64995b15a788b139a6
+      internalID: -201252007
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_05
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 32
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b50f813ebb287bb48a000c8d937baa4d
+      internalID: -1651788555
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_06
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b30181850d978d6478817c22f1470490
+      internalID: -469828981
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_07
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 0
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bd1b72cdc58c0114d92fc516c0236162
+      internalID: -1132382786
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_08
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7b551692988101b4cbe21ce5df8e3132
+      internalID: -1044180909
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_CoreMissileFlash_09
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 32
+        height: 32
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 30a72a9c76976dc4487ef8e3b7375b73
+      internalID: -1101346033
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: fced023ad4b1c3a4887fae4a5753811d
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Sector_CoreMissileFlash_00: 311155153
+      VFX_Sector_CoreMissileFlash_01: 357979447
+      VFX_Sector_CoreMissileFlash_02: -1144696103
+      VFX_Sector_CoreMissileFlash_03: 734137144
+      VFX_Sector_CoreMissileFlash_04: -201252007
+      VFX_Sector_CoreMissileFlash_05: -1651788555
+      VFX_Sector_CoreMissileFlash_06: -469828981
+      VFX_Sector_CoreMissileFlash_07: -1132382786
+      VFX_Sector_CoreMissileFlash_08: -1044180909
+      VFX_Sector_CoreMissileFlash_09: -1101346033
+      VFX_Sector_CoreMissileFlash_10: -6334151076031102567
+      VFX_Sector_CoreMissileFlash_11: 484893223021011810
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

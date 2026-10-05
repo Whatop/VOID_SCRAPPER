@@ -1,0 +1,464 @@
+fileFormatVersion: 2
+guid: dfc7647145db15f48823ece65abdfc68
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 7735759340576291374
+    second: VFX_NULL_CriticalLoop_0
+  - first:
+      213: 1503678541630431109
+    second: VFX_NULL_CriticalLoop_1
+  - first:
+      213: 7715579711527521263
+    second: VFX_NULL_CriticalLoop_2
+  - first:
+      213: 8182411434977521888
+    second: VFX_NULL_CriticalLoop_3
+  - first:
+      213: 5183412576220984016
+    second: VFX_NULL_CriticalLoop_4
+  - first:
+      213: 5535365534533423938
+    second: VFX_NULL_CriticalLoop_5
+  - first:
+      213: -6878804159086299299
+    second: VFX_NULL_CriticalLoop_6
+  - first:
+      213: 7999960848746923743
+    second: VFX_NULL_CriticalLoop_7
+  - first:
+      213: -8146294567122466023
+    second: VFX_NULL_CriticalLoop_8
+  - first:
+      213: 7326010129995655127
+    second: VFX_NULL_CriticalLoop_9
+  - first:
+      213: -2499296279979371376
+    second: VFX_NULL_CriticalLoop_10
+  - first:
+      213: 6465680619405771923
+    second: VFX_NULL_CriticalLoop_11
+  - first:
+      213: -7442757029514684516
+    second: VFX_NULL_CriticalLoop_12
+  - first:
+      213: -8109405877026466262
+    second: VFX_NULL_CriticalLoop_13
+  - first:
+      213: -7670932137152478765
+    second: VFX_NULL_CriticalLoop_14
+  - first:
+      213: 3515926270145677701
+    second: VFX_NULL_CriticalLoop_15
+  - first:
+      213: -9097027483702961693
+    second: VFX_NULL_CriticalLoop_16
+  - first:
+      213: 5321829355556666863
+    second: VFX_NULL_CriticalLoop_17
+  - first:
+      213: -7712778637343403579
+    second: VFX_NULL_CriticalLoop_18
+  - first:
+      213: -7281218010667826779
+    second: VFX_NULL_CriticalLoop_19
+  - first:
+      213: 1142172851821301358
+    second: VFX_NULL_CriticalLoop_20
+  - first:
+      213: -1929493098801985903
+    second: VFX_NULL_CriticalLoop_21
+  - first:
+      213: -676590828535002909
+    second: VFX_NULL_CriticalLoop_22
+  - first:
+      213: 4120571383231873955
+    second: VFX_NULL_CriticalLoop_23
+  - first:
+      213: -7799435885619347535
+    second: VFX_NULL_CriticalLoop_24
+  - first:
+      213: 2784405804628312934
+    second: VFX_NULL_CriticalLoop_25
+  - first:
+      213: 260531532366250914
+    second: VFX_NULL_CriticalLoop_26
+  - first:
+      213: -8736066923153728015
+    second: VFX_NULL_CriticalLoop_27
+  - first:
+      213: 5866775767293733830
+    second: VFX_NULL_CriticalLoop_28
+  - first:
+      213: -8799450345442927490
+    second: VFX_NULL_CriticalLoop_29
+  - first:
+      213: 7512868179337170466
+    second: VFX_NULL_CriticalLoop_30
+  - first:
+      213: -4361051963348868532
+    second: VFX_NULL_CriticalLoop_31
+  - first:
+      213: -4346359924206825225
+    second: VFX_NULL_CriticalLoop_32
+  - first:
+      213: -3747655860459789816
+    second: VFX_NULL_CriticalLoop_33
+  - first:
+      213: -7913458845993326034
+    second: VFX_NULL_CriticalLoop_34
+  - first:
+      213: 5995264444613930892
+    second: VFX_NULL_CriticalLoop_35
+  - first:
+      213: 4192964204786787523
+    second: VFX_NULL_CriticalLoop_36
+  - first:
+      213: -153139081130200127
+    second: VFX_NULL_CriticalLoop_37
+  - first:
+      213: -6638527111370773568
+    second: VFX_NULL_CriticalLoop_38
+  - first:
+      213: -3364142706946968484
+    second: VFX_NULL_CriticalLoop_39
+  - first:
+      213: 3348472874609241584
+    second: VFX_NULL_CriticalLoop_40
+  - first:
+      213: 6778930868868894647
+    second: VFX_NULL_CriticalLoop_41
+  - first:
+      213: 5118030157836207176
+    second: VFX_NULL_CriticalLoop_42
+  - first:
+      213: -5032343438599766890
+    second: VFX_NULL_CriticalLoop_43
+  - first:
+      213: -7270990930445049109
+    second: VFX_NULL_CriticalLoop_44
+  - first:
+      213: -7601907907162716552
+    second: VFX_NULL_CriticalLoop_45
+  - first:
+      213: 5431585588004745898
+    second: VFX_NULL_CriticalLoop_46
+  - first:
+      213: -4092896586997246356
+    second: VFX_NULL_CriticalLoop_47
+  - first:
+      213: 8440580390892074908
+    second: VFX_NULL_CriticalLoop_48
+  - first:
+      213: -3213380509384266642
+    second: VFX_NULL_CriticalLoop_49
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_NULL_CriticalLoop_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 91b7834be6a823b4f895c8fe570d77b9
+      internalID: -1071072939
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CriticalLoop_01
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 285b60533f587314bb74340da15d229a
+      internalID: -462421620
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CriticalLoop_02
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fafb9e17f87bc7349b9696f2d614b5a2
+      internalID: 2137061228
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CriticalLoop_03
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dcd1d2fa83f766941af48ff69373cc25
+      internalID: -1680615755
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CriticalLoop_04
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b1bf302b2501f454383372f6114afd82
+      internalID: -75093453
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CriticalLoop_05
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 75a5e5140a3738e47844d8018791761c
+      internalID: 928294992
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CriticalLoop_06
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4ce40946a75dd1b4e8077af551e906e6
+      internalID: -37947571
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_NULL_CriticalLoop_07
+      rect:
+        serializedVersion: 2
+        x: 448
+        y: 0
+        width: 64
+        height: 64
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 547bb873c1f4d8e48b5c7ac3efedc9c9
+      internalID: -1320569293
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 66ccf42d3df71fd48bbf576002656a31
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_NULL_CriticalLoop_00: -1071072939
+      VFX_NULL_CriticalLoop_01: -462421620
+      VFX_NULL_CriticalLoop_02: 2137061228
+      VFX_NULL_CriticalLoop_03: -1680615755
+      VFX_NULL_CriticalLoop_04: -75093453
+      VFX_NULL_CriticalLoop_05: 928294992
+      VFX_NULL_CriticalLoop_06: -37947571
+      VFX_NULL_CriticalLoop_07: -1320569293
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,67 @@
+[
+  {
+    "Relative": "Output/04_SystemSupport/system_support_green.aseprite",
+    "Name": "relay_source.aseprite",
+    "SHA256": "5FBB602A580EA8C0177A16E744C2EE28C4FAA098C540B856F6648ED9023FC42D"
+  },
+  {
+    "Relative": "Output/04_SystemSupport/system_support_green.png",
+    "Name": "relay_source.png",
+    "SHA256": "03584046D5F5FDEE096138D7B4469F544CC79C43D3300659CDD72C734E5FB4B1"
+  },
+  {
+    "Relative": "../../Assets/Art/ApprovedIntegration/World/GreenSupport.png",
+    "Name": "production_relay.png",
+    "SHA256": "03584046D5F5FDEE096138D7B4469F544CC79C43D3300659CDD72C734E5FB4B1"
+  },
+  {
+    "Relative": "../../Assets/Art/ApprovedIntegration/World/GreenSupport.png.meta",
+    "Name": "production_relay.png.meta",
+    "SHA256": "7B95E56115521E66292630ECCEA348CDD3571347AF26E73BEC8229D89CD4D748"
+  },
+  {
+    "Relative": "../../Assets/03_Prefabs/Enemy/LaserManagerShip.prefab",
+    "Name": "relay.prefab",
+    "SHA256": "4B0912365A40008906F897DF0AB7B8D43C348C6D5DB45EFF7E1D6D4E4F9384FB"
+  },
+  {
+    "Relative": "../../Assets/03_Prefabs/Enemy/Boss.prefab",
+    "Name": "boss.prefab",
+    "SHA256": "69EC129E65086DEDABB51F5B86C75AFA5D55BE6090D80344DF7679E8E64B34BA"
+  },
+  {
+    "Relative": "Output/06_SectorAdministrator/sector_administrator_idle.png",
+    "Name": "boss_green.png",
+    "SHA256": "B3FD582D3440A6F73E3847335785205C195057C7CCD1F417940B1A2ED235E594"
+  },
+  {
+    "Relative": "Output/23_SectorAdministrator_Overdrive/sector_administrator_overdrive.png",
+    "Name": "boss_purple.png",
+    "SHA256": "4AA97676CB940943D4F11816443D4ACED41334D97FAA974BEEA572BEF9B6CC40"
+  },
+  {
+    "Relative": "Output/16_SystemBossVFX/VFX_Sector_LaserBeam.aseprite",
+    "Name": "green_beam.aseprite",
+    "SHA256": "7608024645ED7FA8BD39A12E6B0A6BC3CBDD7FAB63A735C779413E0DFD62D539"
+  },
+  {
+    "Relative": "Output/24_SectorPurpleLaserVFX/VFX_Sector_PurpleLaserBeam.aseprite",
+    "Name": "purple_beam.aseprite",
+    "SHA256": "884AA6342E2D877D2DB18749B9AAFAFF2FB1106F994628CD6D190F744FC8A908"
+  },
+  {
+    "Relative": "Output/24_SectorPurpleLaserVFX/VFX_Sector_PurpleLaserBeam.png",
+    "Name": "purple_beam.png",
+    "SHA256": "BC0E35D9CEE4D8E8558AB1A63534DCA287334DF964D5280A5D1C3B06BABB1D43"
+  },
+  {
+    "Relative": "../../Assets/Art/SectorAdministrator/PurpleLaser/VFX_Sector_PurpleLaserBeam.png",
+    "Name": "production_purple_beam.png",
+    "SHA256": "BC0E35D9CEE4D8E8558AB1A63534DCA287334DF964D5280A5D1C3B06BABB1D43"
+  },
+  {
+    "Relative": "Input/01_Player/Px_Player.png",
+    "Name": "player.png",
+    "SHA256": "3BFD635CC357A8857CDD4B9C558224D139F067AD7A85A18024AA05D3409FEE1A"
+  }
+]

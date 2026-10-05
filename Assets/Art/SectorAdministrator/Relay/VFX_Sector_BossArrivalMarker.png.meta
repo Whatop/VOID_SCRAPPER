@@ -1,0 +1,523 @@
+fileFormatVersion: 2
+guid: 1a8822fe66ae10f408ad4da7cc58338f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -3060317231057585411
+    second: VFX_Sector_BossArrivalMarker_0
+  - first:
+      213: -8691448775045175977
+    second: VFX_Sector_BossArrivalMarker_1
+  - first:
+      213: -3543084839417038841
+    second: VFX_Sector_BossArrivalMarker_2
+  - first:
+      213: -7510772129616601607
+    second: VFX_Sector_BossArrivalMarker_3
+  - first:
+      213: 5002985824396116968
+    second: VFX_Sector_BossArrivalMarker_4
+  - first:
+      213: 4586886276313879075
+    second: VFX_Sector_BossArrivalMarker_5
+  - first:
+      213: 6894259631159570713
+    second: VFX_Sector_BossArrivalMarker_6
+  - first:
+      213: 6713752732406709544
+    second: VFX_Sector_BossArrivalMarker_7
+  - first:
+      213: -8740700454342282424
+    second: VFX_Sector_BossArrivalMarker_8
+  - first:
+      213: 7515794346015980918
+    second: VFX_Sector_BossArrivalMarker_9
+  - first:
+      213: 4624506174777319761
+    second: VFX_Sector_BossArrivalMarker_10
+  - first:
+      213: 3422184022346838330
+    second: VFX_Sector_BossArrivalMarker_11
+  - first:
+      213: 7891427319466046640
+    second: VFX_Sector_BossArrivalMarker_12
+  - first:
+      213: 6851170749482290432
+    second: VFX_Sector_BossArrivalMarker_13
+  - first:
+      213: 2587954929349715935
+    second: VFX_Sector_BossArrivalMarker_14
+  - first:
+      213: 697869221389041312
+    second: VFX_Sector_BossArrivalMarker_15
+  - first:
+      213: 6399884707639463234
+    second: VFX_Sector_BossArrivalMarker_16
+  - first:
+      213: 303565033001933125
+    second: VFX_Sector_BossArrivalMarker_17
+  - first:
+      213: -4178508367711706268
+    second: VFX_Sector_BossArrivalMarker_18
+  - first:
+      213: 464683623050078833
+    second: VFX_Sector_BossArrivalMarker_19
+  - first:
+      213: 4700559843942825918
+    second: VFX_Sector_BossArrivalMarker_20
+  - first:
+      213: 3614574539936292258
+    second: VFX_Sector_BossArrivalMarker_21
+  - first:
+      213: 217760095616958265
+    second: VFX_Sector_BossArrivalMarker_22
+  - first:
+      213: -1507185790409537363
+    second: VFX_Sector_BossArrivalMarker_23
+  - first:
+      213: -8359985800683969230
+    second: VFX_Sector_BossArrivalMarker_24
+  - first:
+      213: -3952624997786298870
+    second: VFX_Sector_BossArrivalMarker_25
+  - first:
+      213: -5236141658255494738
+    second: VFX_Sector_BossArrivalMarker_26
+  - first:
+      213: 689589311969444109
+    second: VFX_Sector_BossArrivalMarker_27
+  - first:
+      213: 468177767711612693
+    second: VFX_Sector_BossArrivalMarker_28
+  - first:
+      213: 1900400597849065540
+    second: VFX_Sector_BossArrivalMarker_29
+  - first:
+      213: 4703267249471092823
+    second: VFX_Sector_BossArrivalMarker_30
+  - first:
+      213: 4530888663161786871
+    second: VFX_Sector_BossArrivalMarker_31
+  - first:
+      213: 3621378886601037603
+    second: VFX_Sector_BossArrivalMarker_32
+  - first:
+      213: -5130257232943193509
+    second: VFX_Sector_BossArrivalMarker_33
+  - first:
+      213: -6971562259238027052
+    second: VFX_Sector_BossArrivalMarker_34
+  - first:
+      213: 524775042911957567
+    second: VFX_Sector_BossArrivalMarker_35
+  - first:
+      213: -6474672816486136031
+    second: VFX_Sector_BossArrivalMarker_36
+  - first:
+      213: 5399429742841226478
+    second: VFX_Sector_BossArrivalMarker_37
+  - first:
+      213: 151545884203189036
+    second: VFX_Sector_BossArrivalMarker_38
+  - first:
+      213: 3646432723954688686
+    second: VFX_Sector_BossArrivalMarker_39
+  - first:
+      213: 9110016734756826839
+    second: VFX_Sector_BossArrivalMarker_40
+  - first:
+      213: -2763124726730733355
+    second: VFX_Sector_BossArrivalMarker_41
+  - first:
+      213: -6037868001534316136
+    second: VFX_Sector_BossArrivalMarker_42
+  - first:
+      213: 1613462283442693186
+    second: VFX_Sector_BossArrivalMarker_43
+  - first:
+      213: 5793748759354094991
+    second: VFX_Sector_BossArrivalMarker_44
+  - first:
+      213: 4975781384465187174
+    second: VFX_Sector_BossArrivalMarker_45
+  - first:
+      213: 3553579625152386951
+    second: VFX_Sector_BossArrivalMarker_46
+  - first:
+      213: 1007153762948142960
+    second: VFX_Sector_BossArrivalMarker_47
+  - first:
+      213: 8413102452624982396
+    second: VFX_Sector_BossArrivalMarker_48
+  - first:
+      213: -3608290040162510803
+    second: VFX_Sector_BossArrivalMarker_49
+  - first:
+      213: 9133568602345679239
+    second: VFX_Sector_BossArrivalMarker_50
+  - first:
+      213: -7312958361508092191
+    second: VFX_Sector_BossArrivalMarker_51
+  - first:
+      213: -1225988281278127502
+    second: VFX_Sector_BossArrivalMarker_52
+  - first:
+      213: 296007630031936671
+    second: VFX_Sector_BossArrivalMarker_53
+  - first:
+      213: 5827919334395182484
+    second: VFX_Sector_BossArrivalMarker_54
+  - first:
+      213: 434549195994459220
+    second: VFX_Sector_BossArrivalMarker_55
+  - first:
+      213: 4030167013885360035
+    second: VFX_Sector_BossArrivalMarker_56
+  - first:
+      213: 1889348803838052380
+    second: VFX_Sector_BossArrivalMarker_57
+  - first:
+      213: 2683448330453948078
+    second: VFX_Sector_BossArrivalMarker_58
+  - first:
+      213: -7378415798279663222
+    second: VFX_Sector_BossArrivalMarker_59
+  - first:
+      213: 5302673208673372
+    second: VFX_Sector_BossArrivalMarker_60
+  - first:
+      213: -1686618237580971320
+    second: VFX_Sector_BossArrivalMarker_61
+  - first:
+      213: -7826174150354390611
+    second: VFX_Sector_BossArrivalMarker_62
+  - first:
+      213: 3292300515625218402
+    second: VFX_Sector_BossArrivalMarker_63
+  - first:
+      213: -5366621229870383020
+    second: VFX_Sector_BossArrivalMarker_64
+  - first:
+      213: -6403590139916774486
+    second: VFX_Sector_BossArrivalMarker_65
+  - first:
+      213: -82037605083552682
+    second: VFX_Sector_BossArrivalMarker_66
+  - first:
+      213: -5679572173668708128
+    second: VFX_Sector_BossArrivalMarker_67
+  - first:
+      213: 5978626085429117557
+    second: VFX_Sector_BossArrivalMarker_68
+  - first:
+      213: -2902958638579108636
+    second: VFX_Sector_BossArrivalMarker_69
+  - first:
+      213: 8536971739953977080
+    second: VFX_Sector_BossArrivalMarker_70
+  - first:
+      213: -8759722027561806244
+    second: VFX_Sector_BossArrivalMarker_71
+  - first:
+      213: 4859451604793732885
+    second: VFX_Sector_BossArrivalMarker_72
+  - first:
+      213: 1624712510985207098
+    second: VFX_Sector_BossArrivalMarker_73
+  - first:
+      213: -1816191224151722607
+    second: VFX_Sector_BossArrivalMarker_74
+  - first:
+      213: 6347291783186310017
+    second: VFX_Sector_BossArrivalMarker_75
+  - first:
+      213: -3367498361501262890
+    second: VFX_Sector_BossArrivalMarker_76
+  - first:
+      213: 770808997868974920
+    second: VFX_Sector_BossArrivalMarker_77
+  - first:
+      213: 1414283035904266596
+    second: VFX_Sector_BossArrivalMarker_78
+  - first:
+      213: -2627898002519025833
+    second: VFX_Sector_BossArrivalMarker_79
+  - first:
+      213: -5624931006555338706
+    second: VFX_Sector_BossArrivalMarker_80
+  - first:
+      213: -7651022608933556305
+    second: VFX_Sector_BossArrivalMarker_81
+  - first:
+      213: 2287439648210419586
+    second: VFX_Sector_BossArrivalMarker_82
+  - first:
+      213: -9111971283469616852
+    second: VFX_Sector_BossArrivalMarker_83
+  - first:
+      213: -8052031413546179132
+    second: VFX_Sector_BossArrivalMarker_84
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 32
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: VFX_Sector_BossArrivalMarker_00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a653300909d289d48854ea592d3a9c21
+      internalID: 143215880
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossArrivalMarker_01
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bb45d3560a89bfb4397a66893b6e4e18
+      internalID: -676159885
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossArrivalMarker_02
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 736048d0d3b9e0d46a284cd115bc998c
+      internalID: 967634729
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossArrivalMarker_03
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 546a0034a6ca02244b09546896b4621b
+      internalID: 135794806
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossArrivalMarker_04
+      rect:
+        serializedVersion: 2
+        x: 512
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 09e16d92d8fdabb4f8b32f8ee1a7ad32
+      internalID: -1373286240
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: VFX_Sector_BossArrivalMarker_05
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 0
+        width: 128
+        height: 128
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 24ab71f701ebea143b1e45d9e4c65eac
+      internalID: 514920563
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 22ca1bc1c8850234490fa3fa973fa927
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      VFX_Sector_BossArrivalMarker_00: 143215880
+      VFX_Sector_BossArrivalMarker_01: -676159885
+      VFX_Sector_BossArrivalMarker_02: 967634729
+      VFX_Sector_BossArrivalMarker_03: 135794806
+      VFX_Sector_BossArrivalMarker_04: -1373286240
+      VFX_Sector_BossArrivalMarker_05: 514920563
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

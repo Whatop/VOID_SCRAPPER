@@ -1,18 +1,11 @@
 using System.Collections;
-using DG.Tweening;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyHealth))]
 [RequireComponent(typeof(Rigidbody2D))]
-public sealed class PirateCommanderBossController : MonoBehaviour
+public sealed partial class PirateCommanderBossController : MonoBehaviour
 {
-    private enum CommanderPattern
-    {
-        SuppressiveBurst = 0,
-        SpreadBarrage = 1,
-        CoverBlast = 2
-    }
 
     [Header("References")]
     [SerializeField] private EnemyHealth enemyHealth;
@@ -82,1116 +75,293 @@ public sealed class PirateCommanderBossController : MonoBehaviour
     [SerializeField] private Vector2 battleCameraWorldOffset = new Vector2(0f, 0.8f);
     [SerializeField, Range(0.75f, 1.25f)] private float battleCameraZoomMultiplier = 1f;
 
-    private readonly RaycastHit2D[] coverRaycastResults = new RaycastHit2D[16];
-    private readonly Collider2D[] escortOverlapResults = new Collider2D[16];
-    private readonly BossArenaCover[] arenaCovers = new BossArenaCover[2];
-    private readonly GameObject[] spawnedEscorts = new GameObject[2];
-    private readonly WaitForFixedUpdate fixedUpdateWait = new WaitForFixedUpdate();
+    public enum AssaultStage { Stopped, Idle, AimLeft, LeftBurst, Gap, AimRight, RightBurst, Recovery, MovementTell, Reposition, CriticalTransition, HotTell, HotRecovery, ScatterTell, ScatterFire, RamAim, RamWarning, RamActive, RamPunish, ShieldRecover }
+    [Header("Assault sequence")]
+    [SerializeField] private Transform leftMuzzle, rightMuzzle;
+    [SerializeField] private Sprite idleSprite, weaponsHotSprite, criticalSprite;
+    [SerializeField] private PhaseCombatVfx heavyMuzzlePrefab, weaponsHotPrefab, damageSparksPrefab, criticalLoopPrefab;
+    [SerializeField, Min(.1f)] private float burstTellDuration = .38f;
+    [SerializeField, Min(.01f)] private float hotShotInterval = .06f;
+    [SerializeField, Min(.01f)] private float hotBurstGap = .16f;
+    [SerializeField, Min(.1f)] private float hotTellDuration = .6f;
+    [SerializeField, Min(.1f)] private float repositionDuration = 1.25f;
+    [SerializeField, Min(.1f)] private float movementTellDuration = .32f;
+    [SerializeField, Min(.1f)] private float recoveryDuration = 1.05f;
+    [SerializeField, Min(.1f)] private float postHotRecoveryDuration = 3.2f;
 
     private Coroutine combatRoutine;
     private PlayerHealth playerHealth;
     private Rigidbody2D playerBody;
     private ExpeditionHUD expeditionHud;
     private GungeonStyleCamera2D gameplayCamera;
-    private RaiderCoverBlastTelegraph coverBlastTelegraph;
     private RunManager observedRunManager;
-    private Vector2 arenaCenter;
-    private Vector3 visualBaseScale = Vector3.one;
-    private Color visualBaseColor = Color.white;
+    private Vector2 arenaCenter, moveTarget, committedTarget, facingDirection = Vector2.down;
     private SpriteRenderer visualRenderer;
-    private bool encounterConfigured;
-    private bool combatActive;
-    private bool phase2;
-    private bool phaseTransitionPending;
-    private bool escortWaveSpawned;
-    private bool nextCoverBlastUsesRight;
-    private bool battleCameraProfileHeld;
-
+    private bool encounterConfigured, combatActive, phase2, phaseTransitionPending, battleCameraProfileHeld, weaponsHot;
+    private int assaultCycle, escalationCount, shotCount, lastMount, repositionIndex;
+    private AssaultStage stage;
+    private MeteorObstacle[] encounterMeteors;
+    // Retained cleanup contract for any escorts owned before a script reload. The
+    // redesigned scheduler never creates escorts or invokes legacy cover/fan attacks.
+    private readonly GameObject[] spawnedEscorts = new GameObject[2];
+    private readonly PhaseCombatVfx[] views = new PhaseCombatVfx[5];
+    private readonly float[] viewStarts = new float[5];
+    public static PirateCommanderBossController ActiveAssaultEncounter { get; private set; }
     public bool IsCombatActive => combatActive;
     public bool IsPhase2 => phase2;
+    public bool IsWeaponsHot => weaponsHot;
+    public AssaultStage Stage => stage;
+    public int AssaultCycle => assaultCycle;
+    public int EscalationCount => escalationCount;
+    public int ShotsFired => shotCount;
+    public int LastMount => lastMount;
+    public Vector2 CommittedTarget => committedTarget;
+    public Vector2 RepositionTarget => moveTarget;
+    public Bounds ArenaBounds => new Bounds(arenaCenter, new Vector3(arenaHalfExtents.x * 2, arenaHalfExtents.y * 2, 20));
 
-    private void Reset()
-    {
-        enemyHealth = GetComponent<EnemyHealth>();
-        body = GetComponent<Rigidbody2D>();
-        visualRoot = transform.Find("BossVisualRoot");
-        firePoint = transform.Find("FirePoint");
-        blastOrigin = transform.Find("BlastOrigin");
-    }
-
-    private void Awake()
-    {
-        ResolveReferences();
-        ApplyHealthTuning();
-    }
-
+    private void Awake() { ResolveReferences(); enemyHealth.SetMaxHp(maxHp, true); }
     private void OnEnable()
     {
-        ResolveReferences();
-        ApplyHealthTuning();
-        BindHealth();
-        BindRunEnd();
+        ResolveReferences(); enemyHealth.SetMaxHp(maxHp, true);
+        enemyHealth.HealthChanged += HandleHealthChanged; enemyHealth.Died += HandleDied; enemyHealth.Damaged += HandleDamaged;
+        observedRunManager = RunManager.Instance;
+        if (observedRunManager != null) observedRunManager.RunEnded += HandleRunEnded;
     }
-
     private void OnDisable()
     {
         StopCombat();
-        RetireSpawnedEscorts();
-        ReleaseBattleCameraProfile(true);
-        DestroyCoverBlastTelegraph();
-        UnbindHealth();
-        UnbindRunEnd();
-        RestoreVisualPresentation();
-        ClearRuntimeReferences();
+        if (enemyHealth != null) { enemyHealth.HealthChanged -= HandleHealthChanged; enemyHealth.Died -= HandleDied; enemyHealth.Damaged -= HandleDamaged; }
+        if (observedRunManager != null) observedRunManager.RunEnded -= HandleRunEnded;
+        observedRunManager = null;
     }
-
-    public void ConfigureEncounter(
-        Vector2 resolvedArenaCenter,
-        Vector2 resolvedArenaHalfExtents,
-        GameObject playerObject)
+    private void ResolveReferences()
+    {
+        enemyHealth ??= GetComponent<EnemyHealth>(); body ??= GetComponent<Rigidbody2D>();
+        visualRoot ??= transform.Find("BossVisualRoot");
+        if (visualRoot != null) visualRenderer = visualRoot.GetComponentInChildren<SpriteRenderer>(true);
+        expeditionHud ??= FindFirstObjectByType<ExpeditionHUD>(FindObjectsInactive.Include);
+        gameplayCamera ??= GungeonStyleCamera2D.Instance;
+    }
+    public void ConfigureEncounter(Vector2 resolvedArenaCenter, Vector2 resolvedArenaHalfExtents, GameObject playerObject)
     {
         arenaCenter = resolvedArenaCenter;
-        arenaHalfExtents = new Vector2(
-            Mathf.Max(0.1f, resolvedArenaHalfExtents.x),
-            Mathf.Max(0.1f, resolvedArenaHalfExtents.y)
-        );
+        arenaHalfExtents = new Vector2(Mathf.Max(.1f, resolvedArenaHalfExtents.x), Mathf.Max(.1f, resolvedArenaHalfExtents.y));
         encounterConfigured = true;
-        ResolvePlayer(playerObject);
-        CacheArenaCovers();
-        EnsureCoverBlastTelegraph();
-        ApplyHealthTuning();
+        playerHealth = playerObject != null ? playerObject.GetComponent<PlayerHealth>() : FindFirstObjectByType<PlayerHealth>();
+        playerBody = playerHealth != null ? playerHealth.GetComponent<Rigidbody2D>() : null;
     }
-
     public void PrepareBattleCameraProfile()
     {
-        if (battleCameraProfileHeld)
-        {
-            return;
-        }
-
         ResolveReferences();
-        if (gameplayCamera == null)
-        {
-            return;
-        }
-
-        battleCameraProfileHeld = gameplayCamera.AcquireGameplayFramingProfile(
-            this,
-            battleCameraWorldOffset,
-            1f,
-            battleCameraZoomMultiplier,
-            true
-        );
+        if (!battleCameraProfileHeld && gameplayCamera != null)
+            battleCameraProfileHeld = gameplayCamera.AcquireGameplayFramingProfile(this, battleCameraWorldOffset, .35f, battleCameraZoomMultiplier, true);
     }
-
     public void ReleaseBattleCameraProfile(bool immediate)
     {
-        if (!battleCameraProfileHeld)
-        {
-            return;
-        }
-
+        if (!battleCameraProfileHeld) return;
         battleCameraProfileHeld = false;
-        if (gameplayCamera != null)
-        {
-            gameplayCamera.ReleaseGameplayFramingProfile(this, immediate);
-        }
+        if (gameplayCamera != null) gameplayCamera.ReleaseGameplayFramingProfile(this, immediate);
     }
-
     public void BeginCombat()
     {
-        if (combatActive || enemyHealth == null || enemyHealth.IsDead || IsRunEnding())
-        {
-            return;
-        }
-
-        if (!encounterConfigured)
-        {
-            arenaCenter = transform.position;
-            encounterConfigured = true;
-        }
-
-        if (playerHealth == null)
-        {
-            ResolvePlayer(null);
-        }
-
-        CacheArenaCovers();
-        EnsureCoverBlastTelegraph();
+        if (combatActive || enemyHealth == null || enemyHealth.IsDead || IsRunEnding()) return;
+        if (!encounterConfigured) ConfigureEncounter(transform.position, arenaHalfExtents, null);
         PrepareBattleCameraProfile();
-        combatActive = true;
-        phase2 = false;
-        phaseTransitionPending = false;
-        escortWaveSpawned = false;
-        nextCoverBlastUsesRight = false;
+        ActiveAssaultEncounter = this; // Core publishes BossBattle immediately after this handoff.
+        expeditionHud?.SetRegionBossPresentation(this, true);
+        encounterMeteors = FindObjectsByType<MeteorObstacle>(FindObjectsSortMode.None);
+        Bounds reserved = ArenaBounds; reserved.Expand(2f);
+        for (int i = 0; i < encounterMeteors.Length; i++) encounterMeteors[i].PauseForSectorEncounter(reserved);
+        combatActive = true; phase2 = false; phaseTransitionPending = enemyHealth.HpRatio <= phase2HpRatio;
+        assaultCycle = escalationCount = shotCount = repositionIndex = 0;
+        if (playerHealth != null) playerHealth.Died += HandlePlayerDied;
+        AcquireViews(); BeginShieldCombat(); SetStage(AssaultStage.Idle);
         combatRoutine = StartCoroutine(CombatLoopRoutine());
     }
-
     public void StopCombat()
     {
-        combatActive = false;
-        phaseTransitionPending = false;
-
-        if (combatRoutine != null)
-        {
-            StopCoroutine(combatRoutine);
-            combatRoutine = null;
-        }
-
-        if (body != null)
-        {
-            body.linearVelocity = Vector2.zero;
-            body.angularVelocity = 0f;
-        }
-
-        SetCoverHighlights(false);
-        if (coverBlastTelegraph != null)
-        {
-            coverBlastTelegraph.HideImmediate();
-        }
-        visualRoot?.DOKill();
-        visualRenderer?.DOKill();
+        if (playerHealth != null) playerHealth.Died -= HandlePlayerDied;
+        ClearRaiderProtection();
+        combatActive = false; phaseTransitionPending = false; weaponsHot = false; stage = AssaultStage.Stopped;
+        if (combatRoutine != null) { StopCoroutine(combatRoutine); combatRoutine = null; }
+        if (body != null) { body.linearVelocity = Vector2.zero; body.angularVelocity = 0; }
+        Bullet.ReleaseAllActiveFromSource(transform); RetireSpawnedEscorts(); ReleaseViews();
+        if (ActiveAssaultEncounter == this) ActiveAssaultEncounter = null;
+        if (encounterMeteors != null)
+            for (int i = 0; i < encounterMeteors.Length; i++) if (encounterMeteors[i] != null) encounterMeteors[i].ResumeAfterSectorEncounter();
+        encounterMeteors = null;
+        expeditionHud?.SetRegionBossPresentation(this, false); ReleaseBattleCameraProfile(true);
     }
+    private bool CanContinueCombat() => combatActive && isActiveAndEnabled && enemyHealth != null && !enemyHealth.IsDead && !IsRunEnding() && (playerHealth == null || !playerHealth.IsDead);
+    private bool Interrupted => !CanContinueCombat();
+    private static bool IsRunEnding() => RunManager.Instance != null && RunManager.Instance.IsCompletingRun;
 
     private IEnumerator CombatLoopRoutine()
     {
-        yield return WaitGameplaySeconds(battleStartDelay, false);
-
-        CommanderPattern[] patternOrder =
-        {
-            CommanderPattern.SuppressiveBurst,
-            CommanderPattern.SpreadBarrage,
-            CommanderPattern.CoverBlast
-        };
-
-        int patternIndex = 0;
+        yield return WaitGameplaySeconds(battleStartDelay);
         while (CanContinueCombat())
         {
-            if (phaseTransitionPending)
+            assaultCycle++;
+            for (int slot = 0; slot < 4 && CanContinueCombat(); slot++)
             {
-                yield return EnterPhase2Routine();
-                continue;
+                // Critical is an escalation at an attack boundary, never an attack cancellation.
+                if (phaseTransitionPending)
+                {
+                    phaseTransitionPending = false; phase2 = true; escalationCount++;
+                    viewStarts[3] = Time.time; ApplyBody();
+                }
+                CurrentAttack = AttackForSlot(slot);
+                switch (CurrentAttack)
+                {
+                    case RaiderAttack.TrackingBurst: yield return TrackingBurstRoutine(); break;
+                    case RaiderAttack.Scatter: yield return ScatterRoutine(); break;
+                    case RaiderAttack.ShieldRam: yield return ShieldRamRoutine(); break;
+                }
+                if (Interrupted) break;
+                SetHot(false); SetStage(AssaultStage.Recovery);
+                yield return WaitGameplaySeconds(.55f);
+                if (slot == 1 && !Interrupted) yield return RepositionRoutine();
             }
-
-            CommanderPattern pattern = patternOrder[patternIndex];
-            patternIndex = (patternIndex + 1) % patternOrder.Length;
-
-            switch (pattern)
-            {
-                case CommanderPattern.SuppressiveBurst:
-                    yield return SuppressiveBurstRoutine();
-                    break;
-
-                case CommanderPattern.SpreadBarrage:
-                    yield return SpreadBarrageRoutine();
-                    break;
-
-                case CommanderPattern.CoverBlast:
-                    yield return CoverBlastRoutine();
-                    break;
-            }
-
-            if (!CanContinueCombat() || phaseTransitionPending)
-            {
-                continue;
-            }
-
-            float cooldown = ResolvePatternCooldown(pattern);
-            yield return WaitGameplaySeconds(cooldown, true);
         }
-
         combatRoutine = null;
     }
-
-    private IEnumerator SuppressiveBurstRoutine()
+    private void CommitAim()
     {
-        yield return MoveToAnchorRoutine(ResolveAnchor(upperAnchorOffset));
-
-        int burstCount = phase2 ? suppressiveBurstCountPhase2 : suppressiveBurstCountPhase1;
-        for (int burst = 0; burst < burstCount; burst++)
+        Vector2 target = playerHealth != null ? (Vector2)playerHealth.transform.position : body.position + Vector2.down;
+        committedTarget = EnemyAttackController.PredictTargetPosition(body.position, target,
+            playerBody != null ? playerBody.linearVelocity : Vector2.zero, projectileDefinition != null ? projectileDefinition.Speed : 0, suppressivePredictionTime);
+        facingDirection = (committedTarget - body.position).normalized;
+        if (facingDirection.sqrMagnitude < .001f) facingDirection = Vector2.down;
+    }
+    private IEnumerator RepositionRoutine()
+    {
+        float side = (repositionIndex++ & 1) == 0 ? -1 : 1;
+        Vector2 playerPosition = playerHealth != null ? (Vector2)playerHealth.transform.position : arenaCenter;
+        Vector2 toward = playerPosition - body.position;
+        float distance = toward.magnitude;
+        toward = distance > .01f ? toward / distance : Vector2.down;
+        Vector2 lateral = new Vector2(-toward.y, toward.x) * side;
+        // Commit a short dogleg: advance when distant, re-angle/retreat when close.
+        // The destination never follows subsequent player movement.
+        moveTarget = ClampToArena(body.position + lateral * 2.2f + toward * Mathf.Clamp(distance - 4f, -1.2f, 1.4f));
+        if (!HasClearRun(body.position, moveTarget, playerPosition, 2f))
+            moveTarget = ClampToArena(body.position - lateral * 2.2f - toward);
+        if (!HasClearRun(body.position, moveTarget, playerPosition, 2f)) moveTarget = body.position;
+        CommitAim(); SetStage(AssaultStage.MovementTell); yield return WaitGameplaySeconds(movementTellDuration);
+        if (Interrupted) yield break;
+        SetStage(AssaultStage.Reposition); yield return WaitGameplaySeconds(repositionDuration);
+        if (!Interrupted) SetStage(AssaultStage.Recovery);
+    }
+    public static bool HasClearRun(Vector2 start, Vector2 end, Vector2 player, float clearance)
+    {
+        Vector2 delta = end - start;
+        float t = delta.sqrMagnitude > .001f ? Mathf.Clamp01(Vector2.Dot(player - start, delta) / delta.sqrMagnitude) : 0;
+        return (start + delta * t - player).sqrMagnitude >= clearance * clearance;
+    }
+    private void FixedUpdate()
+    {
+        if (!CanContinueCombat() || body == null || enemyHealth.IsKnockbackActive) return;
+        if (stage == AssaultStage.RamActive) { StepRam(Time.fixedDeltaTime); return; }
+        if (stage == AssaultStage.Reposition)
         {
-            for (int shot = 0; shot < suppressiveShotsPerBurst; shot++)
-            {
-                if (ShouldInterruptPattern())
-                {
-                    yield break;
-                }
-
-                Vector2 direction = ResolvePredictedDirection(suppressivePredictionTime);
-                float spreadT = suppressiveShotsPerBurst <= 1
-                    ? 0f
-                    : shot / (float)(suppressiveShotsPerBurst - 1);
-                float angle = Mathf.Lerp(
-                    -suppressiveSpreadDegrees,
-                    suppressiveSpreadDegrees,
-                    spreadT
-                );
-                SpawnProjectile(Rotate(direction, angle), suppressiveDamage);
-                yield return WaitGameplaySeconds(suppressiveShotInterval, true);
-            }
-
-            if (burst + 1 < burstCount)
-            {
-                yield return WaitGameplaySeconds(suppressiveBurstInterval, true);
-            }
+            Vector2 next = Vector2.MoveTowards(body.position, moveTarget, movementSpeed * Time.fixedDeltaTime);
+            if (playerHealth == null || HasClearRun(body.position, next, playerHealth.transform.position, 1.9f)) body.MovePosition(ClampToArena(next));
         }
     }
-
-    private IEnumerator SpreadBarrageRoutine()
+    private void Update()
     {
-        Vector2 anchor = nextCoverBlastUsesRight
-            ? ResolveAnchor(leftAnchorOffset)
-            : ResolveAnchor(rightAnchorOffset);
-        yield return MoveToAnchorRoutine(anchor);
-
-        int volleyCount = phase2 ? spreadVolleyCountPhase2 : spreadVolleyCountPhase1;
-        for (int volley = 0; volley < volleyCount; volley++)
+        if (!CanContinueCombat()) return;
+        UpdateRaiderCombatFraming();
+        SampleRamPresentation();
+        // This is the sole facing owner. Aim states turn; committed bursts hold.
+        if (visualRoot != null && stage != AssaultStage.LeftBurst && stage != AssaultStage.RightBurst && stage != AssaultStage.RamWarning && stage != AssaultStage.RamActive)
+            visualRoot.rotation = Quaternion.RotateTowards(visualRoot.rotation,
+                Quaternion.Euler(0, 0, Mathf.Atan2(facingDirection.y, facingDirection.x) * Mathf.Rad2Deg - 90), 540f * Time.deltaTime);
+        for (int i = 0; i < views.Length; i++)
         {
-            if (ShouldInterruptPattern())
-            {
-                yield break;
-            }
-
-            Vector2 baseDirection = ResolveDirectionToPlayer();
-            float volleyOffset = (volley & 1) == 0
-                ? -spreadAlternateAngle
-                : spreadAlternateAngle;
-            SpawnSpread(baseDirection, volleyOffset);
-
-            if (volley + 1 < volleyCount)
-            {
-                yield return WaitGameplaySeconds(spreadVolleyInterval, true);
-            }
+            var view = views[i]; if (view == null) continue;
+            bool loop = i == 2 ? weaponsHot : i == 3 && phase2;
+            if ((i == 2 && !weaponsHot) || (i == 3 && !phase2)) { view.Clear(); continue; }
+            Transform anchor = i < 2 ? Muzzle(i) : visualRoot;
+            view.transform.position = anchor.position;
+            if (i >= 2) view.transform.rotation = visualRoot.rotation;
+            float elapsed = Time.time - viewStarts[i];
+            view.Sample(loop ? elapsed % (i == 2 ? .64f : 1f) : elapsed);
         }
     }
-
-    private IEnumerator CoverBlastRoutine()
+    private void Fire(int mount, Vector2 direction)
     {
-        Vector2 anchor = nextCoverBlastUsesRight
-            ? ResolveAnchor(rightAnchorOffset)
-            : ResolveAnchor(leftAnchorOffset);
-        nextCoverBlastUsesRight = !nextCoverBlastUsesRight;
-        yield return MoveToAnchorRoutine(anchor);
-
-        if (ShouldInterruptPattern())
+        if (projectileDefinition == null || projectileDefinition.ProjectilePrefab == null || PoolManager.Instance == null) return;
+        Transform muzzle = Muzzle(mount);
+        muzzle.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90);
+        var shot = PoolManager.Instance.Get(projectileDefinition.ProjectilePrefab, muzzle.position, Quaternion.identity);
+        var bullet = shot.GetComponent<Bullet>();
+        if (bullet == null) { PoolManager.Instance.Release(shot); return; }
+        bullet.Initialize(direction, ProjectileOwner.Enemy, projectileDefinition, damageOverride: suppressiveDamage, projectileSource: gameObject);
+        lastMount = mount; shotCount++;
+        if (views[mount] != null)
         {
-            yield break;
+            views[mount].transform.SetPositionAndRotation(muzzle.position, Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg));
+            viewStarts[mount] = Time.time; views[mount].Sample(0);
         }
-
-        if (body != null)
-        {
+    }
+    private Transform Muzzle(int mount) => (mount == 0 ? leftMuzzle : rightMuzzle) ?? firePoint ?? transform;
+    private IEnumerator WaitGameplaySeconds(float duration)
+    {
+        float end = Time.time + Mathf.Max(0, duration);
+        while (Time.time < end && !Interrupted) yield return null;
+    }
+    private void SetStage(AssaultStage next)
+    {
+        if (stage == AssaultStage.Reposition && next != stage && body != null && !enemyHealth.IsKnockbackActive)
             body.linearVelocity = Vector2.zero;
-        }
-
-        SetCoverHighlights(true);
-        if (expeditionHud != null)
-        {
-            expeditionHud.ShowWarning(coverWarningText);
-        }
-
-        Vector2 attackCenter = ResolveBlastOrigin();
-        float attackRadius = ResolveCoverBlastRadius(attackCenter);
-        AudioManager.PlayAt(SoundEventIds.BossChargeAim, attackCenter);
-        PlayChargePulse();
-
-        float chargeTime = phase2 ? coverBlastChargePhase2 : coverBlastChargePhase1;
-        if (coverBlastTelegraph != null)
-        {
-            coverBlastTelegraph.BeginCharge(attackCenter, attackRadius);
-        }
-        yield return RunCoverBlastChargeRoutine(chargeTime);
-
-        if (ShouldInterruptPattern())
-        {
-            if (coverBlastTelegraph != null)
-            {
-                coverBlastTelegraph.HideImmediate();
-            }
-            SetCoverHighlights(false);
-            yield break;
-        }
-
-        Vector2 finalPlayerPosition = playerHealth != null
-            ? (Vector2)playerHealth.transform.position
-            : attackCenter;
-        AudioManager.PlayAt(SoundEventIds.BossChargeFire, attackCenter);
-
-        bool playerInsideBlast =
-            (finalPlayerPosition - attackCenter).sqrMagnitude <= attackRadius * attackRadius;
-        if (playerInsideBlast &&
-            TryResolveBlockingCover(attackCenter, finalPlayerPosition, out BossArenaCover cover))
-        {
-            cover.PlayBlockedImpact(finalPlayerPosition);
-        }
-        else if (playerInsideBlast && playerHealth != null)
-        {
-            playerHealth.TakeDamage(
-                coverBlastDamage,
-                attackCenter,
-                finalPlayerPosition - attackCenter
-            );
-        }
-
-        if (coverBlastTelegraph != null)
-        {
-            coverBlastTelegraph.HideImmediate();
-        }
-        SetCoverHighlights(false);
-        yield return WaitGameplaySeconds(coverBlastRecovery, true);
+        stage = next; ApplyBody();
     }
-
-    private IEnumerator RunCoverBlastChargeRoutine(float duration)
+    private void SetHot(bool value) { weaponsHot = value; if (value) viewStarts[2] = Time.time; ApplyBody(); }
+    private void ApplyBody()
     {
-        float safeDuration = Mathf.Max(0.01f, duration);
-        float elapsed = 0f;
-
-        while (elapsed < safeDuration && CanContinueCombat())
-        {
-            if (phaseTransitionPending)
-            {
-                yield break;
-            }
-
-            elapsed += Mathf.Max(0f, Time.deltaTime);
-            if (coverBlastTelegraph != null)
-            {
-                coverBlastTelegraph.SetChargeProgress(elapsed / safeDuration);
-            }
-            RotateVisualTowardPlayer();
-            yield return null;
-        }
-
-        if (coverBlastTelegraph != null)
-        {
-            coverBlastTelegraph.SetChargeProgress(1f);
-        }
+        if (visualRenderer == null) return;
+        Sprite state = phase2 ? criticalSprite : weaponsHot ? weaponsHotSprite : idleSprite;
+        if (state != null) visualRenderer.sprite = state;
     }
-
-    private IEnumerator EnterPhase2Routine()
+    private Vector2 ClampToArena(Vector2 p)
     {
-        phaseTransitionPending = false;
-        phase2 = true;
-        SetCoverHighlights(false);
-
-        if (body != null)
-        {
-            body.linearVelocity = Vector2.zero;
-        }
-
-        AudioManager.PlayAt(SoundEventIds.BossPhase2, transform.position);
-        PlayPhase2Pulse();
-        SpawnPhase2Escorts();
-        yield return WaitGameplaySeconds(phase2TransitionDuration, false);
+        Vector2 half = new Vector2(Mathf.Max(0, arenaHalfExtents.x - 1.5f), Mathf.Max(0, arenaHalfExtents.y - 1.5f));
+        return new Vector2(Mathf.Clamp(p.x, arenaCenter.x-half.x, arenaCenter.x+half.x), Mathf.Clamp(p.y, arenaCenter.y-half.y, arenaCenter.y+half.y));
     }
-
-    private IEnumerator MoveToAnchorRoutine(Vector2 target)
+    private static Vector2 Rotate(Vector2 v, float angle) => Quaternion.Euler(0, 0, angle) * v;
+    private void AcquireViews()
     {
-        target = ClampToArena(target);
-
-        while (CanContinueCombat())
+        if (PoolManager.Instance == null) return;
+        for (int i = 0; i < views.Length; i++)
         {
-            if (phaseTransitionPending)
-            {
-                yield break;
-            }
-
-            Vector2 current = body != null ? body.position : (Vector2)transform.position;
-            Vector2 delta = target - current;
-            if (delta.sqrMagnitude <= anchorArrivalDistance * anchorArrivalDistance)
-            {
-                if (body != null)
-                {
-                    body.MovePosition(target);
-                    body.linearVelocity = Vector2.zero;
-                }
-                else
-                {
-                    transform.position = target;
-                }
-
-                yield break;
-            }
-
-            Vector2 next = Vector2.MoveTowards(current, target, movementSpeed * Time.fixedDeltaTime);
-            if (body != null)
-            {
-                body.MovePosition(next);
-            }
-
-            RotateVisualTowardPlayer();
-            yield return fixedUpdateWait;
+            PhaseCombatVfx prefab = i < 2 ? heavyMuzzlePrefab : i == 2 ? weaponsHotPrefab : i == 3 ? criticalLoopPrefab : damageSparksPrefab;
+            if (prefab == null) continue;
+            views[i] = PoolManager.Instance.Get(prefab.gameObject, transform.position, Quaternion.identity).GetComponent<PhaseCombatVfx>();
+            viewStarts[i] = Time.time - 10; views[i].Clear();
         }
     }
-
-    private IEnumerator WaitGameplaySeconds(float duration, bool interruptForPhase)
+    private void ReleaseViews()
     {
-        float remaining = Mathf.Max(0f, duration);
-        while (remaining > 0f && CanContinueCombat())
+        for (int i = 0; i < views.Length; i++)
         {
-            if (interruptForPhase && phaseTransitionPending)
-            {
-                yield break;
-            }
-
-            remaining -= Time.deltaTime;
-            RotateVisualTowardPlayer();
-            yield return null;
+            var view = views[i]; views[i] = null; if (view == null) continue;
+            view.Clear(); if (PoolManager.Instance != null) PoolManager.Instance.Release(view.gameObject); else view.gameObject.SetActive(false);
         }
     }
-
-    private void SpawnSpread(Vector2 baseDirection, float angleOffset)
-    {
-        int count = Mathf.Max(1, spreadProjectileCount);
-        float step = count <= 1 ? 0f : spreadDegrees / (count - 1);
-        float start = -spreadDegrees * 0.5f + angleOffset;
-
-        for (int i = 0; i < count; i++)
-        {
-            SpawnProjectile(Rotate(baseDirection, start + step * i), spreadDamage);
-        }
-    }
-
-    private void SpawnProjectile(Vector2 direction, float damage)
-    {
-        if (projectileDefinition == null || projectileDefinition.ProjectilePrefab == null)
-        {
-            return;
-        }
-
-        if (direction.sqrMagnitude <= 0.001f)
-        {
-            direction = Vector2.down;
-        }
-
-        direction.Normalize();
-        Vector2 origin = firePoint != null ? firePoint.position : (Vector2)transform.position;
-        GameObject prefab = projectileDefinition.ProjectilePrefab;
-        GameObject projectileObject = PoolManager.Instance != null
-            ? PoolManager.Instance.Get(prefab, origin, Quaternion.identity)
-            : Instantiate(prefab, origin, Quaternion.identity);
-
-        if (projectileObject == null)
-        {
-            return;
-        }
-
-        Bullet bullet = projectileObject.GetComponent<Bullet>();
-        if (bullet == null)
-        {
-            if (PoolManager.Instance != null)
-            {
-                PoolManager.Instance.Release(projectileObject);
-            }
-            else
-            {
-                Destroy(projectileObject);
-            }
-
-            return;
-        }
-
-        bullet.Initialize(
-            direction,
-            ProjectileOwner.Enemy,
-            projectileDefinition,
-            damageOverride: damage,
-            projectileSource: gameObject
-        );
-    }
-
-    private bool TryResolveBlockingCover(
-        Vector2 origin,
-        Vector2 playerPosition,
-        out BossArenaCover blockingCover)
-    {
-        blockingCover = null;
-        Vector2 delta = playerPosition - origin;
-        float distance = delta.magnitude;
-        if (distance <= 0.001f)
-        {
-            return false;
-        }
-
-        int mask = coverBlastOcclusionMask.value != 0
-            ? coverBlastOcclusionMask.value
-            : Physics2D.AllLayers;
-        ContactFilter2D filter = new ContactFilter2D
-        {
-            useTriggers = false
-        };
-        filter.SetLayerMask(mask);
-
-        int count = Physics2D.Raycast(
-            origin,
-            delta / distance,
-            filter,
-            coverRaycastResults,
-            distance
-        );
-
-        float nearestCoverDistance = float.PositiveInfinity;
-        float playerHitDistance = distance + 0.01f;
-
-        for (int i = 0; i < count; i++)
-        {
-            Collider2D collider = coverRaycastResults[i].collider;
-            if (collider == null || collider.isTrigger || collider.transform.IsChildOf(transform))
-            {
-                continue;
-            }
-
-            PlayerHealth hitPlayer = collider.GetComponentInParent<PlayerHealth>();
-            if (hitPlayer != null && hitPlayer == playerHealth)
-            {
-                playerHitDistance = Mathf.Min(playerHitDistance, coverRaycastResults[i].distance);
-                continue;
-            }
-
-            BossArenaCover cover = collider.GetComponentInParent<BossArenaCover>();
-            if (IsEncounterCover(cover) &&
-                coverRaycastResults[i].distance < nearestCoverDistance)
-            {
-                nearestCoverDistance = coverRaycastResults[i].distance;
-                blockingCover = cover;
-            }
-        }
-
-        return blockingCover != null && nearestCoverDistance < playerHitDistance;
-    }
-
-    private void SpawnPhase2Escorts()
-    {
-        if (escortWaveSpawned)
-        {
-            return;
-        }
-
-        escortWaveSpawned = true;
-        if (TryResolveEscortPosition(escortLeftOffset, out Vector2 leftPosition))
-        {
-            spawnedEscorts[0] = SpawnEscort(pirateBasicPrefab, leftPosition);
-        }
-
-        if (TryResolveEscortPosition(escortRightOffset, out Vector2 rightPosition))
-        {
-            spawnedEscorts[1] = SpawnEscort(pirateShotgunPrefab, rightPosition);
-        }
-    }
-
-    private GameObject SpawnEscort(GameObject prefab, Vector2 arrivalPosition)
-    {
-        if (prefab == null || IsRunEnding())
-        {
-            return null;
-        }
-
-        GameObject escort = PoolManager.Instance != null
-            ? PoolManager.Instance.Get(prefab, arrivalPosition, Quaternion.identity)
-            : Instantiate(prefab, arrivalPosition, Quaternion.identity);
-        if (escort == null)
-        {
-            return null;
-        }
-
-        Transform playerTarget = playerHealth != null ? playerHealth.transform : null;
-        EnemyBaseAI enemyAI = escort.GetComponent<EnemyBaseAI>();
-        enemyAI?.SetTarget(playerTarget);
-
-        EnemyArrivalSpawnUtility.BeginArrival(
-            escort,
-            arrivalPosition,
-            playerTarget,
-            true,
-            arenaCenter,
-            escortArrivalSettings
-        );
-
-        return escort;
-    }
-
     private void RetireSpawnedEscorts()
     {
         for (int i = 0; i < spawnedEscorts.Length; i++)
         {
-            GameObject escort = spawnedEscorts[i];
-            spawnedEscorts[i] = null;
-
-            if (escort == null)
-            {
-                continue;
-            }
-
-            if (PoolManager.Instance != null)
-            {
-                PoolManager.Instance.Release(escort);
-            }
-            else
-            {
-                escort.SetActive(false);
-                Destroy(escort);
-            }
+            var escort = spawnedEscorts[i]; spawnedEscorts[i] = null; if (escort == null) continue;
+            Bullet.ReleaseAllActiveFromSource(escort.transform);
+            if (PoolManager.Instance != null) PoolManager.Instance.Release(escort); else escort.SetActive(false);
         }
     }
-
-    private bool TryResolveEscortPosition(Vector2 preferredOffset, out Vector2 position)
-    {
-        Vector2 preferred = ClampToArena(arenaCenter + preferredOffset);
-        if (IsEscortPositionClear(preferred))
-        {
-            position = preferred;
-            return true;
-        }
-
-        Vector2 mirrored = ClampToArena(arenaCenter + new Vector2(-preferredOffset.x, preferredOffset.y));
-        if (IsEscortPositionClear(mirrored))
-        {
-            position = mirrored;
-            return true;
-        }
-
-        Vector2 inner = ClampToArena(arenaCenter + new Vector2(preferredOffset.x * 0.6f, 0.5f));
-        if (IsEscortPositionClear(inner))
-        {
-            position = inner;
-            return true;
-        }
-
-        position = default;
-        return false;
-    }
-
-    private bool IsEscortPositionClear(Vector2 position)
-    {
-        int mask = escortBlockingMask.value != 0
-            ? escortBlockingMask.value
-            : Physics2D.AllLayers;
-        ContactFilter2D filter = new ContactFilter2D
-        {
-            useTriggers = false
-        };
-        filter.SetLayerMask(mask);
-        int count = Physics2D.OverlapCircle(
-            position,
-            escortClearRadius,
-            filter,
-            escortOverlapResults
-        );
-
-        for (int i = 0; i < count; i++)
-        {
-            Collider2D collider = escortOverlapResults[i];
-            if (collider != null && !collider.isTrigger && !collider.transform.IsChildOf(transform))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private bool IsEncounterCover(BossArenaCover cover)
-    {
-        return cover != null &&
-               cover.IsValid &&
-               (cover == arenaCovers[0] || cover == arenaCovers[1]);
-    }
-
-    private void CacheArenaCovers()
-    {
-        arenaCovers[0] = null;
-        arenaCovers[1] = null;
-        BossArenaCover[] covers = FindObjectsByType<BossArenaCover>(FindObjectsSortMode.None);
-
-        for (int i = 0; i < covers.Length; i++)
-        {
-            BossArenaCover cover = covers[i];
-            if (cover == null || !cover.IsValid)
-            {
-                continue;
-            }
-
-            int index = cover.Side == BossArenaCoverSide.Left ? 0 : 1;
-            BossArenaCover current = arenaCovers[index];
-            if (current == null ||
-                Vector2.SqrMagnitude((Vector2)cover.transform.position - arenaCenter) <
-                Vector2.SqrMagnitude((Vector2)current.transform.position - arenaCenter))
-            {
-                arenaCovers[index] = cover;
-            }
-        }
-    }
-
-    private void SetCoverHighlights(bool visible)
-    {
-        for (int i = 0; i < arenaCovers.Length; i++)
-        {
-            BossArenaCover cover = arenaCovers[i];
-            if (cover != null)
-            {
-                cover.SetPatternHighlight(visible);
-            }
-        }
-    }
-
-    private void PlayChargePulse()
-    {
-        if (visualRoot == null)
-        {
-            return;
-        }
-
-        visualRoot.DOKill();
-        visualRoot.localScale = visualBaseScale;
-        visualRoot.DOPunchScale(Vector3.one * 0.1f, 0.34f, 4, 0.3f)
-            .SetLoops(3, LoopType.Restart)
-            .SetLink(gameObject);
-
-        if (visualRenderer != null)
-        {
-            visualRenderer.DOKill();
-            visualRenderer.DOColor(coverChargeColor, 0.17f)
-                .SetLoops(6, LoopType.Yoyo)
-                .SetLink(gameObject);
-        }
-    }
-
-    private void PlayPhase2Pulse()
-    {
-        if (visualRoot != null)
-        {
-            visualRoot.DOKill();
-            visualRoot.localScale = visualBaseScale;
-            visualRoot.DOPunchScale(Vector3.one * 0.16f, phase2TransitionDuration, 6, 0.45f)
-                .SetLink(gameObject);
-        }
-
-        if (visualRenderer != null)
-        {
-            visualRenderer.DOKill();
-            visualRenderer.DOColor(phase2PulseColor, phase2TransitionDuration * 0.5f)
-                .SetLoops(2, LoopType.Yoyo)
-                .SetLink(gameObject);
-        }
-    }
-
-    private float ResolvePatternCooldown(CommanderPattern pattern)
-    {
-        float cooldown = pattern switch
-        {
-            CommanderPattern.SuppressiveBurst => suppressiveCooldown,
-            CommanderPattern.SpreadBarrage => spreadCooldown,
-            CommanderPattern.CoverBlast => coverBlastRecovery,
-            _ => 1f
-        };
-
-        return phase2 ? cooldown * 0.88f : cooldown;
-    }
-
-    private Vector2 ResolvePredictedDirection(float predictionTime)
-    {
-        if (playerHealth == null)
-        {
-            return Vector2.down;
-        }
-
-        Vector2 predicted = playerHealth.transform.position;
-        if (playerBody != null)
-        {
-            predicted += playerBody.linearVelocity * Mathf.Clamp(predictionTime, 0f, 0.4f);
-        }
-
-        Vector2 direction = predicted - ResolveFireOrigin();
-        return direction.sqrMagnitude > 0.001f ? direction.normalized : Vector2.down;
-    }
-
-    private Vector2 ResolveDirectionToPlayer()
-    {
-        if (playerHealth == null)
-        {
-            return Vector2.down;
-        }
-
-        Vector2 direction = (Vector2)playerHealth.transform.position - ResolveFireOrigin();
-        return direction.sqrMagnitude > 0.001f ? direction.normalized : Vector2.down;
-    }
-
-    private Vector2 ResolveFireOrigin()
-    {
-        return firePoint != null ? firePoint.position : transform.position;
-    }
-
-    private Vector2 ResolveBlastOrigin()
-    {
-        return blastOrigin != null ? blastOrigin.position : transform.position;
-    }
-
-    private float ResolveCoverBlastRadius(Vector2 attackCenter)
-    {
-        Vector2 bottomLeft = arenaCenter - arenaHalfExtents;
-        Vector2 topRight = arenaCenter + arenaHalfExtents;
-        float farthestSqr = 0f;
-        farthestSqr = Mathf.Max(
-            farthestSqr,
-            (new Vector2(bottomLeft.x, bottomLeft.y) - attackCenter).sqrMagnitude
-        );
-        farthestSqr = Mathf.Max(
-            farthestSqr,
-            (new Vector2(bottomLeft.x, topRight.y) - attackCenter).sqrMagnitude
-        );
-        farthestSqr = Mathf.Max(
-            farthestSqr,
-            (new Vector2(topRight.x, bottomLeft.y) - attackCenter).sqrMagnitude
-        );
-        farthestSqr = Mathf.Max(
-            farthestSqr,
-            (new Vector2(topRight.x, topRight.y) - attackCenter).sqrMagnitude
-        );
-        return Mathf.Sqrt(farthestSqr) + 0.01f;
-    }
-
-    private Vector2 ResolveAnchor(Vector2 offset)
-    {
-        return ClampToArena(arenaCenter + offset);
-    }
-
-    private Vector2 ClampToArena(Vector2 position)
-    {
-        float padding = 1.25f;
-        return new Vector2(
-            Mathf.Clamp(
-                position.x,
-                arenaCenter.x - Mathf.Max(padding, arenaHalfExtents.x - padding),
-                arenaCenter.x + Mathf.Max(padding, arenaHalfExtents.x - padding)
-            ),
-            Mathf.Clamp(
-                position.y,
-                arenaCenter.y - Mathf.Max(padding, arenaHalfExtents.y - padding),
-                arenaCenter.y + Mathf.Max(padding, arenaHalfExtents.y - padding)
-            )
-        );
-    }
-
-    private void RotateVisualTowardPlayer()
-    {
-        if (visualRoot == null || playerHealth == null)
-        {
-            return;
-        }
-
-        Vector2 direction = (Vector2)playerHealth.transform.position - (Vector2)transform.position;
-        if (direction.sqrMagnitude <= 0.001f)
-        {
-            return;
-        }
-
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
-        visualRoot.rotation = Quaternion.RotateTowards(
-            visualRoot.rotation,
-            Quaternion.Euler(0f, 0f, angle),
-            420f * Time.deltaTime
-        );
-    }
-
-    private static Vector2 Rotate(Vector2 direction, float degrees)
-    {
-        float radians = degrees * Mathf.Deg2Rad;
-        float sin = Mathf.Sin(radians);
-        float cos = Mathf.Cos(radians);
-        return new Vector2(
-            direction.x * cos - direction.y * sin,
-            direction.x * sin + direction.y * cos
-        ).normalized;
-    }
-
-    private bool ShouldInterruptPattern()
-    {
-        return !CanContinueCombat() || phaseTransitionPending;
-    }
-
-    private bool CanContinueCombat()
-    {
-        return combatActive &&
-               isActiveAndEnabled &&
-               enemyHealth != null &&
-               !enemyHealth.IsDead &&
-               !IsRunEnding();
-    }
-
-    private static bool IsRunEnding()
-    {
-        return RunManager.Instance != null && RunManager.Instance.IsCompletingRun;
-    }
-
-    private void ResolveReferences()
-    {
-        enemyHealth ??= GetComponent<EnemyHealth>();
-        body ??= GetComponent<Rigidbody2D>();
-        visualRoot ??= transform.Find("BossVisualRoot");
-        firePoint ??= transform.Find("FirePoint");
-        blastOrigin ??= transform.Find("BlastOrigin");
-        expeditionHud ??= FindFirstObjectByType<ExpeditionHUD>(FindObjectsInactive.Include);
-        gameplayCamera ??= GungeonStyleCamera2D.Instance != null
-            ? GungeonStyleCamera2D.Instance
-            : FindFirstObjectByType<GungeonStyleCamera2D>(FindObjectsInactive.Include);
-
-        if (visualRoot != null)
-        {
-            visualBaseScale = visualRoot.localScale;
-            visualRenderer = visualRoot.GetComponentInChildren<SpriteRenderer>(true);
-            if (visualRenderer != null)
-            {
-                visualBaseColor = visualRenderer.color;
-            }
-        }
-    }
-
-    private void EnsureCoverBlastTelegraph()
-    {
-        if (coverBlastTelegraph != null)
-        {
-            return;
-        }
-
-        if (coverBlastTelegraphPrefab == null)
-        {
-            return;
-        }
-
-        coverBlastTelegraph = Instantiate(
-            coverBlastTelegraphPrefab,
-            arenaCenter,
-            Quaternion.identity
-        );
-        coverBlastTelegraph.name = "RaiderCoverBlastTelegraph";
-        Vector2 attackCenter = ResolveBlastOrigin();
-        coverBlastTelegraph.Configure(
-            attackCenter,
-            ResolveCoverBlastRadius(attackCenter)
-        );
-    }
-
-    private void DestroyCoverBlastTelegraph()
-    {
-        if (coverBlastTelegraph == null)
-        {
-            return;
-        }
-
-        coverBlastTelegraph.HideImmediate();
-        Destroy(coverBlastTelegraph.gameObject);
-        coverBlastTelegraph = null;
-    }
-
-    private void ResolvePlayer(GameObject playerObject)
-    {
-        playerHealth = playerObject != null
-            ? playerObject.GetComponent<PlayerHealth>()
-            : FindFirstObjectByType<PlayerHealth>();
-        playerBody = playerHealth != null ? playerHealth.GetComponent<Rigidbody2D>() : null;
-    }
-
-    private void ApplyHealthTuning()
-    {
-        enemyHealth?.SetMaxHp(maxHp, true);
-    }
-
-    private void BindHealth()
-    {
-        if (enemyHealth == null)
-        {
-            return;
-        }
-
-        enemyHealth.HealthChanged -= HandleHealthChanged;
-        enemyHealth.HealthChanged += HandleHealthChanged;
-        enemyHealth.Died -= HandleDied;
-        enemyHealth.Died += HandleDied;
-    }
-
-    private void UnbindHealth()
-    {
-        if (enemyHealth == null)
-        {
-            return;
-        }
-
-        enemyHealth.HealthChanged -= HandleHealthChanged;
-        enemyHealth.Died -= HandleDied;
-    }
-
     private void HandleHealthChanged(EnemyHealth _, float current, float maximum)
-    {
-        if (!phase2 && !phaseTransitionPending && maximum > 0f && current / maximum <= phase2HpRatio)
-        {
-            phaseTransitionPending = true;
-        }
-    }
-
-    private void HandleDied(EnemyHealth _)
-    {
-        StopCombat();
-        RetireSpawnedEscorts();
-        Bullet.ReleaseAllActiveOwnedBy(ProjectileOwner.Enemy);
-        ReleaseBattleCameraProfile(false);
-        DestroyCoverBlastTelegraph();
-    }
-
-    private void BindRunEnd()
-    {
-        RunManager manager = RunManager.Instance;
-        if (observedRunManager == manager)
-        {
-            return;
-        }
-
-        UnbindRunEnd();
-        observedRunManager = manager;
-        if (observedRunManager != null)
-        {
-            observedRunManager.RunEnded += HandleRunEnded;
-        }
-    }
-
-    private void UnbindRunEnd()
-    {
-        if (observedRunManager != null)
-        {
-            observedRunManager.RunEnded -= HandleRunEnded;
-            observedRunManager = null;
-        }
-    }
-
-    private void HandleRunEnded(RunResultData _)
-    {
-        StopCombat();
-        RetireSpawnedEscorts();
-        Bullet.ReleaseAllActiveOwnedBy(ProjectileOwner.Enemy);
-        ReleaseBattleCameraProfile(true);
-        DestroyCoverBlastTelegraph();
-    }
-
-    private void RestoreVisualPresentation()
-    {
-        if (visualRoot != null)
-        {
-            visualRoot.DOKill();
-            visualRoot.localScale = visualBaseScale;
-        }
-
-        if (visualRenderer != null)
-        {
-            visualRenderer.DOKill();
-            visualRenderer.color = visualBaseColor;
-        }
-    }
-
-    private void ClearRuntimeReferences()
-    {
-        playerHealth = null;
-        playerBody = null;
-        expeditionHud = null;
-        gameplayCamera = null;
-        arenaCovers[0] = null;
-        arenaCovers[1] = null;
-    }
+    { if (combatActive && !phase2 && maximum > 0 && current > 0 && current / maximum <= phase2HpRatio) phaseTransitionPending = true; }
+    private void HandleDamaged(EnemyHealth _) { if (combatActive && Time.time - viewStarts[4] > .2f) viewStarts[4] = Time.time; }
+    private void HandlePlayerDied() => StopCombat();
+    private void HandleDied(EnemyHealth _) => StopCombat();
+    private void HandleRunEnded(RunResultData _) => StopCombat();
 }

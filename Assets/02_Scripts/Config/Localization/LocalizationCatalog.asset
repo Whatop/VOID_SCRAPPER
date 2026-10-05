@@ -58,6 +58,43 @@ MonoBehaviour:
     context: Disabled core interaction
     notes: Presentation only
     maxLengthHint: 28
+  - textKey: defense.purple.exposed
+    korean: "\uC624\uC5FC \uCF54\uC5B4 \uB178\uCD9C"
+    english: Corruption exposed
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Route Core Purple finale
+    notes: Fixed damage window
+    maxLengthHint: 32
+  - textKey: defense.purple.hidden
+    korean: "\uC2E0\uD638 \uC7AC\uC740\uD3D0"
+    english: Signal hidden again
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Route Core Purple finale
+    notes: Scan again
+    maxLengthHint: 32
+  - textKey: defense.purple.hint
+    korean: "[{radar}] \uB808\uC774\uB354  [{scan}] \uD0D0\uC0C9"
+    english: '[{radar}] Radar  [{scan}] Scan'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Route Core Purple finale
+    notes: Rebound input labels
+    maxLengthHint: 64
+  - textKey: defense.purple.start
+    korean: "\uD56D\uB85C \uCF54\uC5B4 \uC2E0\uD638 \uC18C\uC2E4 \xB7 \uB808\uC774\uB354
+      \uD0D0\uC0C9 \uD544\uC694"
+    english: Core signal lost - scan with Radar
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Route Core Purple finale
+    notes: Active scan required
+    maxLengthHint: 48
   - textKey: dialogue.rescue_contact.service.choice.accept
     korean: "\uC2E0\uD638\uB97C \uACF5\uC720\uBC1B\uB294\uB2E4."
     english: 
@@ -428,6 +465,70 @@ MonoBehaviour:
     context: Tutorial unknown access-key contact line 2
     notes: Approved Phase 2C Korean source
     maxLengthHint: 48
+  - textKey: equipment.special_matter_compression.description
+    korean: "\uBB3C\uC9C8 \uC555\uCD95\uB85C \uBD84\uC11D\uC73C\uB85C \uAC1C\uBC1C\uD55C
+      \uD2B9\uC218 \uC7A5\uBE44. \uC801\uC7AC\uB7C9\uACFC \uC218\uD655\uB7C9\uC744
+      \uB192\uC774\uACE0 \uB354 \uBA40\uB9AC \uC788\uB294 \uC790\uC6D0\uC744 \uD68C\uC218\uD569\uB2C8\uB2E4."
+    english: Special equipment developed from Matter Compressor analysis. Improves
+      cargo capacity, harvest yield and pickup reach.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Research-derived Special equipment
+    notes: 
+    maxLengthHint: 180
+  - textKey: equipment.special_matter_compression.name
+    korean: "\uBB3C\uC9C8 \uC555\uCD95 \uBAA8\uB4C8"
+    english: Matter Compression Module
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Research-derived Special equipment
+    notes: 
+    maxLengthHint: 40
+  - textKey: equipment.special_phase_navigation.description
+    korean: "\uC704\uC0C1 \uD56D\uBC95 \uB80C\uC988 \uBD84\uC11D\uC73C\uB85C \uAC1C\uBC1C\uD55C
+      \uD2B9\uC218 \uC7A5\uBE44. \uB808\uC774\uB354 \uD0D0\uC9C0 \uBC94\uC704\uC640
+      \uC0AC\uAC70\uB9AC\uB97C \uB298\uB9AC\uACE0 \uD0C4 \uD37C\uC9D0\uC744 \uC904\uC785\uB2C8\uB2E4."
+    english: Special equipment developed from Phase Navigation Lens analysis. Improves
+      radar radius, weapon range and accuracy.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Research-derived Special equipment
+    notes: 
+    maxLengthHint: 180
+  - textKey: equipment.special_phase_navigation.name
+    korean: "\uC704\uC0C1 \uD56D\uBC95 \uBAA8\uB4C8"
+    english: Phase Navigation Module
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Research-derived Special equipment
+    notes: 
+    maxLengthHint: 40
+  - textKey: equipment.special_sector_stabilization.description
+    korean: "\uAD6C\uD68D \uC548\uC815\uAE30 \uBD84\uC11D\uC73C\uB85C \uAC1C\uBC1C\uD55C
+      \uD2B9\uC218 \uC7A5\uBE44. \uCCB4\uB825\uACFC \uD68C\uBCF5 \uD6A8\uC728\uC744
+      \uB192\uC774\uACE0 \uAE34\uAE09\uBCF5\uADC0 \uC2DC \uD654\uBB3C \uBCF4\uC874
+      \uD55C\uB3C4\uB97C \uB298\uB9BD\uB2C8\uB2E4."
+    english: Special equipment developed from Sector Stabilizer analysis. Improves
+      health, recovery and Emergency Return cargo retention.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Research-derived Special equipment
+    notes: 
+    maxLengthHint: 180
+  - textKey: equipment.special_sector_stabilization.name
+    korean: "\uC548\uC815\uD654 \uD68C\uC218 \uBAA8\uB4C8"
+    english: Stabilized Return Module
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Research-derived Special equipment
+    notes: 
+    maxLengthHint: 40
   - textKey: final.ending.network_closed
     korean: "\uC911\uC559 \uBB3C\uB958\uB9DD \uC5F0\uACB0 \uC885\uB8CC"
     english: Central network connection closed.
@@ -941,6 +1042,396 @@ MonoBehaviour:
     context: Tutorial optional route objective detail
     notes: Route placement is optional and target approach remains authoritative
     maxLengthHint: 72
+  - textKey: ui.hangar.analysis
+    korean: "\uBD84\uC11D\uD55C \uBD80\uD488 {current} / {required}"
+    english: Analyzed components {current} / {required}
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.armor
+    korean: "\uBC29\uC5B4\uB3C4"
+    english: Armor
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.available
+    korean: "\uAC1C\uBC1C \uAC00\uB2A5"
+    english: Ready to develop
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.base
+    korean: "\uAE30\uBCF8 \uAE30\uCCB4 \uC131\uB2A5"
+    english: Base chassis
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.cargo
+    korean: "\uC801\uC7AC"
+    english: Cargo
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.charge_damage
+    korean: "\uCC28\uC9D5 \uD53C\uD574"
+    english: Charge damage
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.charge_time
+    korean: "\uCC28\uC9D5 \uC2DC\uAC04"
+    english: Charge time
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.cost
+    korean: "\uAC1C\uBC1C \uBE44\uC6A9"
+    english: Development cost
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.damage
+    korean: "\uACF5\uACA9\uB825"
+    english: Damage
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.dash_cooldown
+    korean: "\uB300\uC2DC \uC7AC\uC0AC\uC6A9"
+    english: Dash cooldown
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.dash_distance
+    korean: "\uB300\uC2DC \uAC70\uB9AC"
+    english: Dash distance
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.fire_rate
+    korean: "\uC5F0\uC0AC\uB825"
+    english: Fire rate
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.harvest
+    korean: "\uC218\uD655\uB7C9"
+    english: Harvest yield
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.harvest_damage
+    korean: "\uC218\uD655 \uC624\uBE0C\uC81D\uD2B8 \uD53C\uD574"
+    english: Harvest damage
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.homing_angle
+    korean: "\uC720\uB3C4 \uAC01\uB3C4"
+    english: Homing angle
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.homing_range
+    korean: "\uC720\uB3C4 \uAC70\uB9AC"
+    english: Homing range
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.innate
+    korean: "\uAE30\uCCB4 \uD2B9\uC131"
+    english: Innate trait
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.locked
+    korean: "\uAC1C\uBC1C \uC7A0\uAE40"
+    english: Development locked
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.move
+    korean: "\uC774\uB3D9 \uC18D\uB3C4"
+    english: Move speed
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.pickup
+    korean: "\uD761\uC218 \uBC94\uC704"
+    english: Pickup range
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.pierce
+    korean: "\uAD00\uD1B5 \uD69F\uC218"
+    english: Pierce count
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.projectile_speed
+    korean: "\uD22C\uC0AC\uCCB4 \uC18D\uB3C4"
+    english: Projectile speed
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.projectiles
+    korean: "\uD0C4 \uC218"
+    english: Projectiles
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.projection
+    korean: "\uCD9C\uACA9 \uC608\uC0C1 \uC131\uB2A5"
+    english: Fresh deployment
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.radar
+    korean: "\uB808\uC774\uB354 \uBC18\uACBD"
+    english: Radar radius
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.range
+    korean: "\uC0AC\uAC70\uB9AC"
+    english: Range
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.recovery
+    korean: "\uD68C\uBCF5 \uD6A8\uC728"
+    english: Recovery
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.requirement
+    korean: "\uD544\uC694 \uC870\uAC74"
+    english: Requirement
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.scrap
+    korean: "\uC2A4\uD06C\uB7A9 \uD68D\uB4DD\uB7C9"
+    english: Scrap gain
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.ship.muchingun_ship.description
+    korean: "\uAE30\uBCF8 \uC218\uD655\uC6A9 \uAE30\uCCB4. \uC911\uAC70\uB9AC \uAE30\uAD00\uCD1D\uC73C\uB85C
+      \uC801\uC744 \uBC00\uC5B4\uB0B4\uACE0 \uC794\uD574\uC640 \uCEE8\uD14C\uC774\uB108\uB97C
+      \uC548\uC815\uC801\uC73C\uB85C \uD30C\uAD34\uD55C\uB2E4."
+    english: A salvage ship. Its mid-range machine gun pushes back enemies and reliably
+      breaks debris and containers.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.ship.muchingun_ship.name
+    korean: "\uC2A4\uC704\uD37C"
+    english: Sweeper
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.ship.shotgun_ship.description
+    korean: "\uADFC\uC811 \uC804\uD22C \uD2B9\uD654"
+    english: Specialized for close-range combat.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.ship.shotgun_ship.name
+    korean: "\uBE0C\uB9AC\uCC98"
+    english: Breacher
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.ship.sniper_ship.description
+    korean: "\uC740\uD3D0, \uC6D0\uAC70\uB9AC \uC804\uD22C \uD2B9\uD654"
+    english: Specialized for stealth and long-range combat.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.ship.sniper_ship.name
+    korean: "\uB79C\uC11C"
+    english: Lancer
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.spread
+    korean: "\uD0C4 \uD37C\uC9D0"
+    english: Spread
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.stealth
+    korean: "\uC740\uBC00 \uD45C\uC2DD"
+    english: Stealth marker
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.taunt
+    korean: "\uB3C4\uBC1C \uC9C0\uC18D"
+    english: Taunt duration
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.unavailable
+    korean: "\uC870\uAC74 \uBBF8\uCDA9\uC871"
+    english: Requirements not met
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.weapon
+    korean: "\uBB34\uC7A5"
+    english: Weapon
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.weapon.mg
+    korean: "\uAE30\uAD00\uCD1D"
+    english: Machine Gun
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.weapon.sg
+    korean: "\uC0F7\uAC74"
+    english: Shotgun
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
+  - textKey: ui.hangar.weapon.sn
+    korean: "\uC800\uACA9\uCD1D"
+    english: Sniper
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Hangar fresh deployment
+    notes: Presentation only
+    maxLengthHint: 0
   - textKey: ui.settings.language
     korean: "\uC5B8\uC5B4"
     english: 
@@ -1559,6 +2050,24 @@ MonoBehaviour:
     context: Equipment Development
     notes: 
     maxLengthHint: 0
+  - textKey: ui.settlement.equipment.special
+    korean: "\uD2B9\uC218 \uC5F0\uAD6C \uC7A5\uBE44"
+    english: Special research
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: Shared subsection
+    maxLengthHint: 24
+  - textKey: ui.settlement.equipment.special_heading
+    korean: "\uBD84\uC11D \uC131\uACFC \xB7 \uD2B9\uC218 \uC7A5\uBE44 \uB3C4\uBA74"
+    english: Research-derived Special blueprints
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Equipment Development
+    notes: Shared subsection
+    maxLengthHint: 48
   - textKey: ui.settlement.equipment.sweeper
     korean: "\uC2A4\uC704\uD37C"
     english: Sweeper
@@ -1899,16 +2408,43 @@ MonoBehaviour:
     maxLengthHint: 40
   - textKey: ui.story_recovery.acquired
     korean: "\uD68D\uB4DD"
-    english: 
+    english: Recovered
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
     context: Acquired story part
     notes: Read-only permanent story recovery inventory
     maxLengthHint: 8
+  - textKey: ui.story_recovery.analysis_count
+    korean: "\uBD84\uC11D \uC644\uB8CC {count}/3"
+    english: Analyzed {count}/3
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Inventory read-only inspection
+    notes: 
+    maxLengthHint: 24
+  - textKey: ui.story_recovery.analyzed
+    korean: "\uBD84\uC11D \uC644\uB8CC"
+    english: Analyzed
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Read-only story status
+    notes: 
+    maxLengthHint: 16
+  - textKey: ui.story_recovery.inspect
+    korean: "\uD68C\uC218 \uAE30\uB85D"
+    english: Recovery Log
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Inventory read-only inspection
+    notes: 
+    maxLengthHint: 24
   - textKey: ui.story_recovery.matter_compressor
     korean: "\uBB3C\uC9C8 \uC555\uCD95\uB85C"
-    english: 
+    english: Matter Compressor
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1917,7 +2453,7 @@ MonoBehaviour:
     maxLengthHint: 16
   - textKey: ui.story_recovery.phase_navigation_lens
     korean: "\uC704\uC0C1 \uD56D\uBC95 \uB80C\uC988"
-    english: 
+    english: Phase Navigation Lens
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1926,7 +2462,7 @@ MonoBehaviour:
     maxLengthHint: 16
   - textKey: ui.story_recovery.sector_stabilizer
     korean: "\uAD6C\uD68D \uC548\uC815\uAE30"
-    english: 
+    english: Sector Stabilizer
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1934,8 +2470,8 @@ MonoBehaviour:
     notes: Read-only permanent story recovery inventory
     maxLengthHint: 16
   - textKey: ui.story_recovery.title
-    korean: "\uC2A4\uD1A0\uB9AC \uD68C\uC218\uD488"
-    english: 
+    korean: "\uD68C\uC218 \uAE30\uB85D"
+    english: Recovery Log
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1944,7 +2480,7 @@ MonoBehaviour:
     maxLengthHint: 16
   - textKey: ui.story_recovery.unacquired
     korean: "\uBBF8\uD68D\uB4DD"
-    english: 
+    english: Not Acquired
     japanese: 
     simplifiedChinese: 
     traditionalChinese: 
@@ -1952,265 +2488,267 @@ MonoBehaviour:
     notes: Read-only permanent story recovery inventory
     maxLengthHint: 8
   - textKey: ui.structural_frame.after_fitting
-    korean: "장착 후"
-    english: "After fitting"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uC7A5\uCC29 \uD6C4"
+    english: After fitting
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.cargo
-    korean: "적재량 {value}"
-    english: "Cargo capacity {value}"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uC801\uC7AC\uB7C9 {value}"
+    english: Cargo capacity {value}
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.close
-    korean: "닫기"
-    english: "Close"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uB2EB\uAE30"
+    english: Close
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.current
-    korean: "현재:"
-    english: "Current:"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uD604\uC7AC:"
+    english: 'Current:'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.damage
-    korean: "공격력 {value}%"
-    english: "Damage {value}%"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uACF5\uACA9\uB825 {value}%"
+    english: Damage {value}%
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.dash_cooldown
-    korean: "대쉬 쿨다운 {value}%"
-    english: "Dash cooldown {value}%"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uB300\uC26C \uCFE8\uB2E4\uC6B4 {value}%"
+    english: Dash cooldown {value}%
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.dash_distance
-    korean: "대쉬 거리 {value}"
-    english: "Dash distance {value}"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uB300\uC26C \uAC70\uB9AC {value}"
+    english: Dash distance {value}
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.equipment_tag
-    korean: "구조 장비 · 공용"
-    english: "Structural equipment · Shared"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uAD6C\uC870 \uC7A5\uBE44 \xB7 \uACF5\uC6A9"
+    english: "Structural equipment \xB7 Shared"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.fitted
-    korean: "장착"
-    english: "Fitted"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uC7A5\uCC29"
+    english: Fitted
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.fixed_at_launch
-    korean: "출격 시 고정 · 탐사 중 변경 불가"
-    english: "Fixed at launch for this expedition"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uCD9C\uACA9 \uC2DC \uACE0\uC815 \xB7 \uD0D0\uC0AC \uC911 \uBCC0\uACBD
+      \uBD88\uAC00"
+    english: Fixed at launch for this expedition
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.fusion
-    korean: "융합"
-    english: "Fusion"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uC735\uD569"
+    english: Fusion
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.fusion_hint
-    korean: "다른 구조 프레임과 함께 장착하면 효과가 변경됩니다."
-    english: "Fitting other structural frames changes these effects."
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uB2E4\uB978 \uAD6C\uC870 \uD504\uB808\uC784\uACFC \uD568\uAED8 \uC7A5\uCC29\uD558\uBA74
+      \uD6A8\uACFC\uAC00 \uBCC0\uACBD\uB429\uB2C8\uB2E4."
+    english: Fitting other structural frames changes these effects.
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.harvest
-    korean: "수확량 {value}%"
-    english: "Harvest yield {value}%"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uC218\uD655\uB7C9 {value}%"
+    english: Harvest yield {value}%
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.hp
-    korean: "최대 체력 {value}"
-    english: "Maximum HP {value}"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uCD5C\uB300 \uCCB4\uB825 {value}"
+    english: Maximum HP {value}
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.max_level
-    korean: "최대 Lv.1 · 출격 시 MAX"
-    english: "Max Lv.1 · MAX at launch"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uCD5C\uB300 Lv.1 \xB7 \uCD9C\uACA9 \uC2DC MAX"
+    english: "Max Lv.1 \xB7 MAX at launch"
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.move
-    korean: "이동 속도 {value}%"
-    english: "Movement speed {value}%"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uC774\uB3D9 \uC18D\uB3C4 {value}%"
+    english: Movement speed {value}%
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.owned
-    korean: "제작됨"
-    english: "Manufactured"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uC81C\uC791\uB428"
+    english: Manufactured
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.profile0
-    korean: "없음"
-    english: "None"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uC5C6\uC74C"
+    english: None
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.profile1
-    korean: "경량"
-    english: "Lightweight"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uACBD\uB7C9"
+    english: Lightweight
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.profile2
-    korean: "표준"
-    english: "Standard"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uD45C\uC900"
+    english: Standard
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.profile3
-    korean: "경량 + 표준"
-    english: "Lightweight + Standard"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uACBD\uB7C9 + \uD45C\uC900"
+    english: Lightweight + Standard
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.profile4
-    korean: "중갑"
-    english: "Heavy"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uC911\uAC11"
+    english: Heavy
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.profile5
-    korean: "경량 + 중갑"
-    english: "Lightweight + Heavy"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uACBD\uB7C9 + \uC911\uAC11"
+    english: Lightweight + Heavy
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.profile6
-    korean: "표준 + 중갑"
-    english: "Standard + Heavy"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uD45C\uC900 + \uC911\uAC11"
+    english: Standard + Heavy
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.profile7
-    korean: "통합 프레임"
-    english: "Integrated Frame"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uD1B5\uD569 \uD504\uB808\uC784"
+    english: Integrated Frame
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.single
-    korean: "단독 효과"
-    english: "Single-module effects"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uB2E8\uB3C5 \uD6A8\uACFC"
+    english: Single-module effects
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.summary
-    korean: "구조 프레임: {frame}"
-    english: "Structural frame: {frame}"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uAD6C\uC870 \uD504\uB808\uC784: {frame}"
+    english: 'Structural frame: {frame}'
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.title
-    korean: "구조 프레임"
-    english: "Structural Frame"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uAD6C\uC870 \uD504\uB808\uC784"
+    english: Structural Frame
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   - textKey: ui.structural_frame.unowned
-    korean: "미제작"
-    english: "Not manufactured"
-    japanese: ""
-    simplifiedChinese: ""
-    traditionalChinese: ""
-    context: "Structural frame equipment"
-    notes: "Exact combination profile"
+    korean: "\uBBF8\uC81C\uC791"
+    english: Not manufactured
+    japanese: 
+    simplifiedChinese: 
+    traditionalChinese: 
+    context: Structural frame equipment
+    notes: Exact combination profile
     maxLengthHint: 100
   sourceAssetPath: Assets/02_Scripts/Config/Localization/Source/Localization.csv
-  contentHash: 79c75bcda99a68fbac8dfc1526778b934a9675472751dbbda323c7f09343e70e
+  contentHash: dd8ca35c183d3f347500440741b51ca64f7fd85fbec03f5a2fe908b7af481fef

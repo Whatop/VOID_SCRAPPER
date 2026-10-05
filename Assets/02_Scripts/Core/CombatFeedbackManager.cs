@@ -19,6 +19,9 @@ public sealed class CombatFeedbackManager : MonoBehaviour
 
     [Header("Lifetime")]
     [SerializeField] private bool dontDestroyOnLoad = true;
+    [Header("Approved Hit Sprites")]
+    [SerializeField] private GameObject genericHitPrefab;
+    [SerializeField] private GameObject shieldHitPrefab;
 
     [Header("Procedural Hit Sparks")]
     [SerializeField] private bool enableProceduralHitSparks = true;
@@ -66,6 +69,8 @@ public sealed class CombatFeedbackManager : MonoBehaviour
         }
 
         Instance = this;
+        if (genericHitPrefab == null) genericHitPrefab = Resources.Load<GameObject>("VFX/Approved/GenericHit");
+        if (shieldHitPrefab == null) shieldHitPrefab = Resources.Load<GameObject>("VFX/Approved/ShieldHit");
 
         if (dontDestroyOnLoad)
         {
@@ -292,6 +297,12 @@ public sealed class CombatFeedbackManager : MonoBehaviour
 
     private void EmitHit(Vector2 position, Vector2 incomingDirection, CombatFeedbackKind kind, float intensity)
     {
+        GameObject approved = kind == CombatFeedbackKind.Shield ? shieldHitPrefab : genericHitPrefab;
+        if (approved != null && PoolManager.Instance != null)
+        {
+            PoolManager.Instance.SpawnAutoRelease(approved, position, .18f);
+            return;
+        }
         if (!enableProceduralHitSparks)
         {
             return;

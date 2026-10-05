@@ -1,0 +1,1 @@
+Remaining support VFX generated and exported with Aseprite CLI + Lua.

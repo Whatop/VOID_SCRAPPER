@@ -71,6 +71,8 @@ public class PlayerController2D : MonoBehaviour
     private Rigidbody2D rb;
     private Collider2D bodyCollider;
     private Camera mainCamera;
+    private object temporaryAimCameraOwner;
+    private Camera temporaryAimCamera;
     private InputActionMap playerActionMap;
     private InputAction moveAction;
 
@@ -145,6 +147,8 @@ public class PlayerController2D : MonoBehaviour
         movementInputActive = false;
         temporaryCameraViewportConstraints.Clear();
         temporaryWorldBoundsConstraints.Clear();
+        temporaryAimCameraOwner = null;
+        temporaryAimCamera = null;
 
         if (rb != null)
         {
@@ -326,17 +330,19 @@ public class PlayerController2D : MonoBehaviour
             return false;
         }
 
-        if (mainCamera == null)
+        Camera aimCamera = temporaryAimCamera;
+        if (aimCamera == null)
         {
-            mainCamera = Camera.main;
-            if (mainCamera == null)
+            if (mainCamera == null) mainCamera = Camera.main;
+            aimCamera = mainCamera;
+            if (aimCamera == null)
             {
                 return false;
             }
         }
 
         Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-        Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(mouseScreenPosition);
+        Vector3 mouseWorldPosition = aimCamera.ScreenToWorldPoint(mouseScreenPosition);
         worldPosition = new Vector2(mouseWorldPosition.x, mouseWorldPosition.y);
         return true;
     }
@@ -486,6 +492,25 @@ public class PlayerController2D : MonoBehaviour
 
         return true;
     }
+
+    public bool AcquireTemporaryAimCamera(object owner, Camera camera)
+    {
+        if (owner == null || camera == null ||
+            (temporaryAimCameraOwner != null && !ReferenceEquals(temporaryAimCameraOwner, owner))) return false;
+        temporaryAimCameraOwner = owner;
+        temporaryAimCamera = camera;
+        return true;
+    }
+
+    public void ReleaseTemporaryAimCamera(object owner)
+    {
+        if (owner == null || !ReferenceEquals(temporaryAimCameraOwner, owner)) return;
+        temporaryAimCameraOwner = null;
+        temporaryAimCamera = null;
+    }
+
+    public bool HasTemporaryAimCamera(object owner) => owner != null &&
+        ReferenceEquals(temporaryAimCameraOwner, owner) && temporaryAimCamera != null;
 
     public void ReleaseTemporaryWorldBoundsConstraint(object owner)
     {

@@ -4,6 +4,7 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 [Serializable]
@@ -209,11 +210,27 @@ public partial class ShipTraitTreePanel
         return lastEquipmentResult;
     }
 
-    private void ExecuteEquipmentAction() => TryExecuteEquipmentAction();
+    private void ExecuteEquipmentAction()
+    {
+        PermanentProgress progress = PermanentProgress.Instance;
+        bool manufactured = inspectedEquipment != null && progress != null && progress.IsEquipmentManufactured(inspectedEquipment.TraitId);
+        bool fitted = inspectedEquipment != null && progress != null && progress.IsEquipmentFitted(inspectedEquipment.TraitId);
+        EquipmentDevelopmentResult result = TryExecuteEquipmentAction();
+        AudioManager.Play(EquipmentActionSound(result, manufactured, fitted));
+    }
+
+    public static string EquipmentActionSound(EquipmentDevelopmentResult result, bool manufactured, bool fitted) => result switch
+    {
+        EquipmentDevelopmentResult.Success => !manufactured ? SoundEventIds.UiUnlock : fitted ? SoundEventIds.UiDeactivate : SoundEventIds.UiActivate,
+        EquipmentDevelopmentResult.InsufficientResources => SoundEventIds.UiInsufficient,
+        EquipmentDevelopmentResult.InvalidRecipe or EquipmentDevelopmentResult.SaveFailed => SoundEventIds.UiUpgradeFail,
+        _ => SoundEventIds.UiDisabled
+    };
 
     private void RefreshEquipmentPresentation()
     {
         if (!equipmentDevelopmentMode) return;
+        GameObject priorFocus = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
         var errors = new List<string>();
         if (!ValidateEquipmentPresentation(errors))
         {
@@ -293,6 +310,54 @@ public partial class ShipTraitTreePanel
             RefreshEquipmentCard(view);
         }
         RefreshEquipmentDetails();
+        RefreshEquipmentNavigation(priorFocus);
+    }
+
+    private void RefreshEquipmentNavigation(GameObject priorFocus)
+    {
+        visibleTraitControls.Clear();
+        foreach (var tab in EquipmentTabs()) Add(tab != null ? tab.GetComponent<Button>() : null);
+        Add(researchSpecialEquipmentButton);
+        Add(clearEquipmentButton);
+        foreach (var view in equipmentSlots) Add(view.button);
+        foreach (var view in equipmentCandidates) Add(view.button);
+        Add(equipmentActivationButton);
+        for (int i = 0; i < visibleTraitControls.Count; i++)
+        {
+            Selectable control = visibleTraitControls[i];
+            control.navigation = new Navigation
+            {
+                mode = Navigation.Mode.Explicit,
+                selectOnUp = visibleTraitControls[Mathf.Max(0, i - 1)],
+                selectOnDown = visibleTraitControls[Mathf.Min(visibleTraitControls.Count - 1, i + 1)],
+                selectOnLeft = Available(sidebarButton) ? sidebarButton : visibleTraitControls[0],
+                selectOnRight = Available(equipmentActivationButton) ? equipmentActivationButton : control
+            };
+        }
+        if (!CanUseTraitInput || EventSystem.current == null) return;
+        // uGUI may clear selection as soon as its selected Button is disabled/hidden.
+        // Retain the pre-refresh identity so that filtering can still repair that focus.
+        GameObject selected = EventSystem.current.currentSelectedGameObject;
+        if (selected == null) selected = priorFocus;
+        if (selected != null && selected.transform.IsChildOf(transform) &&
+            !visibleTraitControls.Contains(selected.GetComponent<Selectable>()))
+            EventSystem.current.SetSelectedGameObject(visibleTraitControls.Count > 0 ? visibleTraitControls[0].gameObject : null);
+
+        void Add(Selectable control) { if (Available(control)) visibleTraitControls.Add(control); }
+    }
+
+    internal void RevealEquipmentControl(RectTransform control)
+    {
+        if (control == null || equipmentLegacyScroll == null || !equipmentLegacyScroll.isActiveAndEnabled ||
+            equipmentLegacyScroll.content == null || equipmentLegacyScroll.viewport == null ||
+            !control.IsChildOf(equipmentLegacyScroll.content)) return;
+        Canvas.ForceUpdateCanvases();
+        var viewport = equipmentLegacyScroll.viewport;
+        Bounds bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(viewport, control);
+        float delta = bounds.min.y < viewport.rect.yMin ? viewport.rect.yMin - bounds.min.y :
+            bounds.max.y > viewport.rect.yMax ? viewport.rect.yMax - bounds.max.y : 0;
+        equipmentLegacyScroll.StopMovement();
+        equipmentLegacyScroll.content.anchoredPosition += new Vector2(0, delta);
     }
 
     private void RefreshEquipmentCard(PreparedEquipmentView view)
@@ -405,8 +470,9 @@ public partial class ShipTraitTreePanel
             (trait.HasRuntimePrerequisites ? "conditional_fitted" : "active") : manufactured ? "manufactured" : "unmanufactured");
         if (lastEquipmentResult == EquipmentDevelopmentResult.SaveFailed) equipmentCandidateState.text = EquipmentText("save_failed");
         equipmentActivationButton.gameObject.SetActive(trait != null && !locked && (manufactured || trait.IsManufacturableBlueprint));
-        equipmentActivationButton.interactable = progress != null && progress.CanEditEquipment &&
-            (manufactured || (trait != null && progress.GetManufacturingAvailability(trait) == EquipmentDevelopmentResult.Success));
+        // Keep the explicit transaction reachable for an insufficient-resource response.
+        // The existing PermanentProgress transaction still validates recipe, funds and safety.
+        equipmentActivationButton.interactable = progress != null && progress.CanEditEquipment;
         equipmentActivationButton.GetComponentInChildren<TMP_Text>(true).text = EquipmentText(manufactured ? fitted ? "deactivate" : "activate" : "manufacture");
     }
 

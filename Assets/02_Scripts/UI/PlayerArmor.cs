@@ -13,6 +13,8 @@ public class PlayerArmor : MonoBehaviour
     public bool HasArmor => currentArmor > 0f;
 
     public event Action<float, float> Changed;
+    // Damage depletion only: configuring capacity or restoring saved armor is not a hit.
+    public event Action Broken;
 
     private void OnEnable()
     {
@@ -73,6 +75,7 @@ public class PlayerArmor : MonoBehaviour
         float absorbed = Mathf.Min(currentArmor, damage);
         currentArmor -= absorbed;
         Changed?.Invoke(currentArmor, maxArmor);
+        if (currentArmor <= 0f) Broken?.Invoke();
 
         return damage - absorbed;
     }

@@ -199,6 +199,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba13d7e5c236ecb4da4a57a730c00929, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  pickupSparklePrefab: {fileID: 4080222700910342601, guid: 22e12138bd032fd49bffaf7076f5d8cb, type: 3}
   pickupKind: 0
   currencyType: 1
   amount: 1
@@ -216,12 +217,12 @@ MonoBehaviour:
   lifeTime: 30
   spriteRenderer: {fileID: 4039176787043260158}
   experienceSprite: {fileID: 0}
-  creditsSprite: {fileID: 21300000, guid: fe0d55d234eb11b45999963b9665eb68, type: 3}
-  scrapSprite: {fileID: 21300000, guid: 7e4f267d914b71d488c9052ee94aa4f2, type: 3}
-  coreShardSprite: {fileID: 21300000, guid: e994f32c1ad9d9a4d9acdb03b931ddeb, type: 3}
-  stabilizedAlloySprite: {fileID: 0}
-  tuningChipSprite: {fileID: 21300000, guid: e0d61017609500c4f8765e0a3ccc5904, type: 3}
-  healSprite: {fileID: 21300000, guid: ae509803613d585448596513b0f7e09b, type: 3}
+  creditsSprite: {fileID: 21300000, guid: fb26cae911f4c1a4c94dac394543a3ee, type: 3}
+  scrapSprite: {fileID: 21300000, guid: 79f84cd4983d7dd4c8056428acc8076d, type: 3}
+  coreShardSprite: {fileID: 21300000, guid: 888c727a88fcaea49898c62d0c563e3d, type: 3}
+  stabilizedAlloySprite: {fileID: 21300000, guid: e4ce981bf76070e4dabc0ac514a3ce5c, type: 3}
+  tuningChipSprite: {fileID: 21300000, guid: 9dd135230acf33049b9ded1ad50bfe11, type: 3}
+  healSprite: {fileID: 21300000, guid: 070670ca234cb884bb70a03c1f5f2b4a, type: 3}
   stabilizedAlloySpriteColor: {r: 0.82, g: 0.95, b: 1, a: 1}
   visualRoot: {fileID: 4988858253263396575}
   bubbleRenderer: {fileID: 2254988350893917215}
@@ -263,6 +264,9 @@ MonoBehaviour:
   markerSprite: {fileID: 0}
   markerColor: {r: 1, g: 1, b: 1, a: 1}
   markerScale: 1
+  showOnMap: 1
+  mapMarkerLifetime: 6
+  mapDiscovered: 0
   enemyAI: {fileID: 0}
   allowShotgunTaunt: 0
   alertOnMachineGunScan: 0
@@ -344,7 +348,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: fe0d55d234eb11b45999963b9665eb68, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fb26cae911f4c1a4c94dac394543a3ee, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

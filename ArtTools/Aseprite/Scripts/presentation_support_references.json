@@ -1,0 +1,67 @@
+[
+  {
+    "Name": "player.png",
+    "SHA256": "3BFD635CC357A8857CDD4B9C558224D139F067AD7A85A18024AA05D3409FEE1A",
+    "Relative": "Input/01_Player/Px_Player.png"
+  },
+  {
+    "Name": "enemy.png",
+    "SHA256": "7296ED1738B50BDD809FF8D4A5BDCC558E9D809270999EE8B5ACD9B93B0C21D8",
+    "Relative": "Output/03_RaiderEnemy/raider_basic.png"
+  },
+  {
+    "Name": "guard.png",
+    "SHA256": "03584046D5F5FDEE096138D7B4469F544CC79C43D3300659CDD72C734E5FB4B1",
+    "Relative": "Output/04_SystemSupport/system_support_green.png"
+  },
+  {
+    "Name": "dash.png",
+    "SHA256": "12625E234C8372DC4F9892BEBA0A05264A82841E300FD2B310404F09BD1264D3",
+    "Relative": "Output/15_GameplayVFX/VFX_Player_Dash.png"
+  },
+  {
+    "Name": "null_palette.json",
+    "SHA256": "12E5FD8E0D9DFC55BE09B9A2A3270164973768E7DE0E4D7ED0FF78A41AF47516",
+    "Relative": "Output/22_NullSignatureVFX/manifest.json"
+  },
+  {
+    "Name": "icon_precision.png",
+    "SHA256": "997A3CA1945F6D8E17F69EE5B6300A95DDAA38F7A5654ACF6AF4EB8B26E3AED2",
+    "Relative": "../../Assets/02_Scripts/Config/Icons/Trait/Sniper/38_sn_focus_lens.png"
+  },
+  {
+    "Name": "icon_shotgun.png",
+    "SHA256": "C5012A8ABC3BDFB41E6F7E77C409E9BF56511B13A4D7C3EAE6BB231764027B31",
+    "Relative": "../../Assets/02_Scripts/Config/Icons/Trait/Shotgun/31_sg_choke_barrel.png"
+  },
+  {
+    "Name": "icon_machinegun.png",
+    "SHA256": "8C7A05C20CAC2992E381DE7A485B5F1FD596C0A654A55A32C9AAFAB8268AB097",
+    "Relative": "../../Assets/02_Scripts/Config/Icons/Trait/MachineGun/30_mg_midrange_pressure.png"
+  },
+  {
+    "Name": "ui_reference.cs",
+    "SHA256": "7FDD28CF05776A610C1C9C23E8804C2C22667C8BB01F6FFFD545D96412BF962D",
+    "Relative": "../../Assets/02_Scripts/UI/PlayerBuildStatusPanelUI.cs"
+  },
+  {
+    "Name": "boundary_reference.cs",
+    "SHA256": "3CC9C68C493C55CEFF1EEF52C9EFCFD50FBFA498A8DD138E31BF74CBF76DE892",
+    "Relative": "../../Assets/02_Scripts/VFX/MapBoundaryParticleVisual2D.cs"
+  },
+  {
+    "Name": "ui_reference.png",
+    "SHA256": "53C1BD9A8E4D15D3CEE1BC620DC595F7D418698123BDA3846C165B225353AB0C",
+    "Relative": "../../Logs/InventoryPolish/Rendered/ko-equipment.png"
+  },
+  {
+    "Name": "region_reference.png",
+    "SHA256": "54FBFF37D75E6AFA03B6DD3742275754BF3025CB3FC37E2BBCEFFAF269C27955",
+    "Relative": "../../Logs/CommonBossPresentation/A/Rendered/A-win1-exploration-before.png"
+  },
+  {
+    "Name": "tutorial_reference.png",
+    "SHA256": "12B16B62D7EAF554619C744AA83691CB5384FC390C1D4962A787231373984EF8",
+    "Relative": "../../Logs/CombatReadability/Rendered/05-tutorial-purple-core.png"
+  }
+]

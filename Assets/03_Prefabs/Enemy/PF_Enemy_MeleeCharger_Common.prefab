@@ -152,6 +152,7 @@ GameObject:
   - component: {fileID: 4412942735317678970}
   - component: {fileID: -6040960296592684178}
   - component: {fileID: 3353652879400759374}
+  - component: {fileID: 2921146678229199029}
   m_Layer: 6
   m_Name: PF_Enemy_MeleeCharger_Common
   m_TagString: Untagged
@@ -222,7 +223,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: -6386932502878901857, guid: d49e64aced3373c46aeee19b6dc2762c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 002def87cc26a9e4f8c9de7179495bb8, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -243,8 +244,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5241710740ea26f448b2b4eac76326f8, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   markerType: 0
   markerTransform: {fileID: 807216512557240236}
   visible: 1
@@ -351,8 +352,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2726d4fc5be9bb841ba5675e6538f102, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   maxHp: 10
   rewardDropper: {fileID: 2963155244060544709}
   spriteHitFlash: {fileID: 0}
@@ -387,8 +388,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 608014e507b605d4f94e372b65bf80e6, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   enemyDefinition: {fileID: 11400000, guid: c26b857c6ed242908d7bb62389d32a15, type: 2}
   awarenessIndicatorFont: {fileID: 11400000, guid: a515e1cce8497f2428a48929b1d41724, type: 2}
   player: {fileID: 0}
@@ -414,6 +415,13 @@ MonoBehaviour:
   defaultTauntDuration: 4
   preferredCombatDistanceRatio: 0.75
   closeCombatDistanceRatio: 0.45
+  scoutManeuverSpeedMultiplier: 0.7
+  scoutApproachLateralBlend: 0.35
+  ambusherInterceptLeadTime: 0.4
+  ambusherMaximumLeadDistance: 2
+  ambusherFlankDistanceRatio: 0.22
+  interceptorApproachLeadTime: 0.35
+  interceptorMaximumLeadDistance: 1.75
   chargingPreferredDistanceMinRatio: 0.55
   chargingPreferredDistanceMaxRatio: 0.82
   chargingRepositionDuration: 1
@@ -430,8 +438,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 49457bfbf6ef7b34fbb08fbc3d0a8625, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   enemyDefinition: {fileID: 11400000, guid: c26b857c6ed242908d7bb62389d32a15, type: 2}
   firePoint: {fileID: 274234201926276759}
   runtimeCenterFirePoint: {fileID: 0}
@@ -439,6 +447,7 @@ MonoBehaviour:
   runtimeMachineGunRightFirePoint: {fileID: 0}
   projectileOwner: 1
   ignoreShopSecurityTargets: 0
+  projectileSourceRoot: {fileID: 0}
   projectileDefinition: {fileID: 11400000, guid: a461677f565b052499eb7847e2058dee, type: 2}
   attackRange: 9
   attackInterval: 1.2
@@ -484,6 +493,7 @@ MonoBehaviour:
     m_Bits: 0
   isAttacking: 0
   isCharging: 0
+  muzzleFlashPrefab: {fileID: 3348743499460803659, guid: 9f01ff6b2e03ea044a5b4c5e96b228a4, type: 3}
 --- !u!114 &2963155244060544709
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -494,8 +504,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7f5c1d24303f2414da8525419b99e090, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   rewardDefinition: {fileID: 11400000, guid: d2c045ea2f82ffe4a8784c62046d6e08, type: 2}
   rewardPickupPrefab: {fileID: 2036679911429542958, guid: 31dd73d4f0b2b9748b2d6213437b8fe9, type: 3}
   legacyHealPickupPrefab: {fileID: 3676966635386126382, guid: a7f1f0c9c5ee96c4ea79449c8394d7a9, type: 3}
@@ -538,8 +548,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 649cc422f66b41cfb26a467eddbacc26, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   obstacleMask:
     serializedVersion: 2
     m_Bits: 72704
@@ -567,8 +577,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a786057ac899a9084f0033a6d5b0c007, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   capacity: 24
   experienceWeight: 1
   creditsWeight: 1
@@ -597,8 +607,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ecb1eecbaad4e73a386089ef3ecf24d, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   roleType: 0
   currentLevel: 0
   playerTag: Player
@@ -622,8 +632,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8bcee1bf31d3f034e630baca0db5bac5, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   roleType: 0
   currentPhase: 0
   simulationGate: {fileID: 4412942735317678970}
@@ -690,8 +700,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b257f1a28c9747f7b7e4729b7ee3e982, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   enemyAI: {fileID: 7656713806787065888}
   enemyHealth: {fileID: 1306671448937924775}
   body: {fileID: 8656573508738637437}
@@ -713,6 +723,54 @@ MonoBehaviour:
   rotationOffset: -90
   positionJitter: 0.015
   drawExhaustPointGizmos: 1
+--- !u!114 &2921146678229199029
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6983035740697639387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff205e557a1a4644a2ff5c9562a10a14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enemyAI: {fileID: 7656713806787065888}
+  enemyHealth: {fileID: 1306671448937924775}
+  body: {fileID: 8656573508738637437}
+  bodySprite: {fileID: 743191785346090253}
+  chargeTriggerRange: 7.5
+  minimumChargeRange: 1.1
+  approachSpeedMultiplier: 1.15
+  chargeDuration: 0.85
+  directionLockBeforeDash: 0.2
+  dashDistance: 7
+  dashDuration: 0.36
+  dashDamage: 5
+  dashHitRadius: 0.55
+  recoveryDuration: 0.7
+  dashObstacleMask:
+    serializedVersion: 2
+    m_Bits: 0
+  obstacleProbeRadius: 0.3
+  meleeHitEffectPrefab: {fileID: 0}
+  meleeHitEffectLifeTime: 0.2
+  pathRenderer: {fileID: 0}
+  autoCreatePathRenderer: 1
+  pathMaterial: {fileID: 0}
+  pathColor: {r: 1, g: 0.08, b: 0.04, a: 0.72}
+  pathLineWidth: 0.045
+  pathWidth: 0.9
+  pathSortingLayer: Default
+  pathSortingOrder: 12
+  chargePulseRenderer: {fileID: 0}
+  autoCreatePulseRenderer: 1
+  pulseCycleDuration: 0.36
+  pulseEndScale: 1.55
+  pulseStartAlpha: 0.52
+  pulseColor: {r: 1, g: 0.2, b: 0.12, a: 1}
+  pulseSortingOrderOffset: -1
+  drawDashGizmo: 0
 --- !u!1 &8898435797988744819
 GameObject:
   m_ObjectHideFlags: 0

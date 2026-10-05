@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class CoreBossIntroSequence : MonoBehaviour
+public partial class CoreBossIntroSequence : MonoBehaviour
 {
     private enum IntroPhase
     {
@@ -201,7 +201,16 @@ public class CoreBossIntroSequence : MonoBehaviour
     private Animator spawnedBossAnimator;
     private Transform spawnedBossVisualRoot;
     private Vector3 spawnedBossBaseScale = Vector3.one;
+    private SpriteRenderer materializingBody;
+    private Color materializingBodyColor;
+    private SpriteRenderer[] materializingSprites;
+    private Color[] materializingColors;
+    private bool[] materializingHiddenStates;
     private bool isPlaying;
+    private bool sectorIntroPresentation;
+    private bool sectorBossHudRevealed;
+    private PlayerHealth observedSectorIntroPlayer;
+    private const float SectorRevealZoomMultiplier = 1.15f;
     private bool introWideZoomHoldActive;
     private bool introCancellationRequested;
     private RunManager observedRunManager;
@@ -246,6 +255,21 @@ public class CoreBossIntroSequence : MonoBehaviour
         public bool emergencyReturnWasEnabled;
     }
 
+    private bool regionBossPresentationHeld;
+    private void BeginRegionBossPresentation(GameObject prefab)
+    {
+        if (prefab == null || expeditionHUD == null) return;
+        var sector = prefab.GetComponent<BossPatternController>();
+        if ((sector == null || !sector.UsesSectorControl) && prefab.GetComponent<FrigateTriadBossController>() == null && prefab.GetComponent<PirateCommanderBossController>() == null && prefab.GetComponent<RaiderSalvageCarrierBossController>() == null && prefab.GetComponent<RaiderSniperCommanderBossController>() == null) return;
+        regionBossPresentationHeld = true;
+        expeditionHUD.SetRegionBossPresentation(this, true);
+    }
+    private void ReleaseRegionBossPresentation()
+    {
+        if (regionBossPresentationHeld && expeditionHUD != null) expeditionHUD.SetRegionBossPresentation(this, false);
+        regionBossPresentationHeld = false;
+    }
+
     private void Reset()
     {
         cameraZoomController = FindFirstObjectByType<CameraZoomController2D>();
@@ -258,6 +282,10 @@ public class CoreBossIntroSequence : MonoBehaviour
 
     private void OnDisable()
     {
+        CancelSectorIntroPresentation();
+        if (raiderCommanderIntro && spawnedBoss != null) spawnedBoss.GetComponent<PirateCommanderBossController>()?.StopCombat();
+        RestoreMaterializingBody();
+        ReleaseRegionBossPresentation();
         introCancellationRequested = true;
         if (IsSalvageDevourerIntroRuntimeOwned())
         {
@@ -331,6 +359,11 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield break;
         }
 
+        sectorIntroPresentation = bossPrefab != null &&
+            bossPrefab.TryGetComponent<BossPatternController>(out var sectorBoss) && sectorBoss.UsesSectorControl;
+        sectorBossHudRevealed = false;
+        raiderCommanderIntro = bossPrefab != null && bossPrefab.GetComponent<PirateCommanderBossController>() != null;
+
         if (useSalvageDevourerIntroVariant)
         {
             yield return PlaySalvageDevourerIntroRoutine(
@@ -354,7 +387,9 @@ public class CoreBossIntroSequence : MonoBehaviour
         coreActivationTitlePresented = false;
 
         ResolveReferences();
+        BeginRegionBossPresentation(bossPrefab);
         BindRunEnd();
+        BindSectorIntroPlayerDeath(interactor);
 
         AcquireCameraInputOffsetLock();
 
@@ -500,6 +535,7 @@ public class CoreBossIntroSequence : MonoBehaviour
         if (spawnedBoss == null)
         {
             Debug.LogError("Boss intro could not continue because the Boss failed to spawn.", this);
+            UnbindSectorIntroPlayerDeath();
 
             CloseCoreActivationPresentation();
             ReleaseCinematicHudMode();
@@ -522,17 +558,34 @@ public class CoreBossIntroSequence : MonoBehaviour
             : null;
 
         bool useRaiderBarricadeIntro = useRaiderIntroVariant &&
-                                       spawnedBoss.GetComponent<PirateCommanderBossController>() != null;
+                                       (spawnedBoss.GetComponent<PirateCommanderBossController>() != null || spawnedBoss.GetComponent<RaiderSalvageCarrierBossController>() != null || spawnedBoss.GetComponent<RaiderSniperCommanderBossController>() != null);
         bool useBossOwnedManagers = !useRaiderBarricadeIntro &&
                                     useBossPatternGuardianSystem &&
                                     bossPatternController != null;
 
         DisableBossForIntro(spawnedBoss);
+        if (sectorIntroPresentation) bossPatternController?.BeginSectorIntroProtection();
         CacheBossPresentation(spawnedBoss);
+        if (sectorIntroPresentation) TrackBossDeathForCleanup(spawnedBoss);
         TriggerBossAnimator(bossIntroEnterTrigger);
         SetIntroPhase(IntroPhase.FormationArrival);
 
-        if (useRaiderBarricadeIntro)
+        if (raiderCommanderIntro)
+        {
+            DestroySpawnedWalls(); DestroySpawnedManagerShips();
+            CloseCoreActivationPresentation();
+            // The Commander occupies the zone first; only cosmetic siege edges contract.
+            yield return MoveBossArrivalRoutine(spawnedBoss, effectiveBossBattlePosition, interactor);
+            if (ShouldAbortIntro()) yield break;
+            TriggerBossAnimator(bossIntroRevealTrigger);
+            yield return PlayBossRevealScaleRoutine();
+            if (ShouldAbortIntro()) yield break;
+            spawnedBoss.GetComponent<PirateCommanderBossController>().BeginIntroShield();
+            TrackBossDeathForCleanup(spawnedBoss);
+            yield return PlayRaiderLockdownRoutine(effectiveArenaCenter);
+            if (ShouldAbortIntro()) yield break;
+        }
+        else if (useRaiderBarricadeIntro)
         {
             DestroySpawnedWalls();
             DestroySpawnedManagerShips();
@@ -580,7 +633,15 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
 
         // 3. 보스를 화면 밖에서 중앙으로 진입시킨다.
-        yield return MoveBossArrivalRoutine(
+        if (sectorIntroPresentation && useBossOwnedManagers)
+        {
+            yield return bossPatternController.PlaySectorBarrierFormationRoutine();
+            if (ShouldAbortIntro()) yield break;
+            // Overview and input ownership remain held until every edge is solid.
+            yield return Wait(BossPatternController.SectorIntroContainmentSettle);
+            if (ShouldAbortIntro()) yield break;
+        }
+        if (!raiderCommanderIntro) yield return MoveBossArrivalRoutine(
             spawnedBoss,
             effectiveBossBattlePosition,
             interactor
@@ -591,7 +652,7 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield break;
         }
 
-        if (!useRaiderBarricadeIntro)
+        if (!useRaiderBarricadeIntro && !sectorIntroPresentation)
         {
             if (delayBeforeWallActivation > 0f)
             {
@@ -615,7 +676,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         TrackBossDeathForCleanup(spawnedBoss);
 
-        if (!useRaiderBarricadeIntro && delayAfterWallActivation > 0f)
+        if (!useRaiderBarricadeIntro && !sectorIntroPresentation && delayAfterWallActivation > 0f)
         {
             yield return Wait(delayAfterWallActivation);
         }
@@ -627,7 +688,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         // 4. 넓은 아레나 줌을 유지한 채 보스 쪽으로 초점만 치우쳐 등장 연출을 재생한다.
         SetIntroPhase(IntroPhase.BossReveal);
-        yield return BlendBossRevealFocusRoutine(
+        if (!raiderCommanderIntro) yield return BlendBossRevealFocusRoutine(
             effectiveArenaCenter,
             effectiveBossBattlePosition
         );
@@ -637,8 +698,22 @@ public class CoreBossIntroSequence : MonoBehaviour
             yield break;
         }
 
-        TriggerBossAnimator(bossIntroRevealTrigger);
-        yield return PlayBossRevealScaleRoutine();
+        if (sectorIntroPresentation && bossPatternController != null)
+        {
+            bossPatternController.PlaySectorSpawnMarker(effectiveBossBattlePosition, .48f);
+            float markerElapsed = 0;
+            while (markerElapsed < BossPatternController.SectorArrivalAnticipation && !ShouldAbortIntro())
+            {
+                bossPatternController.SampleSectorArrivalMarker(markerElapsed);
+                yield return null; markerElapsed += Time.unscaledDeltaTime;
+            }
+        }
+        if (!raiderCommanderIntro)
+        { TriggerBossAnimator(bossIntroRevealTrigger); yield return PlayBossRevealScaleRoutine(); }
+
+        if (sectorIntroPresentation && !ShouldAbortIntro())
+            yield return bossPatternController.ReleaseSectorIntroShieldRoutine();
+
 
         if (ShouldAbortIntro())
         {
@@ -652,9 +727,9 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         // 코어 활성화 Motion을 이미 사용하므로 별도의 보스 Motion 타이틀은 재생하지 않습니다.
         // 보스 스케일 연출이 끝난 직후 체력바의 가로 펼침/HP 채움 연출을 시작합니다.
-        bossRevealCallback?.Invoke();
+        if (!sectorIntroPresentation) bossRevealCallback?.Invoke();
 
-        if (bossHealthBarLeadTime > 0f)
+        if (!sectorIntroPresentation && bossHealthBarLeadTime > 0f)
         {
             yield return Wait(bossHealthBarLeadTime);
         }
@@ -668,6 +743,8 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         CloseCoreActivationPresentation();
         PrepareRaiderBattleCameraProfile();
+        if (sectorIntroPresentation && spawnedBoss != null)
+            spawnedBoss.GetComponent<BossPatternController>()?.PrepareSectorIntroCameraHandoff();
         ReleaseIntroWideZoomHold(true);
 
         // 5. 실제 카메라 중심에서 플레이어 중심과 기본 줌을 같은 진행도로 복귀시킨다.
@@ -686,6 +763,17 @@ public class CoreBossIntroSequence : MonoBehaviour
         if (ShouldAbortIntro())
         {
             yield break;
+        }
+
+        if (sectorIntroPresentation)
+        {
+            // The existing compact reveal binds live HP. Start it only after the
+            // title and camera have relinquished the intro, before enabling combat.
+            RevealSectorBossHud(bossRevealCallback);
+            yield return null;
+            // The opacity reveal starts at zero; let its first visible frame render.
+            yield return null;
+            if (ShouldAbortIntro()) yield break;
         }
 
         battleStartCallback?.Invoke();
@@ -709,6 +797,7 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
 
         isPlaying = false;
+        UnbindSectorIntroPlayerDeath();
         ReleaseCameraInputOffsetLock();
     }
 
@@ -745,6 +834,7 @@ public class CoreBossIntroSequence : MonoBehaviour
         SetIntroPhase(IntroPhase.CoreFocus);
 
         ResolveReferences();
+        BeginRegionBossPresentation(bossPrefab);
         BindRunEnd();
         AcquireCameraInputOffsetLock();
         AcquireCinematicHudMode();
@@ -1001,6 +1091,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 
     private void CleanupSalvageDevourerIntro(bool destroyUnhandedBoss)
     {
+        ReleaseRegionBossPresentation();
         if (salvageBossTitlePresented)
         {
             EventTitleDirector titleDirector = coreActivationTitleDirector != null
@@ -1054,6 +1145,8 @@ public class CoreBossIntroSequence : MonoBehaviour
     {
         return coreWorldPosition + (Vector3)arenaCenterOffset;
     }
+
+    public Vector2 ResolveSystemEncounterArenaHalfExtents() => GetEffectiveHalfExtents();
 
     public Vector2 ResolveRaiderEncounterArenaHalfExtents()
     {
@@ -1475,6 +1568,8 @@ public class CoreBossIntroSequence : MonoBehaviour
 
     private float ResolveIntroWideZoomMultiplier()
     {
+        // A modest margin keeps all four lockdown edges visible at 480x270.
+        if (raiderCommanderIntro) return 2.15f;
         float multiplier = Mathf.Max(1f, wideZoomMultiplier);
         return useRaiderIntroVariant
             ? Mathf.Max(1f, multiplier * Mathf.Clamp(raiderArenaSizeMultiplier, 0.5f, 1f))
@@ -1786,6 +1881,15 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
 
         float length = Vector2.Distance(start, end);
+        if (raiderCommanderIntro)
+        {
+            var lockdown = wall.gameObject.AddComponent<RaiderLockdownBoundaryPresentation>();
+            lockdown.Configure(wall, length, raiderBarrierMaterial != null ? raiderBarrierMaterial : wall.GetOrCreateLineRenderer().sharedMaterial,
+                laserSortingLayerName, laserSortingOrder);
+            wall.SetFormationProgress(0);
+            raiderLockdownWalls.Add(wall); raiderLockdownViews.Add(lockdown);
+            return;
+        }
         LineRenderer authoritativeLine = wall.GetOrCreateLineRenderer();
         if (authoritativeLine == null)
         {
@@ -2003,7 +2107,9 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         arrivalDirection.Normalize();
 
-        Vector3 startPosition = bossBattlePosition + (Vector3)(arrivalDirection * Mathf.Max(0.1f, bossArrivalDistance));
+        var sectorPrefab = bossPrefab.GetComponent<BossPatternController>();
+        Vector3 startPosition = sectorPrefab != null && sectorPrefab.UsesSectorControl ? bossBattlePosition
+            : bossBattlePosition + (Vector3)(arrivalDirection * Mathf.Max(0.1f, bossArrivalDistance));
         GameObject bossObject = Instantiate(bossPrefab, startPosition, Quaternion.identity);
         bossObject.name = bossPrefab.name;
 
@@ -2029,10 +2135,13 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
 
         Transform bossTransform = bossObject.transform;
+        var sector = bossObject.GetComponent<BossPatternController>();
+        Transform facingTransform = sector != null && sector.UsesSectorControl && spawnedBossVisualRoot != null
+            ? spawnedBossVisualRoot : bossTransform;
         Vector3 startPosition = bossTransform.position;
         Vector3 endPosition = bossBattlePosition;
 
-        float duration = Mathf.Max(0.01f, bossArrivalDuration);
+        float duration = sectorIntroPresentation ? 0 : Mathf.Max(0.01f, bossArrivalDuration);
         float timer = 0f;
 
         while (timer < duration)
@@ -2046,11 +2155,14 @@ public class CoreBossIntroSequence : MonoBehaviour
             float t = Mathf.Clamp01(timer / duration);
             float eased = bossMoveCurve != null ? bossMoveCurve.Evaluate(t) : t;
 
-            bossTransform.position = Vector3.LerpUnclamped(startPosition, endPosition, eased);
+            // SYSTEM Sector Administrator forms at its destination. The existing
+            // arrival interval still owns camera/containment timing; Raiders retain flight.
+            bossTransform.position = materializingBody != null
+                ? endPosition : Vector3.LerpUnclamped(startPosition, endPosition, eased);
 
             if (faceBossToPlayerWhenArrived && interactor != null)
             {
-                FaceTransformToTarget(bossTransform, interactor.transform.position, bossRotationOffset);
+                FaceTransformToTarget(facingTransform, interactor.transform.position, bossRotationOffset);
             }
 
             yield return null;
@@ -2060,7 +2172,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 
         if (faceBossToPlayerWhenArrived && interactor != null)
         {
-            FaceTransformToTarget(bossTransform, interactor.transform.position, bossRotationOffset);
+            FaceTransformToTarget(facingTransform, interactor.transform.position, bossRotationOffset);
         }
 
         Rigidbody2D bossRb = bossObject.GetComponent<Rigidbody2D>();
@@ -2086,6 +2198,13 @@ public class CoreBossIntroSequence : MonoBehaviour
             fixedBossArrivalDestination,
             Mathf.Clamp01(bossArrivalFocusBias)
         );
+        if (sectorIntroPresentation)
+        {
+            Transform playerTarget = ResolvePlayerCameraTarget(null);
+            if (playerTarget != null)
+                requestedFocusPosition = Vector3.Lerp(playerTarget.position, fixedBossArrivalDestination, .6f);
+            ReleaseIntroWideZoomHold(true);
+        }
         Vector2 safeArenaHalfExtents = GetCurrentEncounterHalfExtents();
         requestedFocusPosition.x = Mathf.Clamp(
             requestedFocusPosition.x,
@@ -2115,6 +2234,12 @@ public class CoreBossIntroSequence : MonoBehaviour
             );
         }
 #endif
+
+        // Reuse the existing focus blend and zoom coroutine over the same interval.
+        // Only Region A leaves the arena overview before materialization.
+        if (sectorIntroPresentation)
+            yield return AnimateCameraZoomOnlyRoutine(SectorRevealZoomMultiplier,
+                bossRevealFocusPanDuration, bossRevealFocusPanCurve);
 
         while (gungeonCamera != null && gungeonCamera.IsCinematicFocusBlendActive)
         {
@@ -2251,13 +2376,18 @@ public class CoreBossIntroSequence : MonoBehaviour
 
     private void HandleTrackedBossDied(EnemyHealth health)
     {
+        CancelSectorIntroPresentation();
+        RestoreMaterializingBody();
+        ReleaseRegionBossPresentation();
         if (trackedBossHealth != null)
         {
             trackedBossHealth.Died -= HandleTrackedBossDied;
             trackedBossHealth = null;
         }
 
-        DestroySpawnedWalls();
+        if (raiderCommanderIntro && raiderLockdownWalls.Count > 0 && isActiveAndEnabled)
+            raiderLockdownRelease = StartCoroutine(ReleaseRaiderLockdownRoutine());
+        else DestroySpawnedWalls();
         DestroySpawnedManagerShips();
         DestroySpawnedRaiderCarriers();
         ClearRaiderCoverReferences();
@@ -2265,6 +2395,7 @@ public class CoreBossIntroSequence : MonoBehaviour
 
     private void DestroySpawnedWalls()
     {
+        ClearRaiderLockdown();
         for (int i = spawnedWallObjects.Count - 1; i >= 0; i--)
         {
             GameObject wallObject = spawnedWallObjects[i];
@@ -2320,6 +2451,11 @@ public class CoreBossIntroSequence : MonoBehaviour
 
     private void ShowWarning()
     {
+        if (regionBossPresentationHeld && expeditionHUD != null)
+        {
+            expeditionHUD.ShowBossCommunication(activationWarningMessage, warningDuration);
+            return;
+        }
         if (warningMessageUI != null)
         {
             warningMessageUI.ShowMessage(activationWarningMessage, warningDuration);
@@ -2344,7 +2480,7 @@ public class CoreBossIntroSequence : MonoBehaviour
         {
             director.Show(
                 coreActivationTitleType,
-                coreActivationTitle,
+                raiderCommanderIntro ? "GRAY CORE ACTIVATED" : coreActivationTitle,
                 string.IsNullOrWhiteSpace(encounterSignalSubtitleOverride)
                     ? coreActivationSubtitle
                     : encounterSignalSubtitleOverride
@@ -2647,6 +2783,8 @@ public class CoreBossIntroSequence : MonoBehaviour
         {
             commander.PrepareBattleCameraProfile();
         }
+        spawnedBoss.GetComponent<RaiderSalvageCarrierBossController>()?.PrepareBattleCameraProfile();
+        spawnedBoss.GetComponent<RaiderSniperCommanderBossController>()?.PrepareBattleCameraProfile();
     }
 
     private void ReleaseRaiderBattleCameraProfile(bool immediate)
@@ -2662,6 +2800,8 @@ public class CoreBossIntroSequence : MonoBehaviour
         {
             commander.ReleaseBattleCameraProfile(immediate);
         }
+        spawnedBoss.GetComponent<RaiderSalvageCarrierBossController>()?.ReleaseBattleCameraProfile(immediate);
+        spawnedBoss.GetComponent<RaiderSniperCommanderBossController>()?.ReleaseBattleCameraProfile(immediate);
     }
 
     private bool ShouldAbortIntro()
@@ -2700,7 +2840,15 @@ public class CoreBossIntroSequence : MonoBehaviour
 
     private void HandleRunEnded(RunResultData _)
     {
+        CancelSectorIntroPresentation();
+        RestoreMaterializingBody();
+        ReleaseRegionBossPresentation();
         introCancellationRequested = true;
+        if (raiderCommanderIntro)
+        {
+            if (spawnedBoss != null) spawnedBoss.GetComponent<PirateCommanderBossController>()?.StopCombat();
+            DestroySpawnedWalls(); DestroySpawnedRaiderCarriers();
+        }
         StopAllCoroutines();
         if (IsSalvageDevourerIntroRuntimeOwned())
         {
@@ -2722,8 +2870,64 @@ public class CoreBossIntroSequence : MonoBehaviour
         }
     }
 
+    private void RevealSectorBossHud(Action reveal)
+    {
+        if (!sectorIntroPresentation || sectorBossHudRevealed || ShouldAbortIntro()) return;
+        sectorBossHudRevealed = true;
+        reveal?.Invoke();
+    }
+
+    private void BindSectorIntroPlayerDeath(GameObject interactor)
+    {
+        UnbindSectorIntroPlayerDeath();
+        if ((!sectorIntroPresentation && !raiderCommanderIntro) || interactor == null) return;
+        observedSectorIntroPlayer = interactor.GetComponentInParent<PlayerHealth>();
+        if (observedSectorIntroPlayer != null) observedSectorIntroPlayer.Died += HandleSectorIntroPlayerDied;
+    }
+
+    private void UnbindSectorIntroPlayerDeath()
+    {
+        if (observedSectorIntroPlayer != null) observedSectorIntroPlayer.Died -= HandleSectorIntroPlayerDied;
+        observedSectorIntroPlayer = null;
+    }
+
+    private void HandleSectorIntroPlayerDied() => CancelSectorIntroPresentation();
+
+    private void CancelSectorIntroPresentation()
+    {
+        if ((!sectorIntroPresentation && !raiderCommanderIntro) || !isPlaying) return;
+        UnbindSectorIntroPlayerDeath();
+        introCancellationRequested = true;
+        StopAllCoroutines();
+        if (raiderCommanderIntro)
+        {
+            if (spawnedBoss != null) spawnedBoss.GetComponent<PirateCommanderBossController>()?.StopCombat();
+            DestroySpawnedWalls(); DestroySpawnedRaiderCarriers();
+        }
+        RestoreMaterializingBody();
+        CloseCoreActivationPresentation();
+        ReleaseCinematicHudMode();
+        ReleaseRegionBossPresentation();
+        if (spawnedBoss != null)
+            spawnedBoss.GetComponent<BossPatternController>()?.CancelSectorIntroPresentation();
+        ReleaseIntroWideZoomHold(false);
+        ResetCameraZoom();
+        if (gungeonCamera != null)
+        {
+            gungeonCamera.CancelCinematicFocusBlend();
+            gungeonCamera.ClearCinematicFocus(true);
+        }
+        ReleaseCameraInputOffsetLock();
+        RestorePlayer();
+        // An interrupted introduction must never enable its dormant scheduler.
+        disabledBossComponents.Clear();
+        isPlaying = false;
+        SetIntroPhase(IntroPhase.Inactive);
+    }
+
     private void CacheBossPresentation(GameObject bossObject)
     {
+        RestoreMaterializingBody();
         spawnedBossAnimator = null;
         spawnedBossVisualRoot = null;
         spawnedBossBaseScale = Vector3.one;
@@ -2739,6 +2943,42 @@ public class CoreBossIntroSequence : MonoBehaviour
             ? bodyRenderer.transform
             : bossObject.transform;
         spawnedBossBaseScale = spawnedBossVisualRoot.localScale;
+        var sector = bossObject.GetComponent<BossPatternController>();
+        if (sector != null && sector.UsesSectorControl && bodyRenderer != null)
+        {
+            materializingBody = bodyRenderer;
+            materializingBodyColor = bodyRenderer.color;
+            // The center cannon is a separate renderer. Hide the complete visual,
+            // not just the main sprite, before any frame can reveal the spawn.
+            materializingSprites = bossObject.GetComponentsInChildren<SpriteRenderer>(true);
+            materializingColors = new Color[materializingSprites.Length];
+            materializingHiddenStates = new bool[materializingSprites.Length];
+            for (int i = 0; i < materializingSprites.Length; i++)
+            {
+                materializingColors[i] = materializingSprites[i].color;
+                materializingHiddenStates[i] = materializingSprites[i].forceRenderingOff;
+                if (sector.IsSectorArrivalRenderer(materializingSprites[i]) || sector.IsSectorShieldRenderer(materializingSprites[i])) continue;
+                Color hidden = materializingColors[i]; hidden.a = 0;
+                materializingSprites[i].color = hidden; materializingSprites[i].forceRenderingOff = true;
+            }
+        }
+    }
+
+    private void RestoreMaterializingBody()
+    {
+        if (materializingSprites != null)
+        {
+            for (int i = 0; i < materializingSprites.Length; i++)
+            {
+                if (materializingSprites[i] == null) continue;
+                materializingSprites[i].color = materializingColors[i];
+                materializingSprites[i].forceRenderingOff = introCancellationRequested || materializingHiddenStates[i];
+            }
+            materializingSprites = null; materializingColors = null; materializingHiddenStates = null;
+        }
+        else if (materializingBody != null) materializingBody.color = materializingBodyColor;
+        materializingBody = null;
+        if (spawnedBoss != null) spawnedBoss.GetComponent<BossPatternController>()?.ClearSectorSpawnEffects();
     }
 
     private void TriggerBossAnimator(string triggerName)
@@ -2791,6 +3031,33 @@ public class CoreBossIntroSequence : MonoBehaviour
             ? spawnedBossVisualRoot
             : spawnedBoss.transform;
         Vector3 baseScale = spawnedBossBaseScale;
+
+        if (materializingBody != null)
+        {
+            var sector = spawnedBoss.GetComponent<BossPatternController>();
+            sector?.PlaySectorSpawnPulse();
+            sector?.ShowSectorIntroShield();
+            // Same short interval and camera/HUD handoff; every visual participates.
+            float materialElapsed = 0, materialDuration = Mathf.Max(.05f, bossRevealScaleDuration);
+            while (materialElapsed < materialDuration && !ShouldAbortIntro() && materializingBody != null)
+            {
+                materialElapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(materialElapsed / materialDuration);
+                for (int i = 0; i < materializingSprites.Length; i++)
+                {
+                    var visual = materializingSprites[i]; if (visual == null) continue;
+                    if (sector != null && (sector.IsSectorArrivalRenderer(visual) || sector.IsSectorShieldRenderer(visual))) continue;
+                    Color color = Color.Lerp(new Color(.55f, 1f, .65f), materializingColors[i], t);
+                    color.a = materializingColors[i].a * Mathf.SmoothStep(0, 1, t);
+                    visual.color = color; visual.forceRenderingOff = materializingHiddenStates[i];
+                }
+                sector?.SampleSectorArrivalMarker(BossPatternController.SectorArrivalAnticipation + materialElapsed);
+                sector?.SampleSectorIntroShield(materialElapsed);
+                yield return null;
+            }
+            RestoreMaterializingBody();
+            yield break;
+        }
 
         if (!useFallbackBossRevealScale)
         {

@@ -55,6 +55,42 @@ public class BossHealthBarUI : MonoBehaviour
     [Min(0.05f)]
     [SerializeField] private float hideFadeDuration = 0.2f;
 
+    [SerializeField] private bool horizontalTriadBars;
+    private bool regionPresentation;
+    private Vector2 regionPreviousAnchorMin, regionPreviousAnchorMax, regionPreviousPivot, regionPreviousPosition;
+    public bool IsRegionPresentation => regionPresentation;
+    public bool IsVisible => canvasGroup != null && canvasGroup.alpha > .001f;
+    public void SetRegionPresentation(bool active)
+    {
+        if (regionPresentation == active) return;
+        CacheReferences();
+        var rect = rootObject != null ? rootObject.transform as RectTransform : null;
+        if (active && rect != null)
+        {
+            regionPreviousAnchorMin = rect.anchorMin; regionPreviousAnchorMax = rect.anchorMax;
+            regionPreviousPivot = rect.pivot; regionPreviousPosition = rect.anchoredPosition;
+        }
+        regionPresentation = active;
+        if (active) ApplyRegionLayout();
+        else
+        {
+            StopVisibilityRoutine(); UnbindBoss(); SetVisibleImmediate(false);
+            if (rect != null)
+            {
+                rect.anchorMin = regionPreviousAnchorMin; rect.anchorMax = regionPreviousAnchorMax;
+                rect.pivot = regionPreviousPivot; rect.anchoredPosition = regionPreviousPosition;
+            }
+        }
+    }
+    private void ApplyRegionLayout()
+    {
+        if (!regionPresentation || rootObject == null) return;
+        var rect = rootObject.transform as RectTransform;
+        if (rect == null) return;
+        rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1);
+        rect.pivot = new Vector2(.5f, .5f); rect.anchoredPosition = new Vector2(0, -26);
+    }
+
     private EnemyHealth currentBossHealth;
     private Coroutine visibilityRoutine;
     private Vector3 revealBaseScale = Vector3.one;
@@ -178,10 +214,10 @@ public class BossHealthBarUI : MonoBehaviour
             return;
         }
 
-        visibilityRoutine = StartCoroutine(RevealRoutine());
+        visibilityRoutine = StartCoroutine(regionPresentation ? RegionRevealRoutine() : RevealRoutine());
     }
 
-    public void ShowPhaseShield(float currentShield, float maxShield)
+    public void ShowPhaseShield(float currentShield, float maxShield, string compactLabel = null)
     {
         phaseShieldOverride = true;
         phaseShieldCurrent = Mathf.Max(0f, currentShield);
@@ -197,7 +233,9 @@ public class BossHealthBarUI : MonoBehaviour
 
         if (hpText != null)
         {
-            hpText.text = $"{phaseShieldLabel} {phaseShieldCurrent:0} / {phaseShieldMax:0}";
+            hpText.text = compactLabel == null
+                ? $"{phaseShieldLabel} {phaseShieldCurrent:0} / {phaseShieldMax:0}"
+                : $"{compactLabel} {phaseShieldCurrent:0}/{phaseShieldMax:0}";
         }
     }
 
@@ -325,6 +363,7 @@ public class BossHealthBarUI : MonoBehaviour
             layoutRect.anchoredPosition = triadRightSideAnchoredPosition;
         }
 
+        ApplyRegionLayout();
         triadPresentationOwner = owner;
         triadController = controller;
         CacheAndHideAggregateVisualChildren();
@@ -400,7 +439,7 @@ public class BossHealthBarUI : MonoBehaviour
         {
             if (triadPartFillRects[i] == triadPartFills[i].rectTransform) continue;
             triadPartFillRects[i] = triadPartFills[i].rectTransform;
-            triadFillHeights[i] = triadPartFillRects[i].sizeDelta.y;
+            triadFillHeights[i] = horizontalTriadBars ? triadPartFillRects[i].sizeDelta.x : triadPartFillRects[i].sizeDelta.y;
         }
         return true;
     }
@@ -512,7 +551,8 @@ public class BossHealthBarUI : MonoBehaviour
         if (fillRect != null)
         {
             Vector2 size = fillRect.sizeDelta;
-            size.y = triadFillHeights[index] * ratio;
+            if (horizontalTriadBars) size.x = Mathf.Round(triadFillHeights[index] * ratio);
+            else size.y = triadFillHeights[index] * ratio;
             fillRect.sizeDelta = size;
         }
 
@@ -595,83 +635,26 @@ public class BossHealthBarUI : MonoBehaviour
         }
     }
 
+    private IEnumerator RegionRevealRoutine()
+    {
+        // Retain the existing intro wait duration; reveal opacity, never fake depleted HP
+        // or stretch the pixel-authored frame/text horizontally.
+        SetVisibleImmediate(true); RestoreRevealScale(); Refresh(cachedCurrentHp, cachedMaxHp);
+        float elapsed = 0, duration = AnimatedRevealDuration;
+        while (elapsed < duration)
+        {
+            if (canvasGroup != null) canvasGroup.alpha = Mathf.Clamp01(elapsed / Mathf.Max(.01f, duration));
+            elapsed += DeltaTime; yield return null;
+        }
+        if (canvasGroup != null) canvasGroup.alpha = 1;
+        visibilityRoutine = null;
+    }
+
     private IEnumerator RevealRoutine()
     {
-        revealing = true;
-
-        if (CanToggleRootObjectActive())
-        {
-            rootObject.SetActive(true);
-        }
-        else if (!gameObject.activeSelf)
-        {
-            gameObject.SetActive(true);
-        }
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = 0f;
-            canvasGroup.interactable = false;
-            canvasGroup.blocksRaycasts = false;
-        }
-
-        if (revealRoot != null)
-        {
-            Vector3 startScale = revealBaseScale;
-            startScale.x = 0f;
-            revealRoot.localScale = startScale;
-        }
-
-        SetDisplayedRatio(0f, 0f, cachedMaxHp);
-
-        float frameDuration = Mathf.Max(0.05f, frameRevealDuration);
-        float elapsed = 0f;
-
-        while (elapsed < frameDuration)
-        {
-            elapsed += DeltaTime;
-            float normalized = Mathf.Clamp01(elapsed / frameDuration);
-            float eased = Evaluate(frameRevealCurve, normalized);
-
-            if (canvasGroup != null)
-            {
-                canvasGroup.alpha = eased;
-            }
-
-            if (revealRoot != null)
-            {
-                Vector3 scale = revealBaseScale;
-                scale.x *= eased;
-                revealRoot.localScale = scale;
-            }
-
-            yield return null;
-        }
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = 1f;
-        }
-
-        RestoreRevealScale();
-
-        float fillDuration = Mathf.Max(0.05f, hpFillDuration);
-        elapsed = 0f;
-
-        while (elapsed < fillDuration)
-        {
-            elapsed += DeltaTime;
-            float normalized = Mathf.Clamp01(elapsed / fillDuration);
-            float eased = Evaluate(hpFillCurve, normalized);
-
-            float displayedHp = cachedCurrentHp * eased;
-            SetDisplayedRatio(eased * Mathf.Clamp01(cachedCurrentHp / cachedMaxHp), displayedHp, cachedMaxHp);
-            yield return null;
-        }
-
-        revealing = false;
-        Refresh(cachedCurrentHp, cachedMaxHp);
-        visibilityRoutine = null;
+        // All encounters use the same opacity-only reveal. Keep the authored total
+        // duration and live HP, without squeezing rounded caps or title glyphs.
+        yield return RegionRevealRoutine();
     }
 
     private IEnumerator HideRoutine()

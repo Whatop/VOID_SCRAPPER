@@ -478,6 +478,8 @@ public abstract class PlayerWeaponBase : MonoBehaviour
         SpawnMuzzleEffectFrom(spawnPoint, shotDirection);
     }
 
+    public bool HasAuthoredMuzzleEffect => muzzleEffectPrefab != null;
+
     protected void SpawnMuzzleEffectFrom(Transform spawnPoint, Vector2 shotDirection)
     {
         if (muzzleEffectPrefab == null)
@@ -492,6 +494,10 @@ public abstract class PlayerWeaponBase : MonoBehaviour
 
         Quaternion rotation = GetMuzzleEffectRotation(spawnPoint, shotDirection);
 
+        // Production flashes require a pool; do not manufacture disposable effects
+        // in fixture scenes that intentionally omit the normal PoolManager.
+        if (PoolManager.Instance == null && muzzleEffectPrefab.GetComponent<PooledMuzzleFlash>() != null) return;
+
         GameObject instance;
 
         if (PoolManager.Instance != null)
@@ -505,6 +511,12 @@ public abstract class PlayerWeaponBase : MonoBehaviour
 
         if (instance == null)
         {
+            return;
+        }
+
+        if (instance.TryGetComponent<PooledMuzzleFlash>(out var flash))
+        {
+            flash.Play(spawnPoint, weaponController != null ? weaponController.gameObject : gameObject);
             return;
         }
 

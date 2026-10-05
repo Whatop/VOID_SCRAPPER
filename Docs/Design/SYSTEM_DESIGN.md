@@ -1,5 +1,187 @@
 # VOID SCRAPPER System Design
 
+## 2026-10-02 - Raider Sniper Commander (Region C revisit)
+
+Final validation: **280/280 focused tests passed** (43 Sniper cases), seven generated Region C revisit encounters including three actual-weapon victories and four lifecycle/timing fixtures, **130 native 480x270 captures**, no TMP overflow, and zero final Console errors including teardown. Each weapon passed an input-driven post-commit dodge with invulnerability off. Mine timing measured 1.1254 s warning, 7.9945 s armed lifetime and 0.2074 s detonation cleanup; one proximity hit dealt 2 Armor damage. 12,444 protected baseline files are unchanged. Assisted victories are not unassisted difficulty acceptance; details: `Logs/RaiderSniper/REPORT.txt`.
+
+Region C revisits select a separate Sniper Commander prefab/controller: one 125-HP EnemyHealth and one 50% Critical transition. Region A Assault Commander, Region B Salvage Carrier and the Coreless first-clear Phase Gatekeeper remain unchanged. CoreObject only adds the DeepZone2 repeat binding; BossDummyController and CampaignBossRewardService retain current-depth death, reward and return authority. No new progression, save or reward system is introduced.
+
+One scheduler owns mine setup, bounded reposition, Rail Lock acquisition, committed charge, a short rail pulse and recovery. Acquisition is 0.9 seconds normally / 0.7 in Critical; direction commits for 0.65 seconds before firing. EnemyAttackController's existing intercept helper supplies at most 0.25 seconds of lead using the shared enemy definition. The approved 0.13-second rail sequence has a 0.09-second visible/damaging pulse followed by a transparent, harmless tail. Sprite and narrow collider share one clock and fixed path to containment; collision excludes each frame's transparent endpoint padding. It is a single hitscan pulse, not a homing projectile or repeated laser sweep. Rail and mine damage reuse the shared enemy value of 2; no phase damage multiplier is applied. Post-shot recovery is 2.2 / 2.0 seconds with no major attack.
+
+Two normal / three Critical mines use approved Raider warning frames and a small existing Raider power-node sprite. Three is the hard live cap. Each stationary pooled mine warns for 1.1 seconds, remains armed for at most 8 seconds, and uses a 0.55-unit trigger radius. A triggered mine has a 0.20-second outlined burst with damage only in the first 0.09 seconds, once per mine. Placement skips unsafe/clamped positions, never forces a mine under the sampled player, and leaves open routes. Mines have no economy, pickup, drop or health behavior. The boss scheduler advances their timers; there is no mine Update or independent coroutine.
+
+Preferred range is 4.8 units; below 3.5 units the boss commits a short retreat. Reposition is capped to 1.2 / 1.02 seconds at 1.8 units/second and remains inside the authored containment margin. FixedUpdate is the only movement owner and yields to existing health knockback. The visual child alone owns facing. Critical transition lasts 0.65 seconds, clears current rail/mines, then resumes one scheduler with damaged body/loop presentation. Death, player death, disable and run end release pooled objects and common camera/HUD/arena isolation.
+
+Native captures exposed name wrapping and hull clipping after retreat. The new boss uses the compact SNIPER COMMANDER health label, full RAIDER SNIPER COMMANDER subtitle, and a local 1.1 camera-size multiplier with bounded midpoint offsets refreshed only at sequence boundaries. Existing camera ownership blends these changes; other bosses and shared HUD dimensions remain unchanged.
+
+Native evidence and validation limits are recorded in `Logs/RaiderSniper/REPORT.txt`, `tests.xml`, `metrics.json` and `screenshots.html`. The QA fixture uses an isolated save, assisted positioning and invulnerability; it does not establish unassisted difficulty acceptance.
+
+
+## Raider Salvage Carrier: Region B revisit
+
+Final scoped validation: **237/237 focused tests passed**, including 33 Carrier cases. Generated Region B revisit wins with Machine Gun, Shotgun and Sniper plus applied-pull death/abort cleanup checks exited with zero Console errors. **152 native 480x270 captures**, no TMP overflow. QA used assisted positioning/invulnerability; unassisted difficulty and reward-choice/Beacon interactions are not claimed. Full evidence and measured timings: `Logs/RaiderSalvage/REPORT.txt`.
+
+Region B revisits now select a separate Raider Salvage Carrier, using one 125-HP EnemyHealth and a single 50% Overload transition. Region A revisits retain Assault Commander; Region C retains its current repeat route. First-clear Defense Overseer, repeat eligibility, current-depth clear identity, BossDummyController death/reward handoff, return/portal rules and save schema remain authoritative and unchanged. The Carrier has its own prefab/controller; RaiderBarricadeCarrier remains a containment-deployment unit.
+
+One finite scheduler owns two light committed defensive shots, a magnetic warning, collection, Cargo Ready/discharge warning, sequential cargo discharge, recovery and slow lateral reposition. Normal/escalated warning is 1.0/0.8 seconds; collection is bounded to 3.8 seconds. Five/six boss-owned combat scrap objects have 2 HP, use PoolManager, and cannot grant or collect currency. Three arrivals are required for discharge; 3-5 chunks fire sequentially at 0.24-second cadence. Failed collection exits through 1.6 seconds of recovery. Normal successful recovery is 2.4 seconds; Overload recovery is 3.2 seconds. A 0.65-second safe transition cancels active collection at 50% HP. No additional health layer, damage multiplier or invulnerability is introduced.
+
+The pull is a committed six-unit lane with 1.1-unit half-width, not a permanent arena-wide force. Existing PlayerController2D source-owned push velocity composes with movement and Dash: 1.3 units/second normally, 1.6 after escalation, zero outside the field and near the intake's hull-clearance zone. Force and field visibility share scheduler ownership. Physics moves combat scrap; no per-scrap Update or pickup scan is used. Destroying scrap denies cargo without drops. Actual RewardPickup objects, RunWallet and RunContext cargo are never queried or consumed by collection.
+
+Approved Idle, Salvage Active and Cargo Overload sprites plus Salvage Beam, Raider muzzle, sparks and Critical Loop provide the state presentation. Small authored cargo indicators sit on the hull; discharge warning pulses the loaded indicators. Combat scrap reuses the existing scrap silhouette with red threat tint, enlarged world scale and no rarity halo/pickup behavior. Cargo projectiles reuse Bullet and a separate visual prefab while retaining the shared enemy projectile's damage 2, speed 8, range 8 and lifetime 2. Death, player death and abort release source-owned bullets, combat scrap, pull contributions, VFX, meteor isolation and common HUD/camera ownership.
+
+
+## 2026-10-01 - Raider Assault Commander assault sequence
+
+The existing repeat Commander retains one 125-HP EnemyHealth, its 50% escalation request, and the existing 0.42-second transition. CoreObject, the revisit resolver, BossDummyController and the reward/exit coordinator remain authoritative. This pass does not change first-clear SYSTEM encounters or repeat selection rules. Critical Damage uses that existing 50% threshold; no additional health layer or threshold is introduced.
+
+One controller coroutine owns alternating port/starboard bursts, committed repositions, temporary Weapons Hot, and recovery. Each mount fires six single projectiles, with a 0.38-second committed tell and narrow deterministic -2/0/+2 degree roughness. Prediction reuses EnemyAttackController's bounded intercept calculation with the existing 0.22-second limit. Projectile damage 2, speed 8, range 8 and lifetime 2 remain unchanged. Normal cadence is 0.075 seconds with a 0.28-second inter-burst gap. The previous 68-degree fan, arena-wide cover blast and escort spawn are no longer scheduled; their serialized legacy fields are retained for asset compatibility.
+
+Short repositions commit a lateral dogleg with bounded forward pressure or retreat based on distance, a 0.32-second movement tell and a maximum 1.25-second movement window at the existing 2.8 speed. Paths avoid the player and stop if the player enters the clearance zone. FixedUpdate alone owns combat MovePosition; it yields while the existing EnemyHealth knockback routine owns motion. The visual root alone owns facing, while child muzzle anchors carry shot direction. Physics root, collider and containment authority are unchanged.
+
+First escalation enters Critical Damage and one Weapons Hot sequence; subsequent cycles place Hot after two measured burst pairs and a reposition. Hot announces for 0.6 seconds, uses the same six shots per mount at 0.06-second cadence / 0.16-second gap, then stops firing for 3.2 seconds. Ordinary recovery is 1.05 seconds. Critical body/loop returns after Hot rather than losing the damaged identity. The scheduler never overlaps a second primary attack or fires during reposition. Approved Idle/Weapons Hot/Critical Damage sprites and Heavy Muzzle/Weapons Hot/Damage Sparks/Critical Loop frames use production copies, exact source bytes and existing pooling. Barrage target art is intentionally unused because no ground-artillery attack is scheduled.
+
+The Commander opts into the existing scoped ExpeditionHUD/Core-intro presentation and ambient-enemy/meteor isolation. Core Signal, ordinary prompts and NPC communication remain suppressed; the existing compact HP and 1.0 camera profile stay in use, with the common 0.35 aim-framing factor. Death, player death, disable and run-end release owned bullets, passive VFX, camera/HUD ownership and meteor state. No new manager, runtime hierarchy generation or scene scan during attacks was added. Actual native coverage and measured frame-quantized timings are recorded in `Logs/RaiderAssault/REPORT.txt` and `metrics.json`.
+
+
+## 2026-10-01 - Common SYSTEM boss presentation
+
+Region A/B/C share an owner-scoped presentation lifecycle on the existing ExpeditionHUD. Intro acquisition suppresses Core Signal, pending exploration briefing, ordinary interaction and low-priority communication; combat keeps these suppressed until the final owner releases. Existing Core tracking counts and campaign authority are read-only. A defeated Core objective stays hidden; an aborted encounter can restore still-relevant tracking. Player death, RunEnded and scene disable release all presentation owners. NPC renderer visibility is snapshotted once and restored exactly; service state and movement are untouched. The existing owner-based PlayerInteractor lock defers ordinary NPC/service access during these fights (none has a required combat interaction), then releases only the HUD's lock at teardown. Combat/Danger communication and the explicit boss-critical message path remain available. Story dialogue retains its existing authority.
+
+The existing boss HP objects use a compact top-center band. Region A/C retain the 196x5 frame; Region B retains three independently bound bars, now horizontal 60x5 tracks with 58x3 fills and integer fill widths. HP reveal keeps the original 0.82-second duration but fades accurate live values instead of stretching the frame and filling from a false zero. Intro/death timing is unchanged. Native evidence showed the upper message line crossing Region C's portal. Region-only warnings therefore use the suppressed interaction area: a 220x20 bottom-center band, 18 pixels above the bottom, with 8px text. Original layout and font size restore on release. Other boss layouts remain unchanged.
+
+Camera policy is scoped to each existing owner. Region A uses a 1.0 gameplay multiplier and resets the temporary 2.5 shield-introduction target when input returns, without adding scheduler waits. Region C uses its authored 1.0 normal multiplier instead of 1.25, retaining fixed local arena focus and the same portal/attack geometry. Region B keeps 1.2: its viewport drives corridor constraints and formation geometry, so changing it here would also change combat. Temporary intro/death cinematic ownership is retained and must release after its presentation. Player visuals are not scaled. Native measurements and coverage limits are recorded in `Logs/CommonBossPresentation/REPORT.txt`.
+
+All three combat schedules, HP/damage, rewards, campaign/save, containment and player weapons remain unchanged. No new art, shaders, manager, production Update polling or recurring scene scans were introduced.
+
+## 2026-10-01 - Region C Phase Gatekeeper phase-route sequence
+
+The production Region C prefab retains one 180-HP EnemyHealth and the existing five-second exposure gate after three attacks. BossDummyController, the coreless proximity encounter, first/repeat-clear progression and rewards remain authoritative. There is no new HP threshold or second health pool. The first completed three-attack/exposure cycle now performs one 0.8-second navigation-lens escalation; later cycles retain exposure windows without reverting the escalation.
+
+One existing encounter coroutine owns precision preparation, portal opening, committed aim, beam release, one redirect, cleanup and recovery. Phase 1 uses direct precision / redirect / direct precision; escalation uses redirect / direct precision / redirect. Tracking retains 0.65/0.55 seconds and the existing bounded 0.28-second prediction; a full 0.4-second committed hold follows. One portal pair opens for 0.56 seconds before activation. Both positions remain fixed and inside the arena, with player/body clearance. Their VFX have no collision and cannot redirect player attacks.
+
+Region C already used beams. Redirect therefore repositions the same pooled BossLaserHazard once, 0.18 seconds after firing, with an approved directional flash. It preserves the existing 0.8-second beam lifetime, 4 damage, 0.5-second per-target cooldown, runtime owner and pool membership. It never restarts lifetime or clears hit history at transfer. The source and exit paths are shown before firing; warning and damaging line widths are distinct. No recursive portal simulation, projectile fan, artillery or rotating radial laser is scheduled.
+
+The existing wall and player-constraint owners form a compact 14-by-7.4 local arena for this sequence. The previous map-spanning repositions, reflected routes and repeatedly shrinking/restoring cage are not scheduled by the production opt-in. Collision thickness and zero contact damage remain unchanged; the boundary line is muted and thin to distinguish it from attacks. The existing normal 1.25x camera profile stays fixed on the arena instead of widening for long reflected routes. Intro handoff retains the same camera owner, avoiding an unowned return blend that previously rejected the arena focus. Native evidence also exposed a legacy 3x child scale on the approved 128px/32PPU body (12 world units); only that visual child now uses 0.65x, matching the unchanged 2.35-unit damage hull. The boss translates visibly between two bounded positions only during harmless cycle recovery. Phase 1/2 recovery is 0.75/0.55 seconds; exposure remains five seconds.
+
+Approved Idle and Phase Lock production sprites are reused. Lens Exposed represents vulnerability and persistent escalation. New production copies use the approved lens, revised Phase Portal/Redirect and original Precision Lock sheets without altering source masters. The boss scheduler samples pooled VFX; individual effects have no Update. Region C opts into existing ambient renderer isolation and meteor pause/restore, and owns existing HUD briefing suppression. Blue Core progression identity is unchanged; no Core is added to the coreless Region C route. Evidence and validation limitations are recorded in `Logs/PhaseGatekeeper/REPORT.txt`.
+
+Validation: 157 focused tests passed; three actual weapon victories and a player-death interruption passed at native 480x270 with zero final Console errors. 99 captures and runtime timings are recorded in `Logs/PhaseGatekeeper/REPORT.txt`; assisted coverage is not unassisted difficulty acceptance.
+
+## 2026-10-01 - Region B Defense Overseer three-part artillery formation
+
+Region B retains the three independently targetable 55-HP FrigateBossPart objects and their 165-HP aggregate EnemyHealth. The historical SalvageDevourer campaign ID, dedicated scrolling-corridor intro, deferred final death charge, BossDummyController reward/death authority and return flow remain intact. The first destroyed part triggers Armor Break exactly once; there is no new percentage threshold, armor health pool or damage-reduction system. Part loss immediately cancels current attacks and disables that part's firing roots. A 0.9-second safe transition changes surviving hulls to the approved Armor Broken state midway through the pause. Second-part loss uses the existing 0.6-second reformation pause. Transition damage is blocked through the existing part-damage authority.
+
+One existing scheduler alternates left battery tell/burst, gap, right battery tell/burst, recovery, sequential Heavy Barrage, recovery. Each three-shot burst distributes single projectiles over surviving frigates; its bounded aim is committed before the existing 0.25-second tell. New authored child muzzle positions match the down-facing visual hulls without rotating physics roots. Projectile damage/speed/range remain 3/9/12. Three/two/one-part shot cadence is 0.38/0.28/0.22 seconds; inter-battery gaps are 0.32/0.20/0.12 seconds. The final frigate concentrates the same burst budget into its own batteries. Legacy fan, homing, ricochet, rotating-bullet and laser attacks are not scheduled by the production Defense Overseer sequence.
+
+Heavy Barrage uses two sequential zones with three parts, three zones with fewer parts, and at most one visible zone. Each position is sampled and clamped once before its full 1.0-second warning, never dragged beneath the player. The revised approved impact runs for 0.48 seconds; only its expanded bright peak at 0.065-0.150 seconds enables the 1.05-radius damage gate and one 3-damage hit. The remaining debris is harmless. Sequential-zone gaps are 0.22/0.12/0.08 seconds. Every other escalated cycle permits one lightly predicted, already committed battery shot per impact. Existing recoveries remain 0.85/0.90/0.90 seconds. Approved Charged art marks intact artillery preparation; Armor Broken remains persistent after escalation.
+
+Approved Orange body states and Barrage Target/Heavy Impact/Battery Flash production copies are byte-identical to their source packs. Pooled artillery has no independent Update; the scheduler drives warning, sprite and collision timing. The existing boss LateUpdate follows and recycles module flashes. The existing ambient-isolation renderer suppression also applies while this Region B owner is active, without changing ordinary combat or Region C. A single intro-time meteor snapshot reuses the existing pause/hide/restore API across the whole reserved scrolling corridor. Segmented containment geometry and collision remain unchanged. Region B owns temporary suppression of the existing exploration briefing so a pending first-movement message cannot cover the upper frigates; pending text is retained and released through the existing movement trigger after teardown. Field objectives and their gameplay state are unchanged. Evidence and native-resolution limitations are recorded in `Logs/DefenseOverseer/REPORT.txt`.
+
+## 2026-10-01 - Region A rotating-sector follow-up
+
+This supersedes the September 30 short-partition/fan sequence. Region A now alternates full-arena rotating sector control plus machine-gun suppression, clear/recovery, and a separate committed precision dispatch. One existing boss Update owns all spoke angles at a fixed positive 30 degrees/second. Each endpoint intersects the actual live containment wall segments, including the existing rectangular-to-hexagonal handoff; the visual and collider receive the same endpoint 0.05 world units inside the wall centerline. There is no capped central footprint, independent beam Update, or random direction reversal. The Region A lane renderer sorts at -2, above the space background and below the player body at 1, so an intersecting beam cannot paint over the player sprite.
+
+At the existing 50% shield gate, the four spokes become non-damaging and pause throughout the existing cinematic. Two extra gap positions are then telegraphed. The 1.2-second escalation warning holds the initial gaps, smoothly redistributes all six, and holds the final 60-degree spacing before activation; rotation resumes in the same direction. Regular warning remains 1.2 seconds, active control 2.5/3.0 seconds, and explicit recovery 1.1 seconds. Precision retains its 0.9-second committed aim and runs without rotating beams. Suppression replaces the old two three-projectile fans with two sequential three-shot bursts from alternating modules, using unchanged projectile damage/speed and a separate aim commitment for each burst. No boss HP, shield value, reward, weapon or campaign tuning changes.
+
+Core activation no longer alerts ambient enemies for the Sector Administrator. The intro publishes the encounter owner before Core changes GameState, allowing the existing event-driven EnemyBaseAI isolation path to cancel attacks, freeze physics and hide ordinary renderers without death/rewards. New ambient actors subscribe to the same state; boss-owned actors and player allies are excluded. Existing Region B/C policies are retained. Map reservation now resolves Region A's actual shifted intro bounds instead of the mismatched map-config rectangle. A single encounter-start meteor snapshot suppresses intersecting sprite/collider footprints and pauses outside drift; teardown restores stored physics/render state without damage or HP reset. Ordinary Expedition placement/drift remains unchanged outside this encounter.
+
+The approved Machine Gun muzzle had the correct source, PPU and pivot but used full prefab scale; its production root scale is now 0.55 (18-pixel peak art becomes 9.9 native pixels at the normal camera). Weapon timing and pooling remain unchanged. Tutorial/Expedition HP retains its own current/max ratio. Armor uses current/max Armor in an independent 84-by-1 strip sharing HP's 84-pixel inner width, inside the existing 96-by-20 DarkUI panel. Existing health/armor events remain authoritative; zero current Armor hides the strip and track. No global scaling or new HUD system.
+
+Validation evidence is recorded in `Logs/SectorFollowup/REPORT.txt`, `tests.xml`, `playmode.txt`, `metrics.json`, and `screenshots.html`. Native captures use an isolated QA save and the actual generated Region A encounter; QA-assisted play is not an unassisted difficulty acceptance test.
+
+Final verification: 89/89 focused EditMode tests; Machine Gun, Shotgun and Sniper completed the actual generated Region A fight through death/reward and QA scene return. 102 native 480x270 captures, no TMP overflow, zero Console errors including teardown, and 7,325 combat samples. Measured regular warning 1.225-1.245 s, active 2.482/2.970 s median, recovery 1.100-1.117 s, median rotation 30 degrees/s. Player/weapon/configuration data, source artwork, existing GUIDs/object IDs and serialized physics blocks are preserved. Unassisted difficulty remains unverified; inherited wide shield framing and the Core Signal header remain presentation limitations. Full evidence and exact scoped changes: `Logs/SectorFollowup/REPORT.txt`.
+
+## 2026-09-30 - Region A Sector Administrator control sequence
+
+Region A alone uses an explicit partition -> controlled dispatch -> clear -> recovery sequence in the existing BossPatternController. Alternating vertical/horizontal templates stop 1.5 world units short of their bounds, retaining connected end corridors. The central partition footprint is capped at 15 x 9 world units for combat-camera readability; permanent rectangular/hexagonal containment and contact damage remain BossArenaLaserWall-owned. Low HP retains the existing 50% damage floor, shield/cinematic, six-manager formation and shield-break transition. It adds parallel partitions and combines the same two three-shot fans with one committed precision shot, without projectile-speed/count multiplication.
+
+Approved Green SYSTEM warning/beam sheets drive pooled lanes. One scheduler clock changes the sprite and collider state together: warning has no damage; clear removes both beam and collision. Warning is 1.2 s in both phases, active lanes 2.5/3.0 s, and recovery 1.1 s. Compression begins 0.65 s into active control, with two offset three-shot fans 0.25 s apart. Precision commits its origin/direction for the existing 0.9 s aim window. Source-owned bullets clear with the lanes so recovery contains no residual boss attack. Idle/Charged reflect rest/output; Exposed Core marks the existing shield-break damage state, with no new vulnerability multiplier or change to transition protection.
+
+The existing owner-scoped camera profile provides 1.2x Region A framing, limited midpoint offset and normal weapon zoom ownership; it releases on death/disable/cancel. Green containment tiles retain the existing wall collision, while up-facing support emitters face inward. The obsolete expedition briefing is hidden at combat start, and Region A uses compact shield numbers in the existing boss HUD. Boss HP/damage, shield values, Core activation/spawn, BossDummyController death/reward/progression, portal/return, other bosses, ordinary enemies, weapons, economy, save and shaders remain unchanged.
+
+Validation: 71/71 focused EditMode tests; actual isolated-save Machine Gun, Shotgun and Sniper fights through Core activation, intro, both phases, death/reward and QA scene return to Settlement (reward choice/beacon not exercised). 63 native 480x270 captures have no TMP overflow; runtime Console errors including teardown: 0. Measured warning 1.200-1.216 s, active 2.503-2.515 / 3.002-3.025 s, recovery 1.100-1.123 s; longest observed laser/live-projectile overlap 1.854 s. See `Logs/SectorAdministrator/REPORT.txt`, `metrics.json`, `screenshots.html` and `validation.json`. Invulnerability/assisted positioning make this flow/readability evidence, not difficulty acceptance.
+
+## 2026-09-28 - Deck HUD and fresh Hangar deployment projection
+
+Hangar now separates weapon/description/innate identity from a **fresh deployment projection, not runtime/max-level stats**. `HangarDeploymentProjection` is a read-only data result. It resolves `PermanentProgress.AppendEffectiveEquipment` with the preview ship's default weapon tree, combines fitted frame IDs into exactly one `StructuralFrameProfile`, then follows the runtime order: ShipDefinition, fused frame, current Sector Technologies, compatible owned persistent-story Lv1 effects, and ordinary fitted equipment that `RunRuntimeTraitStore.InitializeDeployment` would seed at Lv1. Runtime trait levels, prerequisite-gated equipment, active reinforcement effects/charges, region/status/boss effects, depleted vitals and portal carryover are excluded. No run, hidden player, store initialization, save or progress mutation is needed for display.
+
+The existing inactive Deck applier supplies authored base movement/dash/Armor values through read-only properties; a regression compares these with the saved Expedition applier. The runtime formula owners are unchanged. The helper mirrors multiplicative percentages, setter clamps and one fused frame. Unsupported conditional protocols/weapon behaviours, active cooldown and emergency-return retention are omitted rather than reported as generic effective values.
+
+HP and Cargo always display. Starting Armor and other modifiers display only when non-zero. `StatPresentation.Rich` supplies the existing category palette; penalties retain category colors. Two short stats can share a row; actual TMP font measurement expands long translated entries onto individual rows. The backing shrinks for short bodies; long bodies scroll. Locked previews show identity and analysis/development requirements, never fitted deployment stats. Existing permanent Changed -> controller Changed -> HUD/navigation refresh remains authoritative, with localization-change refresh added to that same path.
+
+`ShipDefinition.WeaponAccent` now owns Machine Gun green / Shotgun orange / Sniper blue. Research titles and the Curse weapon accent use this mapping; Curse edges remain purple and semantic stat colors stay independent. Equipment branch tabs use selection/hover colors rather than a competing weapon accent map.
+
+Deck changes only saved presentation: a compact authored CombatStatus card, backed safe top-center objective, bottom interaction text, and DarkUI Return button. Deck-only heat remains visible at zero with an explicit HEAT label; Expedition defaults remain unchanged. Health/Armor and weapon events, player-relative Sniper charge, encounter-owned Return hiding/restoration and Purple Radar hints are retained. See [HUD_HANGAR_PRESENTATION_REPORT.md](HUD_HANGAR_PRESENTATION_REPORT.md) for evidence and [ROUTE_CORE_DECK_AUTHORING.md](ROUTE_CORE_DECK_AUTHORING.md) for layout.
+
+## 2026-09-28 - Optional Purple corruption shader presentation
+
+The Route Core Purple finale now has one authored Sprite Unlit Shader Graph overlay, driven by the existing hidden/exposed lifecycle through cached MaterialPropertyBlock properties. Sparse quantized fragments become a stable exposed silhouette with a 0.20-second acquisition/re-hide transition. Sprite-based blackout remains 25%/45%; Radar scan, damage eligibility, 50 HP, four-second exposure and eight-projectile pulse are unchanged.
+
+On death, combat cleanup and existing campaign completion/save remain immediate. A separate 0.45-second visual purification tail shows the restored clean core before automatic return; missing or failed polish returns immediately. Owner cleanup releases tweens and baseline renderer properties on exit/retry. No new gameplay authority, renderer feature, global material mutation or runtime hierarchy fallback exists. Asset/property/validation details: [ROUTE_CORE_DECK_AUTHORING.md](ROUTE_CORE_DECK_AUTHORING.md).
+
+## 2026-09-28 - Route Core weapon identities and Radar finale
+
+Defense order is Orange Sector Shotgun (70 HP) -> Blue Phase charged Sniper (70 HP) -> Green Matter Machine Gun (90 HP) -> Purple central Radar corruption (50 HP provisional). Component defeat still requires explicit reactivation/fusion; the third fusion starts Purple instead of completing defense. Purple needs an active existing-scanner hit for a fixed four-second exposure. Rescans during exposure are ignored; hidden damage is blocked while a separate sibling Radar trigger stays detectable. One slow eight-way pulse supplies exposure pressure.
+
+The encounter temporarily dims only authored environment sprites (.25 hidden/.45 exposed), keeps player/projectiles/HUD readable and restores exact colors. Q/Mouse 4 remain the existing input actions; Deck-only owner locking and a compact authored Radar panel expose them only for Purple. Only Purple cleanse reaches the original Route Core completion/save bridge. Every failure restarts Orange; no partial progress or new save fields. Existing component HP, projectile damage 2, player stats, bosses, equipment/economy, normal enemies/bases and DarkUI remain unchanged. See [ROUTE_CORE_DECK_AUTHORING.md](ROUTE_CORE_DECK_AUTHORING.md) for serialized timings, authoring and validation.
+
+
+## 2026-09-28 - Equipment input/audio and Route Core combat HUD
+
+Equipment Development keeps its authored Buttons and EventSystem navigation. Refresh builds explicit links only among active, interactable branch/section controls, blueprint or owned legacy cards, and the single action button. It retains pre-refresh focus because uGUI can clear selection when a filtered card is hidden; a valid selection is preserved. Focusing an owned legacy card scrolls it into view.
+
+Authored `EquipmentDevelopmentInput` components provide a local, edge-triggered Space Submit through `IUpdateSelectedHandler`, consuming the event like primary Settlement navigation. Enter/controller Submit remain native. Cards only call `InspectEquipment`; only the explicit Manufacture/Equip/Unequip button calls the existing `TryExecuteEquipmentAction` -> `PermanentProgress` transaction. Insufficient funds leave Manufacture reachable for an authoritative failure response; costs, research, save safety and unlimited fitting rules are unchanged.
+
+`UISoundButton.playSelectionHover` is opt-in on Equipment controls only. Pointer/focus Hover is deduplicated; view controls use UiClick and cards use TraitSelect. Branch-local click audio and the action's generic click are disabled. Action results produce one cue: manufacture UiUnlock, fit UiActivate, unfit UiDeactivate, insufficient UiInsufficient, locked/unsafe/invalid state UiDisabled, invalid recipe/save failure UiUpgradeFail. Stable SoundEvent IDs and the global input asset/auto sound installer are unchanged.
+
+The authored RouteCoreDeckHUD now has a compact HP GaugeBarUI/numeric readout, thin Armor strip, WeaponHeatUI and player-relative PlayerChargeGaugeUI. `RouteCoreCombatHUD` reads Health/Armor Changed events and unsubscribes on disable; no HUD Update loop, cargo/resources, objective-signal UI or runtime hierarchy builder is added. The original vitals text is reused by the HP gauge. Following Expedition's existing policy, WeaponHeatUI shows normal heat/overheat level; the player-relative gauge shows distinct green recovery progress while overheated and sniper charge/release/cancel. Shotgun has neither heat nor charge bars.
+
+The saved Settlement camera is untagged and the scene has no MainCamera. AimVisualRoot and its FirePoint child were already correct; PlayerController2D's Camera.main-only conversion caused the mouse-facing failure. EnterDeck now acquires an exclusive owner-scoped temporary aim camera; CloseDeck/OnDisable release it, and PlayerController2D.OnDisable clears it. Wrong owners cannot replace/release it. Physics-root freezeRotation, rotation offsets/smoothing, weapon direction, movement/dash and viewport constraints remain unchanged.
+
+Validation evidence and the 480x270 HUD layout are recorded in [ROUTE_CORE_DECK_AUTHORING.md](ROUTE_CORE_DECK_AUTHORING.md). No Route Core attack/phase, Purple blackout/radar, shader, boss, enemy, Field Base, equipment economy or save/progression change.
+
+## 2026-09-28 - Campaign boss final polish and QA
+
+The saved story roster is Sector Administrator 140 HP (50% phase gate), Salvage Devourer 165 HP (three fixed 55-HP parts), Phase Gatekeeper 180 HP (12-reflector first-visit foundation and cyclic exposure), and NULL DISPATCHER 300 HP (50% treatment and 20% final gates). Raider Commander remains the 125-HP repeat route. Resolved production tuning, owners and evidence are recorded in [BOSS_FINAL_POLISH_AUDIT.md](BOSS_FINAL_POLISH_AUDIT.md); older foundation-only descriptions below are historical.
+
+Sector reserves its existing phase threshold before lethal damage can bypass setup, and releases owned combat/cinematic state on player death or run end. Sector and Raider cleanup uses source-owned bullets, including Raider escorts, without clearing unrelated actors. Phase intro teardown tolerates a previously destroyed HUD. Salvage's six formation Y offsets and three matching initial transforms move down 2.25 world units so full frigate silhouettes fit the existing camera; attack values, camera zoom and sprite assets are unchanged.
+
+BossDummyController, CampaignBossRewardService, BossRewardExitCoordinator, Pixel Crushers dialogue and RunManager retain progression/reward/ending authority. NULL's implemented Accept/Reject, explicit support, polarity, final shell break, termination and FinalVictory path are retained. First-story and Region-3 repeat exits remain Beacon-only; authorized Region-1/2 repeats may expose the next-depth portal. No campaign route, save, reward economy, normal enemy, Field Base, equipment, DarkUI or Route Core change is introduced by this pass.
+
+## 2026-09-28 - Normal enemy roster and Field Base wiring
+
+EnemyType remains combat identity and EnemyRoleController remains the Patrol/Defender/RivalHarvester/Scavenger owner. The existing dedicated Elite MG/Charging variants are now selected by their definitions with matching attack references; common Melee authors its existing charge controller. Defender Return finishes movement home before reacquiring combat, and Rivals exclude base storage/prison from harvest targets. Enemy placement adds bounded physical-clearance rejection and actionable missing-role diagnostics while retaining reservations, start safety and simulation caps.
+
+Expedition places the authored A/B base pair: A has four mixed Basic/Shotgun guards and three turrets; B has three guards and four turrets. Existing security-offline completion, cargo routes, storage rewards and rescue/portal owners are retained. The missing captive binding is restored using the existing NPC prefab, and authored power links connect the security node to turret anchors. No combat values, reward assets, campaign/save ownership, bosses, equipment or Route Core content changed. See [ENEMY_ROSTER_AND_FIELD_BASE_AUDIT.md](ENEMY_ROSTER_AND_FIELD_BASE_AUDIT.md) for all definitions, roles, counts, evidence and limits.
+
+## 2026-09-28 - Route Core deck world authoring
+
+The existing inactive Settlement deck now has authored industrial floor tiles, perimeter maintenance rails, a central mechanical mount, three dormant station sockets, entry guides, and state-owned conduits/energy. At the unchanged 480x270 deck framing (15x8.4375 world units), the purple core is centered at (0, 0.375), with orange Sector (-3.5, 1.25), blue Phase (3.5, 1.5), green Matter (2, -1.875), and player entry (-3.75, -2.375). Combat order remains Sector -> Phase -> Matter. Missing/Ready leave disconnected central couplings; Assembled connects them; Activated powers them and remains clean after successful defense.
+
+Existing Route Core, defense encounter, corrupted-core, camera, viewport constraint, Return, campaign and save owners are unchanged. Decoration has no colliders or runtime scripts. The dedicated component prefab uses an existing white-centered core sprite so authored identity colors survive tinting; all actor values and attack patterns are preserved. The saved management Canvas, DarkUI, equipment, ordinary enemies/bases and bosses are untouched. See [ROUTE_CORE_DECK_AUTHORING.md](ROUTE_CORE_DECK_AUTHORING.md) for hierarchy, exact layout, collider policy, art sources, validation evidence and remaining art work.
+
+## 2026-09-28 - DarkUI Free Settlement visual integration
+
+The current local `Assets/Dark UI/Free/` pack contains 65 inspected UI images. All are configured as lossless Single sprites with Full Rect mesh, input alpha, no mipmaps and Bilinear filtering; the smooth source art is not forced to Point. Eighteen scalable panel/button sprites have measured nonzero borders. Ten source images are referenced by the saved Settlement Canvas (eight role sources plus two retained legacy references); 55 remain available unused. Source pixels, GUIDs and existing local edits are preserved.
+
+Settlement navigation, Hangar frames, Equipment Development/cards/details/manufacturing, Ship Reinforcement, Recovery/Route Core, archive, resource backgrounds, Settings, controls and confirmation shell use a consistent authored role set. Yellow selection, blue/cyan focus, existing campaign/Special/resource identities and StatPresentation remain authoritative. Equipment labels lose duplicate icon padding and keep their 7.5 font height with bounded local width adjustment; Recovery gains result-text space and an ASCII [OK] marker for the unsupported checkmark. Existing authoring reapplies the equipment skin without a runtime style manager or fallback hierarchy.
+
+Unity runtime and Editor/test compilation passed. New tests: 70/70. Final focused Settlement selection: 308/311. Full EditMode: 839/842; only the same three pre-existing sectorTechnologyLevels save-normalization cases fail. Localization validation passed for 245 records, with no catalog changes. All 5,000 scene IDs, owner records, callbacks/navigation, and 65 source PNG byte hashes/GUIDs are preserved. Task-scoped diff checks are clean; two pre-existing scene whitespace lines remain.
+
+Twenty-eight actual 480x270 Play Mode captures cover 14 surfaces/states in Korean and English, with clear final glyph/overflow checks, pointer/directional navigation and Settings focus restoration. Physical input hardware was not tested. Existing Korean-only Hangar/Settings and legacy body/effect strings, dense smallest labels, and the white-square Hangar cursed-preview placeholder remain outside this skinning pass.
+
+Route Core world area, SettlementDefense layout, enemies, enemy bases, bosses, gameplay/save/progression, cargo/equipment values and post-ending Curse are unchanged. No commit/push. See [DARKUI_SETTLEMENT_AUDIT.md](DARKUI_SETTLEMENT_AUDIT.md) for every image, border, exact hierarchy assignment, changed file and validation artifact.
+
+## 2026-09-28 - Final inventory visual polish
+
+Cargo now defaults to Show All per UI instance, with deterministic visible selection, action-based Owned Only / Show All wording and an empty message only for an empty Owned Only view. No SaveData preference or cargo rule changed.
+
+The final Equipment/Cargo/optional Recovery hierarchy is retained. Tabs use yellow selection and blue hover/focus through authored styling, with no text-glyph marker. Active, four-column storage, selected effects/detail, the single G hint, Cargo rows/gauge and the three-record read-only Recovery modal received spacing/readability polish. Both shared prefab and unpacked Expedition were authored; Tutorial inherits unchanged. Korean/English UI labels and Recovery localization were validated. Legacy equipment localization fallbacks remain.
+
+Unity runtime/Editor compilation and localization import passed. Focused tests: 58/58. Full EditMode: 769/772, with the same three existing Settlement save-normalization failures independently reproduced on the starting versions. Authored preservation: 9,495 checks passed. Twenty actual 480x270 Play Mode captures cover both languages, with no missing glyphs or sampled TMP overflow. Equipment/Cargo/Recovery EventSystem focus and pointer/submit checks passed; physical controller hardware was not tested.
+
+StatPresentation, gameplay values, manufacturing, save/progression, enemy bases, bosses and post-ending Curse are unchanged. No commit/push. See [INVENTORY_PRESENTATION_REPORT.md](INVENTORY_PRESENTATION_REPORT.md) for files, evidence and remaining limits.
+
 ## Research-derived Special equipment (2026-09-25)
 
 Sector Stabilizer, Matter Compressor and Phase Navigation Lens remain campaign recovery state in PermanentProgress. Boss recovery, route authorization, assembly and world recovery feedback are unchanged. Original parts are never Trait equipment, cargo or field-drop targets.
@@ -439,9 +621,10 @@ remain authoritative. Treatment choice is never saved.
 - Existing BossLaserWarning/BossPhase2 one-shots provide provisional audio. Four new static
   Localization.csv keys provide non-modal branch messages; the two-choice graph is unchanged.
 
-PostSupportCombat temporarily reuses the three Phase-1 attacks and existing FinalVictory.
-BLACK/WHITE polarity, support packets, polarity-switch cleanup, 20% shell break, final art
-and ending are not implemented. Static validation is separate from pending Unity testing.
+Historical Pass 4B scope: PostSupportCombat temporarily reused the three Phase-1 attacks.
+Subsequent passes implemented BLACK/WHITE polarity, support packets, switch cleanup,
+20% shell break and ending. Current production values and executed QA are recorded in
+[BOSS_FINAL_POLISH_AUDIT.md](BOSS_FINAL_POLISH_AUDIT.md); dedicated final art remains a polish question.
 
 ## NULL DISPATCHER Pass 4A (2026-09-10)
 
@@ -485,46 +668,9 @@ Content generation remains CSV -> Localization Import/Validate -> deterministic
 NULL DISPATCHER Treatment Install/Validate. Generated catalog/database are not manually
 edited. This pass is statically verified; Unity Test Runner and Play Mode are pending.
 
-## Settlement Defense Rework (2026-09-10)
+## Settlement Defense Rework (updated 2026-09-28)
 
-The production defense replaces the transmission-anchor/Raider prototype described
-below. Route Core activation now corrupts the three already-owned component cores.
-Recovery Processor restoration/assembly remains an explicit player operation in the
-existing implementation; this pass adds no automatic restoration or new save state.
-
-- Existing SettlementDefenseEncounterController owns the deck and encounter lifecycle.
-  One PF_SettlementCorruptedCore prefab / SettlementDefenseCorruptedCore component uses
-  EnemyHealth and existing pooled enemy Bullet/Projectile_Enemy infrastructure.
-- Exactly three serialized configurations: green SectorStabilizer (70 HP), blue
-  PhaseNavigationLens (70 HP), orange MatterCompressor (90 HP). These are runtime
-  encounter representations of permanent parts, never cargo or inventory copies.
-- A roughly two-second unscaled DOTween introduction moves clean components inward,
-  pulses the existing purple Core and an authored wave sprite, then blasts components
-  to their combat positions. No movement/dash/fire/cinematic locks are acquired.
-- Sequential combat: green radial bursts (10 shots with 36-degree gaps, rotated between
-  bursts); blue three aimed shots with delayed target reacquisition; orange two fast
-  five-shot fans. Inactive cores have no combat collider or attack coroutine. No Raiders.
-- Combat defeat stops attacks and clears that core's bullets. The visual remains with
-  a separate interaction collider. Explicit reactivation claims Fusing once, cleanses,
-  rises, reparents to the central Route Core, and DOLocalMove/scale/fade fuses it there.
-  Only the fused callback advances the green -> blue -> orange order.
-- Three defeats alone cannot complete defense. After three explicit fusions and the
-  stabilization pulse, the existing Route Core CompleteSettlementDefense commits/saves
-  SettlementDefenseCleared and releases SettlementDefense state. Facilities return;
-  the player later chooses existing Final Expedition launch. No automatic launch.
-- Activation remains Activated on death/cancel. All encounter actors, bullets, tweens,
-  and interaction subscriptions clean up; every retry starts three full-health cores
-  and zero fused. No part loss, curse change, retry cost, cooldown or saved retry flag.
-- RouteCoreDeckHUD/ReturnToFacilities is bound directly and hidden throughout defense.
-  Management Canvas stays hidden. Cleanup restores prior navigation visibility and
-  normal management state. The deck's existing viewport constraint remains source-owned.
-- Five defense.core localization keys replace the old anchor objective. Existing story
-  recovery name keys are reused. Generated catalogs are not edited.
-
-Temporary core5 sprite art is reused for components, central Core and pulse. Core.prefab
-finalBossPrefab and PF_Boss_NullDispatcher are unchanged. Real final-boss combat/ending
-remain future work. This implementation is statically compiled/audited; Unity tests and
-manual Play Mode acceptance remain pending.
+The current four-stage contract is documented at the top of this file and in ROUTE_CORE_DECK_AUTHORING.md. It replaces the old three-fusion immediate completion and obsolete green/orange assignment. The roughly two-second corruption intro, explicit component reactivation/fusion and original campaign authority remain. The first three actors use the existing encounter prefab; the final authored Purple child is encounter-local and grants no rewards. Facilities remain unavailable during defense and restore their prior state on cleanup. Death/cancel preserves Activated/uncleared and restarts from Orange on retry.
 
 ## Campaign Vertical Slice Pass 3 (2026-09-09)
 

@@ -1,0 +1,92 @@
+[
+  {
+    "Relative": "Output\\20_NullDispatcher\\generation_complete.txt",
+    "Name": "generation_complete.txt",
+    "SHA256": "5AC6A22C9D7FA2B2426AC031EA387FBD7072ADF248399AFB3793E199432CE22E"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\manifest.json",
+    "Name": "manifest.json",
+    "SHA256": "1709CCD667F4C3AEFEBE39A923D404C304375BFDE4677FC7A62A7E51DF33EEDE"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_480x270_active.png",
+    "Name": "NULL_Dispatcher_480x270_active.png",
+    "SHA256": "E4B7CBC171A1BA4A7BCC1E528FB6FFF50ECDF70D4ADB4F0454EE1A5E849456A6"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_480x270_critical_exposed.png",
+    "Name": "NULL_Dispatcher_480x270_critical_exposed.png",
+    "SHA256": "856498C34EA1F9E1CB326C93766509BB8D44414B1FBF1BD5B72876A2E8B02BD1"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_480x270_dormant_sealed.png",
+    "Name": "NULL_Dispatcher_480x270_dormant_sealed.png",
+    "SHA256": "D95BA1BF21F2928417C2ED4E7468F8289247B17CF5402B050CDE3C2D7A2185A0"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_480x270_phase2_unbound.png",
+    "Name": "NULL_Dispatcher_480x270_phase2_unbound.png",
+    "SHA256": "3497E8C4187EC1ECCD2DB4346705C777AFE600DD91488B2B5219700A09C38C85"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_480x270.gif",
+    "Name": "NULL_Dispatcher_480x270.gif",
+    "SHA256": "17EC73BF0D2ADB35DAAF8005FB4057DCE76E99CF2EC2F7A9D763D9FD2C2D863A"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_active.png",
+    "Name": "NULL_Dispatcher_active.png",
+    "SHA256": "2E1DB27A2C6314BD245CC6E34DC3949E98D5EFE67057FC09885AB905EF78321D"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_Comparison.png",
+    "Name": "NULL_Dispatcher_Comparison.png",
+    "SHA256": "464C19B44DF59EA0A36B3E0F9BC44AEDD32BEF0AA8F58A8B126C7C5FBDD1F895"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_critical_exposed.png",
+    "Name": "NULL_Dispatcher_critical_exposed.png",
+    "SHA256": "D47174BAD809D5EDFBF067A8E8F2401908FFD8096F590DA932EA786D23FD38CC"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_dormant_sealed.png",
+    "Name": "NULL_Dispatcher_dormant_sealed.png",
+    "SHA256": "C4E365A3AA94E540476FEC9F0DA32014C2601D3AF4466568FB6EDCA463FA9D1C"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_phase2_unbound.png",
+    "Name": "NULL_Dispatcher_phase2_unbound.png",
+    "SHA256": "F6E4FDA2139ABD90223053ECA1064576B75B01CA1858EEF3EBD55A074D6B3C04"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher_States.png",
+    "Name": "NULL_Dispatcher_States.png",
+    "SHA256": "7D5AAA845370DD59277B71017905F8BA3BE644E100957A6D0F67B300085E271C"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher.aseprite",
+    "Name": "NULL_Dispatcher.aseprite",
+    "SHA256": "723244B4CC29BBD974B510C074C099A4C2BE4EE24ABF6F00ABFD0CE2D65939F9"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\NULL_Dispatcher.json",
+    "Name": "NULL_Dispatcher.json",
+    "SHA256": "9C0A750AB1C582FFC4012BC34EC5EF7AC1F66EA57F585F7CE76400E2413BF1C2"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\README.md",
+    "Name": "README.md",
+    "SHA256": "766C8D5725F7DDE72121087C7F453F7E1AE941C888AA711988C43B09A8FB0329"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\reference_hashes.json",
+    "Name": "reference_hashes.json",
+    "SHA256": "5871C03ADBAEB01D9F7179264F7489E40938BCE81A07A454EC889BA314769BB1"
+  },
+  {
+    "Relative": "Output\\20_NullDispatcher\\validation.json",
+    "Name": "validation.json",
+    "SHA256": "78B64DCB597A360C6337ECE2C565381C34111D2CA4CA55C0298FA4F937B09271"
+  }
+]

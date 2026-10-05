@@ -222,7 +222,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 8d44264a631219e4d845f221bd7dc69c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: c2bc2c86025d8324294e26e982c6bde0, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -441,7 +441,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49457bfbf6ef7b34fbb08fbc3d0a8625, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyDefinition: {fileID: 11400000, guid: 736a32ea35036a64a89e06fe3008306c, type: 2}
+  enemyDefinition: {fileID: 11400000, guid: 605c5d6576f0491bb380aa71f6459216, type: 2}
   firePoint: {fileID: 274234201926276759}
   runtimeCenterFirePoint: {fileID: 0}
   runtimeMachineGunLeftFirePoint: {fileID: 0}
@@ -494,6 +494,7 @@ MonoBehaviour:
     m_Bits: 0
   isAttacking: 0
   isCharging: 0
+  muzzleFlashPrefab: {fileID: 3348743499460803659, guid: 9f01ff6b2e03ea044a5b4c5e96b228a4, type: 3}
 --- !u!114 &2963155244060544709
 MonoBehaviour:
   m_ObjectHideFlags: 0

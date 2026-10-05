@@ -4,7 +4,7 @@ using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyHealth))]
-public sealed class PhaseGatekeeperBossController : MonoBehaviour
+public sealed partial class PhaseGatekeeperBossController : MonoBehaviour
 {
     public enum EncounterState
     {
@@ -353,6 +353,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
         specialOpenSlotIndex = -1;
         currentRouteMotif = PhaseTwoRouteMotif.Clockwise;
         combatCyclePhase = CombatCyclePhase.Normal;
+        ResetPhaseRouteSequence();
         combatCameraProfileHeld = false;
         specialCameraFocusHeld = false;
         attackCameraFocusHeld = false;
@@ -516,6 +517,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
         playerRigidbody = candidate.GetComponent<Rigidbody2D>();
         playerHealth.Died += HandlePlayerDied;
         BeginCombatRadarTracking();
+        if (usePhaseRouteSequence) BeginPhaseRouteArena();
         System.Action encounterStartedHandlers = EncounterStarted;
         EncounterStarted = null;
         encounterStartedHandlers?.Invoke();
@@ -573,6 +575,14 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
             enemyHealth,
             CampaignProgressionCatalog.GetBossDisplayName(CampaignBossId.PhaseGatekeeper)
         );
+
+        if (usePhaseRouteSequence)
+        {
+            yield return RunPhaseRouteSequence();
+            encounterRoutine = null;
+            CleanupEncounter(true);
+            yield break;
+        }
 
         yield return RunStealthReposition();
 
@@ -843,7 +853,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
             ? playerRigidbody.linearVelocity
             : Vector2.zero;
         Vector2 predicted = playerPosition + playerVelocity * predictionLeadTime;
-        Bounds targetBounds = phaseTwoActive ? currentArenaBounds : encounterBounds;
+        Bounds targetBounds = phaseTwoActive || usePhaseRouteSequence ? currentArenaBounds : encounterBounds;
         const float edgeInset = 0.25f;
         predicted.x = Mathf.Clamp(
             predicted.x,
@@ -3500,6 +3510,11 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
 
     private void SetIdleBossSprite()
     {
+        if (usePhaseRouteSequence)
+        {
+            SetPhaseRouteBody(false);
+            return;
+        }
         if (bodyRenderer != null && idleSprite != null)
         {
             bodyRenderer.sprite = idleSprite;
@@ -3515,6 +3530,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
         playerController?.GetComponent<PlayerDash>()?.CancelActiveDash();
         playerController?.SetExternalControlLocked(this, true);
         playerHealth?.AddInvincibleTime(decloakDuration + combatChargeDuration + 0.5f);
+        if (usePhaseRouteSequence) expeditionHud?.SetRegionBossPresentation(this, true);
         expeditionHud?.SetCinematicMode(this, true);
 
         if (gameplayCamera != null)
@@ -3789,12 +3805,15 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
         }
 
         playerController?.SetExternalControlLocked(this, false);
-        expeditionHud?.ReleaseCinematicMode(this);
+        // Scene unload can destroy the HUD before this encounter releases its lock.
+        if (expeditionHud != null) expeditionHud.ReleaseCinematicMode(this);
 
         if (gameplayCamera != null)
         {
             gameplayCamera.SetCinematicInputOffsetLocked(this, false);
-            gameplayCamera.ReleaseOwnedCinematicFocus(this, immediateCameraReset);
+            if (usePhaseRouteSequence && !cleanupComplete && !immediateCameraReset)
+                specialCameraFocusHeld = gameplayCamera.TrySetOwnedCinematicFocus(this, currentArenaBounds.center);
+            else gameplayCamera.ReleaseOwnedCinematicFocus(this, immediateCameraReset);
         }
 
         introLocksHeld = false;
@@ -3945,6 +3964,7 @@ public sealed class PhaseGatekeeperBossController : MonoBehaviour
         }
 
         cleanupComplete = true;
+        EndPhaseRouteSequence();
         state = EncounterState.DeadOrCleanup;
         EncounterStarted = null;
         System.Action encounterEndedHandlers = EncounterEnded;

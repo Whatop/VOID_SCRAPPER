@@ -35,6 +35,13 @@ public class BossArenaLaserWall : MonoBehaviour
     private bool initialized;
     private bool allowHorizontalProjectileRicochet;
     private bool presentationVisible = true;
+    private float formationProgress = 1f;
+    public float FormationProgress => formationProgress;
+    public void SetFormationProgress(float progress)
+    {
+        formationProgress = Mathf.Clamp01(progress);
+        if (boxCollider != null) boxCollider.enabled = initialized && formationProgress >= 1;
+    }
 
     public bool AllowsHorizontalProjectileRicochet =>
         initialized && allowHorizontalProjectileRicochet;
@@ -81,6 +88,7 @@ public class BossArenaLaserWall : MonoBehaviour
         followStart = null;
         followEnd = null;
         allowHorizontalProjectileRicochet = false;
+        formationProgress = 1;
     }
 
     public void InitializeBetween(
@@ -446,7 +454,7 @@ public class BossArenaLaserWall : MonoBehaviour
             return;
         }
 
-        boxCollider.enabled = true;
+        boxCollider.enabled = formationProgress >= 1;
         boxCollider.isTrigger = !solidBlock;
         boxCollider.offset = Vector2.zero;
         boxCollider.size = new Vector2(length, thickness);
@@ -551,7 +559,7 @@ public class BossArenaLaserWall : MonoBehaviour
 
     private void TryDamage(Collider2D other)
     {
-        if (!initialized || damage <= 0f || other == null)
+        if (!initialized || formationProgress < 1 || damage <= 0f || other == null)
         {
             return;
         }

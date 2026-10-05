@@ -110,14 +110,14 @@ public sealed class RaiderBarricadeCarrier : MonoBehaviour
             return;
         }
 
-        // Pirate_Elite_Candidates_64x64_0 is authored facing right (+X).
-        // Carriers point away from the contained arena on their cardinal side.
+        // Approved RaiderCarrier is authored facing up (+Y), unlike the old
+        // right-facing candidate. Rotate only the existing visual child.
         float angle = arenaSide switch
         {
-            ArenaSide.North => 90f,
-            ArenaSide.South => -90f,
-            ArenaSide.East => 0f,
-            ArenaSide.West => 180f,
+            ArenaSide.North => 0f,
+            ArenaSide.South => 180f,
+            ArenaSide.East => -90f,
+            ArenaSide.West => 90f,
             _ => 0f
         };
         visualRoot.localRotation = authoredRotation * Quaternion.Euler(0f, 0f, angle);

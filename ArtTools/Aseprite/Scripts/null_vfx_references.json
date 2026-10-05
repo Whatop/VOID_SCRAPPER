@@ -1,0 +1,65 @@
+[
+  {
+    "Relative": "Output\\21_NullDispatcher_Phase2Revision\\NULL_Dispatcher.aseprite",
+    "Name": "NULL_Dispatcher.aseprite",
+    "SHA256": "D7680CEBCB934829CDB7ED5B61DD2E0F00AE42D47289E70198382936E1D9AD22",
+    "Width": null,
+    "Height": null
+  },
+  {
+    "Relative": "Output\\21_NullDispatcher_Phase2Revision\\NULL_Dispatcher_phase2_unbound.png",
+    "Name": "NULL_Dispatcher_phase2_unbound.png",
+    "SHA256": "DC39E55DB08287B3E126DD3292042625512691B6877644D81E588E09DD919904",
+    "Width": 160,
+    "Height": 160
+  },
+  {
+    "Relative": "Output\\21_NullDispatcher_Phase2Revision\\NULL_Dispatcher_critical_exposed.png",
+    "Name": "NULL_Dispatcher_critical_exposed.png",
+    "SHA256": "D47174BAD809D5EDFBF067A8E8F2401908FFD8096F590DA932EA786D23FD38CC",
+    "Width": 160,
+    "Height": 160
+  },
+  {
+    "Relative": "Output\\02_Core\\purple_corrupted\\core_purple_corrupted_active.aseprite",
+    "Name": "core_purple_corrupted_active.aseprite",
+    "SHA256": "02BF0DA6D9504FACB1B54D0C2DC6DD3C1441136DEE9B6D4E648B586E32EF0359",
+    "Width": null,
+    "Height": null
+  },
+  {
+    "Relative": "Output\\02_Core\\purple_corrupted\\core_purple_corrupted_overloaded.aseprite",
+    "Name": "core_purple_corrupted_overloaded.aseprite",
+    "SHA256": "54A928BDD2E9963F99D3D9C8918CB8A75F89A96C24EEFC003300889E4D6A5B3A",
+    "Width": null,
+    "Height": null
+  },
+  {
+    "Relative": "Output\\15_GameplayVFX\\VFX_Player_Dash_Curse.png",
+    "Name": "VFX_Player_Dash_Curse.png",
+    "SHA256": "D92D6449979C2813E30D639459D87A270F224A42872A3044DD8A7DFE42CB58C3",
+    "Width": 128,
+    "Height": 32
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_LaserTelegraph.png",
+    "Name": "VFX_Sector_LaserTelegraph.png",
+    "SHA256": "492BA0C9232C528A71128EED8B57A62588A9F0020E66CC12B8EB90437CD81679",
+    "Width": 320,
+    "Height": 32
+  },
+  {
+    "Relative": "Output\\16_SystemBossVFX\\VFX_Sector_LaserBeam_Fire.png",
+    "Name": "VFX_Sector_LaserBeam_Fire.png",
+    "SHA256": "B4CDE1F4575849EB87318D7608EC14CEEED2FD1859EEB5166C9423360A4FFEC6",
+    "Width": 192,
+    "Height": 32
+  },
+  {
+    "Relative": "Output\\17_SystemBossVFX_Revisions\\VFX_Phase_RedirectFlash.png",
+    "Name": "VFX_Phase_RedirectFlash.png",
+    "SHA256": "139A304CF49DCE44F4B28E871172ABDAF72C6F59FE024C13FFA256319BBC2071",
+    "Width": 128,
+    "Height": 32
+  }
+]

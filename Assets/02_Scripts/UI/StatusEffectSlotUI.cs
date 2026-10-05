@@ -1,4 +1,5 @@
 using TMPro;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -32,6 +33,9 @@ public class StatusEffectSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerE
     private TextMeshProUGUI tooltipDescriptionText;
     private TextMeshProUGUI tooltipTimeText;
     private RectTransform tooltipCanvasRoot;
+    private Tween acquisitionTween;
+    private Color restingBackgroundColor;
+    public bool IsAcquisitionAccentActive => acquisitionTween != null && acquisitionTween.IsActive();
 
     public string StatusId => statusId;
 
@@ -47,6 +51,7 @@ public class StatusEffectSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerE
         float remainingSeconds,
         float durationSeconds)
     {
+        if (statusId != newStatusId) ClearAcquisitionAccent();
         statusId = newStatusId ?? string.Empty;
         statusDisplayName = string.IsNullOrWhiteSpace(displayName) ? statusId : displayName;
         statusDescription = description ?? string.Empty;
@@ -56,7 +61,8 @@ public class StatusEffectSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerE
 
         if (backgroundImage != null)
         {
-            backgroundImage.color = negative ? negativeBackgroundColor : positiveBackgroundColor;
+            restingBackgroundColor = negative ? negativeBackgroundColor : positiveBackgroundColor;
+            if (!IsAcquisitionAccentActive) backgroundImage.color = restingBackgroundColor;
             backgroundImage.raycastTarget = true;
         }
 
@@ -114,6 +120,7 @@ public class StatusEffectSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerE
 
     public void Release()
     {
+        ClearAcquisitionAccent();
         statusId = string.Empty;
         statusDisplayName = string.Empty;
         statusDescription = string.Empty;
@@ -147,7 +154,24 @@ public class StatusEffectSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerE
 
     private void OnDisable()
     {
+        ClearAcquisitionAccent();
         HideTooltip();
+    }
+
+    public void PlayAcquisitionAccent()
+    {
+        ClearAcquisitionAccent();
+        if (backgroundImage == null || !isActiveAndEnabled) return;
+        backgroundImage.color = new Color(.25f, .7f, .52f, 1f);
+        acquisitionTween = backgroundImage.DOColor(restingBackgroundColor, .55f)
+            .SetEase(Ease.OutQuad).SetUpdate(true).OnComplete(() => acquisitionTween = null);
+    }
+
+    private void ClearAcquisitionAccent()
+    {
+        acquisitionTween?.Kill(false);
+        acquisitionTween = null;
+        if (backgroundImage != null) backgroundImage.color = restingBackgroundColor;
     }
 
     private void EnsureTooltip()

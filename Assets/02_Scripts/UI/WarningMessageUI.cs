@@ -49,12 +49,73 @@ public class WarningMessageUI : MonoBehaviour
     [Tooltip("켜두면 오브젝트가 비활성화된 상태에서도 ShowMessage 호출 시 자동으로 다시 활성화합니다.")]
     [SerializeField] private bool reactivateSelfWhenNeeded = true;
 
+    private Vector2 ordinaryMessageAnchorMin, ordinaryMessageAnchorMax, ordinaryMessagePivot, ordinaryMessagePosition, ordinaryMessageSize;
+    private float ordinaryMessageFontSize;
+    private bool regionBossPriority;
+    public bool IsRegionBossPriorityActive => regionBossPriority;
+    public void SetRegionBossPriority(bool active)
+    {
+        if (regionBossPriority == active) return;
+        EnsureReferences();
+        SetAcquisitionPlacement(false);
+        if (messageText != null)
+        {
+            var rect = transform as RectTransform;
+            if (active)
+            {
+                ordinaryMessageAnchorMin = rect.anchorMin; ordinaryMessageAnchorMax = rect.anchorMax;
+                ordinaryMessagePivot = rect.pivot; ordinaryMessagePosition = rect.anchoredPosition; ordinaryMessageSize = rect.sizeDelta;
+                ordinaryMessageFontSize = messageText.fontSize;
+                // The upper portal can occupy the old message band. Ordinary interaction
+                // is already suppressed, so reserve its bottom-center band for combat text.
+                rect.anchorMin = rect.anchorMax = new Vector2(.5f, 0); rect.pivot = new Vector2(.5f, 0);
+                rect.anchoredPosition = new Vector2(0, 18); rect.sizeDelta = new Vector2(220, 20);
+                messageText.fontSize = 8;
+            }
+            else
+            {
+                rect.anchorMin = ordinaryMessageAnchorMin; rect.anchorMax = ordinaryMessageAnchorMax;
+                rect.pivot = ordinaryMessagePivot; rect.anchoredPosition = ordinaryMessagePosition; rect.sizeDelta = ordinaryMessageSize;
+                messageText.fontSize = ordinaryMessageFontSize;
+            }
+        }
+        regionBossPriority = active;
+        if (routine != null) StopCoroutine(routine);
+        routine = null;
+        HideImmediate();
+    }
+    public void ShowBossCritical(string message, float duration)
+        => ShowMessageInternal(message, "boss:" + message, duration, 4);
+
     private Coroutine routine;
     private string lastMessageKey;
     private float lastMessageTime = float.NegativeInfinity;
     private int currentPriority = -1;
     private float currentMessageUntil;
     private bool missingPresentationReported;
+    private object currentCommunicationOwner;
+    private bool acquisitionPlacement;
+    private Vector2 acquisitionPreviousPosition;
+
+    public void ShowAcquisition(string message, object owner)
+    {
+        if (regionBossPriority || string.IsNullOrWhiteSpace(message)) return;
+        ShowMessageInternal(BuildCommunicationText(ShipCommunicationChannel.Equipment, message,
+            ShipCommunicationSeverity.Confirmation), "Equipment:" + message, 1.6f,
+            (int)ShipCommunicationSeverity.Confirmation, owner, true);
+    }
+
+    private void SetAcquisitionPlacement(bool active)
+    {
+        if (acquisitionPlacement == active || !(transform is RectTransform rect)) return;
+        if (active)
+        {
+            acquisitionPreviousPosition = rect.anchoredPosition;
+            rect.anchoredPosition = acquisitionPreviousPosition + Vector2.down * 12f;
+        }
+        else rect.anchoredPosition = acquisitionPreviousPosition;
+        acquisitionPlacement = active;
+    }
 
     private void Reset()
     {
@@ -76,8 +137,10 @@ public class WarningMessageUI : MonoBehaviour
     private void OnDisable()
     {
         GameSettingsRuntime.Changed -= HandleSettingsChanged;
+        SetAcquisitionPlacement(false);
         routine = null;
         currentPriority = -1;
+        currentCommunicationOwner = null;
         currentMessageUntil = 0f;
     }
 
@@ -96,7 +159,7 @@ public class WarningMessageUI : MonoBehaviour
 
     public void ShowMessage(string message, float duration)
     {
-        ShowMessageInternal(message, message, duration, (int)ShipCommunicationSeverity.Warning);
+        if (!regionBossPriority) ShowMessageInternal(message, message, duration, (int)ShipCommunicationSeverity.Warning);
     }
 
     public void ShowCommunication(
@@ -111,19 +174,21 @@ public class WarningMessageUI : MonoBehaviour
         ShipCommunicationChannel channel,
         string message,
         ShipCommunicationSeverity severity,
-        float duration)
+        float duration,
+        object owner = null)
     {
         if (string.IsNullOrWhiteSpace(message))
         {
             return;
         }
 
+        if (regionBossPriority && channel != ShipCommunicationChannel.Combat && severity != ShipCommunicationSeverity.Danger) return;
         string messageKey = $"{channel}:{message}";
         string formattedMessage = BuildCommunicationText(channel, message, severity);
-        ShowMessageInternal(formattedMessage, messageKey, duration, (int)severity);
+        ShowMessageInternal(formattedMessage, messageKey, duration < 0f ? defaultDuration : duration, (int)severity, owner);
     }
 
-    private void ShowMessageInternal(string message, string messageKey, float duration, int priority)
+    private void ShowMessageInternal(string message, string messageKey, float duration, int priority, object owner = null, bool acquisition = false)
     {
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -136,7 +201,8 @@ public class WarningMessageUI : MonoBehaviour
             return;
         }
 
-        if (routine != null && now < currentMessageUntil && priority < currentPriority)
+        if (routine != null && now < currentMessageUntil && priority < currentPriority &&
+            (owner == null || !ReferenceEquals(owner, currentCommunicationOwner)))
         {
             return;
         }
@@ -159,9 +225,11 @@ public class WarningMessageUI : MonoBehaviour
             routine = null;
         }
 
+        SetAcquisitionPlacement(acquisition);
         lastMessageKey = messageKey;
         lastMessageTime = now;
         currentPriority = priority;
+        currentCommunicationOwner = owner;
         currentMessageUntil = now + Mathf.Max(0f, duration);
         routine = StartCoroutine(ShowRoutine(message, duration));
     }
@@ -197,6 +265,7 @@ public class WarningMessageUI : MonoBehaviour
             messageText.text = string.Empty;
         }
 
+        SetAcquisitionPlacement(false);
         SetCanvasGroup(0f, false);
         currentPriority = -1;
         currentMessageUntil = 0f;

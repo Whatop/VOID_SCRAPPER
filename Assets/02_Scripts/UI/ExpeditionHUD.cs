@@ -7,9 +7,11 @@ using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
-public class ExpeditionHUD : MonoBehaviour
+public partial class ExpeditionHUD : MonoBehaviour
 {
     private readonly HashSet<object> menuHintSuppressors = new HashSet<object>();
+    private readonly HashSet<object> operationBriefingSuppressors = new HashSet<object>();
+    public bool IsOperationBriefingSuppressed => operationBriefingSuppressors.Count > 0;
     [SerializeField] private TextMeshProUGUI polarityText;
     private object polarityOwner;
 
@@ -100,6 +102,8 @@ public class ExpeditionHUD : MonoBehaviour
     [SerializeField] private string armorBonusFormat = "장갑 {0:0}";
     [SerializeField] private Color armorBonusColor = Color.white;
     [SerializeField] private Color armorFillColor = Color.white;
+    private Sequence armorBreakAccent;
+    private Color armorTrackRestColor;
     [SerializeField] private Color hpNormalStateColor = new Color(0.95f, 0.24f, 0.28f, 1f);
     [SerializeField] private Color hpShieldStateColor = new Color(0.25f, 0.82f, 1f, 1f);
     [SerializeField] private Color hpInvulnerableStateColor = new Color(1f, 0.78f, 0.22f, 1f);
@@ -110,6 +114,7 @@ public class ExpeditionHUD : MonoBehaviour
     [FormerlySerializedAs("objectiveSignalGauge")]
     [SerializeField] private GaugeBarUI legacyObjectiveSignalGauge;
     [SerializeField] private Image coreSignalIcon;
+    [SerializeField] private Sprite[] coreFamilyIcons;
     [SerializeField] private Image[] coreSignalPips;
     [SerializeField] private TextMeshProUGUI coreSignalCountText;
     [SerializeField] private GameObject coreSignalReadyPulseRoot;
@@ -277,6 +282,10 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void OnDisable()
     {
+        ClearCorePipAccent();
+        presentedSignalCount = -1;
+        ClearArmorBreakAccent();
+        ClearRegionBossPresentation();
         HidePolarity(polarityOwner);
         operationPresentationShuttingDown = true;
         HideOperationDisplayImmediate();
@@ -386,16 +395,29 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
+    public void ShowReinforcementAcquisition(string message, object owner)
+        => warningMessageUI?.ShowAcquisition(message, owner);
+
+    public void ShowTraitAcquired(TraitDefinition trait, int previousLevel, int newLevel)
+    {
+        if (trait == null || newLevel <= previousLevel) return;
+        string actionText = previousLevel > 0 ? "강화" : "획득";
+        ShowCommunication(ShipCommunicationChannel.Equipment,
+            $"특성 {actionText}: {trait.DisplayName} Lv{newLevel}", ShipCommunicationSeverity.Confirmation, 2f);
+        statusEffectPresenter?.PresentAcquiredTrait(trait, newLevel);
+    }
+
     public void SetCoreTrackingVisible(bool visible)
     {
-        SetGameObjectVisible(objectiveRoot, visible);
+        SetGameObjectVisible(objectiveRoot, visible && !IsRegionBossPresentationActive && IsRegionCoreObjectiveRelevant);
     }
 
     public void ShowCommunication(
         ShipCommunicationChannel channel,
         string message,
         ShipCommunicationSeverity severity = ShipCommunicationSeverity.Warning,
-        float duration = -1f)
+        float duration = -1f,
+        object owner = null)
     {
         if (string.IsNullOrWhiteSpace(message) || warningMessageUI == null)
         {
@@ -404,11 +426,11 @@ public class ExpeditionHUD : MonoBehaviour
 
         if (duration > 0f)
         {
-            warningMessageUI.ShowCommunication(channel, message, severity, duration);
+            warningMessageUI.ShowCommunication(channel, message, severity, duration, owner);
             return;
         }
 
-        warningMessageUI.ShowCommunication(channel, message, severity);
+        warningMessageUI.ShowCommunication(channel, message, severity, -1f, owner);
     }
 
     public void SetOperationDisplay(
@@ -464,8 +486,16 @@ public class ExpeditionHUD : MonoBehaviour
         BindOperationMovement();
     }
 
+    private bool operationBriefingHeld;
     public void ShowObjectiveBriefing(string title, string detail, Color accentColor)
+        => ShowObjectiveBriefingInternal(title, detail, accentColor, false);
+
+    public void ShowHeldObjectiveBriefing(string title, string detail, Color accentColor)
+        => ShowObjectiveBriefingInternal(title, detail, accentColor, true);
+
+    private void ShowObjectiveBriefingInternal(string title, string detail, Color accentColor, bool held)
     {
+        operationBriefingHeld = held;
         if (operationPresentationShuttingDown || !isActiveAndEnabled)
         {
             return;
@@ -508,6 +538,7 @@ public class ExpeditionHUD : MonoBehaviour
 
     public void HideOperationDisplayImmediate()
     {
+        operationBriefingHeld = false;
         operationBriefingPending = false;
         operationBriefingPresented = false;
         UnbindOperationMovement();
@@ -517,6 +548,21 @@ public class ExpeditionHUD : MonoBehaviour
         {
             operationRoot.SetActive(false);
         }
+    }
+
+    // Scope only the transient briefing. Operation state and pending text stay with their owners.
+    public void SetOperationBriefingSuppressed(object owner, bool suppressed)
+    {
+        if (owner == null) return;
+        if (suppressed) operationBriefingSuppressors.Add(owner);
+        else operationBriefingSuppressors.Remove(owner);
+        if (IsOperationBriefingSuppressed)
+        {
+            if (operationRoot != null && operationRoot.activeSelf) operationBriefingPending = true;
+            KillOperationBriefingTween();
+            if (operationRoot != null) operationRoot.SetActive(false);
+        }
+        else if (operationBriefingPending && isActiveAndEnabled) BindOperationMovement();
     }
 
     private void BindOperationMovement()
@@ -548,7 +594,7 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void HandleFirstOperationMovement(InputAction.CallbackContext context)
     {
-        if (!operationBriefingPending || GameplayPauseManager.IsPaused ||
+        if (!operationBriefingPending || IsOperationBriefingSuppressed || GameplayPauseManager.IsPaused ||
             context.ReadValue<Vector2>().sqrMagnitude <= 0.0001f)
         {
             return;
@@ -568,6 +614,12 @@ public class ExpeditionHUD : MonoBehaviour
             return;
         }
 
+        if (IsOperationBriefingSuppressed)
+        {
+            operationBriefingPending = true;
+            BindOperationMovement();
+            return;
+        }
         KillOperationBriefingTween();
         operationRoot.SetActive(true);
         if (operationBriefingRect == null) operationBriefingRect = operationRoot.transform as RectTransform;
@@ -591,6 +643,13 @@ public class ExpeditionHUD : MonoBehaviour
             ));
         }
 
+        if (operationBriefingHeld)
+        {
+            // A required teaching instruction stays readable until its owner clears it.
+            // The intro tween still finishes; there is no loop or input lock.
+            operationBriefingSequence.OnComplete(() => operationBriefingSequence = null);
+            return;
+        }
         operationBriefingSequence.AppendInterval(operationBriefingVisibleDuration);
         operationBriefingSequence.Append(operationCanvasGroup.DOFade(0f, operationBriefingOutroDuration));
         if (operationBriefingRect != null)
@@ -928,6 +987,7 @@ public class ExpeditionHUD : MonoBehaviour
         {
             playerHealth.Changed += HandleHealthChanged;
             playerHealth.InvincibilityChanged += HandleInvincibilityChanged;
+            playerHealth.Died += ClearArmorBreakAccent;
         }
 
         if (componentShield != null)
@@ -938,6 +998,7 @@ public class ExpeditionHUD : MonoBehaviour
         if (playerArmor != null)
         {
             playerArmor.Changed += HandleArmorChanged;
+            playerArmor.Broken += HandleArmorBroken;
         }
 
         if (playerDash != null)
@@ -949,6 +1010,7 @@ public class ExpeditionHUD : MonoBehaviour
         if (reinforcementController != null)
         {
             reinforcementController.EquipmentChanged += HandleReinforcementEquipmentChanged;
+            reinforcementController.AcquisitionAcknowledged += HandleReinforcementAcquired;
             reinforcementController.ChargesChanged += HandleReinforcementChargesChanged;
             reinforcementController.Used += HandleReinforcementUsed;
             reinforcementController.ActiveTimedStatusesChanged += HandleReinforcementTimedStatusesChanged;
@@ -977,6 +1039,7 @@ public class ExpeditionHUD : MonoBehaviour
         {
             subscribedRunManager.WalletChanged += HandleWalletChanged;
             subscribedRunManager.RunStarted += HandleRunStarted;
+            subscribedRunManager.CampaignBossDefeated += HandleRegionBossDefeated;
         }
 
         subscribed = true;
@@ -993,6 +1056,7 @@ public class ExpeditionHUD : MonoBehaviour
         {
             subscribedPlayerHealth.Changed -= HandleHealthChanged;
             subscribedPlayerHealth.InvincibilityChanged -= HandleInvincibilityChanged;
+            subscribedPlayerHealth.Died -= ClearArmorBreakAccent;
         }
 
         if (subscribedComponentShield != null)
@@ -1003,6 +1067,7 @@ public class ExpeditionHUD : MonoBehaviour
         if (subscribedPlayerArmor != null)
         {
             subscribedPlayerArmor.Changed -= HandleArmorChanged;
+            subscribedPlayerArmor.Broken -= HandleArmorBroken;
         }
 
         if (subscribedPlayerDash != null)
@@ -1014,6 +1079,7 @@ public class ExpeditionHUD : MonoBehaviour
         if (subscribedReinforcementController != null)
         {
             subscribedReinforcementController.EquipmentChanged -= HandleReinforcementEquipmentChanged;
+            subscribedReinforcementController.AcquisitionAcknowledged -= HandleReinforcementAcquired;
             subscribedReinforcementController.ChargesChanged -= HandleReinforcementChargesChanged;
             subscribedReinforcementController.Used -= HandleReinforcementUsed;
             subscribedReinforcementController.ActiveTimedStatusesChanged -= HandleReinforcementTimedStatusesChanged;
@@ -1041,6 +1107,7 @@ public class ExpeditionHUD : MonoBehaviour
         {
             subscribedRunManager.WalletChanged -= HandleWalletChanged;
             subscribedRunManager.RunStarted -= HandleRunStarted;
+            subscribedRunManager.CampaignBossDefeated -= HandleRegionBossDefeated;
         }
         subscribedRunManager = null;
 
@@ -1210,6 +1277,7 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void HandleRunStarted(RunContext _)
     {
+        regionBossPresented = false;
         cargoPresentationInitialized = false;
         lastCargoLoad = -1;
         lastCargoCapacity = -1;
@@ -1225,17 +1293,93 @@ public class ExpeditionHUD : MonoBehaviour
     private void HandleInvincibilityChanged(bool _) => RefreshHealthStateVisual();
     private void HandleShieldChargeStateChanged(bool _) => RefreshHealthStateVisual();
 
-    private void HandleArmorChanged(float current, float max) => RefreshHealthAndArmor(
-        playerHealth != null ? playerHealth.CurrentHp : 0f,
-        playerHealth != null ? playerHealth.MaxHp : 1f,
-        current,
-        max
-    );
-    private void HandleObjectiveProgressChanged(int current, int required) => RefreshObjectiveProgress(current, required);
-    private void HandleCoreRevealed() => RefreshObjectiveProgress();
+    private void HandleArmorChanged(float current, float max)
+    {
+        if (current > 0f) ClearArmorBreakAccent();
+        RefreshHealthAndArmor(playerHealth != null ? playerHealth.CurrentHp : 0f,
+            playerHealth != null ? playerHealth.MaxHp : 1f, current, max);
+    }
+
+    private void HandleArmorBroken()
+    {
+        if (!isActiveAndEnabled || armorTrackImage == null || (playerHealth != null && playerHealth.IsDead)) return;
+        ClearArmorBreakAccent();
+        armorTrackRestColor = armorTrackImage.color;
+        SetGameObjectVisible(armorBonusRoot != null ? armorBonusRoot : armorBonusText != null ? armorBonusText.gameObject : null, true);
+        if (armorBonusText != null)
+        {
+            armorBonusText.text = string.Format(armorBonusFormat, 0f);
+            armorBonusText.color = new Color(1f, .68f, .22f, 1f);
+        }
+        armorTrackImage.gameObject.SetActive(true);
+        armorTrackImage.color = new Color(1f, .68f, .22f, 1f);
+        // Show the empty strip, never a false full armor fill. The existing hit owns sound/VFX.
+        armorBreakAccent = DOTween.Sequence().SetUpdate(true);
+        armorBreakAccent.AppendInterval(.12f);
+        armorBreakAccent.Append(armorTrackImage.DOColor(armorTrackRestColor, .43f));
+        armorBreakAccent.OnComplete(ClearArmorBreakAccent);
+    }
+
+    private void ClearArmorBreakAccent()
+    {
+        if (armorBreakAccent == null) return;
+        armorBreakAccent.Kill(false);
+        armorBreakAccent = null;
+        bool hasArmor = playerArmor != null && playerArmor.HasArmor;
+        SetGameObjectVisible(armorBonusRoot != null ? armorBonusRoot : armorBonusText != null ? armorBonusText.gameObject : null, hasArmor);
+        if (armorBonusText != null) armorBonusText.color = armorBonusColor;
+        if (armorTrackImage != null)
+        {
+            armorTrackImage.color = armorTrackRestColor;
+            armorTrackImage.gameObject.SetActive(hasArmor);
+        }
+    }
+    private int presentedSignalCount = -1;
+    private Tween corePipAccent;
+    private Transform accentedCorePip;
+    private Vector3 corePipRestScale;
+    private void HandleObjectiveProgressChanged(int current, int required)
+    {
+        int previous = presentedSignalCount;
+        RefreshObjectiveProgress(current, required);
+        if (previous >= 0 && current > previous) AccentCoreSignalPip(previous, required);
+    }
+    private void AccentCoreSignalPip(int index, int required)
+    {
+        ClearCorePipAccent();
+        if (coreSignalPips == null || index < 0 || index >= coreSignalPips.Length || index >= required || coreSignalPips[index] == null) return;
+        accentedCorePip = coreSignalPips[index].transform;
+        if (!accentedCorePip.gameObject.activeInHierarchy) { accentedCorePip = null; return; }
+        corePipRestScale = accentedCorePip.localScale;
+        corePipAccent = accentedCorePip.DOPunchScale(corePipRestScale * .28f, .45f, 1, .25f)
+            .SetUpdate(true).SetLink(accentedCorePip.gameObject, LinkBehaviour.KillOnDisable)
+            .OnKill(() => { if (accentedCorePip != null) accentedCorePip.localScale = corePipRestScale; });
+    }
+    private void ClearCorePipAccent()
+    {
+        corePipAccent?.Kill(); corePipAccent = null;
+        if (accentedCorePip != null) accentedCorePip.localScale = corePipRestScale;
+        accentedCorePip = null;
+    }
+    private void HandleCoreRevealed()
+    {
+        // Preserve visibility/labels without consuming the subsequent earned-pip event.
+        int previous = presentedSignalCount;
+        RefreshObjectiveProgress();
+        presentedSignalCount = previous;
+    }
     private void HandleDashStarted(Vector2 _) => UpdateDashDisplay();
     private void HandleDashEnded() => UpdateDashDisplay();
-    private void HandleReinforcementEquipmentChanged(ReinforcementDefinition _, int __, int ___) => UpdateReinforcementSlot();
+    private void HandleReinforcementEquipmentChanged(ReinforcementDefinition _, int __, int ___)
+    {
+        UpdateReinforcementSlot();
+        RefreshBindingHints();
+    }
+    private void HandleReinforcementAcquired(ReinforcementDefinition definition)
+    {
+        UpdateReinforcementSlot();
+        reinforcementSlotUI?.PresentAcquisition();
+    }
     private void HandleReinforcementChargesChanged(int _, int __, float ___) => UpdateReinforcementSlot();
     private void HandleReinforcementUsed(ReinforcementDefinition _) => UpdateReinforcementSlot();
     private void HandleReinforcementTimedStatusesChanged() => UpdateReinforcementSlot();
@@ -1297,9 +1441,8 @@ public class ExpeditionHUD : MonoBehaviour
     {
         maxHp = Mathf.Max(1f, maxHp);
         maxArmor = Mathf.Max(0f, maxArmor);
-        float totalCapacity = Mathf.Max(maxHp, maxHp + maxArmor);
-        float hpRatio = Mathf.Clamp01(currentHp / totalCapacity);
-        float combinedRatio = Mathf.Clamp01((currentHp + Mathf.Max(0f, armor)) / totalCapacity);
+        float hpRatio = Mathf.Clamp01(currentHp / maxHp);
+        float armorRatio = maxArmor > 0 ? Mathf.Clamp01(armor / maxArmor) : 0;
         hpGauge?.SetRatio(hpRatio);
 
         if (hpValueText != null)
@@ -1312,7 +1455,7 @@ public class ExpeditionHUD : MonoBehaviour
             ? armorBonusRoot
             : armorBonusText != null ? armorBonusText.gameObject : null;
 
-        SetGameObjectVisible(resolvedArmorRoot, hasArmor);
+        SetGameObjectVisible(resolvedArmorRoot, hasArmor || armorBreakAccent != null);
 
         if (hasArmor && armorBonusText != null)
         {
@@ -1320,7 +1463,7 @@ public class ExpeditionHUD : MonoBehaviour
             armorBonusText.color = armorBonusColor;
         }
 
-        RefreshArmorFill(hpRatio, combinedRatio, hasArmor);
+        RefreshArmorFill(armorRatio, hasArmor);
 
         if (legacyArmorGauge != null)
         {
@@ -1372,20 +1515,21 @@ public class ExpeditionHUD : MonoBehaviour
         }
     }
 
-    private void RefreshArmorFill(float hpRatio, float combinedRatio, bool visible)
+    private void RefreshArmorFill(float armorRatio, bool visible)
     {
+        if (armorTrackImage != null) armorTrackImage.gameObject.SetActive(visible || armorBreakAccent != null);
         if (armorFillRect == null)
         {
             return;
         }
 
-        armorFillRect.anchorMin = new Vector2(hpRatio, armorFillRect.anchorMin.y);
-        armorFillRect.anchorMax = new Vector2(Mathf.Max(hpRatio, combinedRatio), armorFillRect.anchorMax.y);
+        armorFillRect.anchorMin = new Vector2(0, armorFillRect.anchorMin.y);
+        armorFillRect.anchorMax = new Vector2(armorRatio, armorFillRect.anchorMax.y);
         if (armorFillImage != null)
         {
             armorFillImage.color = armorFillColor;
         }
-        SetGameObjectVisible(armorFillRect.gameObject, visible && combinedRatio > hpRatio + 0.0001f);
+        SetGameObjectVisible(armorFillRect.gameObject, visible && armorRatio > 0.0001f);
     }
 
 
@@ -1438,13 +1582,25 @@ public class ExpeditionHUD : MonoBehaviour
 
     private void RefreshObjectiveProgress(int current, int required)
     {
+        var run = RunManager.Instance;
+        int family = CoreFamilyPresentation.FamilyIndex(run != null && run.HasActiveRun
+            ? run.CurrentRun.ExpeditionDepth : ExpeditionDepth.Normal);
+        bool gray = CoreFamilyPresentation.Current != null && CoreFamilyPresentation.Current.UsesGrayCore;
+        Sprite signalSprite = gray ? CoreFamilyPresentation.Current.GrayIcon :
+            coreFamilyIcons != null && family < coreFamilyIcons.Length ? coreFamilyIcons[family] : null;
+        if (coreSignalIcon != null && signalSprite != null)
+        {
+            coreSignalIcon.sprite = signalSprite;
+            coreSignalIcon.preserveAspect = true;
+        }
         required = Mathf.Max(1, required);
         int clamped = Mathf.Clamp(current, 0, required);
+        presentedSignalCount = clamped;
         bool ready = current >= required;
 
         if (coreTrackingObjectiveText != null)
         {
-            coreTrackingObjectiveText.text = ready
+            coreTrackingObjectiveText.text = gray ? (ready ? "Gray Core located" : "Tracking Gray Core") : ready
                 ? "코어 좌표 확인 · 코어 활성화"
                 : "코어 추적 신호 확보";
             coreTrackingObjectiveText.color = ready ? coreSignalReadyColor : coreSignalActiveColor;
@@ -1456,8 +1612,14 @@ public class ExpeditionHUD : MonoBehaviour
             {
                 if (coreSignalPips[i] != null)
                 {
+                    bool approvedFamily = signalSprite != null;
+                    if (approvedFamily)
+                    {
+                        coreSignalPips[i].sprite = signalSprite;
+                        coreSignalPips[i].preserveAspect = true;
+                    }
                     coreSignalPips[i].color = i < clamped
-                        ? ready ? coreSignalReadyColor : coreSignalActiveColor
+                        ? approvedFamily ? Color.white : ready ? coreSignalReadyColor : coreSignalActiveColor
                         : coreSignalInactiveColor;
                 }
             }
@@ -1469,7 +1631,7 @@ public class ExpeditionHUD : MonoBehaviour
 
         if (coreSignalIcon != null)
         {
-            coreSignalIcon.color = ready ? coreSignalReadyColor : coreSignalActiveColor;
+            coreSignalIcon.color = gray ? Color.white : ready ? coreSignalReadyColor : coreSignalActiveColor;
         }
 
         if (coreSignalCountText != null)
@@ -1803,16 +1965,19 @@ public class ExpeditionHUD : MonoBehaviour
         string mapKey = InputBindingUtility.GetDisplayString(inputActions, playerActionMapName, mapActionName, "Tab");
         string inventoryKey = InputBindingUtility.GetDisplayString(inputActions, playerActionMapName, inventoryActionName, "E");
         string reinforcementKey = InputBindingUtility.GetDisplayString(inputActions, playerActionMapName, reinforcementActionName, "R");
-        string reinforcementLabel = string.Format(reinforcementKeyFormat, reinforcementKey);
+        string reinforcementLabel = reinforcementController != null && reinforcementController.HasEquipment
+            ? string.Format(reinforcementKeyFormat, reinforcementKey) : string.Empty;
         reinforcementSlotUI?.SetKeyLabel(reinforcementLabel);
 
         if (mapHintText != null)
         {
+            mapHintText.fontSize = 6.5f;
             mapHintText.text = string.Format(mapHintFormat, mapKey);
         }
 
         if (inventoryHintText != null)
         {
+            inventoryHintText.fontSize = 6.5f;
             inventoryHintText.text = string.Format(inventoryHintFormat, inventoryKey);
         }
 
